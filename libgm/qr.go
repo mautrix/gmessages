@@ -18,5 +18,5 @@ func (p *Pairer) GenerateQRCodeData() (string, error) {
 		return "", err
 	}
 	cData := base64.StdEncoding.EncodeToString(encodedUrlData)
-	return util.QR_CODE_URL + cData, nil
+	return util.QRCodeURLBase + cData, nil
 }

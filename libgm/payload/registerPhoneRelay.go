@@ -43,7 +43,7 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.Container, error) {
 			},
 		},
 		BrowserDetails: &binary.BrowserDetails{
-			UserAgent: util.USER_AGENT,
+			UserAgent: util.UserAgent,
 			SomeInt:   2,
 			SomeBool:  true,
 			Os:        util.OS,

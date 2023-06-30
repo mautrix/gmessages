@@ -32,7 +32,7 @@ func (h *Headers) Build() {
 	h.SecChUaMobile = "?0"
 	h.SecChUaPlatform = `"Linux"`
 	h.UpgradeInsecureRequests = "1"
-	h.UserAgent = USER_AGENT
+	h.UserAgent = UserAgent
 	h.Accept = `text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7`
 	h.SecFetchSite = "none"
 	h.SecFetchMode = "navigate"

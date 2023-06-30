@@ -64,13 +64,13 @@ func BuildRelayHeaders(req *http.Request, contentType string, accept string) {
 	req.Header.Add("host", "instantmessaging-pa.googleapis.com")
 	req.Header.Add("connection", "keep-alive")
 	req.Header.Add("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\"")
-	req.Header.Add("x-user-agent", X_USER_AGENT)
-	req.Header.Add("x-goog-api-key", GOOG_API_KEY)
+	req.Header.Add("x-user-agent", XUserAgent)
+	req.Header.Add("x-goog-api-key", GoogleAPIKey)
 	if len(contentType) > 0 {
 		req.Header.Add("content-type", contentType)
 	}
 	req.Header.Add("sec-ch-ua-mobile", "?0")
-	req.Header.Add("user-agent", USER_AGENT)
+	req.Header.Add("user-agent", UserAgent)
 	req.Header.Add("sec-ch-ua-platform", "\""+OS+"\"")
 	req.Header.Add("accept", accept)
 	req.Header.Add("origin", "https://messages.google.com")
@@ -87,7 +87,7 @@ func BuildUploadHeaders(req *http.Request, metadata string) {
 	req.Header.Add("x-goog-download-metadata", metadata)
 	req.Header.Add("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\"")
 	req.Header.Add("sec-ch-ua-mobile", "?0")
-	req.Header.Add("user-agent", USER_AGENT)
+	req.Header.Add("user-agent", UserAgent)
 	req.Header.Add("sec-ch-ua-platform", "\""+OS+"\"")
 	req.Header.Add("accept", "*/*")
 	req.Header.Add("origin", "https://messages.google.com")
@@ -110,7 +110,7 @@ func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string
 	}
 	headers.Add("x-goog-upload-header-content-length", imageSize)
 	headers.Add("sec-ch-ua-mobile", "?0")
-	headers.Add("user-agent", USER_AGENT)
+	headers.Add("user-agent", UserAgent)
 	if imageContentType != "" {
 		headers.Add("x-goog-upload-header-content-type", imageContentType)
 	}
