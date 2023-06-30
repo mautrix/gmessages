@@ -1,18 +1,15 @@
 package textgapi
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/cache"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
@@ -42,8 +39,6 @@ type Client struct {
 
 	proxy Proxy
 	http  *http.Client
-
-	cache cache.Cache
 }
 
 func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.Logger, proxy *string) *Client {
@@ -61,7 +56,6 @@ func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.L
 		cryptor:        cryptor,
 		imageCryptor:   &crypto.ImageCryptor{},
 		http:           &http.Client{},
-		cache:          cache.Cache{},
 	}
 	sessionHandler.client = cli
 	cli.instructions = NewInstructions(cli.cryptor)
@@ -71,11 +65,6 @@ func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.L
 	rpc := &RPC{client: cli, http: &http.Client{Transport: &http.Transport{Proxy: cli.proxy}}}
 	cli.rpc = rpc
 	cli.Logger.Debug().Any("data", cryptor).Msg("Cryptor")
-	cli.cache.Conversations = cache.Conversations{
-		Conversations: make(map[string]*cache.Conversation),
-		Order:         make(map[int]string),
-	}
-	cli.cache.Conversations.SetCache(&cli.cache)
 	cli.setApiMethods()
 	return cli
 }
@@ -227,16 +216,4 @@ func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
 		return nil, decryptionErr
 	}
 	return decryptedImageBytes, nil
-}
-
-func (c *Client) SaveCache(path string) {
-	toSaveJson, jsonErr := json.Marshal(c.cache)
-	if jsonErr != nil {
-		log.Fatal(jsonErr)
-	}
-	os.WriteFile(path, toSaveJson, os.ModePerm)
-}
-
-func (c *Client) GetCache() cache.Cache {
-	return c.cache
 }

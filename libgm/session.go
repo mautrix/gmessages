@@ -27,7 +27,6 @@ func (s *Session) SetActiveSession() (*util.SessionResponse, error) {
 		return nil, processFail
 	}
 
-	s.client.cache.SetSettings(sessionResponse.Settings)
 	return sessionResponse, nil
 }
 

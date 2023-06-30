@@ -1,11 +1,6 @@
 package textgapi
 
 import (
-	"fmt"
-	"os"
-
-	validator "github.com/gabriel-vasile/mimetype"
-
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -102,27 +97,15 @@ func (i *Image) GetImageId() string {
 	return i.imageId
 }
 
-func (mb *MessageBuilder) AddImageFromPath(filePath string) *MessageBuilder {
-	if mb.err != nil {
-		return mb
-	}
-	file, err := os.ReadFile(filePath)
-	if err != nil {
-		mb.err = err
-		return mb
-	}
-	return mb.AddImage(file)
-}
-
 // This is the equivalent of dragging an image into the window on messages web
 //
 // Keep in mind that adding an image to a MessageBuilder will also upload the image to googles server
-func (mb *MessageBuilder) AddImage(imgBytes []byte) *MessageBuilder {
+func (mb *MessageBuilder) AddImage(imgBytes []byte, mime string) *MessageBuilder {
 	if mb.err != nil {
 		return mb
 	}
 
-	newImage, newImageErr := mb.newImageData(imgBytes)
+	newImage, newImageErr := mb.newImageData(imgBytes, mime)
 	if newImageErr != nil {
 		mb.err = newImageErr
 		return mb
@@ -144,12 +127,9 @@ func (mb *MessageBuilder) AddImage(imgBytes []byte) *MessageBuilder {
 	return mb
 }
 
-func (mb *MessageBuilder) newImageData(imgBytes []byte) (*Image, error) {
-	imgFormat := validator.Detect(imgBytes)
-	if imgFormat.String() == "text/plain" {
-		return nil, fmt.Errorf("could not validate media content-type: received %s", imgFormat.String())
-	}
-	imgType := ImageTypes[imgFormat.String()]
+func (mb *MessageBuilder) newImageData(imgBytes []byte, mime string) (*Image, error) {
+	// TODO explode on unsupported types
+	imgType := ImageTypes[mime]
 	imageId := util.GenerateImageId()
 	imageName := util.RandStr(8) + "." + imgType.Extension
 	decryptionKey, err := crypto.GenerateKey(32)

@@ -31,22 +31,16 @@ func (c *Conversations) List(count int64) (*binary.Conversations, error) {
 	}
 
 	if decryptedData, ok := decryptedProto.(*binary.Conversations); ok {
-		c.client.cache.SetConversations(decryptedData)
 		return decryptedData, nil
 	} else {
 		return nil, fmt.Errorf("failed to assert decryptedProto into type Conversations")
 	}
 }
 
-func (c *Conversations) SendMessage(messageBuilder *MessageBuilder) (*binary.SendMessageResponse, error) {
-	conv, notFound := c.client.cache.Conversations.GetConversation(messageBuilder.GetConversationId())
-	if notFound != nil {
-		log.Fatal(notFound)
-	}
-
+func (c *Conversations) SendMessage(messageBuilder *MessageBuilder, selfParticipantID string) (*binary.SendMessageResponse, error) {
 	hasSelfParticipantId := messageBuilder.GetSelfParticipantId()
 	if hasSelfParticipantId == "" {
-		messageBuilder.SetSelfParticipantId(conv.SelfParticipantId)
+		messageBuilder.SetSelfParticipantId(selfParticipantID)
 	}
 
 	encryptedProtoPayload, failedToBuild := messageBuilder.Build()
@@ -98,7 +92,6 @@ func (c *Conversations) FetchMessages(convId string, count int64, cursor *binary
 		return nil, processFail
 	}
 
-	c.client.cache.SetMessages(fetchedMessagesResponse)
 	return fetchedMessagesResponse, nil
 }
 

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 )
 
 var Charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
@@ -47,8 +47,7 @@ func RandomHex(n int) string {
 }
 
 func RandomUUIDv4() string {
-	id, _ := uuid.NewV4()
-	return id.String()
+	return uuid.New().String()
 }
 
 func RemoveFromSlice(s []string, v string) []string {
