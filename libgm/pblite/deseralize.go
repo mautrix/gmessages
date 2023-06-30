@@ -22,6 +22,7 @@ func Deserialize(data []any, m protoreflect.Message) error {
 		var boolean, ok bool
 		switch fieldDescriptor.Kind() {
 		case protoreflect.MessageKind:
+			ok = true
 			nestedData, ok := val.([]any)
 			if !ok {
 				return fmt.Errorf("expected untyped array at index %d for field %s, got %T", index, fieldDescriptor.FullName(), val)
@@ -32,6 +33,7 @@ func Deserialize(data []any, m protoreflect.Message) error {
 			}
 			m.Set(fieldDescriptor, protoreflect.ValueOfMessage(nestedMessage))
 		case protoreflect.BytesKind:
+			ok = true
 			bytesBase64, ok := val.(string)
 			if !ok {
 				return fmt.Errorf("expected string at index %d for field %s, got %T", index, fieldDescriptor.FullName(), val)
