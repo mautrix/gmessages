@@ -1,4 +1,4 @@
-package textgapi
+package libgm
 
 import (
 	"log"
