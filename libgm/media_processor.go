@@ -2,6 +2,7 @@ package textgapi
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"io"
 	"log"
@@ -135,7 +136,7 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 
 func (c *Client) buildStartUploadPayload() (string, error) {
 
-	decodedRpcKey, err := crypto.Base64DecodeStandard(c.rpcKey)
+	decodedRpcKey, err := base64.StdEncoding.DecodeString(c.rpcKey)
 	if err != nil {
 		return "", err
 	}

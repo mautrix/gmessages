@@ -1,6 +1,8 @@
 package crypto
 
 import (
+	"encoding/base64"
+
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -55,6 +57,6 @@ func EncodeProtoB64(message proto.Message) (string, error) {
 	if protoErr != nil {
 		return "", protoErr
 	}
-	encodedStr := EncodeBase64Standard(protoBytes)
+	encodedStr := base64.StdEncoding.EncodeToString(protoBytes)
 	return encodedStr, nil
 }

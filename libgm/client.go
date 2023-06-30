@@ -1,6 +1,7 @@
 package textgapi
 
 import (
+	"encoding/base64"
 	"io"
 	"log"
 	"net/http"
@@ -166,7 +167,7 @@ func (c *Client) decryptImages(messages *binary.FetchMessagesResponse) error {
 }
 
 func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
-	decodedRpcKey, err := crypto.Base64DecodeStandard(c.rpcKey)
+	decodedRpcKey, err := base64.StdEncoding.DecodeString(c.rpcKey)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +193,7 @@ func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
 	if err2 != nil {
 		return nil, err2
 	}
-	download_metadata_b64 := crypto.EncodeBase64Standard(download_metadata_bytes)
+	download_metadata_b64 := base64.StdEncoding.EncodeToString(download_metadata_bytes)
 	req, err := http.NewRequest("GET", util.UPLOAD_MEDIA, nil)
 	if err != nil {
 		return nil, err

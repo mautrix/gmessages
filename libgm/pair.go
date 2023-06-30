@@ -1,6 +1,7 @@
 package textgapi
 
 import (
+	"encoding/base64"
 	"io"
 	"log"
 	"time"
@@ -140,7 +141,7 @@ func (p *Pairer) GetWebEncryptionKey() {
 	if err2 != nil {
 		p.client.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
 	}
-	key := crypto.EncodeBase64Standard(p.client.rpc.webAuthKey)
+	key := base64.StdEncoding.EncodeToString(p.client.rpc.webAuthKey)
 	p.ticker.Stop()
 	reconnectErr := p.client.Reconnect(key)
 	if reconnectErr != nil {

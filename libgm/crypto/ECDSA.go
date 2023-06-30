@@ -33,13 +33,13 @@ func (t *JWK) Marshal() ([]byte, error) {
 }
 
 func (t *JWK) PrivKeyB64Bytes() ([]byte, error) {
-	decodedPrivateKey, err2 := Base64Decode(t.D)
+	decodedPrivateKey, err2 := base64.RawURLEncoding.DecodeString(t.D)
 	return decodedPrivateKey, err2
 }
 
 func (t *JWK) ExtractPublicKeyDetails(pubKey []byte) *JWK {
-	x := EncodeBase64(pubKey[1:33])
-	y := EncodeBase64(pubKey[33:])
+	x := base64.RawURLEncoding.EncodeToString(pubKey[1:33])
+	y := base64.RawURLEncoding.EncodeToString(pubKey[33:])
 	return &JWK{
 		Kty: "EC",
 		Crv: "P-256",

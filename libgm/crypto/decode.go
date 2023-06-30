@@ -1,13 +1,15 @@
 package crypto
 
 import (
+	"encoding/base64"
+
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 func DecodeAndEncodeB64(data string, msg proto.Message) error {
-	decodedBytes, err := Base64DecodeStandard(data)
+	decodedBytes, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return err
 	}
@@ -19,7 +21,7 @@ func DecodeAndEncodeB64(data string, msg proto.Message) error {
 }
 
 func DecodeEncodedResponse(data string) (*binary.EncodedResponse, error) {
-	decodedBytes, err := Base64DecodeStandard(data)
+	decodedBytes, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, err
 	}

@@ -1,13 +1,14 @@
 package payload
 
 import (
+	"encoding/base64"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 func RefreshPhoneRelay(rpcKey string) ([]byte, *binary.Container, error) {
-	decodedRpcKey, err1 := crypto.Base64DecodeStandard(rpcKey)
+	decodedRpcKey, err1 := base64.StdEncoding.DecodeString(rpcKey)
 	if err1 != nil {
 		return nil, nil, err1
 	}

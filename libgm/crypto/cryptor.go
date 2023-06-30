@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
@@ -35,7 +36,7 @@ func NewCryptor(aes_key []byte, sha_key []byte) *Cryptor {
 }
 
 func (c *Cryptor) SaveAsJson() {
-	AES_B64, SHA_B64 := EncodeBase64Standard(c.AES_CTR_KEY_256), EncodeBase64Standard(c.SHA_256_KEY)
+	AES_B64, SHA_B64 := base64.StdEncoding.EncodeToString(c.AES_CTR_KEY_256), base64.StdEncoding.EncodeToString(c.SHA_256_KEY)
 	inter := struct {
 		AES_CTR_KEY_256 string
 		SHA_256_KEY     string

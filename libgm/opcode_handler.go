@@ -1,14 +1,14 @@
 package textgapi
 
 import (
+	"encoding/base64"
 	"log"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 )
 
 func (c *Client) handleSeperateOpCode(msgData *binary.MessageData) {
-	decodedBytes, err := crypto.Base64DecodeStandard(msgData.EncodedData)
+	decodedBytes, err := base64.StdEncoding.DecodeString(msgData.EncodedData)
 	if err != nil {
 		log.Fatal(err)
 	}

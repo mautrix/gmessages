@@ -1,8 +1,9 @@
 package textgapi
 
 import (
+	"encoding/base64"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -16,6 +17,6 @@ func (p *Pairer) GenerateQRCodeData() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	cData := crypto.Base64Encode(encodedUrlData)
+	cData := base64.StdEncoding.EncodeToString(encodedUrlData)
 	return util.QR_CODE_URL + cData, nil
 }
