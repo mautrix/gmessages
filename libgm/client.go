@@ -88,12 +88,12 @@ func (c *Client) SetProxy(proxy string) error {
 }
 
 func (c *Client) Connect(rpcKey []byte) error {
-	rpcPayload, receiveMesageSessionId, err := payload.ReceiveMessages(rpcKey)
+	rpcPayload, receiveMesageSessionID, err := payload.ReceiveMessages(rpcKey)
 	if err != nil {
 		panic(err)
 		return err
 	}
-	c.rpc.rpcSessionId = receiveMesageSessionId
+	c.rpc.rpcSessionID = receiveMesageSessionID
 	c.rpcKey = rpcKey
 	c.rpc.ListenReceiveMessages(rpcPayload)
 	c.Logger.Debug().Any("rpcKey", rpcKey).Msg("Successfully connected to server")
@@ -152,7 +152,7 @@ func (c *Client) decryptImages(messages *binary.FetchMessagesResponse) error {
 			for _, details := range msg.GetMessageInfo() {
 				switch data := details.GetData().(type) {
 				case *binary.MessageInfo_ImageContent:
-					decryptedImageData, err := c.decryptImageData(data.ImageContent.ImageId, data.ImageContent.DecryptionKey)
+					decryptedImageData, err := c.decryptImageData(data.ImageContent.ImageID, data.ImageContent.DecryptionKey)
 					if err != nil {
 						panic(err)
 						return err
@@ -169,11 +169,11 @@ func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
 	reqId := util.RandomUUIDv4()
 	download_metadata := &binary.UploadImagePayload{
 		MetaData: &binary.ImageMetaData{
-			ImageId:   imageId,
+			ImageID:   imageId,
 			Encrypted: true,
 		},
 		AuthData: &binary.AuthMessage{
-			RequestId: reqId,
+			RequestID: reqId,
 			RpcKey:    c.rpcKey,
 			Date: &binary.Date{
 				Year: 2023,

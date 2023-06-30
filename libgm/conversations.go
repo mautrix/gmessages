@@ -18,9 +18,9 @@ type Conversations struct {
 func (c *Conversations) List(count int64) (*binary.Conversations, error) {
 	encryptedProtoPayload := &binary.ListCoversationsPayload{Count: count, Field4: 1}
 	instruction, _ := c.client.instructions.GetInstruction(LIST_CONVERSATIONS)
-	sentRequestId, _ := c.client.createAndSendRequest(instruction.Opcode, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	sentRequestID, _ := c.client.createAndSendRequest(instruction.Opcode, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
 
-	responses, err := c.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
+	responses, err := c.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (c *Conversations) List(count int64) (*binary.Conversations, error) {
 }
 
 func (c *Conversations) SendMessage(messageBuilder *MessageBuilder, selfParticipantID string) (*binary.SendMessageResponse, error) {
-	hasSelfParticipantId := messageBuilder.GetSelfParticipantId()
+	hasSelfParticipantId := messageBuilder.GetSelfParticipantID()
 	if hasSelfParticipantId == "" {
-		messageBuilder.SetSelfParticipantId(selfParticipantID)
+		messageBuilder.SetSelfParticipantID(selfParticipantID)
 	}
 
 	encryptedProtoPayload, failedToBuild := messageBuilder.Build()
@@ -49,9 +49,9 @@ func (c *Conversations) SendMessage(messageBuilder *MessageBuilder, selfParticip
 
 	instruction, _ := c.client.instructions.GetInstruction(SEND_TEXT_MESSAGE)
 	c.client.Logger.Debug().Any("payload", encryptedProtoPayload).Msg("SendMessage Payload")
-	sentRequestId, _ := c.client.createAndSendRequest(instruction.Opcode, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	sentRequestID, _ := c.client.createAndSendRequest(instruction.Opcode, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
 
-	responses, err := c.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
+	responses, err := c.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
 	if err != nil {
 		panic(err)
 		return nil, err
@@ -99,11 +99,11 @@ type fetchConversationMessages struct {
 }
 
 func (f *fetchConversationMessages) Execute(convId string, count int64, cursor *binary.Cursor) ([]*Response, error) {
-	encryptedProtoPayload := &binary.FetchConversationMessagesPayload{ConversationId: convId, Count: count, Cursor: cursor}
+	encryptedProtoPayload := &binary.FetchConversationMessagesPayload{ConversationID: convId, Count: count, Cursor: cursor}
 	instruction, _ := f.client.instructions.GetInstruction(FETCH_MESSAGES_CONVERSATION)
-	sentRequestId, _ := f.client.createAndSendRequest(instruction.Opcode, f.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	sentRequestID, _ := f.client.createAndSendRequest(instruction.Opcode, f.client.ttl, false, encryptedProtoPayload.ProtoReflect())
 
-	responses, err := f.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
+	responses, err := f.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
 	if err != nil {
 		return nil, err
 	}
@@ -116,11 +116,11 @@ type openConversation struct {
 }
 
 func (o *openConversation) Execute(convId string) ([]*Response, error) {
-	encryptedProtoPayload := &binary.OpenConversationPayload{ConversationId: convId}
+	encryptedProtoPayload := &binary.OpenConversationPayload{ConversationID: convId}
 	instruction, _ := o.client.instructions.GetInstruction(OPEN_CONVERSATION)
-	sentRequestId, _ := o.client.createAndSendRequest(instruction.Opcode, o.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	sentRequestID, _ := o.client.createAndSendRequest(instruction.Opcode, o.client.ttl, false, encryptedProtoPayload.ProtoReflect())
 
-	responses, err := o.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
+	responses, err := o.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
 	if err != nil {
 		return nil, err
 	}
@@ -131,11 +131,11 @@ func (o *openConversation) Execute(convId string) ([]*Response, error) {
 }
 
 /*
-func (c *Conversations) SendMessage(conversationId string, content string, participantCount string) (*binary.SendMessageResponse, error) {
-	encryptedProtoPayload := payload.NewSendConversationTextMessage(conversationId, content, participantCount)
-	sentRequestId, _ := c.client.createAndSendRequest(3, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
-	c.client.Logger.Debug().Any("requestId", sentRequestId).Msg("Sent sendmessage request.")
-	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestId, 3)
+func (c *Conversations) SendMessage(conversationID string, content string, participantCount string) (*binary.SendMessageResponse, error) {
+	encryptedProtoPayload := payload.NewSendConversationTextMessage(conversationID, content, participantCount)
+	sentRequestID, _ := c.client.createAndSendRequest(3, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	c.client.Logger.Debug().Any("requestId", sentRequestID).Msg("Sent sendmessage request.")
+	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestID, 3)
 	if responseErr != nil {
 		c.client.Logger.Err(responseErr).Msg("SendMessage channel response error")
 		return nil, responseErr
@@ -155,9 +155,9 @@ func (c *Conversations) SendMessage(conversationId string, content string, parti
 
 func (c *Conversations) PrepareOpen() (interface{}, error) {
 	encryptedProtoPayload := &binary.PrepareOpenConversationPayload{Field2:1}
-	sentRequestId, _ := c.client.createAndSendRequest(22, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
-	c.client.Logger.Debug().Any("requestId", sentRequestId).Msg("Sent PrepareOpenConversation request.")
-	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestId, 22)
+	sentRequestID, _ := c.client.createAndSendRequest(22, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	c.client.Logger.Debug().Any("requestId", sentRequestID).Msg("Sent PrepareOpenConversation request.")
+	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestID, 22)
 	if responseErr != nil {
 		c.client.Logger.Err(responseErr).Msg("PrepareOpenConversation channel response error")
 		return nil, responseErr
@@ -167,11 +167,11 @@ func (c *Conversations) PrepareOpen() (interface{}, error) {
 	return nil, nil
 }
 
-func (c *Conversations) Open(conversationId string) (interface{}, error) {
-	encryptedProtoPayload := &binary.OpenConversationPayload{ConversationId:conversationId}
-	sentRequestId, _ := c.client.createAndSendRequest(21, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
-	c.client.Logger.Debug().Any("requestId", sentRequestId).Msg("Sent OpenConversation request.")
-	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestId, 21)
+func (c *Conversations) Open(conversationID string) (interface{}, error) {
+	encryptedProtoPayload := &binary.OpenConversationPayload{ConversationID:conversationID}
+	sentRequestID, _ := c.client.createAndSendRequest(21, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	c.client.Logger.Debug().Any("requestId", sentRequestID).Msg("Sent OpenConversation request.")
+	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestID, 21)
 	if responseErr != nil {
 		c.client.Logger.Err(responseErr).Msg("OpenConversation channel response error")
 		return nil, responseErr
@@ -181,11 +181,11 @@ func (c *Conversations) Open(conversationId string) (interface{}, error) {
 	return nil, nil
 }
 
-func (c *Conversations) FetchMessages(conversationId string, count int64) (*binary.FetchMessagesResponse, error) {
-	encryptedProtoPayload := &binary.FetchConversationMessagesPayload{ConversationId:conversationId,Count:count}
-	sentRequestId, _ := c.client.createAndSendRequest(2, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
-	c.client.Logger.Debug().Any("requestId", sentRequestId).Msg("Sent FetchMessages request.")
-	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestId, 2)
+func (c *Conversations) FetchMessages(conversationID string, count int64) (*binary.FetchMessagesResponse, error) {
+	encryptedProtoPayload := &binary.FetchConversationMessagesPayload{ConversationID:conversationID,Count:count}
+	sentRequestID, _ := c.client.createAndSendRequest(2, c.client.ttl, false, encryptedProtoPayload.ProtoReflect())
+	c.client.Logger.Debug().Any("requestId", sentRequestID).Msg("Sent FetchMessages request.")
+	response, responseErr := c.client.sessionHandler.WaitForResponse(sentRequestID, 2)
 	if responseErr != nil {
 		c.client.Logger.Err(responseErr).Msg("FetchMessages channel response error")
 		return nil, responseErr

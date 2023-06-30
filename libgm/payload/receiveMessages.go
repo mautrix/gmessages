@@ -12,7 +12,7 @@ import (
 func ReceiveMessages(rpcKey []byte) ([]byte, string, error) {
 	payload := &binary.ReceiveMessagesRequest{
 		Auth: &binary.AuthMessage{
-			RequestId: uuid.New().String(),
+			RequestID: uuid.New().String(),
 			RpcKey:    rpcKey,
 			Date: &binary.Date{
 				Year: 2023,
@@ -34,5 +34,5 @@ func ReceiveMessages(rpcKey []byte) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return jsonData, payload.Auth.RequestId, nil
+	return jsonData, payload.Auth.RequestID, nil
 }

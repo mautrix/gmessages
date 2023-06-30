@@ -9,7 +9,7 @@ func GetWebEncryptionKey(WebPairKey []byte) ([]byte, *binary.Container, error) {
 	id := util.RandomUUIDv4()
 	payload := &binary.Container{
 		PhoneRelay: &binary.PhoneRelayBody{
-			Id:     id,
+			ID:     id,
 			RpcKey: WebPairKey,
 			Date: &binary.Date{
 				Year: 2023,

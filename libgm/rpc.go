@@ -17,7 +17,7 @@ type RPC struct {
 	client       *Client
 	http         *http.Client
 	conn         io.ReadCloser
-	rpcSessionId string
+	rpcSessionID string
 	webAuthKey   []byte
 }
 

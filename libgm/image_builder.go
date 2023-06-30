@@ -59,7 +59,7 @@ type Image struct {
 	imageCryptor *crypto.ImageCryptor
 
 	imageName  string
-	imageId    string
+	imageID    string
 	imageType  ImageType
 	imageBytes []byte
 	imageSize  int64
@@ -93,8 +93,8 @@ func (i *Image) GetImageType() ImageType {
 	return i.imageType
 }
 
-func (i *Image) GetImageId() string {
-	return i.imageId
+func (i *Image) GetImageID() string {
+	return i.imageID
 }
 
 // This is the equivalent of dragging an image into the window on messages web
@@ -142,7 +142,7 @@ func (mb *MessageBuilder) newImageData(imgBytes []byte, mime string) (*Image, er
 	}
 	return &Image{
 		imageCryptor: imageCryptor,
-		imageId:      imageId,
+		imageID:      imageId,
 		imageBytes:   imgBytes,
 		imageType:    imgType,
 		imageSize:    int64(len(imgBytes)),

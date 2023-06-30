@@ -18,7 +18,7 @@ import (
 
 type Response struct {
 	client        *Client
-	ResponseId    string
+	ResponseID    string
 	RoutingOpCode int64
 	Data          *binary.EncodedResponse // base64 encoded (decode -> protomessage)
 
@@ -34,7 +34,7 @@ type SessionHandler struct {
 	ackMap    []string
 	ackTicker *time.Ticker
 
-	sessionId string
+	sessionID string
 
 	responseTimeout time.Duration
 }
@@ -43,8 +43,8 @@ func (s *SessionHandler) SetResponseTimeout(milliSeconds int) {
 	s.responseTimeout = time.Duration(milliSeconds) * time.Millisecond
 }
 
-func (s *SessionHandler) ResetSessionId() {
-	s.sessionId = util.RandomUUIDv4()
+func (s *SessionHandler) ResetSessionID() {
+	s.sessionID = util.RandomUUIDv4()
 }
 
 func (c *Client) createAndSendRequest(instructionId int64, ttl int64, newSession bool, encryptedProtoMessage protoreflect.Message) (string, error) {
@@ -55,7 +55,7 @@ func (c *Client) createAndSendRequest(instructionId int64, ttl int64, newSession
 	}
 
 	if newSession {
-		requestId = c.sessionHandler.sessionId
+		requestId = c.sessionHandler.sessionID
 	}
 
 	var encryptedData []byte
@@ -68,7 +68,7 @@ func (c *Client) createAndSendRequest(instructionId int64, ttl int64, newSession
 		c.Logger.Info().Any("encryptedData", encryptedData).Msg("Sending request with encrypted data")
 	}
 
-	encodedData := payload.NewEncodedPayload(requestId, instruction.Opcode, encryptedData, c.sessionHandler.sessionId)
+	encodedData := payload.NewEncodedPayload(requestId, instruction.Opcode, encryptedData, c.sessionHandler.sessionID)
 	encodedStr, encodeErr := crypto.EncodeProtoB64(encodedData)
 	if encodeErr != nil {
 		panic(fmt.Errorf("Failed to encode data: %w", encodeErr))
@@ -77,11 +77,11 @@ func (c *Client) createAndSendRequest(instructionId int64, ttl int64, newSession
 	authMessage := payload.NewAuthData(requestId, c.rpcKey, &binary.Date{Year: 2023, Seq1: 6, Seq2: 8, Seq3: 4, Seq4: 6})
 	sendMessage := payload.NewSendMessage(c.devicePair.Mobile, messageData, authMessage, ttl)
 
-	sentRequestId, reqErr := c.sessionHandler.completeSendMessage(encodedData.RequestId, instruction.Opcode, sendMessage)
+	sentRequestID, reqErr := c.sessionHandler.completeSendMessage(encodedData.RequestID, instruction.Opcode, sendMessage)
 	if reqErr != nil {
 		return "", fmt.Errorf("failed to send message request for opcode: %v", instructionId)
 	}
-	return sentRequestId, nil
+	return sentRequestID, nil
 }
 
 func (s *SessionHandler) completeSendMessage(requestId string, opCode int64, msg *binary.SendMessage) (string, error) {
@@ -137,7 +137,7 @@ func (s *SessionHandler) sendAckRequest() {
 	reqId := util.RandomUUIDv4()
 	ackMessagePayload := &binary.AckMessagePayload{
 		AuthData: &binary.AuthMessage{
-			RequestId: reqId,
+			RequestID: reqId,
 			RpcKey:    s.client.rpcKey,
 			Date:      &binary.Date{Year: 2023, Seq1: 6, Seq2: 8, Seq3: 4, Seq4: 6},
 		},
@@ -150,7 +150,7 @@ func (s *SessionHandler) sendAckRequest() {
 	}
 	ackMessages := make([][]interface{}, 0)
 	for _, reqId := range s.ackMap {
-		ackMessageData := &binary.AckMessageData{RequestId: reqId, Device: s.client.devicePair.Browser}
+		ackMessageData := &binary.AckMessageData{RequestID: reqId, Device: s.client.devicePair.Browser}
 		ackMessageDataArr, err := pblite.Serialize(ackMessageData.ProtoReflect())
 		if err != nil {
 			panic(err)
@@ -179,7 +179,7 @@ func (s *SessionHandler) NewResponse(response *binary.RPCResponse) (*Response, e
 	}
 	return &Response{
 		client:        s.client,
-		ResponseId:    response.Data.RequestId,
+		ResponseID:    response.Data.RequestID,
 		RoutingOpCode: response.Data.RoutingOpCode,
 		StartExecute:  response.Data.Ts1,
 		FinishExecute: response.Data.Ts2,
@@ -211,5 +211,5 @@ func (r *Response) decryptData() (proto.Message, error) {
 
 		return protoMessageData, nil
 	}
-	return nil, fmt.Errorf("no encrypted data to decrypt for requestId: %s", r.Data.RequestId)
+	return nil, fmt.Errorf("no encrypted data to decrypt for requestID: %s", r.Data.RequestID)
 }

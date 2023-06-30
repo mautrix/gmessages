@@ -13,18 +13,18 @@ import (
 )
 
 type StartGoogleUpload struct {
-	UploadId         string
-	UploadUrl        string
+	UploadID         string
+	UploadURL        string
 	UploadStatus     string
 	ChunkGranularity int64
-	ControlUrl       string
+	ControlURL       string
 
 	Image               *Image
 	EncryptedMediaBytes []byte
 }
 
 type MediaUpload struct {
-	MediaId     string
+	MediaID     string
 	MediaNumber int64
 	Image       *Image
 }
@@ -39,7 +39,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
 	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", imageType.Format, "")
-	req, reqErr := http.NewRequest("POST", upload.UploadUrl, bytes.NewBuffer(upload.EncryptedMediaBytes))
+	req, reqErr := http.NewRequest("POST", upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
 	if reqErr != nil {
 		return nil, reqErr
 	}
@@ -67,14 +67,14 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	uploadStatus := rHeaders.Get("x-goog-upload-status")
 	c.Logger.Debug().Str("upload_status", uploadStatus).Msg("Upload status")
 
-	mediaIds := &binary.UploadMediaResponse{}
-	err3 = crypto.DecodeAndEncodeB64(string(googleResponse), mediaIds)
+	mediaIDs := &binary.UploadMediaResponse{}
+	err3 = crypto.DecodeAndEncodeB64(string(googleResponse), mediaIDs)
 	if err3 != nil {
 		return nil, err3
 	}
 	return &MediaUpload{
-		MediaId:     mediaIds.Media.MediaId,
-		MediaNumber: mediaIds.Media.MediaNumber,
+		MediaID:     mediaIDs.Media.MediaID,
+		MediaNumber: mediaIDs.Media.MediaNumber,
 		Image:       upload.Image,
 	}, nil
 }
@@ -119,11 +119,11 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 	}
 
 	uploadResponse := &StartGoogleUpload{
-		UploadId:         rHeaders.Get("x-guploader-uploadid"),
-		UploadUrl:        rHeaders.Get("x-goog-upload-url"),
+		UploadID:         rHeaders.Get("x-guploader-uploadid"),
+		UploadURL:        rHeaders.Get("x-goog-upload-url"),
 		UploadStatus:     rHeaders.Get("x-goog-upload-status"),
 		ChunkGranularity: int64(chunkGranularity),
-		ControlUrl:       rHeaders.Get("x-goog-upload-control-url"),
+		ControlURL:       rHeaders.Get("x-goog-upload-control-url"),
 
 		Image:               image,
 		EncryptedMediaBytes: encryptedImageBytes,
@@ -136,7 +136,7 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 	protoData := &binary.StartMediaUploadPayload{
 		ImageType: 1,
 		AuthData: &binary.AuthMessage{
-			RequestId: requestId,
+			RequestID: requestId,
 			RpcKey:    c.rpcKey,
 			Date: &binary.Date{
 				Year: 2023,

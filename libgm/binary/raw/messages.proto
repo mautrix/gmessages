@@ -4,14 +4,14 @@ package messages;
 option go_package = "../../binary";
 
 message EncodedPayload {
-    string request_id = 1;
+    string requestID = 1;
     int64 opcode = 2;
     bytes encryptedData = 5;
-    string session_id = 6;
+    string sessionID = 6;
 }
 
 message EncodedResponse {
-    string request_id = 1;
+    string requestID = 1;
     //int64 msg = 2;
     int64 unixNano = 3;
     int64 opcode = 4;
@@ -23,8 +23,8 @@ message EncodedResponse {
 }
 
 message MessageData {
-    string request_id = 1;
-    int64 routing_op_code = 2;
+    string requestID = 1;
+    int64 routingOpCode = 2;
     string ts1 = 3;
     int64 field5 = 5;
     string ts2 = 6;
@@ -32,7 +32,7 @@ message MessageData {
     Device mobile = 8;
     Device browser = 9;
     string encodedData = 12;
-    string encoded_request_id = 17;
+    string encodedRequestID = 17;
     MsgTypeArr msgTypeArr = 23;
 }
 
@@ -46,7 +46,7 @@ message EmptyArr {
 }
 
 message AuthMessage {
-    string request_id = 1;
+    string requestID = 1;
     bytes rpcKey = 6;
     Date date = 7;
 }
@@ -62,7 +62,7 @@ message ReceiveMessagesRequest {
 }
 
 message BaseData {
-    int64 Ttl = 2;
+    int64 TTL = 2;
     EmptyArr emptyArr = 6;
 }
 
@@ -72,8 +72,8 @@ message RPCResponse {
 }
 
 message Device {
-    int64 userId = 1;
-    string registrationId = 2;
+    int64 userID = 1;
+    string registrationID = 2;
     string network = 3;
 }
 

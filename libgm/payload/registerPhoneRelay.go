@@ -32,7 +32,7 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.Container, error) {
 
 	payloadData := &binary.Container{
 		PhoneRelay: &binary.PhoneRelayBody{
-			Id:    id,
+			ID:    id,
 			Bugle: "Bugle",
 			Date: &binary.Date{
 				Year: 2023,

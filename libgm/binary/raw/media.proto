@@ -17,6 +17,6 @@ message UploadMediaResponse {
 }
 
 message Media {
-    string mediaId = 1;
+    string mediaID = 1;
     int64 mediaNumber = 2;
 }

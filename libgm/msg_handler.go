@@ -41,8 +41,8 @@ func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
 		}
 		//hasBody := parsedResponse.Data.EncryptedData == nil
 		//r.client.Logger.Info().Any("msgData", parsedResponse).Msg("Got event!")
-		r.client.sessionHandler.addResponseAck(parsedResponse.ResponseId)
-		_, waitingForResponse := r.client.sessionHandler.requests[parsedResponse.Data.RequestId]
+		r.client.sessionHandler.addResponseAck(parsedResponse.ResponseID)
+		_, waitingForResponse := r.client.sessionHandler.requests[parsedResponse.Data.RequestID]
 		//log.Println(fmt.Sprintf("%v %v %v %v %v %v %v", parsedResponse.RoutingOpCode, parsedResponse.Data.Opcode, parsedResponse.Data.Sub, parsedResponse.Data.Third, parsedResponse.Data.Field9, hasBody, waitingForResponse))
 		//r.client.Logger.Debug().Any("waitingForResponse?", waitingForResponse).Msg("Got rpc response from server")
 		if parsedResponse.Data.Opcode == 16 || waitingForResponse {

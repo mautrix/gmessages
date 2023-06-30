@@ -42,7 +42,7 @@ func (s *SessionHandler) addRequestToChannel(requestId string, opCode int64) {
 }
 
 func (s *SessionHandler) respondToRequestChannel(res *Response) {
-	requestId := res.Data.RequestId
+	requestId := res.Data.RequestID
 	reqChannel, ok := s.requests[requestId]
 	if !ok {
 		return

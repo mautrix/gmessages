@@ -8,7 +8,7 @@ import (
 func RefreshPhoneRelay(rpcKey []byte) ([]byte, *binary.Container, error) {
 	payload := &binary.Container{
 		PhoneRelay: &binary.PhoneRelayBody{
-			Id:     util.RandomUUIDv4(),
+			ID:     util.RandomUUIDv4(),
 			Bugle:  "Bugle",
 			RpcKey: rpcKey,
 			Date: &binary.Date{

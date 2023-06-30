@@ -4,18 +4,18 @@ package conversations;
 option go_package = "../../binary";
 
 message SendMessagePayload {
-    string conversationId = 2;
+    string conversationID = 2;
     MessagePayload messagePayload = 3;
-    string tmpId = 5;
+    string tmpID = 5;
 }
 
 message MessagePayload {
-    string tmpId = 1;
+    string tmpID = 1;
     MessagePayloadContent messagePayloadContent = 6;
-    string conversationId = 7;
-    string selfParticipantId = 9; // might be participantId
+    string conversationID = 7;
+    string selfParticipantID = 9; // might be participantId
     repeated MessageInfo messageInfo = 10;
-    string tmpId2 = 12;
+    string tmpID2 = 12;
 }
 
 message MessagePayloadContent {
@@ -23,7 +23,7 @@ message MessagePayloadContent {
 }
 
 message OpenConversationPayload {
-    string conversationId = 2;
+    string conversationID = 2;
 }
 
 message PrepareOpenConversationPayload {
@@ -31,7 +31,7 @@ message PrepareOpenConversationPayload {
 }
 
 message FetchConversationMessagesPayload {
-    string conversationId = 2;
+    string conversationID = 2;
     int64 count = 3;
 
     Cursor cursor = 5;
@@ -69,12 +69,12 @@ enum MessageType {
 }
 
 message Message {
-    string messageId = 1;
+    string messageID = 1;
     IsFromMe from = 3;
     MessageStatus messageStatus = 4;
     int64 timestamp = 5;
-    string conversationId = 7;
-    string participantId = 9;
+    string conversationID = 7;
+    string participantID = 9;
     repeated MessageInfo messageInfo = 10;
     MessageType type = 11;
     string tmpId = 12;
@@ -90,12 +90,12 @@ message MessageInfo {
 
 message ImageContent {
     int64 someNumber = 1;
-    string imageId = 2;
+    string imageID = 2;
     string imageName = 4;
     int64 size = 5;
     ImagePixels pixels = 6;
     bytes imageData = 7;
-    string imageId2 = 9;
+    string imageID2 = 9;
     bytes decryptionKey = 11;
     bytes decryptionKey2 = 12; // same value as decryptionkey?
 }
@@ -139,13 +139,13 @@ message Conversations {
 }
 
 message Conversation {
-    string conversationId = 1;
+    string conversationID = 1;
     string name = 2;
     LatestMessage latestMessage = 4;
-    int64 timestampMs = 5;
+    int64 timestampMS = 5;
 
     bool isGroupChat = 10; // not certain
-    string selfParticipantId = 11;
+    string selfParticipantID = 11;
     /*
         1 = unarchived
         2 = archived
@@ -154,7 +154,7 @@ message Conversation {
     //bool bool1 = 13;
     int64 status = 12;
     string hashHex = 15;
-    string messageId = 17;
+    string messageID = 17;
     repeated Participant participants = 20;
     repeated string otherParticipants = 21; // participant ids excluding me
     int64 type = 22;
@@ -173,7 +173,7 @@ message Participant {
 message SmallInfo {
     int64 type = 1;
     string number = 2;
-    string participantId = 3;
+    string participantID = 3;
 }
 
 message LatestMessage {

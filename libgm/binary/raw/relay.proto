@@ -6,7 +6,7 @@ option go_package = "../../binary";
 message RegisterPhoneRelayResponse {
     Message1 field1 = 1;
     Message2 field2 = 2;
-    bytes PairingKey = 3;
+    bytes pairingKey = 3;
     int64 field4 = 4;
     Message3 field5 = 5;
     bytes field6 = 6;

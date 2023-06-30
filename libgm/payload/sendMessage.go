@@ -4,7 +4,7 @@ import "go.mau.fi/mautrix-gmessages/libgm/binary"
 
 func NewMessageData(requestID string, encodedStr string, routingOpCode int64, msgType int64) *binary.MessageData {
 	return &binary.MessageData{
-		RequestId:     requestID,
+		RequestID:     requestID,
 		RoutingOpCode: routingOpCode,
 		EncodedData:   encodedStr,
 		MsgTypeArr: &binary.MsgTypeArr{
@@ -14,18 +14,18 @@ func NewMessageData(requestID string, encodedStr string, routingOpCode int64, ms
 	}
 }
 
-func NewEncodedPayload(requestId string, opCode int64, encryptedData []byte, sessionId string) *binary.EncodedPayload {
+func NewEncodedPayload(requestId string, opCode int64, encryptedData []byte, sessionID string) *binary.EncodedPayload {
 	return &binary.EncodedPayload{
-		RequestId:     requestId,
+		RequestID:     requestId,
 		Opcode:        opCode,
 		EncryptedData: encryptedData,
-		SessionId:     sessionId,
+		SessionID:     sessionID,
 	}
 }
 
 func NewAuthData(requestId string, rpcKey []byte, date *binary.Date) *binary.AuthMessage {
 	return &binary.AuthMessage{
-		RequestId: requestId,
+		RequestID: requestId,
 		RpcKey:    rpcKey,
 		Date:      date,
 	}
@@ -36,7 +36,7 @@ func NewSendMessage(pairedDevice *binary.Device, messageData *binary.MessageData
 		PairedDevice: pairedDevice,
 		MessageData:  messageData,
 		AuthData:     authData,
-		Ttl:          ttl,
+		TTL:          ttl,
 		EmptyArr:     &binary.EmptyArr{},
 	}
 }

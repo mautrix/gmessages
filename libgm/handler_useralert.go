@@ -8,7 +8,7 @@ import (
 func (c *Client) handleUserAlertEvent(response *Response, evtData *binary.Event_UserAlertEvent) {
 	switch evtData.UserAlertEvent.AlertType {
 	case 2:
-		browserActive := events.NewBrowserActive(response.Data.RequestId)
+		browserActive := events.NewBrowserActive(response.Data.RequestID)
 		c.triggerEvent(browserActive)
 		return
 	case 5, 6:

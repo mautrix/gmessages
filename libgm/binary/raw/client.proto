@@ -9,7 +9,7 @@ message SendMessage {
     messages.Device pairedDevice = 1;
     messages.MessageData messageData = 2;
     messages.AuthMessage authData = 3;
-    int64 ttl = 5;
+    int64 TTL = 5;
     messages.EmptyArr emptyArr = 9;
 }
 
@@ -20,12 +20,12 @@ message AckMessagePayload {
 }
 
 message AckMessageData {
-    string request_id = 1;
+    string requestID = 1;
     messages.Device device = 2;
 }
 
 message ImageMetaData {
-    string imageId = 1;
+    string imageID = 1;
     bool encrypted = 2;
 }
 

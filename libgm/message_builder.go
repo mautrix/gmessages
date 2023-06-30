@@ -9,17 +9,17 @@ import (
 
 var (
 	errContentNotSet           = errors.New("failed to build MessageBuilder: content must be larger than length 0")
-	errConversationIdNotSet    = errors.New("failed to build MessageBuilder: conversationId is empty")
-	errSelfParticipantIdNotSet = errors.New("failed to build MessageBuilder: selfParticipantId is empty")
+	errConversationIdNotSet    = errors.New("failed to build MessageBuilder: conversationID is empty")
+	errSelfParticipantIdNotSet = errors.New("failed to build MessageBuilder: selfParticipantID is empty")
 )
 
 type MessageBuilder struct {
 	client *Client
 
 	content           string
-	conversationId    string
-	tmpId             string
-	selfParticipantId string
+	conversationID    string
+	tmpID             string
+	selfParticipantID string
 
 	images []*MediaUpload
 
@@ -44,42 +44,42 @@ func (mb *MessageBuilder) SetContent(content string) *MessageBuilder {
 	return mb
 }
 
-func (mb *MessageBuilder) GetConversationId() string {
-	return mb.conversationId
+func (mb *MessageBuilder) GetConversationID() string {
+	return mb.conversationID
 }
 
-func (mb *MessageBuilder) SetConversationId(conversationId string) *MessageBuilder {
-	mb.conversationId = conversationId
+func (mb *MessageBuilder) SetConversationID(conversationId string) *MessageBuilder {
+	mb.conversationID = conversationId
 	return mb
 }
 
-func (mb *MessageBuilder) GetSelfParticipantId() string {
-	return mb.selfParticipantId
+func (mb *MessageBuilder) GetSelfParticipantID() string {
+	return mb.selfParticipantID
 }
 
 // sendmessage function will set this automatically but if u want to set it yourself feel free
-func (mb *MessageBuilder) SetSelfParticipantId(participantId string) *MessageBuilder {
-	mb.selfParticipantId = participantId
+func (mb *MessageBuilder) SetSelfParticipantID(participantId string) *MessageBuilder {
+	mb.selfParticipantID = participantId
 	return mb
 }
 
-func (mb *MessageBuilder) GetTmpId() string {
-	return mb.tmpId
+func (mb *MessageBuilder) GetTmpID() string {
+	return mb.tmpID
 }
 
 // sendmessage function will set this automatically but if u want to set it yourself feel free
-func (mb *MessageBuilder) SetTmpId(tmpId string) *MessageBuilder {
-	mb.tmpId = tmpId
+func (mb *MessageBuilder) SetTmpID(tmpId string) *MessageBuilder {
+	mb.tmpID = tmpId
 	return mb
 }
 
 func (mb *MessageBuilder) Build() (*binary.SendMessagePayload, error) {
 
-	if mb.conversationId == "" {
+	if mb.conversationID == "" {
 		return nil, errConversationIdNotSet
 	}
 
-	if mb.selfParticipantId == "" {
+	if mb.selfParticipantID == "" {
 		return nil, errSelfParticipantIdNotSet
 	}
 
@@ -87,8 +87,8 @@ func (mb *MessageBuilder) Build() (*binary.SendMessagePayload, error) {
 		return nil, errContentNotSet
 	}
 
-	if mb.tmpId == "" {
-		mb.tmpId = util.GenerateTmpId()
+	if mb.tmpID == "" {
+		mb.tmpID = util.GenerateTmpId()
 	}
 
 	return mb.newSendConversationMessage(), nil
@@ -100,17 +100,17 @@ func (c *Client) NewMessageBuilder() *MessageBuilder {
 	}
 
 	tmpId := util.GenerateTmpId()
-	mb.SetTmpId(tmpId)
+	mb.SetTmpID(tmpId)
 
 	return mb
 }
 
 func (mb *MessageBuilder) newSendConversationMessage() *binary.SendMessagePayload {
 
-	convId := mb.GetConversationId()
+	convID := mb.GetConversationID()
 	content := mb.GetContent()
-	selfParticipantId := mb.GetSelfParticipantId()
-	tmpId := mb.GetTmpId()
+	selfParticipantID := mb.GetSelfParticipantID()
+	tmpID := mb.GetTmpID()
 
 	messageInfo := make([]*binary.MessageInfo, 0)
 	messageInfo = append(messageInfo, &binary.MessageInfo{Data: &binary.MessageInfo_MessageContent{
@@ -122,15 +122,15 @@ func (mb *MessageBuilder) newSendConversationMessage() *binary.SendMessagePayloa
 	mb.appendImagesPayload(&messageInfo)
 
 	sendMsgPayload := &binary.SendMessagePayload{
-		ConversationId: convId,
+		ConversationID: convID,
 		MessagePayload: &binary.MessagePayload{
-			TmpId:             tmpId,
-			ConversationId:    convId,
-			SelfParticipantId: selfParticipantId,
+			TmpID:             tmpID,
+			ConversationID:    convID,
+			SelfParticipantID: selfParticipantID,
 			MessageInfo:       messageInfo,
-			TmpId2:            tmpId,
+			TmpID2:            tmpID,
 		},
-		TmpId: tmpId,
+		TmpID: tmpID,
 	}
 	if len(content) > 0 {
 		sendMsgPayload.MessagePayload.MessagePayloadContent = &binary.MessagePayloadContent{
@@ -160,7 +160,7 @@ func (mb *MessageBuilder) newImageContent(media *MediaUpload) *binary.MessageInf
 		Data: &binary.MessageInfo_ImageContent{
 			ImageContent: &binary.ImageContent{
 				SomeNumber:    media.Image.GetImageType().Type,
-				ImageId:       media.MediaId,
+				ImageID:       media.MediaID,
 				ImageName:     media.Image.GetImageName(),
 				Size:          media.Image.GetImageSize(),
 				DecryptionKey: media.Image.GetImageCryptor().GetKey(),

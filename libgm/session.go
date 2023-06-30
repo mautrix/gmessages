@@ -10,7 +10,7 @@ type Session struct {
 }
 
 func (s *Session) SetActiveSession() (*util.SessionResponse, error) {
-	s.client.sessionHandler.ResetSessionId()
+	s.client.sessionHandler.ResetSessionID()
 
 	prepareResponses, prepareSessionErr := s.prepareNewSession.Execute()
 	if prepareSessionErr != nil {
@@ -36,9 +36,9 @@ type prepareNewSession struct {
 
 func (p *prepareNewSession) Execute() ([]*Response, error) {
 	instruction, _ := p.client.instructions.GetInstruction(PREPARE_NEW_SESSION_OPCODE)
-	sentRequestId, _ := p.client.createAndSendRequest(instruction.Opcode, p.client.ttl, false, nil)
+	sentRequestID, _ := p.client.createAndSendRequest(instruction.Opcode, p.client.ttl, false, nil)
 
-	responses, err := p.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
+	responses, err := p.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +52,9 @@ type newSession struct {
 
 func (n *newSession) Execute() ([]*Response, error) {
 	instruction, _ := n.client.instructions.GetInstruction(NEW_SESSION_OPCODE)
-	sentRequestId, _ := n.client.createAndSendRequest(instruction.Opcode, 0, true, nil)
+	sentRequestID, _ := n.client.createAndSendRequest(instruction.Opcode, 0, true, nil)
 
-	responses, err := n.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
+	responses, err := n.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
 	if err != nil {
 		return nil, err
 	}

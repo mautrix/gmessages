@@ -15,20 +15,21 @@ import (
 )
 
 type Cryptor struct {
-	AES_CTR_KEY_256, SHA_256_KEY []byte
+	AESCTR256Key []byte
+	SHA256Key    []byte
 }
 
-func NewCryptor(aes_key []byte, sha_key []byte) *Cryptor {
-	if aes_key != nil && sha_key != nil {
+func NewCryptor(aesKey []byte, shaKey []byte) *Cryptor {
+	if aesKey != nil && shaKey != nil {
 		return &Cryptor{
-			AES_CTR_KEY_256: aes_key,
-			SHA_256_KEY:     sha_key,
+			AESCTR256Key: aesKey,
+			SHA256Key:    shaKey,
 		}
 	}
-	aes_key, sha_key = GenerateKeys()
+	aesKey, shaKey = GenerateKeys()
 	return &Cryptor{
-		AES_CTR_KEY_256: aes_key,
-		SHA_256_KEY:     sha_key,
+		AESCTR256Key: aesKey,
+		SHA256Key:    shaKey,
 	}
 }
 
@@ -38,7 +39,7 @@ func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher(c.AES_CTR_KEY_256)
+	block, err := aes.NewCipher(c.AESCTR256Key)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
 
 	ciphertext = append(ciphertext, iv...)
 
-	mac := hmac.New(sha256.New, c.SHA_256_KEY)
+	mac := hmac.New(sha256.New, c.SHA256Key)
 	mac.Write(ciphertext)
 	hmac := mac.Sum(nil)
 
@@ -66,7 +67,7 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	hmacSignature := encryptedData[len(encryptedData)-32:]
 	encryptedDataWithoutHMAC := encryptedData[:len(encryptedData)-32]
 
-	mac := hmac.New(sha256.New, c.SHA_256_KEY)
+	mac := hmac.New(sha256.New, c.SHA256Key)
 	mac.Write(encryptedDataWithoutHMAC)
 	expectedHMAC := mac.Sum(nil)
 
@@ -77,7 +78,7 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	iv := encryptedDataWithoutHMAC[len(encryptedDataWithoutHMAC)-16:]
 	encryptedDataWithoutHMAC = encryptedDataWithoutHMAC[:len(encryptedDataWithoutHMAC)-16]
 
-	block, err := aes.NewCipher(c.AES_CTR_KEY_256)
+	block, err := aes.NewCipher(c.AESCTR256Key)
 	if err != nil {
 		return nil, err
 	}

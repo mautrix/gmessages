@@ -52,5 +52,5 @@ message UserAlertEvent {
 
         10 = OBSERVER_REGISTERED (tf?)
     */
-    int64 alert_type = 2;
+    int64 alertType = 2;
 }
