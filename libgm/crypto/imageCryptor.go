@@ -75,7 +75,7 @@ func (ic *ImageCryptor) Decrypt(iv []byte, data []byte, aad []byte) ([]byte, err
 
 func (ic *ImageCryptor) EncryptData(data []byte) ([]byte, error) {
 	rawChunkSize := 1 << 15
-	chunkSize := rawChunkSize-28
+	chunkSize := rawChunkSize - 28
 	var tasks []chan []byte
 	chunkIndex := 0
 

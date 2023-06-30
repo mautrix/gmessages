@@ -11,14 +11,14 @@ import (
 )
 
 type JWK struct {
-	Kty    string   `json:"kty"`
-	Crv    string   `json:"crv"`
-	D      string   `json:"d"`
-	X      string   `json:"x"`
-	Y      string   `json:"y"`
-	Ext    bool     `json:"ext"`
-	KeyOps []string `json:"key_ops"`
-	PrivateBytes []byte `json:"privateBytes,omitempty"`
+	Kty          string   `json:"kty"`
+	Crv          string   `json:"crv"`
+	D            string   `json:"d"`
+	X            string   `json:"x"`
+	Y            string   `json:"y"`
+	Ext          bool     `json:"ext"`
+	KeyOps       []string `json:"key_ops"`
+	PrivateBytes []byte   `json:"privateBytes,omitempty"`
 }
 
 // Returns a byte slice containing the JWK and an error if the generation or export failed.
@@ -26,13 +26,13 @@ func (t *JWK) Marshal() ([]byte, error) {
 	JWKJSON, err := json.Marshal(t)
 	if err != nil {
 		fmt.Printf("Failed to marshal JWK: %v", err)
-		return nil,err
+		return nil, err
 	}
 	fmt.Printf("%s\n", JWKJSON)
-	return JWKJSON,err
+	return JWKJSON, err
 }
 
-func (t *JWK) PrivKeyB64Bytes() ([]byte, error){
+func (t *JWK) PrivKeyB64Bytes() ([]byte, error) {
 	decodedPrivateKey, err2 := Base64Decode(t.D)
 	return decodedPrivateKey, err2
 }
@@ -97,7 +97,7 @@ func GenerateECDSA_P256_JWK() (*JWK, error) {
 	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		fmt.Printf("Failed to generate private key: %v", err)
-		return nil,err
+		return nil, err
 	}
 
 	JWK := &JWK{
@@ -109,5 +109,5 @@ func GenerateECDSA_P256_JWK() (*JWK, error) {
 		Ext:    true,
 		KeyOps: []string{"sign"},
 	}
-	return JWK,nil
+	return JWK, nil
 }

@@ -57,44 +57,44 @@ import (
 )
 
 func Serialize(m protoreflect.Message) ([]interface{}, error) {
-    maxFieldNumber := 0
-    for i := 0; i < m.Descriptor().Fields().Len(); i++ {
-        fieldNumber := int(m.Descriptor().Fields().Get(i).Number())
-        if fieldNumber > maxFieldNumber {
-            maxFieldNumber = fieldNumber
-        }
-    }
+	maxFieldNumber := 0
+	for i := 0; i < m.Descriptor().Fields().Len(); i++ {
+		fieldNumber := int(m.Descriptor().Fields().Get(i).Number())
+		if fieldNumber > maxFieldNumber {
+			maxFieldNumber = fieldNumber
+		}
+	}
 
-    serialized := make([]interface{}, maxFieldNumber)
-    for i := 0; i < m.Descriptor().Fields().Len(); i++ {
-        fieldDescriptor := m.Descriptor().Fields().Get(i)
-        fieldValue := m.Get(fieldDescriptor)
-        fieldNumber := int(fieldDescriptor.Number())
-        switch fieldDescriptor.Kind() {
-        case protoreflect.MessageKind:
-            if m.Has(fieldDescriptor) {
-                serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
-                if err != nil {
-                    return nil, err
-                }
-                serialized[fieldNumber-1] = serializedMsg
-            }
-        case protoreflect.BytesKind:
-            if m.Has(fieldDescriptor) {
-                serialized[fieldNumber-1] = fieldValue.Bytes()
-            }
-        case protoreflect.Int32Kind, protoreflect.Int64Kind:
-            if m.Has(fieldDescriptor) {
-                serialized[fieldNumber-1] = fieldValue.Int()
-            }
-        case protoreflect.StringKind:
-            if m.Has(fieldDescriptor) {
-                serialized[fieldNumber-1] = fieldValue.String()
-            }
-        default:
-            // ignore fields of other types
-        }
-    }
+	serialized := make([]interface{}, maxFieldNumber)
+	for i := 0; i < m.Descriptor().Fields().Len(); i++ {
+		fieldDescriptor := m.Descriptor().Fields().Get(i)
+		fieldValue := m.Get(fieldDescriptor)
+		fieldNumber := int(fieldDescriptor.Number())
+		switch fieldDescriptor.Kind() {
+		case protoreflect.MessageKind:
+			if m.Has(fieldDescriptor) {
+				serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
+				if err != nil {
+					return nil, err
+				}
+				serialized[fieldNumber-1] = serializedMsg
+			}
+		case protoreflect.BytesKind:
+			if m.Has(fieldDescriptor) {
+				serialized[fieldNumber-1] = fieldValue.Bytes()
+			}
+		case protoreflect.Int32Kind, protoreflect.Int64Kind:
+			if m.Has(fieldDescriptor) {
+				serialized[fieldNumber-1] = fieldValue.Int()
+			}
+		case protoreflect.StringKind:
+			if m.Has(fieldDescriptor) {
+				serialized[fieldNumber-1] = fieldValue.String()
+			}
+		default:
+			// ignore fields of other types
+		}
+	}
 
-    return serialized, nil
+	return serialized, nil
 }

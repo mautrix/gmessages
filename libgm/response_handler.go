@@ -7,10 +7,10 @@ import (
 )
 
 type ResponseChan struct {
-	responses []*Response
+	responses         []*Response
 	receivedResponses int64
-	wg sync.WaitGroup
-	mu sync.Mutex
+	wg                sync.WaitGroup
+	mu                sync.Mutex
 }
 
 func (s *SessionHandler) addRequestToChannel(requestId string, opCode int64) {
@@ -41,7 +41,6 @@ func (s *SessionHandler) addRequestToChannel(requestId string, opCode int64) {
 		responseChan.mu.Lock()
 	}
 }
-
 
 func (s *SessionHandler) respondToRequestChannel(res *Response) {
 	requestId := res.Data.RequestId

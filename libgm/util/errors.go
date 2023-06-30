@@ -2,7 +2,6 @@ package util
 
 import "fmt"
 
-
 type InstructionNotFound struct {
 	Opcode int64
 }

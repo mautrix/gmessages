@@ -8,17 +8,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 var Charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 
 func RandStr(length int) string {
 	b := make([]rune, length)
-    for i := range b {
-        b[i] = Charset[rand.Intn(len(Charset))]
-    }
-    return string(b)
+	for i := range b {
+		b[i] = Charset[rand.Intn(len(Charset))]
+	}
+	return string(b)
 }
 
 func GenerateImageId() string {
@@ -35,8 +35,8 @@ func GenerateTmpId() string {
 }
 
 func ParseTimestamp(unixTs int64) time.Time {
-	seconds := unixTs / int64(time.Second / time.Microsecond)
-	nanoseconds := (unixTs % int64(time.Second / time.Microsecond)) * int64(time.Microsecond / time.Nanosecond)
+	seconds := unixTs / int64(time.Second/time.Microsecond)
+	nanoseconds := (unixTs % int64(time.Second/time.Microsecond)) * int64(time.Microsecond/time.Nanosecond)
 	return time.Unix(seconds, nanoseconds).UTC()
 }
 
@@ -52,13 +52,13 @@ func RandomUUIDv4() string {
 }
 
 func RemoveFromSlice(s []string, v string) []string {
-    newS := []string{}
-    for _, i := range s {
-        if i != v {
-            newS = append(newS, i)
-        }
-    }
-    return newS
+	newS := []string{}
+	for _, i := range s {
+		if i != v {
+			newS = append(newS, i)
+		}
+	}
+	return newS
 }
 
 func BuildRelayHeaders(req *http.Request, contentType string, accept string) {

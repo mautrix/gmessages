@@ -1,6 +1,5 @@
 package events
 
-
 type BROWSER_ACTIVE struct {
 	SessionId string
 }
@@ -11,13 +10,13 @@ func NewBrowserActive(sessionId string) *BROWSER_ACTIVE {
 	}
 }
 
-type BATTERY struct {}
+type BATTERY struct{}
 
 func NewBattery() *BATTERY {
 	return &BATTERY{}
 }
 
-type DATA_CONNECTION struct {}
+type DATA_CONNECTION struct{}
 
 func NewDataConnection() *DATA_CONNECTION {
 	return &DATA_CONNECTION{}
