@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/json_proto"
+	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 )
 
 func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
@@ -24,7 +24,7 @@ func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
 		}
 	*/
 	response := &binary.RPCResponse{}
-	deserializeErr := json_proto.Deserialize(msgArr, response.ProtoReflect())
+	deserializeErr := pblite.Deserialize(msgArr, response.ProtoReflect())
 	if deserializeErr != nil {
 		r.client.Logger.Error().Err(fmt.Errorf("failed to deserialize response %s", msgArr)).Msg("rpc deserialize msg err")
 		return

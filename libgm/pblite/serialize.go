@@ -1,4 +1,4 @@
-package json_proto
+package pblite
 
 /*
 in protobuf, a message looks like this:
@@ -53,10 +53,13 @@ This means that any slice inside of the current slice, indicates another message
 */
 
 import (
+	"encoding/base64"
+	"fmt"
+
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Serialize(m protoreflect.Message) ([]interface{}, error) {
+func Serialize(m protoreflect.Message) ([]any, error) {
 	maxFieldNumber := 0
 	for i := 0; i < m.Descriptor().Fields().Len(); i++ {
 		fieldNumber := int(m.Descriptor().Fields().Get(i).Number())
@@ -65,34 +68,37 @@ func Serialize(m protoreflect.Message) ([]interface{}, error) {
 		}
 	}
 
-	serialized := make([]interface{}, maxFieldNumber)
+	serialized := make([]any, maxFieldNumber)
 	for i := 0; i < m.Descriptor().Fields().Len(); i++ {
 		fieldDescriptor := m.Descriptor().Fields().Get(i)
 		fieldValue := m.Get(fieldDescriptor)
 		fieldNumber := int(fieldDescriptor.Number())
+		if !m.Has(fieldDescriptor) {
+			continue
+		}
 		switch fieldDescriptor.Kind() {
 		case protoreflect.MessageKind:
-			if m.Has(fieldDescriptor) {
-				serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
-				if err != nil {
-					return nil, err
-				}
-				serialized[fieldNumber-1] = serializedMsg
+			serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
+			if err != nil {
+				return nil, err
 			}
+			serialized[fieldNumber-1] = serializedMsg
 		case protoreflect.BytesKind:
-			if m.Has(fieldDescriptor) {
-				serialized[fieldNumber-1] = fieldValue.Bytes()
-			}
+			serialized[fieldNumber-1] = base64.StdEncoding.EncodeToString(fieldValue.Bytes())
 		case protoreflect.Int32Kind, protoreflect.Int64Kind:
-			if m.Has(fieldDescriptor) {
-				serialized[fieldNumber-1] = fieldValue.Int()
-			}
+			serialized[fieldNumber-1] = fieldValue.Int()
+		case protoreflect.Uint32Kind, protoreflect.Uint64Kind:
+			serialized[fieldNumber-1] = fieldValue.Uint()
+		case protoreflect.FloatKind, protoreflect.DoubleKind:
+			serialized[fieldNumber-1] = fieldValue.Float()
+		case protoreflect.EnumKind:
+			serialized[fieldNumber-1] = int(fieldValue.Enum())
+		case protoreflect.BoolKind:
+			serialized[fieldNumber-1] = fieldValue.Bool()
 		case protoreflect.StringKind:
-			if m.Has(fieldDescriptor) {
-				serialized[fieldNumber-1] = fieldValue.String()
-			}
+			serialized[fieldNumber-1] = fieldValue.String()
 		default:
-			// ignore fields of other types
+			return nil, fmt.Errorf("unsupported field type %s in %s", fieldDescriptor.Kind(), fieldDescriptor.FullName())
 		}
 	}
 

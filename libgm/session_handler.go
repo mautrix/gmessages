@@ -12,8 +12,8 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
-	"go.mau.fi/mautrix-gmessages/libgm/json_proto"
 	"go.mau.fi/mautrix-gmessages/libgm/payload"
+	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -100,7 +100,7 @@ func (s *SessionHandler) completeSendMessage(requestId string, opCode int64, msg
 }
 
 func (s *SessionHandler) toJSON(message protoreflect.Message) ([]byte, error) {
-	interfaceArr, err := json_proto.Serialize(message)
+	interfaceArr, err := pblite.Serialize(message)
 	if err != nil {
 		return nil, err
 	}
@@ -145,14 +145,14 @@ func (s *SessionHandler) sendAckRequest() {
 		EmptyArr: &binary.EmptyArr{},
 		NoClue:   nil,
 	}
-	dataArray, err := json_proto.Serialize(ackMessagePayload.ProtoReflect())
+	dataArray, err := pblite.Serialize(ackMessagePayload.ProtoReflect())
 	if err != nil {
 		log.Fatal(err)
 	}
 	ackMessages := make([][]interface{}, 0)
 	for _, reqId := range s.ackMap {
 		ackMessageData := &binary.AckMessageData{RequestId: reqId, Device: s.client.devicePair.Browser}
-		ackMessageDataArr, err := json_proto.Serialize(ackMessageData.ProtoReflect())
+		ackMessageDataArr, err := pblite.Serialize(ackMessageData.ProtoReflect())
 		if err != nil {
 			log.Fatal(err)
 		}
