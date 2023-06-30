@@ -4,7 +4,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
-type QRCODE_UPDATED struct {
+type QR struct {
 	URL string
 }
 

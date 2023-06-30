@@ -1,23 +1,23 @@
 package events
 
-type BROWSER_ACTIVE struct {
+type BrowserActive struct {
 	SessionId string
 }
 
-func NewBrowserActive(sessionId string) *BROWSER_ACTIVE {
-	return &BROWSER_ACTIVE{
+func NewBrowserActive(sessionId string) *BrowserActive {
+	return &BrowserActive{
 		SessionId: sessionId,
 	}
 }
 
-type BATTERY struct{}
+type Battery struct{}
 
-func NewBattery() *BATTERY {
-	return &BATTERY{}
+func NewBattery() *Battery {
+	return &Battery{}
 }
 
-type DATA_CONNECTION struct{}
+type DataConnection struct{}
 
-func NewDataConnection() *DATA_CONNECTION {
-	return &DATA_CONNECTION{}
+func NewDataConnection() *DataConnection {
+	return &DataConnection{}
 }

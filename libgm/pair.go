@@ -67,7 +67,7 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 	if qrErr != nil {
 		return nil, qrErr
 	}
-	p.client.triggerEvent(&events.QRCODE_UPDATED{URL: url})
+	p.client.triggerEvent(&events.QR{URL: url})
 	p.startRefreshRelayTask()
 	return res, err
 }
@@ -113,7 +113,7 @@ func (p *Pairer) RefreshPhoneRelay() {
 	if qrErr != nil {
 		panic(qrErr)
 	}
-	p.client.triggerEvent(&events.QRCODE_UPDATED{URL: url})
+	p.client.triggerEvent(&events.QR{URL: url})
 }
 
 func (p *Pairer) GetWebEncryptionKey() {
