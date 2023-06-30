@@ -23,7 +23,7 @@ func NewEncodedPayload(requestId string, opCode int64, encryptedData []byte, ses
 	}
 }
 
-func NewAuthData(requestId string, rpcKey string, date *binary.Date) *binary.AuthMessage {
+func NewAuthData(requestId string, rpcKey []byte, date *binary.Date) *binary.AuthMessage {
 	return &binary.AuthMessage{
 		RequestId: requestId,
 		RpcKey:    rpcKey,

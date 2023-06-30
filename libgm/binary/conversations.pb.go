@@ -1142,11 +1142,13 @@ type MessageStatus struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// // MMS / SMS
 	// UNKNOWN_STATUS = 0;
-	//
 	// SENDING = 5;
-	//
 	// SENT = 1;
+	//
+	// // RCS
+	// READ|SEEN = 11;
 	Code      int64  `protobuf:"varint,2,opt,name=code,proto3" json:"code,omitempty"`
 	ErrMsg    string `protobuf:"bytes,4,opt,name=errMsg,proto3" json:"errMsg,omitempty"`
 	MsgStatus string `protobuf:"bytes,5,opt,name=msgStatus,proto3" json:"msgStatus,omitempty"`

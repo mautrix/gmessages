@@ -31,7 +31,7 @@ message ImageMetaData {
 
 message UploadImagePayload {
     ImageMetaData metaData = 1;
-    messages.AuthMessageBytes authData = 2;
+    messages.AuthMessage authData = 2;
 }
 
 message BugleBackendService {

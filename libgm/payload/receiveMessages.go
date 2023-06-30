@@ -3,42 +3,36 @@ package payload
 import (
 	"encoding/json"
 
-	"go.mau.fi/mautrix-gmessages/libgm/util"
+	"github.com/google/uuid"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 )
 
-func ReceiveMessages(rpcKey string) ([]byte, string, error) {
-	id := util.RandomUUIDv4()
-	data := []interface{}{
-		[]interface{}{
-			id,
-			nil,
-			nil,
-			nil,
-			nil,
-			rpcKey,
-			[]interface{}{
-				nil,
-				nil,
-				2023,
-				6,
-				8,
-				nil,
-				4,
-				nil,
-				6,
+func ReceiveMessages(rpcKey []byte) ([]byte, string, error) {
+	payload := &binary.ReceiveMessagesRequest{
+		Auth: &binary.AuthMessage{
+			RequestId: uuid.New().String(),
+			RpcKey:    rpcKey,
+			Date: &binary.Date{
+				Year: 2023,
+				Seq1: 6,
+				Seq2: 8,
+				Seq3: 4,
+				Seq4: 6,
 			},
 		},
-		nil,
-		nil,
-		[]interface{}{
-			nil,
-			[]interface{}{},
+		Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject2{
+			Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject1{},
 		},
 	}
-
+	data, err := pblite.Serialize(payload.ProtoReflect())
+	if err != nil {
+		return nil, "", err
+	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return nil, "", err
 	}
-	return jsonData, id, nil
+	return jsonData, payload.Auth.RequestId, nil
 }

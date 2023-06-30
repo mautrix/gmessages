@@ -7,7 +7,7 @@ import "messages.proto";
 
 message StartMediaUploadPayload {
     int64 imageType = 1;
-    messages.AuthMessageBytes authData = 2;
+    messages.AuthMessage authData = 2;
     messages.Device mobile = 3;
 }
 

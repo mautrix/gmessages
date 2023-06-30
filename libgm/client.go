@@ -34,7 +34,7 @@ type Client struct {
 	sessionHandler *SessionHandler
 	instructions   *Instructions
 
-	rpcKey string
+	rpcKey []byte
 	ttl    int64
 
 	proxy Proxy
@@ -87,7 +87,7 @@ func (c *Client) SetProxy(proxy string) error {
 	return nil
 }
 
-func (c *Client) Connect(rpcKey string) error {
+func (c *Client) Connect(rpcKey []byte) error {
 	rpcPayload, receiveMesageSessionId, err := payload.ReceiveMessages(rpcKey)
 	if err != nil {
 		panic(err)
@@ -100,7 +100,7 @@ func (c *Client) Connect(rpcKey string) error {
 	return nil
 }
 
-func (c *Client) Reconnect(rpcKey string) error {
+func (c *Client) Reconnect(rpcKey []byte) error {
 	c.rpc.CloseConnection()
 	for c.rpc.conn != nil {
 		time.Sleep(time.Millisecond * 100)
@@ -166,19 +166,15 @@ func (c *Client) decryptImages(messages *binary.FetchMessagesResponse) error {
 }
 
 func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
-	decodedRpcKey, err := base64.StdEncoding.DecodeString(c.rpcKey)
-	if err != nil {
-		return nil, err
-	}
 	reqId := util.RandomUUIDv4()
 	download_metadata := &binary.UploadImagePayload{
 		MetaData: &binary.ImageMetaData{
 			ImageId:   imageId,
 			Encrypted: true,
 		},
-		AuthData: &binary.AuthMessageBytes{
+		AuthData: &binary.AuthMessage{
 			RequestId: reqId,
-			RpcKey:    decodedRpcKey,
+			RpcKey:    c.rpcKey,
 			Date: &binary.Date{
 				Year: 2023,
 				Seq1: 6,

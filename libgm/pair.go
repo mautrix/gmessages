@@ -1,7 +1,6 @@
 package libgm
 
 import (
-	"encoding/base64"
 	"io"
 	"time"
 
@@ -140,9 +139,9 @@ func (p *Pairer) GetWebEncryptionKey() {
 	if err2 != nil {
 		p.client.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
 	}
-	key := base64.StdEncoding.EncodeToString(p.client.rpc.webAuthKey)
+	p.client.Logger.Debug().Any("parsedResponse", parsedResponse).Msg("WebEncryptionKeyResponse")
 	p.ticker.Stop()
-	reconnectErr := p.client.Reconnect(key)
+	reconnectErr := p.client.Reconnect(p.client.rpc.webAuthKey)
 	if reconnectErr != nil {
 		panic(reconnectErr)
 	}

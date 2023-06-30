@@ -47,14 +47,18 @@ message EmptyArr {
 
 message AuthMessage {
     string request_id = 1;
-    string rpcKey = 6;
+    bytes rpcKey = 6;
     Date date = 7;
 }
 
-message AuthMessageBytes {
-    string request_id = 1;
-    bytes rpcKey = 6;
-    Date date = 7;
+message ReceiveMessagesRequest {
+	AuthMessage auth = 1;
+
+	message UnknownEmptyObject1 {}
+	message UnknownEmptyObject2 {
+		UnknownEmptyObject1 unknown = 2;
+	}
+	optional UnknownEmptyObject2 unknown = 4;
 }
 
 message BaseData {

@@ -3,8 +3,6 @@ package events;
 
 option go_package = "../../binary";
 
-import "settings.proto";
-import "messages.proto";
 import "conversations.proto";
 
 /*
@@ -12,7 +10,7 @@ import "conversations.proto";
         2 = CONVERSATION
         3 = MESSAGE
         5 = PHONE SETTINGS
-        
+
         6 = Cases
             2 = updated session
             8 = INACTIVE_LACK_OF_ACTIVITY
@@ -51,7 +49,7 @@ message UserAlertEvent {
         5|6 = BATTERY (tf?)
 
         3|4 = DATA_CONNECTION (tf?)
-        
+
         10 = OBSERVER_REGISTERED (tf?)
     */
     int64 alert_type = 2;

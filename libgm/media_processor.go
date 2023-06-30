@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"io"
 	"net/http"
@@ -133,18 +132,12 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 }
 
 func (c *Client) buildStartUploadPayload() (string, error) {
-
-	decodedRpcKey, err := base64.StdEncoding.DecodeString(c.rpcKey)
-	if err != nil {
-		return "", err
-	}
-
 	requestId := util.RandomUUIDv4()
 	protoData := &binary.StartMediaUploadPayload{
 		ImageType: 1,
-		AuthData: &binary.AuthMessageBytes{
+		AuthData: &binary.AuthMessage{
 			RequestId: requestId,
-			RpcKey:    decodedRpcKey,
+			RpcKey:    c.rpcKey,
 			Date: &binary.Date{
 				Year: 2023,
 				Seq1: 6,
