@@ -179,7 +179,7 @@ message SmallInfo {
 message LatestMessage {
     string content = 1;
     bool fromMe = 2; // isMe?
-    
+
     string displayName = 4;
     //Unknown unknown = 5;
 }
