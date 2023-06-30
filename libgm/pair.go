@@ -3,7 +3,6 @@ package libgm
 import (
 	"encoding/base64"
 	"io"
-	"log"
 	"time"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -113,7 +112,7 @@ func (p *Pairer) RefreshPhoneRelay() {
 	p.client.Logger.Debug().Any("res", res).Msg("RefreshPhoneRelayResponse")
 	url, qrErr := p.GenerateQRCodeData()
 	if qrErr != nil {
-		log.Fatal(qrErr)
+		panic(qrErr)
 	}
 	p.client.triggerEvent(&events.QRCODE_UPDATED{URL: url})
 }
@@ -145,7 +144,7 @@ func (p *Pairer) GetWebEncryptionKey() {
 	p.ticker.Stop()
 	reconnectErr := p.client.Reconnect(key)
 	if reconnectErr != nil {
-		log.Fatal(reconnectErr)
+		panic(reconnectErr)
 	}
 }
 

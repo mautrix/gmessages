@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"fmt"
-	"log"
 	"sync"
 )
 
@@ -16,7 +15,7 @@ type ResponseChan struct {
 func (s *SessionHandler) addRequestToChannel(requestId string, opCode int64) {
 	instruction, notOk := s.client.instructions.GetInstruction(opCode)
 	if !notOk {
-		log.Fatal(notOk)
+		panic(notOk)
 	}
 	if msgMap, ok := s.requests[requestId]; ok {
 		responseChan := &ResponseChan{
@@ -67,7 +66,7 @@ func (s *SessionHandler) respondToRequestChannel(res *Response) {
 	opCodeResponseChan.receivedResponses++
 	opCodeResponseChan.wg.Done()
 	if !ok3 {
-		log.Fatal(ok3)
+		panic(ok3)
 		opCodeResponseChan.mu.Unlock()
 		return
 	}

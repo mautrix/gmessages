@@ -3,7 +3,6 @@ package libgm
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
@@ -26,6 +25,7 @@ func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
 	response := &binary.RPCResponse{}
 	deserializeErr := pblite.Deserialize(msgArr, response.ProtoReflect())
 	if deserializeErr != nil {
+		r.client.Logger.Error().Err(deserializeErr).Msg("meow")
 		r.client.Logger.Error().Err(fmt.Errorf("failed to deserialize response %s", msgArr)).Msg("rpc deserialize msg err")
 		return
 	}
@@ -37,7 +37,7 @@ func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
 	if response.Data.RoutingOpCode == 19 {
 		parsedResponse, failedParse := r.client.sessionHandler.NewResponse(response)
 		if failedParse != nil {
-			log.Fatal(failedParse)
+			panic(failedParse)
 		}
 		//hasBody := parsedResponse.Data.EncryptedData == nil
 		//r.client.Logger.Info().Any("msgData", parsedResponse).Msg("Got event!")

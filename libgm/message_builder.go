@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"errors"
-	"log"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
@@ -147,7 +146,6 @@ func (mb *MessageBuilder) newSendConversationMessage() *binary.SendMessagePayloa
 
 func (mb *MessageBuilder) appendImagesPayload(messageInfo *[]*binary.MessageInfo) {
 	if len(mb.images) <= 0 {
-		log.Println("0 images to append, ignoring")
 		return
 	}
 

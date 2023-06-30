@@ -3,7 +3,6 @@ package libgm
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"golang.org/x/exp/slices"
@@ -72,7 +71,7 @@ func (c *Client) createAndSendRequest(instructionId int64, ttl int64, newSession
 	encodedData := payload.NewEncodedPayload(requestId, instruction.Opcode, encryptedData, c.sessionHandler.sessionId)
 	encodedStr, encodeErr := crypto.EncodeProtoB64(encodedData)
 	if encodeErr != nil {
-		log.Fatalf("Failed to encode data: %v", encodeErr)
+		panic(fmt.Errorf("Failed to encode data: %w", encodeErr))
 	}
 	messageData := payload.NewMessageData(requestId, encodedStr, instruction.RoutingOpCode, instruction.MsgType)
 	authMessage := payload.NewAuthData(requestId, c.rpcKey, &binary.Date{Year: 2023, Seq1: 6, Seq2: 8, Seq3: 4, Seq4: 6})
@@ -147,14 +146,14 @@ func (s *SessionHandler) sendAckRequest() {
 	}
 	dataArray, err := pblite.Serialize(ackMessagePayload.ProtoReflect())
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	ackMessages := make([][]interface{}, 0)
 	for _, reqId := range s.ackMap {
 		ackMessageData := &binary.AckMessageData{RequestId: reqId, Device: s.client.devicePair.Browser}
 		ackMessageDataArr, err := pblite.Serialize(ackMessageData.ProtoReflect())
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		ackMessages = append(ackMessages, ackMessageDataArr)
 		s.ackMap = util.RemoveFromSlice(s.ackMap, reqId)
@@ -162,20 +161,20 @@ func (s *SessionHandler) sendAckRequest() {
 	dataArray = append(dataArray, ackMessages)
 	jsonData, jsonErr := json.Marshal(dataArray)
 	if jsonErr != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	_, err = s.client.rpc.sendMessageRequest(util.ACK_MESSAGES, jsonData)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	log.Println("[ACK] Sent Request")
+	s.client.Logger.Debug().Msg("[ACK] Sent Request")
 }
 
 func (s *SessionHandler) NewResponse(response *binary.RPCResponse) (*Response, error) {
 	//s.client.Logger.Debug().Any("rpcResponse", response).Msg("Raw rpc response")
 	decodedData, err := crypto.DecodeEncodedResponse(response.Data.EncodedData)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 		return nil, err
 	}
 	return &Response{

@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"fmt"
-	"log"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
@@ -45,7 +44,7 @@ func (c *Conversations) SendMessage(messageBuilder *MessageBuilder, selfParticip
 
 	encryptedProtoPayload, failedToBuild := messageBuilder.Build()
 	if failedToBuild != nil {
-		log.Fatal(failedToBuild)
+		panic(failedToBuild)
 	}
 
 	instruction, _ := c.client.instructions.GetInstruction(SEND_TEXT_MESSAGE)
@@ -54,7 +53,7 @@ func (c *Conversations) SendMessage(messageBuilder *MessageBuilder, selfParticip
 
 	responses, err := c.client.sessionHandler.WaitForResponse(sentRequestId, instruction.Opcode)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 		return nil, err
 	}
 

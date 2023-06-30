@@ -2,7 +2,6 @@ package crypto
 
 import (
 	"crypto/rand"
-	"log"
 )
 
 func GenerateKey(length int) ([]byte, error) {
@@ -17,11 +16,11 @@ func GenerateKey(length int) ([]byte, error) {
 func GenerateKeys() ([]byte, []byte) {
 	key, err := GenerateKey(32)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	key2, err2 := GenerateKey(32)
 	if err2 != nil {
-		log.Fatal(err2)
+		panic(err2)
 	}
 	return key, key2
 }

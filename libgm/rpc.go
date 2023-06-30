@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -24,13 +24,13 @@ type RPC struct {
 func (r *RPC) ListenReceiveMessages(payload []byte) {
 	req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
 	if err != nil {
-		log.Fatalf("Error creating request: %v", err)
+		panic(fmt.Errorf("Error creating request: %v", err))
 	}
 	util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
 	resp, reqErr := r.http.Do(req)
 	//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", util.RECEIVE_MESSAGES).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
 	if reqErr != nil {
-		log.Fatalf("Error making request: %v", err)
+		panic(fmt.Errorf("Error making request: %v", err))
 	}
 	r.conn = resp.Body
 	go r.startReadingData(resp.Body)
@@ -139,13 +139,13 @@ func (r *RPC) CloseConnection() {
 func (r *RPC) sendMessageRequest(url string, payload []byte) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
 	if err != nil {
-		log.Fatalf("Error creating request: %v", err)
+		panic(fmt.Errorf("Error creating request: %v", err))
 	}
 	util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
 	resp, reqErr := r.client.http.Do(req)
 	//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", url).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
 	if reqErr != nil {
-		log.Fatalf("Error making request: %v", err)
+		panic(fmt.Errorf("Error making request: %v", err))
 	}
 	return resp, reqErr
 }

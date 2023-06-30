@@ -1,14 +1,11 @@
 package payload
 
 import (
-	"log"
-
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 func GetWebEncryptionKey(WebPairKey []byte) ([]byte, *binary.Container, error) {
-	log.Println(WebPairKey)
 	id := util.RandomUUIDv4()
 	payload := &binary.Container{
 		PhoneRelay: &binary.PhoneRelayBody{

@@ -3,7 +3,6 @@ package libgm
 import (
 	"encoding/base64"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -91,7 +90,7 @@ func (c *Client) SetProxy(proxy string) error {
 func (c *Client) Connect(rpcKey string) error {
 	rpcPayload, receiveMesageSessionId, err := payload.ReceiveMessages(rpcKey)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 		return err
 	}
 	c.rpc.rpcSessionId = receiveMesageSessionId
@@ -114,7 +113,7 @@ func (c *Client) Reconnect(rpcKey string) error {
 	c.Logger.Debug().Any("rpcKey", rpcKey).Msg("Successfully reconnected to server")
 	sendInitialDataErr := c.rpc.sendInitialData()
 	if sendInitialDataErr != nil {
-		log.Fatal(sendInitialDataErr)
+		panic(sendInitialDataErr)
 	}
 	return nil
 }
@@ -155,7 +154,7 @@ func (c *Client) decryptImages(messages *binary.FetchMessagesResponse) error {
 				case *binary.MessageInfo_ImageContent:
 					decryptedImageData, err := c.decryptImageData(data.ImageContent.ImageId, data.ImageContent.DecryptionKey)
 					if err != nil {
-						log.Fatal(err)
+						panic(err)
 						return err
 					}
 					data.ImageContent.ImageData = decryptedImageData
@@ -213,7 +212,7 @@ func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
 	c.imageCryptor.UpdateDecryptionKey(key)
 	decryptedImageBytes, decryptionErr := c.imageCryptor.DecryptData(encryptedBuffImg)
 	if decryptionErr != nil {
-		log.Println("Error:", decryptionErr)
+		c.Logger.Err(err).Msg("Image decryption failed")
 		return nil, decryptionErr
 	}
 	return decryptedImageBytes, nil

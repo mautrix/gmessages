@@ -1,7 +1,6 @@
 package libgm
 
 import (
-	"log"
 	"os"
 
 	"go.mau.fi/mautrix-gmessages/libgm/builders"
@@ -19,7 +18,7 @@ func (m *Misc) TenorSearch(searchOpts *builders.TenorSearch) (interface{}, error
 	}
 
 	uri := util.TENOR_SEARCH_GIF + searchQuery
-	log.Println(uri)
+	m.client.Logger.Debug().Msg(uri)
 	os.Exit(1)
 	return nil, nil
 }
