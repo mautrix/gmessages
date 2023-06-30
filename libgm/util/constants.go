@@ -5,4 +5,3 @@ var USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, lik
 var OS = "Linux"
 var X_USER_AGENT = "grpc-web-javascript/0.1"
 var QR_CODE_URL = "https://support.google.com/messages/?p=web_computer#?c="
-var TENOR_API_KEY = "YR0F99AJ65AV"

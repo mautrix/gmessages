@@ -18,6 +18,3 @@ var MESSAGING = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instan
 var RECEIVE_MESSAGES = MESSAGING + "/ReceiveMessages"
 var SEND_MESSAGE = MESSAGING + "/SendMessage"
 var ACK_MESSAGES = MESSAGING + "/AckMessages"
-
-var TENOR_BASE_URL = "https://api.tenor.com/v1"
-var TENOR_SEARCH_GIF = TENOR_BASE_URL + "/search"

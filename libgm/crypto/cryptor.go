@@ -6,11 +6,8 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
-	"os"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -33,19 +30,6 @@ func NewCryptor(aes_key []byte, sha_key []byte) *Cryptor {
 		AES_CTR_KEY_256: aes_key,
 		SHA_256_KEY:     sha_key,
 	}
-}
-
-func (c *Cryptor) SaveAsJson() {
-	AES_B64, SHA_B64 := base64.StdEncoding.EncodeToString(c.AES_CTR_KEY_256), base64.StdEncoding.EncodeToString(c.SHA_256_KEY)
-	inter := struct {
-		AES_CTR_KEY_256 string
-		SHA_256_KEY     string
-	}{
-		AES_CTR_KEY_256: AES_B64,
-		SHA_256_KEY:     SHA_B64,
-	}
-	jsonData, _ := json.Marshal(inter)
-	os.WriteFile("cryptor.json", jsonData, os.ModePerm)
 }
 
 func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
