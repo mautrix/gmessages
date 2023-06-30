@@ -7,6 +7,7 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
+	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -16,7 +17,6 @@ type Pairer struct {
 	KeyData    *crypto.JWK
 	ticker     *time.Ticker
 	tickerTime time.Duration
-	qrCodePx   int
 	pairingKey []byte
 }
 
@@ -35,15 +35,10 @@ func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer,
 	p := &Pairer{
 		client:     c,
 		KeyData:    keyData,
-		qrCodePx:   214,
 		tickerTime: time.Duration(refreshQrCodeTime) * time.Second,
 	}
 	c.pairer = p
 	return p, nil
-}
-
-func (p *Pairer) SetQRCodePx(pixels int) {
-	p.qrCodePx = pixels
 }
 
 func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error) {
@@ -69,11 +64,11 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		return nil, err3
 	}
 	p.pairingKey = res.GetPairingKey()
-	qrCode, qrErr := p.GenerateQRCode(p.qrCodePx)
+	url, qrErr := p.GenerateQRCodeData()
 	if qrErr != nil {
 		return nil, qrErr
 	}
-	p.client.triggerEvent(qrCode)
+	p.client.triggerEvent(&events.QRCODE_UPDATED{URL: url})
 	p.startRefreshRelayTask()
 	return res, err
 }
@@ -115,11 +110,11 @@ func (p *Pairer) RefreshPhoneRelay() {
 	}
 	p.pairingKey = res.GetPairKey()
 	p.client.Logger.Debug().Any("res", res).Msg("RefreshPhoneRelayResponse")
-	qrCode, qrErr := p.GenerateQRCode(p.qrCodePx)
+	url, qrErr := p.GenerateQRCodeData()
 	if qrErr != nil {
 		log.Fatal(qrErr)
 	}
-	p.client.triggerEvent(qrCode)
+	p.client.triggerEvent(&events.QRCODE_UPDATED{URL: url})
 }
 
 func (p *Pairer) GetWebEncryptionKey() {
