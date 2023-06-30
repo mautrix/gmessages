@@ -1,0 +1,194 @@
+syntax = "proto3";
+package conversations;
+
+option go_package = "../../binary";
+
+message SendMessagePayload {
+    string conversationId = 2;
+    MessagePayload messagePayload = 3;
+    string tmpId = 5;
+}
+
+message MessagePayload {
+    string tmpId = 1;
+    MessagePayloadContent messagePayloadContent = 6;
+    string conversationId = 7;
+    string selfParticipantId = 9; // might be participantId
+    repeated MessageInfo messageInfo = 10;
+    string tmpId2 = 12;
+}
+
+message MessagePayloadContent {
+    MessageContent messageContent = 1;
+}
+
+message OpenConversationPayload {
+    string conversationId = 2;
+}
+
+message PrepareOpenConversationPayload {
+    int64 field2 = 2; // only seen value 1
+}
+
+message FetchConversationMessagesPayload {
+    string conversationId = 2;
+    int64 count = 3;
+
+    Cursor cursor = 5;
+}
+
+message ListCoversationsPayload {
+    int64 count = 2; // no idea if this is actually amount to list
+    int64 field4 = 4; // no idea what this is , but only value ive seen is 1
+}
+
+message FetchMessagesResponse {
+    repeated Message messages = 2;
+    bytes someBytes = 3;
+    int64 totalMessages = 4;
+    Cursor cursor = 5;
+}
+
+message Cursor {
+    string someStr = 1;
+    int64 nextCursor = 2;
+}
+
+enum MessageType {
+    UNKNOWN = 0;
+    TEXT = 1;
+    IMAGE = 2;
+    VIDEO = 3;
+    AUDIO = 4;
+    ATTACHMENT = 5;
+    LOCATION = 6;
+    RICH_CARD = 7;
+    VCARD = 8;
+    MMS_NEEDS_DOWNLOAD = 9;
+    REPLY = 10;
+}
+
+message Message {
+    string messageId = 1;
+    IsFromMe from = 3;
+    MessageStatus messageStatus = 4;
+    int64 timestamp = 5;
+    string conversationId = 7;
+    string participantId = 9;
+    repeated MessageInfo messageInfo = 10;
+    MessageType type = 11;
+    string tmpId = 12;
+}
+
+message MessageInfo {
+    string orderInternal = 1;
+    oneof data {
+        MessageContent messageContent = 2;
+        ImageContent imageContent = 3;
+    }
+}
+
+message ImageContent {
+    int64 someNumber = 1;
+    string imageId = 2;
+    string imageName = 4;
+    int64 size = 5;
+    ImagePixels pixels = 6;
+    bytes imageData = 7;
+    string imageId2 = 9;
+    bytes decryptionKey = 11;
+    bytes decryptionKey2 = 12; // same value as decryptionkey?
+}
+
+message ImagePixels {
+    int64 width = 1;
+    int64 height = 2;
+}
+
+message MessageContent {
+    string content = 1;
+}
+
+message IsFromMe {
+    bool fromMe = 1;
+}
+
+enum MsgStatusCode {
+    UNKNOWN_STATUS = 0;
+    SENDING = 5;
+    SENT = 1;
+}
+
+message MessageStatus {
+    /*
+    // MMS / SMS
+    UNKNOWN_STATUS = 0;
+    SENDING = 5;
+    SENT = 1;
+
+    // RCS
+    READ|SEEN = 11;
+    */
+    int64 code = 2;
+    string errMsg = 4;
+    string msgStatus = 5;
+}
+
+message Conversations {
+    repeated Conversation conversations = 2;
+}
+
+message Conversation {
+    string conversationId = 1;
+    string name = 2;
+    LatestMessage latestMessage = 4;
+    int64 timestampMs = 5;
+
+    bool isGroupChat = 10; // not certain
+    string selfParticipantId = 11;
+    /*
+        1 = unarchived
+        2 = archived
+        3 = deleted
+    */
+    //bool bool1 = 13;
+    int64 status = 12;
+    string hashHex = 15;
+    string messageId = 17;
+    repeated Participant participants = 20;
+    repeated string otherParticipants = 21; // participant ids excluding me
+    int64 type = 22;
+}
+
+message Participant {
+    SmallInfo smallInfo = 1;
+    string hashHex = 5;
+    bool isMe = 6;
+    Muted muted = 7;
+    //bool bool2 = 8;
+    int64 bs = 14;
+    string displayName = 15;
+}
+
+message SmallInfo {
+    int64 type = 1;
+    string number = 2;
+    string participantId = 3;
+}
+
+message LatestMessage {
+    string content = 1;
+    bool fromMe = 2; // isMe?
+    
+    string displayName = 4;
+    //Unknown unknown = 5;
+}
+
+message Unknown {
+    int64 field1 = 1;
+    int64 field2 = 2;
+}
+
+message Muted {
+    bool isMuted = 1;
+}

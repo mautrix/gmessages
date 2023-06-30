@@ -1,0 +1,43 @@
+syntax = "proto3";
+package client;
+
+option go_package = "../../binary";
+
+import "messages.proto";
+
+message SendMessage {
+    messages.Device pairedDevice = 1;
+    messages.MessageData messageData = 2;
+    messages.AuthMessage authData = 3;
+    int64 ttl = 5;
+    messages.EmptyArr emptyArr = 9;
+}
+
+message AckMessagePayload {
+    messages.AuthMessage authData = 1;
+    messages.EmptyArr emptyArr = 2;
+    bytes noClue = 3;
+}
+
+message AckMessageData {
+    string request_id = 1;
+    messages.Device device = 2;
+}
+
+message ImageMetaData {
+    string imageId = 1;
+    bool encrypted = 2;
+}
+
+message UploadImagePayload {
+    ImageMetaData metaData = 1;
+    messages.AuthMessageBytes authData = 2;
+}
+
+message BugleBackendService {
+    BugleCode data = 6;
+}
+
+message BugleCode {
+    int64 type = 2;
+}

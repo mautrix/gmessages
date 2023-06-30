@@ -1,0 +1,75 @@
+syntax = "proto3";
+package settings;
+
+option go_package = "../../binary";
+
+
+message Settings {
+    Data data = 2;
+    OpCodeData opCodeData = 3;
+    BooleanFields boolFields = 4;
+    string version = 5;
+    bool bool1 = 7;
+    BooleanFields2 boolFields2 = 8;
+    string emptyString = 9;
+    BooleanFields3 boolFields3 = 10;
+}
+
+message Data { // i think its simdata? no clue
+    BoolMsg boolMsg = 3;
+    SimData simData = 5;
+    bool bool1 = 6;
+    NoClue noClue = 7;
+}
+
+message BoolMsg {
+    bool bool1 = 1;
+}
+
+message SimData {
+    UnknownMessage unknownMessage = 1;
+    bool bool1 = 2;
+    string carrierName = 3;
+    string hexHash = 4;
+    int64 int1 = 5;
+}
+
+message UnknownMessage {
+    int64 int1 = 1;
+    int64 int2 = 2;
+}
+
+message NoClue { // just a guess lol
+    string count = 1;
+}
+
+message OpCodeData {
+    bool field7 = 7;
+    string jsonData = 16;
+}
+
+message BooleanFields {
+    bool bool1 = 1;
+    bool bool2 = 2;
+    bool bool3 = 3;
+    bool bool4 = 4;
+}
+
+message BooleanFields2 {
+    bool bool1 = 1;
+    bool bool2 = 2;
+    BoolMsg boolMsg1 = 3;
+    BoolMsg boolMsg2 = 5;
+    bool bool3 = 6;
+}
+
+message BooleanFields3 {
+    bool bool1 = 1;
+    bool bool3 = 3;
+    bool bool4 = 4;
+    bool bool5 = 5;
+    bool bool6 = 6;
+    bool bool7 = 7;
+    bool bool8 = 8;
+    bool bool9 = 9;
+}

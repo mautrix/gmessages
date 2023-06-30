@@ -1,0 +1,82 @@
+syntax = "proto3";
+package messages;
+
+option go_package = "../../binary";
+
+message EncodedPayload {
+    string request_id = 1;
+    int64 opcode = 2;
+    bytes encryptedData = 5;
+    string session_id = 6;
+}
+
+message EncodedResponse {
+    string request_id = 1;
+    //int64 msg = 2;
+    int64 unixNano = 3;
+    int64 opcode = 4;
+    //bytes keyData = 5;
+    bool sub = 6;
+    int64 third = 7;
+    bytes encryptedData = 8;
+    bool field9 = 9;
+}
+
+message MessageData {
+    string request_id = 1;
+    int64 routing_op_code = 2;
+    string ts1 = 3;
+    int64 field5 = 5;
+    string ts2 = 6;
+    string someString = 7;
+    Device mobile = 8;
+    Device browser = 9;
+    string encodedData = 12;
+    string encoded_request_id = 17;
+    MsgTypeArr msgTypeArr = 23;
+}
+
+message MsgTypeArr {
+    EmptyArr emptyArr = 1;
+    int64 msgType = 2;
+}
+
+message EmptyArr {
+
+}
+
+message AuthMessage {
+    string request_id = 1;
+    string rpcKey = 6;
+    Date date = 7;
+}
+
+message AuthMessageBytes {
+    string request_id = 1;
+    bytes rpcKey = 6;
+    Date date = 7;
+}
+
+message BaseData {
+    int64 Ttl = 2;
+    EmptyArr emptyArr = 6;
+}
+
+message RPCResponse {
+    bytes unknown = 1;
+    MessageData data = 2;
+}
+
+message Device {
+    int64 userId = 1;
+    string registrationId = 2;
+    string network = 3;
+}
+
+message Date {
+    int64 year = 3;
+    int64 seq1 = 4;
+    int64 seq2 = 5;
+    int64 seq3 = 7;
+    int64 seq4 = 9;
+}

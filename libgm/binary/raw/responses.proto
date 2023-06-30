@@ -1,0 +1,19 @@
+syntax = "proto3";
+package responses;
+
+option go_package = "../../binary";
+
+import "settings.proto";
+import "conversations.proto";
+
+message PrepareNewSession {
+    bool success = 1;
+}
+
+message NewSession {
+    settings.Settings settings = 5;
+}
+
+message SendMessageResponse {
+    conversations.MessageType type = 3;
+}

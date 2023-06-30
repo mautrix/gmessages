@@ -1,0 +1,49 @@
+syntax = "proto3";
+package pairing;
+
+option go_package = "../../binary";
+
+import "messages.proto";
+
+message BrowserDetails {
+    string user_agent = 1;
+    int32 someInt = 2;
+    string os = 3;
+    bool someBool = 6;
+}
+
+message PhoneRelayBody {
+    string id = 1;
+    string bugle = 3;
+    bytes rpcKey = 6;
+    messages.Date date = 7;
+}
+
+message ECDSAKeys {
+    int64 protoVersion = 1; // idk?
+    bytes encryptedKeys = 2;
+}
+
+message PairDeviceData {
+    messages.Device mobile = 1;
+    ECDSAKeys ecdsaKeys = 6;
+    WebAuthKey webAuthKeyData = 2;
+    messages.Device browser = 3;
+}
+
+message WebAuthKey {
+    bytes webAuthKey = 1;
+    int64 validFor = 2;
+}
+
+message Container {
+    PhoneRelayBody PhoneRelay = 1;
+    BrowserDetails browserDetails = 3;
+    PairDeviceData pairDeviceData = 4;
+}
+
+message UrlData {
+    bytes pairingKey = 1;
+    bytes AES_CTR_KEY_256 = 2;
+    bytes SHA_256_KEY = 3;
+}

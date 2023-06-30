@@ -1,0 +1,58 @@
+syntax = "proto3";
+package events;
+
+option go_package = "../../binary";
+
+import "settings.proto";
+import "messages.proto";
+import "conversations.proto";
+
+/*
+    Cases
+        2 = CONVERSATION
+        3 = MESSAGE
+        5 = PHONE SETTINGS
+        
+        6 = Cases
+            2 = updated session
+            8 = INACTIVE_LACK_OF_ACTIVITY
+            7 = BROWSER_INACTIVE_FROM_TIMEOUT
+            6|5 = user_alert:battery
+            3|4 = user_alert:data_connection
+            10 = OBSERVER_REGISTERED
+*/
+
+message Event {
+    oneof event {
+        ConversationEvent conversationEvent = 2;
+        MessageEvent messageEvent = 3;
+        UserAlertEvent userAlertEvent = 6;
+    }
+}
+
+message ConversationEvent {
+    conversations.Conversation data = 2;
+}
+
+message MessageEvent {
+    conversations.Message data = 2;
+}
+
+message UserAlertEvent {
+    /*
+        2 = BROWSER_ACTIVE (new session created in other browser)
+
+        1 = ?
+
+        8 = INACTIVE_LACK_OF_ACTIVITY
+
+        7 = INACTIVE_TIMEOUT
+
+        5|6 = BATTERY (tf?)
+
+        3|4 = DATA_CONNECTION (tf?)
+        
+        10 = OBSERVER_REGISTERED (tf?)
+    */
+    int64 alert_type = 2;
+}
