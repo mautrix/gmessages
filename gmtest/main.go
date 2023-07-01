@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"os"
 	"os/signal"
@@ -45,13 +45,13 @@ func main() {
 		w.Out = os.Stdout
 		w.TimeFormat = time.Stamp
 	})).With().Timestamp().Logger()
-	file, err := os.Open("session.gob")
+	file, err := os.Open("session.json")
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
 	} else {
-		must(gob.NewDecoder(file).Decode(&sess))
+		must(json.NewDecoder(file).Decode(&sess))
 		log.Info().Msg("Loaded session?")
 	}
 	_ = file.Close()
@@ -101,15 +101,15 @@ func main() {
 }
 
 func saveSession() {
-	file := mustReturn(os.OpenFile("session.gob", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600))
-	must(gob.NewEncoder(file).Encode(sess))
+	file := mustReturn(os.OpenFile("session.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600))
+	must(json.NewEncoder(file).Encode(sess))
 	_ = file.Close()
 }
 
 func evtHandler(rawEvt any) {
 	switch evt := rawEvt.(type) {
 	case *events.ClientReady:
-		log.Debug().Any("simData", evt.Session.Settings).Msg("Client is ready!")
+		log.Debug().Any("data", evt).Msg("Client is ready!")
 	case *events.PairSuccessful:
 		log.Debug().Any("data", evt).Msg("Pair successful")
 		sess.DevicePair = &libgm.DevicePair{
