@@ -159,6 +159,11 @@ func (r *RPC) sendInitialData() error {
 		return err
 	}
 
+	_, convErr := r.client.Conversations.List(25)
+	if convErr != nil {
+		return convErr
+	}
+
 	evtData := events.NewClientReady(sessionResponse)
 	r.client.triggerEvent(evtData)
 	r.client.sessionHandler.startAckInterval()

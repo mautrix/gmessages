@@ -70,6 +70,9 @@ func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.L
 }
 
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
+	if eventHandler == nil {
+		eventHandler = func(_ interface{}) {}
+	}
 	c.evHandler = eventHandler
 }
 
@@ -122,6 +125,19 @@ func (c *Client) Reconnect(rpcKey []byte) error {
 		panic(sendInitialDataErr)
 	}
 	return nil
+}
+
+func (c *Client) Disconnect() {
+	c.rpc.CloseConnection()
+	c.http.CloseIdleConnections()
+}
+
+func (c *Client) IsConnected() bool {
+	return c.rpc != nil
+}
+
+func (c *Client) IsLoggedIn() bool {
+	return c.devicePair != nil
 }
 
 func (c *Client) triggerEvent(evt interface{}) {
