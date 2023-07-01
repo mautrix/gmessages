@@ -162,16 +162,20 @@ message Conversation {
 }
 
 message Participant {
-    SmallInfo smallInfo = 1;
-    string hashHex = 5;
+    UserIdentifier id = 1;
+    string displaynameCopy = 2;
+    string displayname = 3;
+    string color = 5;
     bool isMe = 6;
     Muted muted = 7;
     //bool bool2 = 8;
+    string avatarID = 10;
+    // bool bool3 = 11;
     int64 bs = 14;
-    string displayName = 15;
+    string formattedNumber = 15;
 }
 
-message SmallInfo {
+message UserIdentifier {
     int64 type = 1;
     string number = 2;
     string participantID = 3;
