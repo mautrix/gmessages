@@ -52,13 +52,13 @@ message AuthMessage {
 }
 
 message ReceiveMessagesRequest {
-	AuthMessage auth = 1;
+    AuthMessage auth = 1;
 
-	message UnknownEmptyObject1 {}
-	message UnknownEmptyObject2 {
-		UnknownEmptyObject1 unknown = 2;
-	}
-	optional UnknownEmptyObject2 unknown = 4;
+    message UnknownEmptyObject1 {}
+    message UnknownEmptyObject2 {
+        UnknownEmptyObject1 unknown = 2;
+    }
+    optional UnknownEmptyObject2 unknown = 4;
 }
 
 message BaseData {
