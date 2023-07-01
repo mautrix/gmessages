@@ -18,8 +18,17 @@ func (c *Client) handleSeperateOpCode(msgData *binary.MessageData) {
 		if err != nil {
 			panic(err)
 		}
+		if decodedData.UnpairDeviceData != nil {
+			c.Logger.Warn().Any("data", decodedData).Msg("Unpaired?")
+			return
+		}
+		// TODO unpairing
 		c.Logger.Debug().Any("data", decodedData).Msg("Paired device decoded data")
-		c.pairer.pairCallback(decodedData)
+		if c.pairer != nil {
+			c.pairer.pairCallback(decodedData)
+		} else {
+			c.Logger.Warn().Msg("No pairer to receive callback")
+		}
 	default:
 		decodedData := &binary.EncodedResponse{}
 		err = binary.DecodeProtoMessage(decodedBytes, decodedData)

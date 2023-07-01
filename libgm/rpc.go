@@ -22,18 +22,21 @@ type RPC struct {
 }
 
 func (r *RPC) ListenReceiveMessages(payload []byte) {
-	req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
-	if err != nil {
-		panic(fmt.Errorf("Error creating request: %v", err))
+	for {
+		r.client.Logger.Debug().Msg("Starting new long-polling request")
+		req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
+		if err != nil {
+			panic(fmt.Errorf("Error creating request: %v", err))
+		}
+		util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
+		resp, reqErr := r.http.Do(req)
+		//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", util.RECEIVE_MESSAGES).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
+		if reqErr != nil {
+			panic(fmt.Errorf("Error making request: %v", err))
+		}
+		r.conn = resp.Body
+		r.startReadingData(resp.Body)
 	}
-	util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
-	resp, reqErr := r.http.Do(req)
-	//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", util.RECEIVE_MESSAGES).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
-	if reqErr != nil {
-		panic(fmt.Errorf("Error making request: %v", err))
-	}
-	r.conn = resp.Body
-	go r.startReadingData(resp.Body)
 }
 
 /*
@@ -156,12 +159,7 @@ func (r *RPC) sendInitialData() error {
 		return err
 	}
 
-	conversationList, convErr := r.client.Conversations.List(25)
-	if convErr != nil {
-		return convErr
-	}
-
-	evtData := events.NewClientReady(sessionResponse, conversationList)
+	evtData := events.NewClientReady(sessionResponse)
 	r.client.triggerEvent(evtData)
 	r.client.sessionHandler.startAckInterval()
 	return nil

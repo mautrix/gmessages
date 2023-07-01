@@ -288,6 +288,53 @@ func (x *PairDeviceData) GetBrowser() *Device {
 	return nil
 }
 
+type UnpairDeviceData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Browser *Device `protobuf:"bytes,1,opt,name=browser,proto3" json:"browser,omitempty"`
+}
+
+func (x *UnpairDeviceData) Reset() {
+	*x = UnpairDeviceData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pairing_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UnpairDeviceData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnpairDeviceData) ProtoMessage() {}
+
+func (x *UnpairDeviceData) ProtoReflect() protoreflect.Message {
+	mi := &file_pairing_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnpairDeviceData.ProtoReflect.Descriptor instead.
+func (*UnpairDeviceData) Descriptor() ([]byte, []int) {
+	return file_pairing_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UnpairDeviceData) GetBrowser() *Device {
+	if x != nil {
+		return x.Browser
+	}
+	return nil
+}
+
 type WebAuthKey struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -300,7 +347,7 @@ type WebAuthKey struct {
 func (x *WebAuthKey) Reset() {
 	*x = WebAuthKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pairing_proto_msgTypes[4]
+		mi := &file_pairing_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -313,7 +360,7 @@ func (x *WebAuthKey) String() string {
 func (*WebAuthKey) ProtoMessage() {}
 
 func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
-	mi := &file_pairing_proto_msgTypes[4]
+	mi := &file_pairing_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -326,7 +373,7 @@ func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebAuthKey.ProtoReflect.Descriptor instead.
 func (*WebAuthKey) Descriptor() ([]byte, []int) {
-	return file_pairing_proto_rawDescGZIP(), []int{4}
+	return file_pairing_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *WebAuthKey) GetWebAuthKey() []byte {
@@ -348,15 +395,16 @@ type Container struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	PhoneRelay     *PhoneRelayBody `protobuf:"bytes,1,opt,name=PhoneRelay,proto3" json:"PhoneRelay,omitempty"`
-	BrowserDetails *BrowserDetails `protobuf:"bytes,3,opt,name=browserDetails,proto3" json:"browserDetails,omitempty"`
-	PairDeviceData *PairDeviceData `protobuf:"bytes,4,opt,name=pairDeviceData,proto3" json:"pairDeviceData,omitempty"`
+	PhoneRelay       *PhoneRelayBody   `protobuf:"bytes,1,opt,name=PhoneRelay,proto3" json:"PhoneRelay,omitempty"`
+	BrowserDetails   *BrowserDetails   `protobuf:"bytes,3,opt,name=browserDetails,proto3" json:"browserDetails,omitempty"`
+	PairDeviceData   *PairDeviceData   `protobuf:"bytes,4,opt,name=pairDeviceData,proto3" json:"pairDeviceData,omitempty"`
+	UnpairDeviceData *UnpairDeviceData `protobuf:"bytes,5,opt,name=unpairDeviceData,proto3" json:"unpairDeviceData,omitempty"`
 }
 
 func (x *Container) Reset() {
 	*x = Container{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pairing_proto_msgTypes[5]
+		mi := &file_pairing_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -369,7 +417,7 @@ func (x *Container) String() string {
 func (*Container) ProtoMessage() {}
 
 func (x *Container) ProtoReflect() protoreflect.Message {
-	mi := &file_pairing_proto_msgTypes[5]
+	mi := &file_pairing_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +430,7 @@ func (x *Container) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Container.ProtoReflect.Descriptor instead.
 func (*Container) Descriptor() ([]byte, []int) {
-	return file_pairing_proto_rawDescGZIP(), []int{5}
+	return file_pairing_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Container) GetPhoneRelay() *PhoneRelayBody {
@@ -406,6 +454,13 @@ func (x *Container) GetPairDeviceData() *PairDeviceData {
 	return nil
 }
 
+func (x *Container) GetUnpairDeviceData() *UnpairDeviceData {
+	if x != nil {
+		return x.UnpairDeviceData
+	}
+	return nil
+}
+
 type UrlData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -419,7 +474,7 @@ type UrlData struct {
 func (x *UrlData) Reset() {
 	*x = UrlData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pairing_proto_msgTypes[6]
+		mi := &file_pairing_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -432,7 +487,7 @@ func (x *UrlData) String() string {
 func (*UrlData) ProtoMessage() {}
 
 func (x *UrlData) ProtoReflect() protoreflect.Message {
-	mi := &file_pairing_proto_msgTypes[6]
+	mi := &file_pairing_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -445,7 +500,7 @@ func (x *UrlData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UrlData.ProtoReflect.Descriptor instead.
 func (*UrlData) Descriptor() ([]byte, []int) {
-	return file_pairing_proto_rawDescGZIP(), []int{6}
+	return file_pairing_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UrlData) GetPairingKey() []byte {
@@ -508,11 +563,15 @@ var file_pairing_proto_rawDesc = []byte{
 	0x79, 0x44, 0x61, 0x74, 0x61, 0x12, 0x2a, 0x0a, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65, 0x72,
 	0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
 	0x73, 0x2e, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x52, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65,
+	0x72, 0x22, 0x3e, 0x0a, 0x10, 0x55, 0x6e, 0x70, 0x61, 0x69, 0x72, 0x44, 0x65, 0x76, 0x69, 0x63,
+	0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x2a, 0x0a, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x73, 0x2e, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x52, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65,
 	0x72, 0x22, 0x48, 0x0a, 0x0a, 0x57, 0x65, 0x62, 0x41, 0x75, 0x74, 0x68, 0x4b, 0x65, 0x79, 0x12,
 	0x1e, 0x0a, 0x0a, 0x77, 0x65, 0x62, 0x41, 0x75, 0x74, 0x68, 0x4b, 0x65, 0x79, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x0c, 0x52, 0x0a, 0x77, 0x65, 0x62, 0x41, 0x75, 0x74, 0x68, 0x4b, 0x65, 0x79, 0x12,
 	0x1a, 0x0a, 0x08, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x46, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x03, 0x52, 0x08, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x46, 0x6f, 0x72, 0x22, 0xc6, 0x01, 0x0a, 0x09,
+	0x03, 0x52, 0x08, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x46, 0x6f, 0x72, 0x22, 0x8d, 0x02, 0x0a, 0x09,
 	0x43, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x12, 0x37, 0x0a, 0x0a, 0x50, 0x68, 0x6f,
 	0x6e, 0x65, 0x52, 0x65, 0x6c, 0x61, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e,
 	0x70, 0x61, 0x69, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x68, 0x6f, 0x6e, 0x65, 0x52, 0x65, 0x6c,
@@ -525,15 +584,19 @@ var file_pairing_proto_rawDesc = []byte{
 	0x65, 0x44, 0x61, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x70, 0x61,
 	0x69, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x50, 0x61, 0x69, 0x72, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65,
 	0x44, 0x61, 0x74, 0x61, 0x52, 0x0e, 0x70, 0x61, 0x69, 0x72, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65,
-	0x44, 0x61, 0x74, 0x61, 0x22, 0x6b, 0x0a, 0x07, 0x55, 0x72, 0x6c, 0x44, 0x61, 0x74, 0x61, 0x12,
-	0x1e, 0x0a, 0x0a, 0x70, 0x61, 0x69, 0x72, 0x69, 0x6e, 0x67, 0x4b, 0x65, 0x79, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0c, 0x52, 0x0a, 0x70, 0x61, 0x69, 0x72, 0x69, 0x6e, 0x67, 0x4b, 0x65, 0x79, 0x12,
-	0x22, 0x0a, 0x0c, 0x41, 0x45, 0x53, 0x43, 0x54, 0x52, 0x32, 0x35, 0x36, 0x4b, 0x65, 0x79, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0c, 0x41, 0x45, 0x53, 0x43, 0x54, 0x52, 0x32, 0x35, 0x36,
-	0x4b, 0x65, 0x79, 0x12, 0x1c, 0x0a, 0x09, 0x53, 0x48, 0x41, 0x32, 0x35, 0x36, 0x4b, 0x65, 0x79,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x09, 0x53, 0x48, 0x41, 0x32, 0x35, 0x36, 0x4b, 0x65,
-	0x79, 0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x2e, 0x2f, 0x2e, 0x2e, 0x2f, 0x62, 0x69, 0x6e, 0x61, 0x72,
-	0x79, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x44, 0x61, 0x74, 0x61, 0x12, 0x45, 0x0a, 0x10, 0x75, 0x6e, 0x70, 0x61, 0x69, 0x72, 0x44, 0x65,
+	0x76, 0x69, 0x63, 0x65, 0x44, 0x61, 0x74, 0x61, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19,
+	0x2e, 0x70, 0x61, 0x69, 0x72, 0x69, 0x6e, 0x67, 0x2e, 0x55, 0x6e, 0x70, 0x61, 0x69, 0x72, 0x44,
+	0x65, 0x76, 0x69, 0x63, 0x65, 0x44, 0x61, 0x74, 0x61, 0x52, 0x10, 0x75, 0x6e, 0x70, 0x61, 0x69,
+	0x72, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x44, 0x61, 0x74, 0x61, 0x22, 0x6b, 0x0a, 0x07, 0x55,
+	0x72, 0x6c, 0x44, 0x61, 0x74, 0x61, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x61, 0x69, 0x72, 0x69, 0x6e,
+	0x67, 0x4b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0a, 0x70, 0x61, 0x69, 0x72,
+	0x69, 0x6e, 0x67, 0x4b, 0x65, 0x79, 0x12, 0x22, 0x0a, 0x0c, 0x41, 0x45, 0x53, 0x43, 0x54, 0x52,
+	0x32, 0x35, 0x36, 0x4b, 0x65, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0c, 0x41, 0x45,
+	0x53, 0x43, 0x54, 0x52, 0x32, 0x35, 0x36, 0x4b, 0x65, 0x79, 0x12, 0x1c, 0x0a, 0x09, 0x53, 0x48,
+	0x41, 0x32, 0x35, 0x36, 0x4b, 0x65, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x09, 0x53,
+	0x48, 0x41, 0x32, 0x35, 0x36, 0x4b, 0x65, 0x79, 0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x2e, 0x2f, 0x2e,
+	0x2e, 0x2f, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -548,32 +611,35 @@ func file_pairing_proto_rawDescGZIP() []byte {
 	return file_pairing_proto_rawDescData
 }
 
-var file_pairing_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_pairing_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_pairing_proto_goTypes = []interface{}{
-	(*BrowserDetails)(nil), // 0: pairing.BrowserDetails
-	(*PhoneRelayBody)(nil), // 1: pairing.PhoneRelayBody
-	(*ECDSAKeys)(nil),      // 2: pairing.ECDSAKeys
-	(*PairDeviceData)(nil), // 3: pairing.PairDeviceData
-	(*WebAuthKey)(nil),     // 4: pairing.WebAuthKey
-	(*Container)(nil),      // 5: pairing.Container
-	(*UrlData)(nil),        // 6: pairing.UrlData
-	(*Date)(nil),           // 7: messages.Date
-	(*Device)(nil),         // 8: messages.Device
+	(*BrowserDetails)(nil),   // 0: pairing.BrowserDetails
+	(*PhoneRelayBody)(nil),   // 1: pairing.PhoneRelayBody
+	(*ECDSAKeys)(nil),        // 2: pairing.ECDSAKeys
+	(*PairDeviceData)(nil),   // 3: pairing.PairDeviceData
+	(*UnpairDeviceData)(nil), // 4: pairing.UnpairDeviceData
+	(*WebAuthKey)(nil),       // 5: pairing.WebAuthKey
+	(*Container)(nil),        // 6: pairing.Container
+	(*UrlData)(nil),          // 7: pairing.UrlData
+	(*Date)(nil),             // 8: messages.Date
+	(*Device)(nil),           // 9: messages.Device
 }
 var file_pairing_proto_depIdxs = []int32{
-	7, // 0: pairing.PhoneRelayBody.date:type_name -> messages.Date
-	8, // 1: pairing.PairDeviceData.mobile:type_name -> messages.Device
-	2, // 2: pairing.PairDeviceData.ecdsaKeys:type_name -> pairing.ECDSAKeys
-	4, // 3: pairing.PairDeviceData.webAuthKeyData:type_name -> pairing.WebAuthKey
-	8, // 4: pairing.PairDeviceData.browser:type_name -> messages.Device
-	1, // 5: pairing.Container.PhoneRelay:type_name -> pairing.PhoneRelayBody
-	0, // 6: pairing.Container.browserDetails:type_name -> pairing.BrowserDetails
-	3, // 7: pairing.Container.pairDeviceData:type_name -> pairing.PairDeviceData
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	8,  // 0: pairing.PhoneRelayBody.date:type_name -> messages.Date
+	9,  // 1: pairing.PairDeviceData.mobile:type_name -> messages.Device
+	2,  // 2: pairing.PairDeviceData.ecdsaKeys:type_name -> pairing.ECDSAKeys
+	5,  // 3: pairing.PairDeviceData.webAuthKeyData:type_name -> pairing.WebAuthKey
+	9,  // 4: pairing.PairDeviceData.browser:type_name -> messages.Device
+	9,  // 5: pairing.UnpairDeviceData.browser:type_name -> messages.Device
+	1,  // 6: pairing.Container.PhoneRelay:type_name -> pairing.PhoneRelayBody
+	0,  // 7: pairing.Container.browserDetails:type_name -> pairing.BrowserDetails
+	3,  // 8: pairing.Container.pairDeviceData:type_name -> pairing.PairDeviceData
+	4,  // 9: pairing.Container.unpairDeviceData:type_name -> pairing.UnpairDeviceData
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_pairing_proto_init() }
@@ -632,7 +698,7 @@ func file_pairing_proto_init() {
 			}
 		}
 		file_pairing_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebAuthKey); i {
+			switch v := v.(*UnpairDeviceData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -644,7 +710,7 @@ func file_pairing_proto_init() {
 			}
 		}
 		file_pairing_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Container); i {
+			switch v := v.(*WebAuthKey); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -656,6 +722,18 @@ func file_pairing_proto_init() {
 			}
 		}
 		file_pairing_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Container); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pairing_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UrlData); i {
 			case 0:
 				return &v.state
@@ -674,7 +752,7 @@ func file_pairing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pairing_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

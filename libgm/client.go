@@ -95,8 +95,14 @@ func (c *Client) Connect(rpcKey []byte) error {
 	}
 	c.rpc.rpcSessionID = receiveMesageSessionID
 	c.rpcKey = rpcKey
-	c.rpc.ListenReceiveMessages(rpcPayload)
+	go c.rpc.ListenReceiveMessages(rpcPayload)
 	c.Logger.Debug().Any("rpcKey", rpcKey).Msg("Successfully connected to server")
+	if c.devicePair != nil {
+		sendInitialDataErr := c.rpc.sendInitialData()
+		if sendInitialDataErr != nil {
+			panic(sendInitialDataErr)
+		}
+	}
 	return nil
 }
 

@@ -25,10 +25,14 @@ message ECDSAKeys {
 }
 
 message PairDeviceData {
-    messages.Device mobile = 1;
+	messages.Device mobile = 1;
     ECDSAKeys ecdsaKeys = 6;
     WebAuthKey webAuthKeyData = 2;
     messages.Device browser = 3;
+}
+
+message UnpairDeviceData {
+	messages.Device browser = 1;
 }
 
 message WebAuthKey {
@@ -40,6 +44,7 @@ message Container {
     PhoneRelayBody PhoneRelay = 1;
     BrowserDetails browserDetails = 3;
     PairDeviceData pairDeviceData = 4;
+	UnpairDeviceData unpairDeviceData = 5;
 }
 
 message UrlData {

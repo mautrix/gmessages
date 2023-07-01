@@ -115,8 +115,9 @@ message IsFromMe {
 
 enum MsgStatusCode {
     UNKNOWN_STATUS = 0;
-    SENDING = 5;
     SENT = 1;
+	SENDING = 5;
+	READ = 11;
 }
 
 message MessageStatus {
@@ -129,7 +130,7 @@ message MessageStatus {
     // RCS
     READ|SEEN = 11;
     */
-    int64 code = 2;
+	MsgStatusCode code = 2;
     string errMsg = 4;
     string msgStatus = 5;
 }

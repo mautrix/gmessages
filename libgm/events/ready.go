@@ -1,18 +1,15 @@
 package events
 
 import (
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 type ClientReady struct {
-	Session       *util.SessionResponse
-	Conversations []*binary.Conversation
+	Session *util.SessionResponse
 }
 
-func NewClientReady(session *util.SessionResponse, conversationList *binary.Conversations) *ClientReady {
+func NewClientReady(session *util.SessionResponse) *ClientReady {
 	return &ClientReady{
-		Session:       session,
-		Conversations: conversationList.Conversations,
+		Session: session,
 	}
 }

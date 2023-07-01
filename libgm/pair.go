@@ -153,4 +153,5 @@ func (p *Pairer) pairCallback(pairData *binary.Container) {
 	p.client.devicePair = &DevicePair{Mobile: pairData.PairDeviceData.Mobile, Browser: pairData.PairDeviceData.Browser}
 	p.client.pairer.GetWebEncryptionKey()
 	p.client.triggerEvent(&events.PairSuccessful{Container: pairData})
+	p.client.pairer = nil
 }
