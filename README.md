@@ -1,7 +1,7 @@
 # mautrix-gmessages
 A Matrix-Google Messages puppeting bridge.
 
-Please note that this bridge does not exist yet.
+Please note that this bridge is in early development and may not function at all.
 
 ## Documentation
 All setup and usage instructions are located on [docs.mau.fi]. Some quick links:

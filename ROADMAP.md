@@ -1,7 +1,7 @@
 # Features & roadmap
 * Matrix → Google Messages
   * [ ] Message content
-    * [ ] Plain text
+    * [x] Plain text
     * [ ] Media/files
     * [ ] Replies (RCS)
   * [ ] Reactions (RCS)
@@ -9,7 +9,7 @@
   * [ ] Read receipts (RCS)
 * Google Messages → Matrix
   * [ ] Message content
-    * [ ] Plain text
+    * [x] Plain text
     * [ ] Media/files
     * [ ] Replies (RCS)
   * [ ] Reactions
@@ -18,5 +18,5 @@
 * Misc
   * [ ] Automatic portal creation
     * [ ] After login
-    * [ ] When receiving message
+    * [x] When receiving message
   * [ ] Private chat creation by inviting Matrix ghost of remote user to new room
