@@ -499,7 +499,7 @@ func (portal *Portal) UpdateMetadata(user *User, info *binary.Conversation) []id
 		update = true
 	}
 	if portal.MXID != "" {
-		update = portal.addToPersonalSpace(user) || update
+		update = portal.addToPersonalSpace(user, false) || update
 	}
 	if portal.shouldSetDMRoomMetadata() {
 		update = portal.UpdateName(info.Name, false) || update
@@ -737,11 +737,11 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *binary.Conversation) er
 	}
 	user.syncChatDoublePuppetDetails(portal, conv, true)
 
-	go portal.addToPersonalSpace(user)
+	go portal.addToPersonalSpace(user, true)
 	return nil
 }
 
-func (portal *Portal) addToPersonalSpace(user *User) bool {
+func (portal *Portal) addToPersonalSpace(user *User, updateInfo bool) bool {
 	spaceID := user.GetSpaceRoom()
 	if len(spaceID) == 0 || portal.InSpace {
 		return false
@@ -755,6 +755,12 @@ func (portal *Portal) addToPersonalSpace(user *User) bool {
 	} else {
 		portal.zlog.Debug().Str("space_id", spaceID.String()).Msg("Added room to user's personal filtering space")
 		portal.InSpace = true
+	}
+	if updateInfo {
+		err = portal.Update(context.TODO())
+		if err != nil {
+			portal.zlog.Err(err).Msg("Failed to update portal after adding to personal space")
+		}
 	}
 	return true
 }
