@@ -8,5 +8,6 @@
 *.json
 *.db
 *.log
+*.log.gz
 
 /mautrix-gmessages

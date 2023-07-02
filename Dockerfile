@@ -14,7 +14,6 @@ ENV UID=1337 \
 RUN apk add --no-cache ffmpeg su-exec ca-certificates olm bash jq yq curl
 
 COPY --from=builder /usr/bin/mautrix-gmessages /usr/bin/mautrix-gmessages
-COPY --from=builder /build/example-config.yaml /opt/mautrix-whatsapp/example-config.yaml
 COPY --from=builder /build/docker-run.sh /docker-run.sh
 VOLUME /data
 
