@@ -417,7 +417,7 @@ func (portal *Portal) markHandled(info *binary.Message, mxids map[string]id.Even
 	return msg
 }
 
-func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversation) (userIDs []id.UserID) {
+func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversation) (userIDs []id.UserID, changed bool) {
 	var firstParticipant *binary.Participant
 	var manyParticipants bool
 	for _, participant := range metadata.Participants {
@@ -445,14 +445,15 @@ func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversati
 			}
 		}
 	}
-	if !metadata.IsGroupChat && !manyParticipants {
+	if !metadata.IsGroupChat && !manyParticipants && portal.OtherUserID != firstParticipant.Id.ParticipantID {
 		portal.zlog.Info().
 			Str("old_other_user_id", portal.OtherUserID).
 			Str("new_other_user_id", firstParticipant.Id.ParticipantID).
 			Msg("Found other user ID in DM")
 		portal.OtherUserID = firstParticipant.Id.ParticipantID
+		changed = true
 	}
-	return userIDs
+	return userIDs, changed
 }
 
 func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
@@ -492,8 +493,7 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 }
 
 func (portal *Portal) UpdateMetadata(user *User, info *binary.Conversation) []id.UserID {
-	participants := portal.SyncParticipants(user, info)
-	update := false
+	participants, update := portal.SyncParticipants(user, info)
 	if portal.SelfUserID != info.SelfParticipantID {
 		portal.SelfUserID = info.SelfParticipantID
 		update = true
