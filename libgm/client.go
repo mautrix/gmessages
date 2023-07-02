@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"time"
 
@@ -49,13 +50,16 @@ func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.L
 	if cryptor == nil {
 		cryptor = crypto.NewCryptor(nil, nil)
 	}
+	jar, _ := cookiejar.New(nil)
 	cli := &Client{
 		Logger:         logger,
 		devicePair:     devicePair,
 		sessionHandler: sessionHandler,
 		cryptor:        cryptor,
 		imageCryptor:   &crypto.ImageCryptor{},
-		http:           &http.Client{},
+		http: &http.Client{
+			Jar: jar,
+		},
 	}
 	sessionHandler.client = cli
 	cli.instructions = NewInstructions(cli.cryptor)
@@ -67,6 +71,16 @@ func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.L
 	cli.Logger.Debug().Any("data", cryptor).Msg("Cryptor")
 	cli.setApiMethods()
 	return cli
+}
+
+var baseURL, _ = url.Parse("https://messages.google.com/")
+
+func (c *Client) GetCookies() []*http.Cookie {
+	return c.http.Jar.Cookies(baseURL)
+}
+
+func (c *Client) SetCookies(cookies []*http.Cookie) {
+	c.http.Jar.SetCookies(baseURL, cookies)
 }
 
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
@@ -200,7 +214,7 @@ func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
 			Date: &binary.Date{
 				Year: 2023,
 				Seq1: 6,
-				Seq2: 8,
+				Seq2: 22,
 				Seq3: 4,
 				Seq4: 6,
 			},

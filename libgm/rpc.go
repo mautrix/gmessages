@@ -19,10 +19,13 @@ type RPC struct {
 	conn         io.ReadCloser
 	rpcSessionID string
 	webAuthKey   []byte
+	listenID     int
 }
 
 func (r *RPC) ListenReceiveMessages(payload []byte) {
-	for {
+	r.listenID++
+	listenID := r.listenID
+	for r.listenID == listenID {
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
 		req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
 		if err != nil {
@@ -34,6 +37,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 		if reqErr != nil {
 			panic(fmt.Errorf("Error making request: %v", err))
 		}
+		r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		r.conn = resp.Body
 		r.startReadingData(resp.Body)
 	}
@@ -133,6 +137,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 
 func (r *RPC) CloseConnection() {
 	if r.conn != nil {
+		r.listenID++
 		r.client.Logger.Debug().Msg("Attempting to connection...")
 		r.conn.Close()
 		r.conn = nil

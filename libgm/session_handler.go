@@ -74,7 +74,7 @@ func (c *Client) createAndSendRequest(instructionId int64, ttl int64, newSession
 		panic(fmt.Errorf("Failed to encode data: %w", encodeErr))
 	}
 	messageData := payload.NewMessageData(requestId, encodedStr, instruction.RoutingOpCode, instruction.MsgType)
-	authMessage := payload.NewAuthData(requestId, c.rpcKey, &binary.Date{Year: 2023, Seq1: 6, Seq2: 8, Seq3: 4, Seq4: 6})
+	authMessage := payload.NewAuthData(requestId, c.rpcKey, &binary.Date{Year: 2023, Seq1: 6, Seq2: 22, Seq3: 4, Seq4: 6})
 	sendMessage := payload.NewSendMessage(c.devicePair.Mobile, messageData, authMessage, ttl)
 
 	sentRequestID, reqErr := c.sessionHandler.completeSendMessage(encodedData.RequestID, instruction.Opcode, sendMessage)
@@ -139,7 +139,7 @@ func (s *SessionHandler) sendAckRequest() {
 		AuthData: &binary.AuthMessage{
 			RequestID: reqId,
 			RpcKey:    s.client.rpcKey,
-			Date:      &binary.Date{Year: 2023, Seq1: 6, Seq2: 8, Seq3: 4, Seq4: 6},
+			Date:      &binary.Date{Year: 2023, Seq1: 6, Seq2: 22, Seq3: 4, Seq4: 6},
 		},
 		EmptyArr: &binary.EmptyArr{},
 		NoClue:   nil,

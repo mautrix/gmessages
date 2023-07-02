@@ -116,11 +116,11 @@ func (p *Pairer) RefreshPhoneRelay() {
 	p.client.triggerEvent(&events.QR{URL: url})
 }
 
-func (p *Pairer) GetWebEncryptionKey() {
-	body, _, err2 := payload.GetWebEncryptionKey(p.client.rpc.webAuthKey)
+func (p *Pairer) GetWebEncryptionKey(oldKey []byte) []byte {
+	body, _, err2 := payload.GetWebEncryptionKey(oldKey)
 	if err2 != nil {
 		p.client.Logger.Err(err2).Msg("web encryption key err")
-		return
+		return nil
 	}
 	//p.client.Logger.Debug().Any("keyByteLength", len(rawData.PhoneRelay.RpcKey)).Any("json", rawData).Any("base64", body).Msg("GetWebEncryptionKey Payload")
 	webKeyResponse, reqErr := p.client.MakeRelayRequest(util.GET_WEB_ENCRYPTION_KEY, body)
@@ -131,7 +131,7 @@ func (p *Pairer) GetWebEncryptionKey() {
 	defer webKeyResponse.Body.Close()
 	if err2 != nil {
 		p.client.Logger.Err(err2).Msg("Web encryption key read response err")
-		return
+		return nil
 	}
 	//p.client.Logger.Debug().Any("responseLength", len(responseBody)).Any("raw", responseBody).Msg("Response Body Length")
 	parsedResponse := &binary.WebEncryptionKeyResponse{}
@@ -140,18 +140,22 @@ func (p *Pairer) GetWebEncryptionKey() {
 		p.client.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
 	}
 	p.client.Logger.Debug().Any("parsedResponse", parsedResponse).Msg("WebEncryptionKeyResponse")
-	p.ticker.Stop()
-	reconnectErr := p.client.Reconnect(p.client.rpc.webAuthKey)
-	if reconnectErr != nil {
-		panic(reconnectErr)
+	if p.ticker != nil {
+		p.client.Logger.Info().Msg("Reconnecting")
+		p.ticker.Stop()
+		reconnectErr := p.client.Reconnect(p.client.rpc.webAuthKey)
+		if reconnectErr != nil {
+			panic(reconnectErr)
+		}
 	}
+	return parsedResponse.GetKey()
 }
 
 func (p *Pairer) pairCallback(pairData *binary.Container) {
 	p.client.rpc.webAuthKey = pairData.PairDeviceData.WebAuthKeyData.WebAuthKey
 	p.client.ttl = pairData.PairDeviceData.WebAuthKeyData.ValidFor
 	p.client.devicePair = &DevicePair{Mobile: pairData.PairDeviceData.Mobile, Browser: pairData.PairDeviceData.Browser}
-	p.client.pairer.GetWebEncryptionKey()
+	p.client.pairer.GetWebEncryptionKey(p.client.rpc.webAuthKey)
 	p.client.triggerEvent(&events.PairSuccessful{Container: pairData})
 	p.client.pairer = nil
 }

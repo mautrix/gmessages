@@ -17,7 +17,7 @@ func ReceiveMessages(rpcKey []byte) ([]byte, string, error) {
 			Date: &binary.Date{
 				Year: 2023,
 				Seq1: 6,
-				Seq2: 8,
+				Seq2: 22,
 				Seq3: 4,
 				Seq4: 6,
 			},
