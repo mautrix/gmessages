@@ -163,8 +163,8 @@ message Conversation {
 
 message Participant {
     UserIdentifier id = 1;
-    string displaynameCopy = 2;
-    string displayname = 3;
+    string firstName = 2;
+    string fullName = 3;
     string color = 5;
     bool isMe = 6;
     Muted muted = 7;
