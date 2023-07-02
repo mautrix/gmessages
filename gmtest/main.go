@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -23,6 +25,7 @@ type Session struct {
 	*libgm.DevicePair
 	*crypto.Cryptor
 	*binary.WebAuthKey
+	Cookies []*http.Cookie
 }
 
 func must(err error) {
@@ -59,13 +62,20 @@ func main() {
 		sess.Cryptor = crypto.NewCryptor(nil, nil)
 	}
 	cli = libgm.NewClient(sess.DevicePair, sess.Cryptor, log, nil)
+	if sess.Cookies != nil {
+		cli.SetCookies(sess.Cookies)
+	}
 	cli.SetEventHandler(evtHandler)
+	log.Debug().Msg(base64.StdEncoding.EncodeToString(sess.GetWebAuthKey()))
 	if sess.DevicePair == nil {
 		pairer := mustReturn(cli.NewPairer(nil, 20))
 		registered := mustReturn(pairer.RegisterPhoneRelay())
 		must(cli.Connect(registered.Field5.RpcKey))
 	} else {
-		must(cli.Connect(sess.WebAuthKey.WebAuthKey))
+		//pairer := mustReturn(cli.NewPairer(nil, 20))
+		//newKey := pairer.GetWebEncryptionKey(sess.GetWebAuthKey())
+		//log.Debug().Msg(base64.StdEncoding.EncodeToString(newKey))
+		must(cli.Connect(sess.GetWebAuthKey()))
 	}
 
 	c := make(chan os.Signal)
@@ -101,6 +111,7 @@ func main() {
 }
 
 func saveSession() {
+	sess.Cookies = cli.GetCookies()
 	file := mustReturn(os.OpenFile("session.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600))
 	must(json.NewEncoder(file).Encode(sess))
 	_ = file.Close()
