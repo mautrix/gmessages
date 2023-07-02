@@ -74,20 +74,20 @@ type Message struct {
 
 func (msg *Message) Scan(row dbutil.Scannable) (*Message, error) {
 	var ts int64
-	err := row.Scan(&msg.Chat.ID, &msg.Chat.Receiver, &msg.ID, &msg.MXID, &msg.Sender, &msg.Timestamp)
+	err := row.Scan(&msg.Chat.ID, &msg.Chat.Receiver, &msg.ID, &msg.MXID, &msg.Sender, &ts)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
 	if ts != 0 {
-		msg.Timestamp = time.UnixMilli(ts)
+		msg.Timestamp = time.UnixMicro(ts)
 	}
 	return msg, nil
 }
 
 func (msg *Message) sqlVariables() []any {
-	return []any{msg.Chat.ID, msg.Chat.Receiver, msg.ID, msg.MXID, msg.Sender, msg.Timestamp.UnixMilli()}
+	return []any{msg.Chat.ID, msg.Chat.Receiver, msg.ID, msg.MXID, msg.Sender, msg.Timestamp.UnixMicro()}
 }
 
 func (msg *Message) Insert(ctx context.Context) error {

@@ -438,8 +438,12 @@ func (user *User) Connect() bool {
 	} else if user.Session == nil {
 		return false
 	}
+	if len(user.AccessToken) == 0 {
+		user.tryAutomaticDoublePuppeting()
+	}
 	user.zlog.Debug().Msg("Connecting to Google Messages")
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting, Error: WAConnecting})
+	user.createClient()
 	err := user.Client.Connect(user.Session.WebAuthKey)
 	if err != nil {
 		user.zlog.Err(err).Msg("Error connecting to Google Messages")
@@ -523,6 +527,7 @@ func (user *User) HandleEvent(event interface{}) {
 		// These should be here
 		user.zlog.Info().Msg(v.URL)
 	case *events.PairSuccessful:
+		user.tryAutomaticDoublePuppeting()
 		user.Phone = v.PairDeviceData.Mobile.RegistrationID
 		user.Session.PhoneInfo = v.PairDeviceData.Mobile
 		user.Session.BrowserInfo = v.PairDeviceData.Browser

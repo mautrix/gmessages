@@ -40,6 +40,7 @@ func (user *User) SwitchCustomMXID(accessToken string, mxid id.UserID) error {
 	if mxid != user.MXID {
 		return errors.New("mismatching mxid")
 	}
+	user.DoublePuppetIntent = nil
 	user.AccessToken = accessToken
 	return user.startCustomMXID(false)
 }
@@ -129,7 +130,7 @@ func (user *User) clearCustomMXID() {
 }
 
 func (user *User) startCustomMXID(reloginOnFail bool) error {
-	if len(user.AccessToken) == 0 {
+	if len(user.AccessToken) == 0 || user.DoublePuppetIntent != nil {
 		return nil
 	}
 	intent, err := user.newDoublePuppetIntent()

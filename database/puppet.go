@@ -44,7 +44,7 @@ func (pq *PuppetQuery) GetAll(ctx context.Context) ([]*Puppet, error) {
 }
 
 func (pq *PuppetQuery) Get(ctx context.Context, key Key) (*Puppet, error) {
-	return get[*Puppet](pq, ctx, "SELECT id, receiver, phone, name, name_set, avatar_id, avatar_mxc, avatar_set, contact_info_set FROM puppet WHERE phone=$1 AND receiver=$2", key.ID, key.Receiver)
+	return get[*Puppet](pq, ctx, "SELECT id, receiver, phone, name, name_set, avatar_id, avatar_mxc, avatar_set, contact_info_set FROM puppet WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
 }
 
 type Puppet struct {
@@ -71,7 +71,7 @@ func (puppet *Puppet) Scan(row dbutil.Scannable) (*Puppet, error) {
 }
 
 func (puppet *Puppet) sqlVariables() []any {
-	return []any{puppet.ID, puppet.Receiver, puppet.Phone, puppet.Name, puppet.NameSet, puppet.AvatarID, puppet.AvatarMXC, puppet.AvatarSet, puppet.ContactInfoSet}
+	return []any{puppet.ID, puppet.Receiver, puppet.Phone, puppet.Name, puppet.NameSet, puppet.AvatarID, &puppet.AvatarMXC, puppet.AvatarSet, puppet.ContactInfoSet}
 }
 
 func (puppet *Puppet) Insert(ctx context.Context) error {

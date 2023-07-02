@@ -305,6 +305,7 @@ func (portal *Portal) isOutgoingMessage(evt *binary.Message) id.EventID {
 	defer portal.outgoingMessagesLock.Unlock()
 	evtID, ok := portal.outgoingMessages[evt.TmpId]
 	if ok {
+		delete(portal.outgoingMessages, evt.TmpId)
 		portal.markHandled(evt, map[string]id.EventID{"": evtID}, true)
 		return evtID
 	}
@@ -492,14 +493,17 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 
 func (portal *Portal) UpdateMetadata(user *User, info *binary.Conversation) []id.UserID {
 	participants := portal.SyncParticipants(user, info)
-	if portal.IsPrivateChat() {
-		return participants
-	}
 	update := false
+	if portal.SelfUserID != info.SelfParticipantID {
+		portal.SelfUserID = info.SelfParticipantID
+		update = true
+	}
 	if portal.MXID != "" {
 		update = portal.addToPersonalSpace(user) || update
 	}
-	update = portal.UpdateName(info.Name, false) || update
+	if portal.shouldSetDMRoomMetadata() {
+		update = portal.UpdateName(info.Name, false) || update
+	}
 	// TODO avatar
 	if update {
 		err := portal.Update(context.TODO())

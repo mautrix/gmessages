@@ -112,7 +112,7 @@ func (portal *Portal) sqlVariables() []any {
 	if portal.OtherUserID != "" {
 		otherUserID = &portal.OtherUserID
 	}
-	return []any{portal.ID, portal.Receiver, selfUserID, otherUserID, mxid, portal.Name, portal.NameSet, portal.AvatarID, portal.AvatarMXC, portal.AvatarSet, portal.Encrypted, portal.InSpace}
+	return []any{portal.ID, portal.Receiver, selfUserID, otherUserID, mxid, portal.Name, portal.NameSet, portal.AvatarID, &portal.AvatarMXC, portal.AvatarSet, portal.Encrypted, portal.InSpace}
 }
 
 func (portal *Portal) Insert(ctx context.Context) error {
