@@ -69,6 +69,9 @@ type User struct {
 	spaceMembershipChecked bool
 
 	DoublePuppetIntent *appservice.IntentAPI
+
+	hackyLoginCommand          *WrappedCommandEvent
+	hackyLoginCommandPrevEvent id.EventID
 }
 
 func (br *GMBridge) getUserByMXID(userID id.UserID, onlyIfExists bool) *User {
@@ -524,9 +527,13 @@ func (user *User) sendMarkdownBridgeAlert(formatString string, args ...interface
 func (user *User) HandleEvent(event interface{}) {
 	switch v := event.(type) {
 	case *events.QR:
-		// These should be here
-		user.zlog.Info().Msg(v.URL)
+		// This shouldn't be here
+		if user.hackyLoginCommand != nil {
+			user.hackyLoginCommandPrevEvent = user.sendQR(user.hackyLoginCommand, v.URL, user.hackyLoginCommandPrevEvent)
+		}
 	case *events.PairSuccessful:
+		user.hackyLoginCommand = nil
+		user.hackyLoginCommandPrevEvent = ""
 		user.tryAutomaticDoublePuppeting()
 		user.Phone = v.PairDeviceData.Mobile.RegistrationID
 		user.Session.PhoneInfo = v.PairDeviceData.Mobile

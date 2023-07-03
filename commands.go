@@ -83,6 +83,8 @@ func fnLogin(ce *WrappedCommandEvent) {
 		return
 	}
 
+	ce.User.hackyLoginCommand = ce
+	ce.User.hackyLoginCommandPrevEvent = ""
 	_, err := ce.User.Login(context.Background())
 	if err != nil {
 		ce.User.log.Errorf("Failed to log in:", err)
