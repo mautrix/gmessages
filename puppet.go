@@ -67,10 +67,10 @@ func (br *GMBridge) GetPuppetByKey(key database.Key, phone string) *Puppet {
 			br.ZLog.Err(err).Object("puppet_key", key).Msg("Failed to get puppet from database")
 			return nil
 		}
-		if phone == "" {
-			return nil
-		}
 		if dbPuppet == nil {
+			if phone == "" {
+				return nil
+			}
 			dbPuppet = br.DB.Puppet.New()
 			dbPuppet.Key = key
 			dbPuppet.Phone = phone
