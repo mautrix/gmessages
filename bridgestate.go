@@ -21,29 +21,15 @@ import (
 )
 
 const (
-	WALoggedOut        status.BridgeStateErrorCode = "wa-logged-out"
-	WAMainDeviceGone   status.BridgeStateErrorCode = "wa-main-device-gone"
-	WAUnknownLogout    status.BridgeStateErrorCode = "wa-unknown-logout"
-	WANotConnected     status.BridgeStateErrorCode = "wa-not-connected"
-	WAConnecting       status.BridgeStateErrorCode = "wa-connecting"
-	WAKeepaliveTimeout status.BridgeStateErrorCode = "wa-keepalive-timeout"
-	WAPhoneOffline     status.BridgeStateErrorCode = "wa-phone-offline"
-	WAConnectionFailed status.BridgeStateErrorCode = "wa-connection-failed"
-	WADisconnected     status.BridgeStateErrorCode = "wa-transient-disconnect"
+	GMListenError      status.BridgeStateErrorCode = "gm-listen-error"
+	GMFatalError       status.BridgeStateErrorCode = "gm-listen-fatal-error"
+	GMNotConnected     status.BridgeStateErrorCode = "gm-not-connected"
+	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
+	GMConnectionFailed status.BridgeStateErrorCode = "gm-connection-failed"
 )
 
 func init() {
-	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{
-		WALoggedOut:        "You were logged out from another device. Relogin to continue using the bridge.",
-		WAMainDeviceGone:   "Your phone was logged out from WhatsApp. Relogin to continue using the bridge.",
-		WAUnknownLogout:    "You were logged out for an unknown reason. Relogin to continue using the bridge.",
-		WANotConnected:     "You're not connected to WhatsApp",
-		WAConnecting:       "Reconnecting to WhatsApp...",
-		WAKeepaliveTimeout: "The WhatsApp web servers are not responding. The bridge will try to reconnect.",
-		WAPhoneOffline:     "Your phone hasn't been seen in over 12 days. The bridge is currently connected, but will get disconnected if you don't open the app soon.",
-		WAConnectionFailed: "Connecting to the WhatsApp web servers failed.",
-		WADisconnected:     "Disconnected from WhatsApp. Trying to reconnect.",
-	})
+	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{})
 }
 
 func (user *User) GetRemoteID() string {

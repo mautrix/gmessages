@@ -173,7 +173,7 @@ func fnReconnect(ce *WrappedCommandEvent) {
 		}
 	} else {
 		ce.User.DeleteConnection()
-		ce.User.BridgeState.Send(status.BridgeState{StateEvent: status.StateTransientDisconnect, Error: WANotConnected})
+		ce.User.BridgeState.Send(status.BridgeState{StateEvent: status.StateTransientDisconnect, Error: GMNotConnected})
 		ce.User.Connect()
 		ce.Reply("Restarted connection to Google Messages")
 	}
@@ -195,7 +195,7 @@ func fnDisconnect(ce *WrappedCommandEvent) {
 	}
 	ce.User.DeleteConnection()
 	ce.Reply("Successfully disconnected. Use the `reconnect` command to reconnect.")
-	ce.User.BridgeState.Send(status.BridgeState{StateEvent: status.StateBadCredentials, Error: WANotConnected})
+	ce.User.BridgeState.Send(status.BridgeState{StateEvent: status.StateBadCredentials, Error: GMNotConnected})
 }
 
 var cmdPing = &commands.FullHandler{

@@ -1,6 +1,8 @@
 package events
 
 import (
+	"net/http"
+
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -13,3 +15,13 @@ func NewClientReady(session *util.SessionResponse) *ClientReady {
 		Session: session,
 	}
 }
+
+type ListenFatalError struct {
+	Resp *http.Response
+}
+
+type ListenTemporaryError struct {
+	Error error
+}
+
+type ListenRecovered struct{}

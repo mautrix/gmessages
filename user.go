@@ -29,7 +29,6 @@ import (
 	"github.com/rs/zerolog"
 	"maunium.net/go/maulogger/v2"
 	"maunium.net/go/maulogger/v2/maulogadapt"
-
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
@@ -445,14 +444,14 @@ func (user *User) Connect() bool {
 		user.tryAutomaticDoublePuppeting()
 	}
 	user.zlog.Debug().Msg("Connecting to Google Messages")
-	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting, Error: WAConnecting})
+	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting, Error: GMConnecting})
 	user.createClient()
 	err := user.Client.Connect(user.Session.WebAuthKey)
 	if err != nil {
 		user.zlog.Err(err).Msg("Error connecting to Google Messages")
 		user.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateUnknownError,
-			Error:      WAConnectionFailed,
+			Error:      GMConnectionFailed,
 			Info: map[string]interface{}{
 				"go_error": err.Error(),
 			},
@@ -531,6 +530,22 @@ func (user *User) HandleEvent(event interface{}) {
 		if user.hackyLoginCommand != nil {
 			user.hackyLoginCommandPrevEvent = user.sendQR(user.hackyLoginCommand, v.URL, user.hackyLoginCommandPrevEvent)
 		}
+	case *events.ListenFatalError:
+		user.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateUnknownError,
+			Error:      GMFatalError,
+			Message:    fmt.Sprintf("HTTP %d in long polling loop", v.Resp.StatusCode),
+		})
+	case *events.ListenTemporaryError:
+		user.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateTransientDisconnect,
+			Error:      GMListenError,
+			Message:    v.Error.Error(),
+		})
+	case *events.ListenRecovered:
+		user.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateConnected,
+		})
 	case *events.PairSuccessful:
 		user.hackyLoginCommand = nil
 		user.hackyLoginCommandPrevEvent = ""

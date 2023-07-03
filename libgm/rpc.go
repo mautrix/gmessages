@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
@@ -25,6 +26,7 @@ type RPC struct {
 func (r *RPC) ListenReceiveMessages(payload []byte) {
 	r.listenID++
 	listenID := r.listenID
+	errored := true
 	for r.listenID == listenID {
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
 		req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
@@ -35,7 +37,25 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 		resp, reqErr := r.http.Do(req)
 		//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", util.RECEIVE_MESSAGES).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
 		if reqErr != nil {
-			panic(fmt.Errorf("Error making request: %v", err))
+			r.client.triggerEvent(&events.ListenTemporaryError{Error: reqErr})
+			errored = true
+			r.client.Logger.Err(err).Msg("Error making listen request, retrying in 5 seconds")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		if resp.StatusCode >= 400 && resp.StatusCode < 501 {
+			r.client.triggerEvent(&events.ListenFatalError{Resp: resp})
+			return
+		} else if resp.StatusCode >= 500 {
+			r.client.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("http %d while polling", resp.StatusCode)})
+			errored = true
+			r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("5xx error in long polling, retrying in 5 seconds")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		if errored {
+			errored = false
+			r.client.triggerEvent(&events.ListenRecovered{})
 		}
 		r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		r.conn = resp.Body
