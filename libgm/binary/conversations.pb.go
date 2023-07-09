@@ -72,48 +72,48 @@ func (ConversationType) EnumDescriptor() ([]byte, []int) {
 type MessageStatusType int32
 
 const (
-	MessageStatusType_STATUS_UNKNOWN                                          MessageStatusType = 0
-	MessageStatusType_OUTGOING_COMPLETE                                       MessageStatusType = 1
-	MessageStatusType_OUTGOING_DELIVERED                                      MessageStatusType = 2
-	MessageStatusType_OUTGOING_DISPLAYED                                      MessageStatusType = 11
-	MessageStatusType_OUTGOING_DRAFT                                          MessageStatusType = 3
-	MessageStatusType_OUTGOING_SEND_AFTER_PROCESSING                          MessageStatusType = 10
-	MessageStatusType_OUTGOING_YET_TO_SEND                                    MessageStatusType = 4
-	MessageStatusType_OUTGOING_SENDING                                        MessageStatusType = 5
-	MessageStatusType_OUTGOING_RESENDING                                      MessageStatusType = 6
-	MessageStatusType_OUTGOING_AWAITING_RETRY                                 MessageStatusType = 7
-	MessageStatusType_OUTGOING_FAILED_GENERIC                                 MessageStatusType = 8
-	MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER                        MessageStatusType = 9
-	MessageStatusType_OUTGOING_CANCELED                                       MessageStatusType = 12
-	MessageStatusType_OUTGOING_FAILED_TOO_LARGE                               MessageStatusType = 13
-	MessageStatusType_OUTGOING_NOT_DELIVERED_YET                              MessageStatusType = 14
-	MessageStatusType_OUTGOING_REVOCATION_PENDING                             MessageStatusType = 15
-	MessageStatusType_OUTGOING_SCHEDULED                                      MessageStatusType = 16
-	MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS                      MessageStatusType = 17
-	MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK                    MessageStatusType = 18
-	MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT               MessageStatusType = 19
-	MessageStatusType_OUTGOING_VALIDATING                                     MessageStatusType = 20
-	MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION               MessageStatusType = 21
-	MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY MessageStatusType = 22
-	MessageStatusType_INCOMING_COMPLETE                                       MessageStatusType = 100
-	MessageStatusType_INCOMING_YET_TO_MANUAL_DOWNLOAD                         MessageStatusType = 101
-	MessageStatusType_INCOMING_RETRYING_MANUAL_DOWNLOAD                       MessageStatusType = 102
-	MessageStatusType_INCOMING_MANUAL_DOWNLOADING                             MessageStatusType = 103
-	MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD                         MessageStatusType = 104
-	MessageStatusType_INCOMING_AUTO_DOWNLOADING                               MessageStatusType = 105
-	MessageStatusType_INCOMING_DOWNLOAD_FAILED                                MessageStatusType = 106
-	MessageStatusType_INCOMING_EXPIRED_OR_NOT_AVAILABLE                       MessageStatusType = 107
-	MessageStatusType_INCOMING_DELIVERED                                      MessageStatusType = 108
-	MessageStatusType_INCOMING_DISPLAYED                                      MessageStatusType = 109
-	MessageStatusType_INCOMING_DOWNLOAD_CANCELED                              MessageStatusType = 110
-	MessageStatusType_INCOMING_DOWNLOAD_FAILED_TOO_LARGE                      MessageStatusType = 111
-	MessageStatusType_INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA                MessageStatusType = 112
-	MessageStatusType_INCOMING_FAILED_TO_DECRYPT                              MessageStatusType = 113
-	MessageStatusType_INCOMING_DECRYPTION_ABORTED                             MessageStatusType = 114
-	// TOMBSTONE_PARTICIPANT_JOINED = BasePaymentResult.ERROR_REQUEST_FAILED;
-	// TOMBSTONE_PARTICIPANT_LEFT = BasePaymentResult.ERROR_REQUEST_TIMEOUT;
-	// TOMBSTONE_SELF_LEFT = BasePaymentResult.ERROR_REQUEST_CONNECTION_FAILED;
-	// TOMBSTONE_RCS_GROUP_CREATED = BasePaymentResult.ERROR_BOT_DOMAIN_NOT_WHITELISTED;
+	MessageStatusType_STATUS_UNKNOWN                                                    MessageStatusType = 0
+	MessageStatusType_OUTGOING_COMPLETE                                                 MessageStatusType = 1
+	MessageStatusType_OUTGOING_DELIVERED                                                MessageStatusType = 2
+	MessageStatusType_OUTGOING_DISPLAYED                                                MessageStatusType = 11
+	MessageStatusType_OUTGOING_DRAFT                                                    MessageStatusType = 3
+	MessageStatusType_OUTGOING_SEND_AFTER_PROCESSING                                    MessageStatusType = 10
+	MessageStatusType_OUTGOING_YET_TO_SEND                                              MessageStatusType = 4
+	MessageStatusType_OUTGOING_SENDING                                                  MessageStatusType = 5
+	MessageStatusType_OUTGOING_RESENDING                                                MessageStatusType = 6
+	MessageStatusType_OUTGOING_AWAITING_RETRY                                           MessageStatusType = 7
+	MessageStatusType_OUTGOING_FAILED_GENERIC                                           MessageStatusType = 8
+	MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER                                  MessageStatusType = 9
+	MessageStatusType_OUTGOING_CANCELED                                                 MessageStatusType = 12
+	MessageStatusType_OUTGOING_FAILED_TOO_LARGE                                         MessageStatusType = 13
+	MessageStatusType_OUTGOING_NOT_DELIVERED_YET                                        MessageStatusType = 14
+	MessageStatusType_OUTGOING_REVOCATION_PENDING                                       MessageStatusType = 15
+	MessageStatusType_OUTGOING_SCHEDULED                                                MessageStatusType = 16
+	MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS                                MessageStatusType = 17
+	MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK                              MessageStatusType = 18
+	MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT                         MessageStatusType = 19
+	MessageStatusType_OUTGOING_VALIDATING                                               MessageStatusType = 20
+	MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION                         MessageStatusType = 21
+	MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY           MessageStatusType = 22
+	MessageStatusType_INCOMING_COMPLETE                                                 MessageStatusType = 100
+	MessageStatusType_INCOMING_YET_TO_MANUAL_DOWNLOAD                                   MessageStatusType = 101
+	MessageStatusType_INCOMING_RETRYING_MANUAL_DOWNLOAD                                 MessageStatusType = 102
+	MessageStatusType_INCOMING_MANUAL_DOWNLOADING                                       MessageStatusType = 103
+	MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD                                   MessageStatusType = 104
+	MessageStatusType_INCOMING_AUTO_DOWNLOADING                                         MessageStatusType = 105
+	MessageStatusType_INCOMING_DOWNLOAD_FAILED                                          MessageStatusType = 106
+	MessageStatusType_INCOMING_EXPIRED_OR_NOT_AVAILABLE                                 MessageStatusType = 107
+	MessageStatusType_INCOMING_DELIVERED                                                MessageStatusType = 108
+	MessageStatusType_INCOMING_DISPLAYED                                                MessageStatusType = 109
+	MessageStatusType_INCOMING_DOWNLOAD_CANCELED                                        MessageStatusType = 110
+	MessageStatusType_INCOMING_DOWNLOAD_FAILED_TOO_LARGE                                MessageStatusType = 111
+	MessageStatusType_INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA                          MessageStatusType = 112
+	MessageStatusType_INCOMING_FAILED_TO_DECRYPT                                        MessageStatusType = 113
+	MessageStatusType_INCOMING_DECRYPTION_ABORTED                                       MessageStatusType = 114
+	MessageStatusType_TOMBSTONE_PARTICIPANT_JOINED                                      MessageStatusType = 200
+	MessageStatusType_TOMBSTONE_PARTICIPANT_LEFT                                        MessageStatusType = 201
+	MessageStatusType_TOMBSTONE_SELF_LEFT                                               MessageStatusType = 202
+	MessageStatusType_TOMBSTONE_RCS_GROUP_CREATED                                       MessageStatusType = 203
 	MessageStatusType_TOMBSTONE_MMS_GROUP_CREATED                                       MessageStatusType = 204
 	MessageStatusType_TOMBSTONE_SMS_BROADCAST_CREATED                                   MessageStatusType = 205
 	MessageStatusType_TOMBSTONE_ONE_ON_ONE_SMS_CREATED                                  MessageStatusType = 206
@@ -194,6 +194,10 @@ var (
 		112: "INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA",
 		113: "INCOMING_FAILED_TO_DECRYPT",
 		114: "INCOMING_DECRYPTION_ABORTED",
+		200: "TOMBSTONE_PARTICIPANT_JOINED",
+		201: "TOMBSTONE_PARTICIPANT_LEFT",
+		202: "TOMBSTONE_SELF_LEFT",
+		203: "TOMBSTONE_RCS_GROUP_CREATED",
 		204: "TOMBSTONE_MMS_GROUP_CREATED",
 		205: "TOMBSTONE_SMS_BROADCAST_CREATED",
 		206: "TOMBSTONE_ONE_ON_ONE_SMS_CREATED",
@@ -271,6 +275,10 @@ var (
 		"INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA":                          112,
 		"INCOMING_FAILED_TO_DECRYPT":                                        113,
 		"INCOMING_DECRYPTION_ABORTED":                                       114,
+		"TOMBSTONE_PARTICIPANT_JOINED":                                      200,
+		"TOMBSTONE_PARTICIPANT_LEFT":                                        201,
+		"TOMBSTONE_SELF_LEFT":                                               202,
+		"TOMBSTONE_RCS_GROUP_CREATED":                                       203,
 		"TOMBSTONE_MMS_GROUP_CREATED":                                       204,
 		"TOMBSTONE_SMS_BROADCAST_CREATED":                                   205,
 		"TOMBSTONE_ONE_ON_ONE_SMS_CREATED":                                  206,
@@ -3151,7 +3159,7 @@ var file_conversations_proto_rawDesc = []byte{
 	0x72, 0x73, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1d, 0x0a, 0x19, 0x55,
 	0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x5f, 0x43, 0x4f, 0x4e, 0x56, 0x45, 0x52, 0x53, 0x41, 0x54,
 	0x49, 0x4f, 0x4e, 0x5f, 0x54, 0x59, 0x50, 0x45, 0x10, 0x00, 0x12, 0x07, 0x0a, 0x03, 0x53, 0x4d,
-	0x53, 0x10, 0x01, 0x12, 0x07, 0x0a, 0x03, 0x52, 0x43, 0x53, 0x10, 0x02, 0x2a, 0xc2, 0x18, 0x0a,
+	0x53, 0x10, 0x01, 0x12, 0x07, 0x0a, 0x03, 0x52, 0x43, 0x53, 0x10, 0x02, 0x2a, 0xc2, 0x19, 0x0a,
 	0x11, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x54, 0x79,
 	0x70, 0x65, 0x12, 0x12, 0x0a, 0x0e, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x4b,
 	0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11, 0x4f, 0x55, 0x54, 0x47, 0x4f, 0x49,
@@ -3229,7 +3237,15 @@ var file_conversations_proto_rawDesc = []byte{
 	0x47, 0x5f, 0x46, 0x41, 0x49, 0x4c, 0x45, 0x44, 0x5f, 0x54, 0x4f, 0x5f, 0x44, 0x45, 0x43, 0x52,
 	0x59, 0x50, 0x54, 0x10, 0x71, 0x12, 0x1f, 0x0a, 0x1b, 0x49, 0x4e, 0x43, 0x4f, 0x4d, 0x49, 0x4e,
 	0x47, 0x5f, 0x44, 0x45, 0x43, 0x52, 0x59, 0x50, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x41, 0x42, 0x4f,
-	0x52, 0x54, 0x45, 0x44, 0x10, 0x72, 0x12, 0x20, 0x0a, 0x1b, 0x54, 0x4f, 0x4d, 0x42, 0x53, 0x54,
+	0x52, 0x54, 0x45, 0x44, 0x10, 0x72, 0x12, 0x21, 0x0a, 0x1c, 0x54, 0x4f, 0x4d, 0x42, 0x53, 0x54,
+	0x4f, 0x4e, 0x45, 0x5f, 0x50, 0x41, 0x52, 0x54, 0x49, 0x43, 0x49, 0x50, 0x41, 0x4e, 0x54, 0x5f,
+	0x4a, 0x4f, 0x49, 0x4e, 0x45, 0x44, 0x10, 0xc8, 0x01, 0x12, 0x1f, 0x0a, 0x1a, 0x54, 0x4f, 0x4d,
+	0x42, 0x53, 0x54, 0x4f, 0x4e, 0x45, 0x5f, 0x50, 0x41, 0x52, 0x54, 0x49, 0x43, 0x49, 0x50, 0x41,
+	0x4e, 0x54, 0x5f, 0x4c, 0x45, 0x46, 0x54, 0x10, 0xc9, 0x01, 0x12, 0x18, 0x0a, 0x13, 0x54, 0x4f,
+	0x4d, 0x42, 0x53, 0x54, 0x4f, 0x4e, 0x45, 0x5f, 0x53, 0x45, 0x4c, 0x46, 0x5f, 0x4c, 0x45, 0x46,
+	0x54, 0x10, 0xca, 0x01, 0x12, 0x20, 0x0a, 0x1b, 0x54, 0x4f, 0x4d, 0x42, 0x53, 0x54, 0x4f, 0x4e,
+	0x45, 0x5f, 0x52, 0x43, 0x53, 0x5f, 0x47, 0x52, 0x4f, 0x55, 0x50, 0x5f, 0x43, 0x52, 0x45, 0x41,
+	0x54, 0x45, 0x44, 0x10, 0xcb, 0x01, 0x12, 0x20, 0x0a, 0x1b, 0x54, 0x4f, 0x4d, 0x42, 0x53, 0x54,
 	0x4f, 0x4e, 0x45, 0x5f, 0x4d, 0x4d, 0x53, 0x5f, 0x47, 0x52, 0x4f, 0x55, 0x50, 0x5f, 0x43, 0x52,
 	0x45, 0x41, 0x54, 0x45, 0x44, 0x10, 0xcc, 0x01, 0x12, 0x24, 0x0a, 0x1f, 0x54, 0x4f, 0x4d, 0x42,
 	0x53, 0x54, 0x4f, 0x4e, 0x45, 0x5f, 0x53, 0x4d, 0x53, 0x5f, 0x42, 0x52, 0x4f, 0x41, 0x44, 0x43,
