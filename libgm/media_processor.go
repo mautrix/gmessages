@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -40,7 +39,6 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	imageType := upload.Image.GetImageType()
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
-	log.Println("EncryptedImageSize:", encryptedImageSize)
 	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", imageType.Format, "")
 	req, reqErr := http.NewRequest("POST", upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
 	if reqErr != nil {
@@ -51,7 +49,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 
 	res, resErr := c.http.Do(req)
 	if resErr != nil {
-		log.Fatal(resErr)
+		panic(resErr)
 	}
 
 	statusCode := res.StatusCode
@@ -68,7 +66,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	}
 
 	uploadStatus := rHeaders.Get("x-goog-upload-status")
-	log.Println("Upload Status: ", uploadStatus)
+	c.Logger.Debug().Str("upload_status", uploadStatus).Msg("Upload complete")
 
 	mediaIDs := &binary.UploadMediaResponse{}
 	err3 = crypto.DecodeAndEncodeB64(string(googleResponse), mediaIDs)
@@ -106,7 +104,7 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 
 	res, resErr := c.http.Do(req)
 	if resErr != nil {
-		log.Fatal(resErr)
+		panic(resErr)
 	}
 
 	statusCode := res.StatusCode

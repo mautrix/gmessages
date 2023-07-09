@@ -1,8 +1,6 @@
 package libgm
 
 import (
-	"log"
-
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -22,12 +20,12 @@ func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAle
 			c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
 			conversations, convErr := c.Conversations.List(25)
 			if convErr != nil {
-				log.Fatal(convErr)
+				panic(convErr)
 			}
 			c.Logger.Debug().Any("conversations", conversations).Msg("got conversations")
 			notifyErr := c.Session.NotifyDittoActivity()
 			if notifyErr != nil {
-				log.Fatal(notifyErr)
+				panic(notifyErr)
 			}
 			readyEvt := events.NewClientReady(newSessionId, conversations)
 			c.triggerEvent(readyEvt)

@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
@@ -20,8 +19,7 @@ type ResponseChan struct {
 func (s *SessionHandler) addRequestToChannel(requestId string, actionType binary.ActionType) {
 	_, notOk := routes.Routes[actionType]
 	if !notOk {
-		log.Println("Missing action type: ", actionType)
-		log.Fatal(notOk)
+		panic(fmt.Errorf("missing action type: %v", actionType))
 	}
 	if msgMap, ok := s.requests[requestId]; ok {
 		responseChan := &ResponseChan{

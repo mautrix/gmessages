@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"fmt"
-	"log"
 
 	"google.golang.org/protobuf/proto"
 
@@ -60,7 +59,7 @@ func (cb *ConversationBuilder) Build(protoMessage proto.Message) (proto.Message,
 		}
 		return payload, nil
 	default:
-		log.Fatal("Invalid protoMessage conversation builder type")
+		panic("Invalid protoMessage conversation builder type")
 	}
 	return nil, &ConversationBuilderError{errMsg: "failed to build for unknown reasons"}
 }

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -137,7 +136,7 @@ func (r *RPC) isAcknowledgeMessage(data []byte) bool {
 	if len(data) >= 3 && data[0] == 91 && data[1] == 91 && data[2] == 91 {
 		parsed, parseErr := r.parseAckMessage(data)
 		if parseErr != nil {
-			log.Fatal(parseErr)
+			panic(parseErr)
 		}
 		skipCount = parsed.Container.Data.GetAckAmount().Count
 		r.client.Logger.Info().Any("count", skipCount).Msg("Messages To Skip")
@@ -184,13 +183,13 @@ func (r *RPC) CloseConnection() {
 func (r *RPC) sendMessageRequest(url string, payload []byte) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
 	if err != nil {
-		log.Fatalf("Error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
 	resp, reqErr := r.client.http.Do(req)
 	//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", url).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
 	if reqErr != nil {
-		log.Fatalf("Error making request: %v", err)
+		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	return resp, reqErr
 }

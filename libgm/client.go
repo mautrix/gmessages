@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -102,7 +101,7 @@ func (c *Client) Connect() error {
 			c.Logger.Error().Any("expired", hasExpired).Any("secondsSince", authenticatedAtSeconds).Msg("TachyonToken has expired! attempting to refresh")
 			refreshErr := c.refreshAuthToken()
 			if refreshErr != nil {
-				log.Fatal(refreshErr)
+				panic(refreshErr)
 			}
 		}
 		c.Logger.Info().Any("secondsSince", authenticatedAtSeconds).Any("token", c.authData.TachyonAuthToken).Msg("TachyonToken has not expired, attempting to connect...")
@@ -115,7 +114,7 @@ func (c *Client) Connect() error {
 		c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
 		rpcPayload, receiveMessageSessionId, err := payload.ReceiveMessages(c.authData.TachyonAuthToken)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 			return err
 		}
 		c.rpc.rpcSessionId = receiveMessageSessionId
@@ -124,19 +123,19 @@ func (c *Client) Connect() error {
 
 		bugleRes, bugleErr := c.Session.IsBugleDefault()
 		if bugleErr != nil {
-			log.Fatal(bugleErr)
+			panic(bugleErr)
 		}
 		c.Logger.Info().Any("isBugle", bugleRes.Success).Msg("IsBugleDefault")
 		sessionErr := c.Session.SetActiveSession()
 		if sessionErr != nil {
-			log.Fatal(sessionErr)
+			panic(sessionErr)
 		}
 		//c.Logger.Debug().Any("tachyonAuthToken", c.authData.TachyonAuthToken).Msg("Successfully connected to server")
 		return nil
 	} else {
 		pairer, err := c.NewPairer(nil, 20)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		c.pairer = pairer
 		registered, err2 := c.pairer.RegisterPhoneRelay()
@@ -146,7 +145,7 @@ func (c *Client) Connect() error {
 		c.authData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
 		rpcPayload, receiveMessageSessionId, err := payload.ReceiveMessages(c.authData.TachyonAuthToken)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 			return err
 		}
 		c.rpc.rpcSessionId = receiveMessageSessionId
@@ -214,7 +213,7 @@ func (c *Client) decryptMedias(messages *binary.FetchMessagesResponse) error {
 			case *binary.MessageInfo_MediaContent:
 				decryptedMediaData, err := c.DownloadMedia(data.MediaContent.MediaID, data.MediaContent.DecryptionKey)
 				if err != nil {
-					log.Fatal(err)
+					panic(err)
 					return err
 				}
 				data.MediaContent.MediaData = decryptedMediaData
@@ -261,7 +260,6 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	c.imageCryptor.UpdateDecryptionKey(key)
 	decryptedImageBytes, decryptionErr := c.imageCryptor.DecryptData(encryptedBuffImg)
 	if decryptionErr != nil {
-		log.Println("Error:", decryptionErr)
 		return nil, decryptionErr
 	}
 	return decryptedImageBytes, nil
@@ -270,22 +268,22 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 func (c *Client) FetchConfigVersion() {
 	req, bErr := http.NewRequest("GET", util.CONFIG_URL, nil)
 	if bErr != nil {
-		log.Fatal(bErr)
+		panic(bErr)
 	}
 
 	configRes, requestErr := c.http.Do(req)
 	if requestErr != nil {
-		log.Fatal(requestErr)
+		panic(requestErr)
 	}
 
 	responseBody, readErr := io.ReadAll(configRes.Body)
 	if readErr != nil {
-		log.Fatal(readErr)
+		panic(readErr)
 	}
 
 	version, parseErr := util.ParseConfigVersion(responseBody)
 	if parseErr != nil {
-		log.Fatal(parseErr)
+		panic(parseErr)
 	}
 
 	currVersion := payload.ConfigMessage
@@ -350,6 +348,10 @@ func LoadAuthSession(path string) (*AuthData, error) {
 	}
 
 	return sessionData, nil
+}
+
+func (c *Client) RefreshAuthToken() error {
+	return c.refreshAuthToken()
 }
 
 func (c *Client) refreshAuthToken() error {

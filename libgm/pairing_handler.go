@@ -1,8 +1,6 @@
 package libgm
 
 import (
-	"log"
-
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
@@ -21,7 +19,7 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 	case *binary.PairEvents_Paired:
 		callbackErr := c.pairCallback(evt.Paired)
 		if callbackErr != nil {
-			log.Fatal(callbackErr)
+			panic(callbackErr)
 		}
 	case *binary.PairEvents_Revoked:
 		c.Logger.Debug().Any("data", evt).Msg("Revoked Device")

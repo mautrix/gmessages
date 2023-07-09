@@ -3,7 +3,6 @@ package payload
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"google.golang.org/protobuf/proto"
 
@@ -116,7 +115,7 @@ func (sm *SendMessageBuilder) Build() ([]byte, error) {
 
 	messageProtoJSON, serializeErr := pblite.Serialize(sm.message.ProtoReflect())
 	if serializeErr != nil {
-		log.Fatal(serializeErr)
+		panic(serializeErr)
 		return nil, serializeErr
 	}
 
