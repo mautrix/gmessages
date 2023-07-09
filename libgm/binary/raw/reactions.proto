@@ -1,0 +1,56 @@
+syntax = "proto3";
+package reactions;
+
+option go_package = "../../binary";
+
+enum Reaction {
+    UNSPECIFIED = 0;
+    ADD = 1;
+    REMOVE = 2;
+    SWITCH = 3;
+}
+
+message SendReactionPayload {
+    string messageID = 1;
+    ReactionData reactionData = 2;
+    Reaction action = 3;
+}
+
+message SendReactionResponse {
+    bool success = 1;
+}
+
+message ReactionData {
+    bytes emojiUnicode = 1;
+    int64 emojiType = 2;
+}
+
+message ReactionResponse {
+    ReactionData data = 1;
+    repeated string reactorParticipantsID = 2; // participants reacted with this emoji
+}
+
+message EmojiMeta {
+    repeated EmojiMetaData emojiMetaData = 1;
+}
+
+message EmojiMetaData {
+    bytes emojiUnicode = 1;
+    repeated string names = 2;
+}
+
+enum Emojis {
+    REACTION_TYPE_UNSPECIFIED = 0;
+    LIKE = 1;
+    LOVE = 2;
+    LAUGH = 3;
+    SURPRISED = 4;
+    SAD = 5;
+    ANGRY = 6;
+    DISLIKE = 7;
+    CUSTOM = 8;
+    QUESTIONING = 9;
+    CRYING_FACE = 10;
+    POUTING_FACE = 11;
+    RED_HEART = 12;
+}

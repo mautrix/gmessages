@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,13 +19,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 )
 
-type Session struct {
-	*libgm.DevicePair
-	*crypto.Cryptor
-	*binary.WebAuthKey
-	Cookies []*http.Cookie
-}
-
 func must(err error) {
 	if err != nil {
 		panic(err)
@@ -41,7 +32,7 @@ func mustReturn[T any](val T, err error) T {
 
 var cli *libgm.Client
 var log zerolog.Logger
-var sess Session
+var sess libgm.AuthData
 
 func main() {
 	log = zerolog.New(zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
@@ -61,22 +52,9 @@ func main() {
 	if sess.Cryptor == nil {
 		sess.Cryptor = crypto.NewCryptor(nil, nil)
 	}
-	cli = libgm.NewClient(sess.DevicePair, sess.Cryptor, log, nil)
-	if sess.Cookies != nil {
-		cli.SetCookies(sess.Cookies)
-	}
+	cli = libgm.NewClient(&sess, log)
 	cli.SetEventHandler(evtHandler)
-	log.Debug().Msg(base64.StdEncoding.EncodeToString(sess.GetWebAuthKey()))
-	if sess.DevicePair == nil {
-		pairer := mustReturn(cli.NewPairer(nil, 20))
-		registered := mustReturn(pairer.RegisterPhoneRelay())
-		must(cli.Connect(registered.Field5.RpcKey))
-	} else {
-		//pairer := mustReturn(cli.NewPairer(nil, 20))
-		//newKey := pairer.GetWebEncryptionKey(sess.GetWebAuthKey())
-		//log.Debug().Msg(base64.StdEncoding.EncodeToString(newKey))
-		must(cli.Connect(sess.GetWebAuthKey()))
-	}
+	must(cli.Connect())
 
 	c := make(chan os.Signal)
 	input := make(chan string)
@@ -111,7 +89,6 @@ func main() {
 }
 
 func saveSession() {
-	sess.Cookies = cli.GetCookies()
 	file := mustReturn(os.OpenFile("session.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600))
 	must(json.NewEncoder(file).Encode(sess))
 	_ = file.Close()
@@ -123,25 +100,22 @@ func evtHandler(rawEvt any) {
 		log.Debug().Any("data", evt).Msg("Client is ready!")
 	case *events.PairSuccessful:
 		log.Debug().Any("data", evt).Msg("Pair successful")
-		sess.DevicePair = &libgm.DevicePair{
-			Mobile:  evt.PairDeviceData.Mobile,
-			Browser: evt.PairDeviceData.Browser,
-		}
-		sess.WebAuthKey = evt.PairDeviceData.WebAuthKeyData
+		//kd := evt.Data.(*binary.AuthenticationContainer_KeyData)
+		//sess.DevicePair = &pblite.DevicePair{
+		//	Mobile:  kd.KeyData.Mobile,
+		//	Browser: kd.KeyData.Browser,
+		//}
+		//sess.TachyonAuthToken = evt.AuthMessage.TachyonAuthToken
 		saveSession()
 		log.Debug().Msg("Wrote session")
-	case *binary.Event_MessageEvent:
+	case *binary.Message:
 		log.Debug().Any("data", evt).Msg("Message event")
-	case *binary.Event_ConversationEvent:
+	case *binary.Conversation:
 		log.Debug().Any("data", evt).Msg("Conversation event")
 	case *events.QR:
 		qrterminal.GenerateHalfBlock(evt.URL, qrterminal.L, os.Stdout)
 	case *events.BrowserActive:
 		log.Debug().Any("data", evt).Msg("Browser active")
-	case *events.Battery:
-		log.Debug().Any("data", evt).Msg("Battery")
-	case *events.DataConnection:
-		log.Debug().Any("data", evt).Msg("Data connection")
 	default:
 		log.Debug().Any("data", evt).Msg("Unknown event")
 	}

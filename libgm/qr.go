@@ -9,9 +9,9 @@ import (
 
 func (p *Pairer) GenerateQRCodeData() (string, error) {
 	urlData := &binary.UrlData{
-		PairingKey:   p.pairingKey,
-		AESCTR256Key: p.client.cryptor.AESCTR256Key,
-		SHA256Key:    p.client.cryptor.SHA256Key,
+		PairingKey: p.pairingKey,
+		AESKey:     p.client.authData.Cryptor.AESKey,
+		HMACKey:    p.client.authData.Cryptor.HMACKey,
 	}
 	encodedUrlData, err := binary.EncodeProtoMessage(urlData)
 	if err != nil {

@@ -6,9 +6,9 @@ option go_package = "../../binary";
 
 message Settings {
     Data data = 2;
-    OpCodeData opCodeData = 3;
-    BooleanFields boolFields = 4;
-    string version = 5;
+    SomeData opCodeData = 3;
+    RCSSettings rcsSettings = 4;
+    string bugleVersion = 5;
     bool bool1 = 7;
     BooleanFields2 boolFields2 = 8;
     string emptyString = 9;
@@ -16,10 +16,14 @@ message Settings {
 }
 
 message Data { // i think its simdata? no clue
-    BoolMsg boolMsg = 3;
+    RCSChats rcsChats = 3;
     SimData simData = 5;
     bool bool1 = 6;
     NoClue noClue = 7;
+}
+
+message RCSChats {
+    bool enabled = 1;
 }
 
 message BoolMsg {
@@ -43,15 +47,18 @@ message NoClue { // just a guess lol
     string count = 1;
 }
 
-message OpCodeData {
+message SomeData {
     bool field7 = 7;
+    bool field12 = 12;
+    repeated bytes someEmojis = 15;
     string jsonData = 16;
+    string someString = 17;
 }
 
-message BooleanFields {
-    bool bool1 = 1;
-    bool bool2 = 2;
-    bool bool3 = 3;
+message RCSSettings {
+    bool isEnabled = 1;
+    bool sendReadReceipts = 2;
+    bool showTypingIndicators = 3;
     bool bool4 = 4;
 }
 

@@ -1,23 +1,35 @@
 package events
 
 type BrowserActive struct {
-	SessionID string
+	SessionId string
 }
 
-func NewBrowserActive(sessionID string) *BrowserActive {
+func NewBrowserActive(sessionId string) *BrowserActive {
 	return &BrowserActive{
-		SessionID: sessionID,
+		SessionId: sessionId,
 	}
 }
 
-type Battery struct{}
+type MOBILE_BATTERY_RESTORED struct{}
 
-func NewBattery() *Battery {
-	return &Battery{}
+func NewMobileBatteryRestored() *MOBILE_BATTERY_RESTORED {
+	return &MOBILE_BATTERY_RESTORED{}
 }
 
-type DataConnection struct{}
+type MOBILE_BATTERY_LOW struct{}
 
-func NewDataConnection() *DataConnection {
-	return &DataConnection{}
+func NewMobileBatteryLow() *MOBILE_BATTERY_LOW {
+	return &MOBILE_BATTERY_LOW{}
+}
+
+type MOBILE_DATA_CONNECTION struct{}
+
+func NewMobileDataConnection() *MOBILE_DATA_CONNECTION {
+	return &MOBILE_DATA_CONNECTION{}
+}
+
+type MOBILE_WIFI_CONNECTION struct{}
+
+func NewMobileWifiConnection() *MOBILE_WIFI_CONNECTION {
+	return &MOBILE_WIFI_CONNECTION{}
 }

@@ -1,0 +1,73 @@
+syntax = "proto3";
+package authentication;
+
+option go_package = "../../binary";
+
+import "messages.proto";
+import "client.proto";
+
+message BrowserDetails {
+    string userAgent = 1;
+    client.BrowserTypes browserType = 2;
+    string os = 3;
+    bool someBool = 6;
+}
+
+message AuthenticationContainer {
+    AuthenticationMessage authMessage = 1;
+    BrowserDetails browserDetails = 3;
+
+    oneof data {
+        KeyData keyData = 4;
+        CurrentDeviceData deviceData = 5;
+    }
+}
+
+message AuthenticationMessage {
+    string requestID = 1;
+    string network = 3;
+    bytes tachyonAuthToken = 6;
+    messages.ConfigVersion configVersion = 7;
+}
+
+message ECDSAKeys {
+    int64 field1 = 1; // idk?
+    bytes encryptedKeys = 2;
+}
+
+message KeyData {
+    messages.Device mobile = 1;
+    ECDSAKeys ecdsaKeys = 6;
+    WebAuthKey webAuthKeyData = 2;
+    messages.Device browser = 3;
+}
+
+message WebAuthKey {
+    bytes webAuthKey = 1;
+    int64 validFor = 2;
+}
+
+message CurrentDeviceData {
+    messages.Device browser = 1;
+}
+
+message UrlData {
+    bytes pairingKey = 1;
+    bytes AESKey = 2;
+    bytes HMACKey = 3;
+}
+
+message TokenData {
+    bytes tachyonAuthToken = 1;
+    int64 TTL = 2;
+}
+
+message PairedData {
+    messages.Device mobile = 1;
+    TokenData tokenData = 2;
+    messages.Device browser = 3;
+}
+
+message RevokePairData {
+    messages.Device revokedDevice = 1;
+}

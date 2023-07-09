@@ -18,7 +18,33 @@ type JWK struct {
 	Y            string   `json:"y"`
 	Ext          bool     `json:"ext"`
 	KeyOps       []string `json:"key_ops"`
-	PrivateBytes []byte   `json:"privateBytes,omitempty"`
+	PrivateBytes []byte   `json:"private_bytes,omitempty"`
+}
+
+func (t *JWK) GetPrivateKey() (*ecdsa.PrivateKey, error) {
+	curve := elliptic.P256()
+	xBytes, err := base64.RawURLEncoding.DecodeString(t.X)
+	if err != nil {
+		return nil, err
+	}
+	yBytes, err := base64.RawURLEncoding.DecodeString(t.Y)
+	if err != nil {
+		return nil, err
+	}
+	dBytes, err := base64.RawURLEncoding.DecodeString(t.D)
+	if err != nil {
+		return nil, err
+	}
+
+	priv := &ecdsa.PrivateKey{
+		PublicKey: ecdsa.PublicKey{
+			Curve: curve,
+			X:     new(big.Int).SetBytes(xBytes),
+			Y:     new(big.Int).SetBytes(yBytes),
+		},
+		D: new(big.Int).SetBytes(dBytes),
+	}
+	return priv, nil
 }
 
 // Returns a byte slice containing the JWK and an error if the generation or export failed.

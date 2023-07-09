@@ -12,15 +12,9 @@ import (
 func ReceiveMessages(rpcKey []byte) ([]byte, string, error) {
 	payload := &binary.ReceiveMessagesRequest{
 		Auth: &binary.AuthMessage{
-			RequestID: uuid.New().String(),
-			RpcKey:    rpcKey,
-			Date: &binary.Date{
-				Year: 2023,
-				Seq1: 6,
-				Seq2: 22,
-				Seq3: 4,
-				Seq4: 6,
-			},
+			RequestID:        uuid.New().String(),
+			TachyonAuthToken: rpcKey,
+			ConfigVersion:    ConfigMessage,
 		},
 		Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject2{
 			Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject1{},

@@ -5,12 +5,21 @@ option go_package = "../../binary";
 
 import "messages.proto";
 
-message SendMessage {
-    messages.Device pairedDevice = 1;
-    messages.MessageData messageData = 2;
-    messages.AuthMessage authData = 3;
-    int64 TTL = 5;
-    messages.EmptyArr emptyArr = 9;
+message NotifyDittoActivityPayload {
+    bool success = 2;
+}
+
+message AckMessageResponse {
+    AckContainer container = 1;
+}
+message AckContainer {
+    AckData data = 1;
+}
+message AckData {
+    AckAmount ackAmount = 4;
+}
+message AckAmount {
+    int32 count = 1;
 }
 
 message AckMessagePayload {
@@ -40,4 +49,33 @@ message BugleBackendService {
 
 message BugleCode {
     int64 type = 2;
+}
+
+enum BugleMessageType {
+    UNKNOWN_BUGLE_MESSAGE_TYPE = 0;
+    SMS = 1;
+    MMS = 2;
+    RCS = 3;
+    CLOUD_SYNC = 4;
+    IMDN_DELIVERED = 5;
+    IMDN_DISPLAYED = 6;
+    IMDN_FALLBACK = 7;
+    RCS_GENERIC = 8;
+    FTD = 9;
+    FT_E2EE_LEGACY = 10;
+    FT_E2EE_XML = 11;
+    LIGHTER_MESSAGE = 12;
+    RBM_SPAM_REPORT = 13;
+    SATELLITE = 14;
+}
+
+enum BrowserTypes {
+    UNKNOWN_BROWSER_TYPE = 0;
+    OTHER = 1;
+    CHROME = 2;
+    FIREFOX = 3;
+    SAFARI = 4;
+    OPERA = 5;
+    IE = 6;
+    EDGE = 7;
 }

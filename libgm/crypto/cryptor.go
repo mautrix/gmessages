@@ -9,27 +9,27 @@ import (
 	"errors"
 	"io"
 
-	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 type Cryptor struct {
-	AESCTR256Key []byte
-	SHA256Key    []byte
+	AESKey  []byte `json:"aes_key"`
+	HMACKey []byte `json:"hmac_key"`
 }
 
-func NewCryptor(aesKey []byte, shaKey []byte) *Cryptor {
-	if aesKey != nil && shaKey != nil {
+func NewCryptor(aesKey []byte, hmacKey []byte) *Cryptor {
+	if aesKey != nil && hmacKey != nil {
 		return &Cryptor{
-			AESCTR256Key: aesKey,
-			SHA256Key:    shaKey,
+			AESKey:  aesKey,
+			HMACKey: hmacKey,
 		}
 	}
-	aesKey, shaKey = GenerateKeys()
+	aesKey, hmacKey = GenerateKeys()
 	return &Cryptor{
-		AESCTR256Key: aesKey,
-		SHA256Key:    shaKey,
+		AESKey:  aesKey,
+		HMACKey: hmacKey,
 	}
 }
 
@@ -39,7 +39,7 @@ func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher(c.AESCTR256Key)
+	block, err := aes.NewCipher(c.AESKey)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
 
 	ciphertext = append(ciphertext, iv...)
 
-	mac := hmac.New(sha256.New, c.SHA256Key)
+	mac := hmac.New(sha256.New, c.HMACKey)
 	mac.Write(ciphertext)
 	hmac := mac.Sum(nil)
 
@@ -67,7 +67,7 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	hmacSignature := encryptedData[len(encryptedData)-32:]
 	encryptedDataWithoutHMAC := encryptedData[:len(encryptedData)-32]
 
-	mac := hmac.New(sha256.New, c.SHA256Key)
+	mac := hmac.New(sha256.New, c.HMACKey)
 	mac.Write(encryptedDataWithoutHMAC)
 	expectedHMAC := mac.Sum(nil)
 
@@ -78,7 +78,7 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	iv := encryptedDataWithoutHMAC[len(encryptedDataWithoutHMAC)-16:]
 	encryptedDataWithoutHMAC = encryptedDataWithoutHMAC[:len(encryptedDataWithoutHMAC)-16]
 
-	block, err := aes.NewCipher(c.AESCTR256Key)
+	block, err := aes.NewCipher(c.AESKey)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	return encryptedDataWithoutHMAC, nil
 }
 
-func (c *Cryptor) DecryptAndDecodeData(encryptedData []byte, message protoreflect.ProtoMessage) error {
+func (c *Cryptor) DecryptAndDecodeData(encryptedData []byte, message proto.Message) error {
 	decryptedData, err := c.Decrypt(encryptedData)
 	if err != nil {
 		return err
@@ -98,4 +98,18 @@ func (c *Cryptor) DecryptAndDecodeData(encryptedData []byte, message protoreflec
 		return err
 	}
 	return nil
+}
+
+func (c *Cryptor) EncodeAndEncryptData(message proto.Message) ([]byte, error) {
+	encodedData, encodeErr := binary.EncodeProtoMessage(message)
+	if encodeErr != nil {
+		return nil, encodeErr
+	}
+
+	encryptedData, encryptErr := c.Encrypt(encodedData)
+	if encryptErr != nil {
+		return nil, encryptErr
+	}
+
+	return encryptedData, nil
 }

@@ -21,12 +21,13 @@ type MessageBuilder struct {
 	tmpID             string
 	selfParticipantID string
 
+	replyToMessageID string
+
 	images []*MediaUpload
 
 	err error
 }
 
-// Add this method to retrieve the stored error
 func (mb *MessageBuilder) Err() error {
 	return mb.err
 }
@@ -39,22 +40,26 @@ func (mb *MessageBuilder) GetContent() string {
 	return mb.content
 }
 
+func (mb *MessageBuilder) GetConversationID() string {
+	return mb.conversationID
+}
+
+func (mb *MessageBuilder) GetSelfParticipantID() string {
+	return mb.selfParticipantID
+}
+
+func (mb *MessageBuilder) GetTmpID() string {
+	return mb.tmpID
+}
+
 func (mb *MessageBuilder) SetContent(content string) *MessageBuilder {
 	mb.content = content
 	return mb
 }
 
-func (mb *MessageBuilder) GetConversationID() string {
-	return mb.conversationID
-}
-
 func (mb *MessageBuilder) SetConversationID(conversationId string) *MessageBuilder {
 	mb.conversationID = conversationId
 	return mb
-}
-
-func (mb *MessageBuilder) GetSelfParticipantID() string {
-	return mb.selfParticipantID
 }
 
 // sendmessage function will set this automatically but if u want to set it yourself feel free
@@ -63,8 +68,10 @@ func (mb *MessageBuilder) SetSelfParticipantID(participantId string) *MessageBui
 	return mb
 }
 
-func (mb *MessageBuilder) GetTmpID() string {
-	return mb.tmpID
+// messageID of the message to reply to
+func (mb *MessageBuilder) SetReplyMessage(messageId string) *MessageBuilder {
+	mb.replyToMessageID = messageId
+	return mb
 }
 
 // sendmessage function will set this automatically but if u want to set it yourself feel free
@@ -107,10 +114,10 @@ func (c *Client) NewMessageBuilder() *MessageBuilder {
 
 func (mb *MessageBuilder) newSendConversationMessage() *binary.SendMessagePayload {
 
-	convID := mb.GetConversationID()
+	convId := mb.GetConversationID()
 	content := mb.GetContent()
-	selfParticipantID := mb.GetSelfParticipantID()
-	tmpID := mb.GetTmpID()
+	selfParticipantId := mb.GetSelfParticipantID()
+	tmpId := mb.GetTmpID()
 
 	messageInfo := make([]*binary.MessageInfo, 0)
 	messageInfo = append(messageInfo, &binary.MessageInfo{Data: &binary.MessageInfo_MessageContent{
@@ -122,16 +129,17 @@ func (mb *MessageBuilder) newSendConversationMessage() *binary.SendMessagePayloa
 	mb.appendImagesPayload(&messageInfo)
 
 	sendMsgPayload := &binary.SendMessagePayload{
-		ConversationID: convID,
+		ConversationID: convId,
 		MessagePayload: &binary.MessagePayload{
-			TmpID:             tmpID,
-			ConversationID:    convID,
-			SelfParticipantID: selfParticipantID,
+			TmpID:             tmpId,
+			ConversationID:    convId,
+			SelfParticipantID: selfParticipantId,
 			MessageInfo:       messageInfo,
-			TmpID2:            tmpID,
+			TmpID2:            tmpId,
 		},
-		TmpID: tmpID,
+		TmpID: tmpId,
 	}
+
 	if len(content) > 0 {
 		sendMsgPayload.MessagePayload.MessagePayloadContent = &binary.MessagePayloadContent{
 			MessageContent: &binary.MessageContent{
@@ -139,6 +147,12 @@ func (mb *MessageBuilder) newSendConversationMessage() *binary.SendMessagePayloa
 			},
 		}
 	}
+
+	if mb.replyToMessageID != "" {
+		sendMsgPayload.IsReply = true
+		sendMsgPayload.Reply = &binary.ReplyPayload{MessageID: mb.replyToMessageID}
+	}
+
 	mb.client.Logger.Debug().Any("sendMsgPayload", sendMsgPayload).Msg("sendMessagePayload")
 
 	return sendMsgPayload
@@ -157,16 +171,16 @@ func (mb *MessageBuilder) appendImagesPayload(messageInfo *[]*binary.MessageInfo
 
 func (mb *MessageBuilder) newImageContent(media *MediaUpload) *binary.MessageInfo {
 	imageMessage := &binary.MessageInfo{
-		Data: &binary.MessageInfo_ImageContent{
-			ImageContent: &binary.ImageContent{
-				SomeNumber:    media.Image.GetImageType().Type,
-				ImageID:       media.MediaID,
-				ImageName:     media.Image.GetImageName(),
+		Data: &binary.MessageInfo_MediaContent{
+			MediaContent: &binary.MediaContent{
+				Format:        binary.MediaFormats(media.Image.GetImageType().Type),
+				MediaID:       media.MediaID,
+				MediaName:     media.Image.GetImageName(),
 				Size:          media.Image.GetImageSize(),
 				DecryptionKey: media.Image.GetImageCryptor().GetKey(),
 			},
 		},
 	}
-	mb.client.Logger.Debug().Any("imageMessage", imageMessage).Msg("New Image Content")
+	mb.client.Logger.Debug().Any("imageMessage", imageMessage).Msg("New Media Content")
 	return imageMessage
 }

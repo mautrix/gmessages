@@ -5,19 +5,13 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-func RefreshPhoneRelay(rpcKey []byte) ([]byte, *binary.Container, error) {
-	payload := &binary.Container{
-		PhoneRelay: &binary.PhoneRelayBody{
-			ID:     util.RandomUUIDv4(),
-			Bugle:  "Bugle",
-			RpcKey: rpcKey,
-			Date: &binary.Date{
-				Year: 2023,
-				Seq1: 6,
-				Seq2: 22,
-				Seq3: 4,
-				Seq4: 6,
-			},
+func RefreshPhoneRelay(rpcKey []byte) ([]byte, *binary.AuthenticationContainer, error) {
+	payload := &binary.AuthenticationContainer{
+		AuthMessage: &binary.AuthenticationMessage{
+			RequestID:        util.RandomUUIDv4(),
+			Network:          Network,
+			TachyonAuthToken: rpcKey,
+			ConfigVersion:    ConfigMessage,
 		},
 	}
 	encodedPayload, err2 := binary.EncodeProtoMessage(payload)

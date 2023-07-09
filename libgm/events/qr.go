@@ -9,5 +9,5 @@ type QR struct {
 }
 
 type PairSuccessful struct {
-	*binary.Container
+	*binary.PairedData
 }

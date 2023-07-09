@@ -386,25 +386,12 @@ func (user *User) SetManagementRoom(roomID id.RoomID) {
 var ErrAlreadyLoggedIn = errors.New("already logged in")
 
 func (user *User) createClient() {
-	var devicePair *libgm.DevicePair
-	var cryptor *crypto.Cryptor
-	if user.Session != nil && user.Session.WebAuthKey != nil {
-		devicePair = &libgm.DevicePair{
-			Mobile:  user.Session.PhoneInfo,
-			Browser: user.Session.BrowserInfo,
-		}
-		cryptor = &crypto.Cryptor{
-			AESCTR256Key: user.Session.AESKey,
-			SHA256Key:    user.Session.HMACKey,
-		}
-	} else {
-		cryptor = crypto.NewCryptor(nil, nil)
-		user.Session = &database.Session{
-			AESKey:  cryptor.AESCTR256Key,
-			HMACKey: cryptor.SHA256Key,
+	if user.Session == nil {
+		user.Session = &libgm.AuthData{
+			Cryptor: crypto.NewCryptor(nil, nil),
 		}
 	}
-	user.Client = libgm.NewClient(devicePair, cryptor, user.zlog.With().Str("component", "libgm").Logger(), nil)
+	user.Client = libgm.NewClient(user.Session, user.zlog.With().Str("component", "libgm").Logger())
 	user.Client.SetEventHandler(user.HandleEvent)
 }
 
@@ -417,15 +404,7 @@ func (user *User) Login(ctx context.Context) (<-chan string, error) {
 		user.unlockedDeleteConnection()
 	}
 	user.createClient()
-	pairer, err := user.Client.NewPairer(nil, 20)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize pairer: %w", err)
-	}
-	resp, err := pairer.RegisterPhoneRelay()
-	if err != nil {
-		return nil, fmt.Errorf("failed to register phone relay: %w", err)
-	}
-	err = user.Client.Connect(resp.Field5.RpcKey)
+	err := user.Client.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to Google Messages: %w", err)
 	}
@@ -446,7 +425,7 @@ func (user *User) Connect() bool {
 	user.zlog.Debug().Msg("Connecting to Google Messages")
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting, Error: GMConnecting})
 	user.createClient()
-	err := user.Client.Connect(user.Session.WebAuthKey)
+	err := user.Client.Connect()
 	if err != nil {
 		user.zlog.Err(err).Msg("Error connecting to Google Messages")
 		user.BridgeState.Send(status.BridgeState{
@@ -550,36 +529,34 @@ func (user *User) HandleEvent(event interface{}) {
 		user.hackyLoginCommand = nil
 		user.hackyLoginCommandPrevEvent = ""
 		user.tryAutomaticDoublePuppeting()
-		user.Phone = v.PairDeviceData.Mobile.RegistrationID
-		user.Session.PhoneInfo = v.PairDeviceData.Mobile
-		user.Session.BrowserInfo = v.PairDeviceData.Browser
-		user.Session.WebAuthKey = v.PairDeviceData.WebAuthKeyData.GetWebAuthKey()
+		user.Phone = v.GetMobile().GetSourceID()
 		user.addToPhoneMap()
 		err := user.Update(context.TODO())
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to update session in database")
 		}
-	case *binary.Event_ConversationEvent:
-		portal := user.GetPortalByID(v.ConversationEvent.GetData().GetConversationID())
+	case *events.AuthTokenRefreshed:
+		err := user.Update(context.TODO())
+		if err != nil {
+			user.zlog.Err(err).Msg("Failed to update session in database")
+		}
+	case *binary.Conversation:
+		portal := user.GetPortalByID(v.GetConversationID())
 		if portal.MXID != "" {
-			portal.UpdateMetadata(user, v.ConversationEvent.GetData())
+			portal.UpdateMetadata(user, v)
 		} else {
-			err := portal.CreateMatrixRoom(user, v.ConversationEvent.GetData())
+			err := portal.CreateMatrixRoom(user, v)
 			if err != nil {
 				user.zlog.Err(err).Msg("Error creating Matrix room from conversation event")
 			}
 		}
-	case *binary.Event_MessageEvent:
-		portal := user.GetPortalByID(v.MessageEvent.GetData().GetConversationID())
-		portal.messages <- PortalMessage{evt: v.MessageEvent.GetData(), source: user}
+	case *binary.Message:
+		portal := user.GetPortalByID(v.GetConversationID())
+		portal.messages <- PortalMessage{evt: v, source: user}
 	case *events.ClientReady:
 		user.zlog.Trace().Any("data", v).Msg("Client is ready!")
 	case *events.BrowserActive:
 		user.zlog.Trace().Any("data", v).Msg("Browser active")
-	case *events.Battery:
-		user.zlog.Trace().Any("data", v).Msg("Battery")
-	case *events.DataConnection:
-		user.zlog.Trace().Any("data", v).Msg("Data connection")
 	default:
 		user.zlog.Trace().Any("data", v).Msg("Unknown event")
 	}

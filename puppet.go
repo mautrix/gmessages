@@ -263,8 +263,8 @@ func (puppet *Puppet) Sync(source *User, contact *binary.Participant) {
 
 	update := false
 	if contact != nil {
-		if contact.Id.Number != "" && puppet.Phone != contact.Id.Number {
-			puppet.Phone = contact.Id.Number
+		if contact.ID.Number != "" && puppet.Phone != contact.ID.Number {
+			puppet.Phone = contact.ID.Number
 			update = true
 		}
 		update = puppet.UpdateName(contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName()) || update

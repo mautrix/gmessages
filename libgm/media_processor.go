@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
+	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -38,6 +40,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	imageType := upload.Image.GetImageType()
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
+	log.Println("EncryptedImageSize:", encryptedImageSize)
 	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", imageType.Format, "")
 	req, reqErr := http.NewRequest("POST", upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
 	if reqErr != nil {
@@ -48,7 +51,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 
 	res, resErr := c.http.Do(req)
 	if resErr != nil {
-		panic(resErr)
+		log.Fatal(resErr)
 	}
 
 	statusCode := res.StatusCode
@@ -65,7 +68,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	}
 
 	uploadStatus := rHeaders.Get("x-goog-upload-status")
-	c.Logger.Debug().Str("upload_status", uploadStatus).Msg("Upload status")
+	log.Println("Upload Status: ", uploadStatus)
 
 	mediaIDs := &binary.UploadMediaResponse{}
 	err3 = crypto.DecodeAndEncodeB64(string(googleResponse), mediaIDs)
@@ -103,7 +106,7 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 
 	res, resErr := c.http.Do(req)
 	if resErr != nil {
-		panic(resErr)
+		log.Fatal(resErr)
 	}
 
 	statusCode := res.StatusCode
@@ -132,21 +135,15 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 }
 
 func (c *Client) buildStartUploadPayload() (string, error) {
-	requestId := util.RandomUUIDv4()
+	requestID := util.RandomUUIDv4()
 	protoData := &binary.StartMediaUploadPayload{
 		ImageType: 1,
 		AuthData: &binary.AuthMessage{
-			RequestID: requestId,
-			RpcKey:    c.rpcKey,
-			Date: &binary.Date{
-				Year: 2023,
-				Seq1: 6,
-				Seq2: 22,
-				Seq3: 4,
-				Seq4: 6,
-			},
+			RequestID:        requestID,
+			TachyonAuthToken: c.authData.TachyonAuthToken,
+			ConfigVersion:    payload.ConfigMessage,
 		},
-		Mobile: c.devicePair.Mobile,
+		Mobile: c.authData.DevicePair.Mobile,
 	}
 
 	protoDataEncoded, protoEncodeErr := crypto.EncodeProtoB64(protoData)

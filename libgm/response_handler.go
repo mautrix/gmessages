@@ -2,99 +2,99 @@ package libgm
 
 import (
 	"fmt"
+	"log"
 	"sync"
+
+	"go.mau.fi/mautrix-gmessages/libgm/pblite"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/routes"
 )
 
 type ResponseChan struct {
-	responses         []*Response
-	receivedResponses int64
-	wg                sync.WaitGroup
-	mu                sync.Mutex
+	response *pblite.Response
+	wg       sync.WaitGroup
+	mu       sync.Mutex
 }
 
-func (s *SessionHandler) addRequestToChannel(requestId string, opCode int64) {
-	instruction, notOk := s.client.instructions.GetInstruction(opCode)
+func (s *SessionHandler) addRequestToChannel(requestId string, actionType binary.ActionType) {
+	_, notOk := routes.Routes[actionType]
 	if !notOk {
-		panic(notOk)
+		log.Println("Missing action type: ", actionType)
+		log.Fatal(notOk)
 	}
 	if msgMap, ok := s.requests[requestId]; ok {
 		responseChan := &ResponseChan{
-			responses:         make([]*Response, 0, instruction.ExpectedResponses),
-			receivedResponses: 0,
-			wg:                sync.WaitGroup{},
-			mu:                sync.Mutex{},
+			response: &pblite.Response{},
+			wg:       sync.WaitGroup{},
+			mu:       sync.Mutex{},
 		}
-		msgMap[opCode] = responseChan
-		responseChan.wg.Add(int(instruction.ExpectedResponses))
+		responseChan.wg.Add(1)
 		responseChan.mu.Lock()
+		msgMap[actionType] = responseChan
 	} else {
-		s.requests[requestId] = make(map[int64]*ResponseChan)
+		s.requests[requestId] = make(map[binary.ActionType]*ResponseChan)
 		responseChan := &ResponseChan{
-			responses:         make([]*Response, 0, instruction.ExpectedResponses),
-			receivedResponses: 0,
-			wg:                sync.WaitGroup{},
-			mu:                sync.Mutex{},
+			response: &pblite.Response{},
+			wg:       sync.WaitGroup{},
+			mu:       sync.Mutex{},
 		}
-		s.requests[requestId][opCode] = responseChan
-		responseChan.wg.Add(int(instruction.ExpectedResponses))
+		responseChan.wg.Add(1)
 		responseChan.mu.Lock()
+		s.requests[requestId][actionType] = responseChan
 	}
 }
 
-func (s *SessionHandler) respondToRequestChannel(res *Response) {
-	requestId := res.Data.RequestID
+func (s *SessionHandler) respondToRequestChannel(res *pblite.Response) {
+	requestId := res.Data.RequestId
 	reqChannel, ok := s.requests[requestId]
+	actionType := res.Data.Action
 	if !ok {
+		s.client.Logger.Debug().Any("actionType", actionType).Any("requestId", requestId).Msg("Did not expect response for this requestId")
 		return
 	}
-	opCodeResponseChan, ok2 := reqChannel[res.Data.Opcode]
+	actionResponseChan, ok2 := reqChannel[actionType]
 	if !ok2 {
+		s.client.Logger.Debug().Any("actionType", actionType).Any("requestId", requestId).Msg("Did not expect response for this actionType")
 		return
 	}
-
-	opCodeResponseChan.mu.Lock()
-
-	opCodeResponseChan.responses = append(opCodeResponseChan.responses, res)
-
-	s.client.Logger.Debug().Any("opcode", res.Data.Opcode).Msg("Got response")
-
-	instruction, ok3 := s.client.instructions.GetInstruction(res.Data.Opcode)
-	if opCodeResponseChan.receivedResponses >= instruction.ExpectedResponses {
-		s.client.Logger.Debug().Any("opcode", res.Data.Opcode).Msg("Ignoring opcode")
+	actionResponseChan.mu.Lock()
+	actionResponseChan, ok2 = reqChannel[actionType]
+	if !ok2 {
+		s.client.Logger.Debug().Any("actionType", actionType).Any("requestId", requestId).Msg("Ignoring request for action...")
 		return
 	}
-	opCodeResponseChan.receivedResponses++
-	opCodeResponseChan.wg.Done()
-	if !ok3 {
-		panic(ok3)
-		opCodeResponseChan.mu.Unlock()
-		return
-	}
-	if opCodeResponseChan.receivedResponses >= instruction.ExpectedResponses {
-		delete(reqChannel, res.Data.Opcode)
-		if len(reqChannel) == 0 {
-			delete(s.requests, requestId)
-		}
+	s.client.Logger.Debug().Any("actionType", actionType).Any("requestId", requestId).Msg("responding to request")
+	actionResponseChan.response = res
+	actionResponseChan.wg.Done()
+
+	delete(reqChannel, actionType)
+	if len(reqChannel) == 0 {
+		delete(s.requests, requestId)
 	}
 
-	opCodeResponseChan.mu.Unlock()
+	actionResponseChan.mu.Unlock()
 }
 
-func (s *SessionHandler) WaitForResponse(requestId string, opCode int64) ([]*Response, error) {
+func (s *SessionHandler) WaitForResponse(requestId string, actionType binary.ActionType) (*pblite.Response, error) {
 	requestResponses, ok := s.requests[requestId]
 	if !ok {
-		return nil, fmt.Errorf("no response channel found for request ID: %s (opcode: %v)", requestId, opCode)
-	}
-	responseChan, ok2 := requestResponses[opCode]
-	if !ok2 {
-		return nil, fmt.Errorf("no response channel found for opCode: %v (requestId: %s)", opCode, requestId)
+		return nil, fmt.Errorf("no response channel found for request ID: %s (actionType: %v)", requestId, actionType)
 	}
 
-	// Unlock so responses can be received
+	routeInfo, notFound := routes.Routes[actionType]
+	if !notFound {
+		return nil, fmt.Errorf("no action exists for actionType: %v (requestId: %s)", actionType, requestId)
+	}
+
+	responseChan, ok2 := requestResponses[routeInfo.Action]
+	if !ok2 {
+		return nil, fmt.Errorf("no response channel found for actionType: %v (requestId: %s)", routeInfo.Action, requestId)
+	}
+
 	responseChan.mu.Unlock()
 
-	// Wait for all responses to be received
 	responseChan.wg.Wait()
 
-	return responseChan.responses, nil
+	return responseChan.response, nil
 }

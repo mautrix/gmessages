@@ -18,3 +18,8 @@ var MESSAGING = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instan
 var RECEIVE_MESSAGES = MESSAGING + "/ReceiveMessages"
 var SEND_MESSAGE = MESSAGING + "/SendMessage"
 var ACK_MESSAGES = MESSAGING + "/AckMessages"
+
+var REGISTRATION = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instantmessaging.v1.Registration"
+var REGISTER_REFRESH = REGISTRATION + "/RegisterRefresh"
+
+var CONFIG_URL = "https://messages.google.com/web/config"

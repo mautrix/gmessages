@@ -3,17 +3,95 @@ package responses;
 
 option go_package = "../../binary";
 
-import "settings.proto";
+import "events.proto";
+import "messages.proto";
 import "conversations.proto";
 
-message PrepareNewSession {
+message RegisterRefreshResponse {
+    RefreshAuthData tokenData = 2;
+}
+
+message RefreshAuthData {
+    bytes tachyonAuthToken = 1;
+    string validFor = 2;
+}
+
+message FetchMessagesResponse {
+    repeated conversations.Message messages = 2;
+    bytes someBytes = 3;
+    int64 totalMessages = 4;
+    conversations.Cursor cursor = 5;
+}
+
+message DeleteMessageResponse {
+    bool success = 2;
+}
+
+message UpdateConversationResponse {
+    bool success = 1;
+    /*
+    3 {
+    1 {
+        1 {
+        3: "11"
+        }
+        13: 2
+    }
+    3: 1
+    }
+    */
+}
+
+message GetConversationTypeResponse {
+    string conversationID = 2;
+    int32 type = 3;
+    bool bool1 = 5;
+    int32 number2 = 6;
+}
+
+message NotifyDittoActivityResponse {}
+
+message IsBugleDefaultResponse {
     bool success = 1;
 }
 
-message NewSession {
-    settings.Settings settings = 5;
+message GetUpdatesResponse {
+    events.UserAlertEvent data = 6;
 }
 
 message SendMessageResponse {
-    conversations.MessageType type = 3;
+    int64 type = 3;
+}
+
+message RefreshPhoneRelayResponse {
+    CoordinateMessage coordinates = 1;
+    bytes pairKey = 2;
+    int64 validFor = 3;
+}
+
+message WebEncryptionKeyResponse {
+    CoordinateMessage coordinates = 1;
+    bytes key = 2;
+}
+
+message RegisterPhoneRelayResponse {
+    CoordinateMessage coordinates = 1;
+    messages.Device browser = 2;
+    bytes pairingKey = 3;
+    int64 validFor = 4;
+    AuthKeyData authKeyData = 5;
+    string responseID = 6;
+}
+
+message CoordinateMessage {
+    int64 coord1 = 2;
+}
+
+message AuthKeyData {
+    bytes tachyonAuthToken = 1;
+    int64 validFor = 2;
+}
+
+enum ConversationType {
+    UNKNOWN_CONVERSATION_TYPE = 0;
 }

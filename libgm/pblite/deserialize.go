@@ -44,6 +44,10 @@ func Deserialize(data []any, m protoreflect.Message) error {
 			}
 
 			m.Set(fieldDescriptor, protoreflect.ValueOfBytes(bytes))
+		case protoreflect.EnumKind:
+			num, ok = val.(float64)
+			expectedKind = "float64"
+			m.Set(fieldDescriptor, protoreflect.ValueOfEnum(protoreflect.EnumNumber(int32(num))))
 		case protoreflect.Int32Kind:
 			num, ok = val.(float64)
 			expectedKind = "float64"

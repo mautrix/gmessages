@@ -3,15 +3,23 @@ package util
 import (
 	crand "crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 var Charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+func TimestampNow() time.Time {
+	return time.Now().UTC()
+}
 
 func RandStr(length int) string {
 	b := make([]rune, length)
@@ -131,4 +139,49 @@ func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string
 	headers.Add("accept-encoding", "gzip, deflate, br")
 	headers.Add("accept-language", "en-US,en;q=0.9")
 	return headers
+}
+
+func ParseConfigVersion(res []byte) (*binary.ConfigVersion, error) {
+	var data []interface{}
+
+	marshalErr := json.Unmarshal(res, &data)
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+
+	version := data[0].(string)
+	v1 := version[0:4]
+	v2 := version[4:6]
+	v3 := version[6:8]
+
+	if v2[0] == 48 {
+		v2 = string(v2[1])
+	}
+	if v3[0] == 48 {
+		v3 = string(v3[1])
+	}
+
+	first, e := strconv.Atoi(v1)
+	if e != nil {
+		return nil, e
+	}
+
+	second, e1 := strconv.Atoi(v2)
+	if e1 != nil {
+		return nil, e1
+	}
+
+	third, e2 := strconv.Atoi(v3)
+	if e2 != nil {
+		return nil, e2
+	}
+
+	configMessage := &binary.ConfigVersion{
+		V1: int32(first),
+		V2: int32(second),
+		V3: int32(third),
+		V4: 4,
+		V5: 6,
+	}
+	return configMessage, nil
 }

@@ -26,6 +26,7 @@ func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer,
 	if keyData == nil {
 		var err error
 		keyData, err = crypto.GenerateECDSA_P256_JWK()
+		c.updateJWK(keyData)
 		if err != nil {
 			c.Logger.Error().Any("data", keyData).Msg(err.Error())
 			return nil, err
@@ -46,7 +47,7 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		p.client.Logger.Err(err)
 		return &binary.RegisterPhoneRelayResponse{}, err
 	}
-	//p.client.Logger.Debug().Any("keyByteLength", len(jsonPayload.EcdsaKeysContainer.EcdsaKeys.EncryptedKeys)).Any("json", jsonPayload).Any("base64", body).Msg("RegisterPhoneRelay Payload")
+	//p.client.Logger.Debug().Any("keyByteLength", len(jsonPayload.GetPairDeviceData().EcdsaKeys.EncryptedKeys)).Any("json", jsonPayload).Any("base64", body).Msg("RegisterPhoneRelay Payload")
 	relayResponse, reqErr := p.client.MakeRelayRequest(util.REGISTER_PHONE_RELAY, body)
 	if reqErr != nil {
 		p.client.Logger.Err(reqErr)
@@ -63,6 +64,7 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		return nil, err3
 	}
 	p.pairingKey = res.GetPairingKey()
+	p.client.Logger.Debug().Any("response", res).Msg("Registerphonerelay response")
 	url, qrErr := p.GenerateQRCodeData()
 	if qrErr != nil {
 		return nil, qrErr
@@ -86,12 +88,12 @@ func (p *Pairer) startRefreshRelayTask() {
 }
 
 func (p *Pairer) RefreshPhoneRelay() {
-	body, _, err := payload.RefreshPhoneRelay(p.client.rpcKey)
+	body, _, err := payload.RefreshPhoneRelay(p.client.authData.TachyonAuthToken)
 	if err != nil {
 		p.client.Logger.Err(err).Msg("refresh phone relay err")
 		return
 	}
-	//p.client.Logger.Debug().Any("keyByteLength", len(jsonPayload.PhoneRelay.RpcKey)).Any("json", jsonPayload).Any("base64", body).Msg("RefreshPhoneRelay Payload")
+	//p.client.Logger.Debug().Any("keyByteLength", len(jsonPayload.PhoneRelay.tachyonAuthToken)).Any("json", jsonPayload).Any("base64", body).Msg("RefreshPhoneRelay Payload")
 	relayResponse, reqErr := p.client.MakeRelayRequest(util.REFRESH_PHONE_RELAY, body)
 	if reqErr != nil {
 		p.client.Logger.Err(reqErr).Msg("refresh phone relay err")
@@ -116,46 +118,36 @@ func (p *Pairer) RefreshPhoneRelay() {
 	p.client.triggerEvent(&events.QR{URL: url})
 }
 
-func (p *Pairer) GetWebEncryptionKey(oldKey []byte) []byte {
-	body, _, err2 := payload.GetWebEncryptionKey(oldKey)
-	if err2 != nil {
-		p.client.Logger.Err(err2).Msg("web encryption key err")
-		return nil
+func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error) {
+	body, rawData, err1 := payload.GetWebEncryptionKey(c.authData.TachyonAuthToken)
+	if err1 != nil {
+		c.Logger.Err(err1).Msg("web encryption key err")
+		return nil, err1
 	}
-	//p.client.Logger.Debug().Any("keyByteLength", len(rawData.PhoneRelay.RpcKey)).Any("json", rawData).Any("base64", body).Msg("GetWebEncryptionKey Payload")
-	webKeyResponse, reqErr := p.client.MakeRelayRequest(util.GET_WEB_ENCRYPTION_KEY, body)
+	c.Logger.Debug().Any("keyByteLength", len(rawData.AuthMessage.TachyonAuthToken)).Any("json", rawData).Any("base64", body).Msg("GetWebEncryptionKey Payload")
+	webKeyResponse, reqErr := c.MakeRelayRequest(util.GET_WEB_ENCRYPTION_KEY, body)
 	if reqErr != nil {
-		p.client.Logger.Err(reqErr).Msg("Web encryption key request err")
+		c.Logger.Err(reqErr).Msg("Web encryption key request err")
+		return nil, reqErr
 	}
 	responseBody, err2 := io.ReadAll(webKeyResponse.Body)
 	defer webKeyResponse.Body.Close()
 	if err2 != nil {
-		p.client.Logger.Err(err2).Msg("Web encryption key read response err")
-		return nil
+		c.Logger.Err(err2).Msg("Web encryption key read response err")
+		return nil, err2
 	}
 	//p.client.Logger.Debug().Any("responseLength", len(responseBody)).Any("raw", responseBody).Msg("Response Body Length")
 	parsedResponse := &binary.WebEncryptionKeyResponse{}
 	err2 = binary.DecodeProtoMessage(responseBody, parsedResponse)
 	if err2 != nil {
-		p.client.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
+		c.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
+		return nil, err2
 	}
-	p.client.Logger.Debug().Any("parsedResponse", parsedResponse).Msg("WebEncryptionKeyResponse")
-	if p.ticker != nil {
-		p.client.Logger.Info().Msg("Reconnecting")
-		p.ticker.Stop()
-		reconnectErr := p.client.Reconnect(p.client.rpc.webAuthKey)
-		if reconnectErr != nil {
-			panic(reconnectErr)
+	c.Logger.Debug().Any("webenckeyresponse", parsedResponse).Msg("Web encryption key")
+	if c.pairer != nil {
+		if c.pairer.ticker != nil {
+			c.pairer.ticker.Stop()
 		}
 	}
-	return parsedResponse.GetKey()
-}
-
-func (p *Pairer) pairCallback(pairData *binary.Container) {
-	p.client.rpc.webAuthKey = pairData.PairDeviceData.WebAuthKeyData.WebAuthKey
-	p.client.ttl = pairData.PairDeviceData.WebAuthKeyData.ValidFor
-	p.client.devicePair = &DevicePair{Mobile: pairData.PairDeviceData.Mobile, Browser: pairData.PairDeviceData.Browser}
-	p.client.pairer.GetWebEncryptionKey(p.client.rpc.webAuthKey)
-	p.client.triggerEvent(&events.PairSuccessful{Container: pairData})
-	p.client.pairer = nil
+	return parsedResponse, nil
 }

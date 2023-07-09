@@ -26,7 +26,7 @@ import (
 	"maunium.net/go/mautrix/id"
 	"maunium.net/go/mautrix/util/dbutil"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm"
 )
 
 type UserQuery struct {
@@ -63,22 +63,13 @@ func (uq *UserQuery) GetByPhone(ctx context.Context, phone string) (*User, error
 	return get[*User](uq, ctx, `SELECT rowid, mxid, phone, session, management_room, space_room, access_token FROM "user" WHERE phone=$1`, phone)
 }
 
-type Session struct {
-	WebAuthKey []byte `json:"web_auth_key"`
-	AESKey     []byte `json:"aes_key"`
-	HMACKey    []byte `json:"hmac_key"`
-
-	PhoneInfo   *binary.Device `json:"phone_info"`
-	BrowserInfo *binary.Device `json:"browser_info"`
-}
-
 type User struct {
 	db *Database
 
 	RowID   int
 	MXID    id.UserID
 	Phone   string
-	Session *Session
+	Session *libgm.AuthData
 
 	ManagementRoom id.RoomID
 	SpaceRoom      id.RoomID
@@ -95,7 +86,7 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 		return nil, err
 	}
 	if session.String != "" {
-		var sess Session
+		var sess libgm.AuthData
 		err = json.Unmarshal([]byte(session.String), &sess)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse session: %w", err)

@@ -303,9 +303,9 @@ func (portal *Portal) handleMessageLoop() {
 func (portal *Portal) isOutgoingMessage(evt *binary.Message) id.EventID {
 	portal.outgoingMessagesLock.Lock()
 	defer portal.outgoingMessagesLock.Unlock()
-	evtID, ok := portal.outgoingMessages[evt.TmpId]
+	evtID, ok := portal.outgoingMessages[evt.TmpID]
 	if ok {
-		delete(portal.outgoingMessages, evt.TmpId)
+		delete(portal.outgoingMessages, evt.TmpID)
 		portal.markHandled(evt, map[string]id.EventID{"": evtID}, true)
 		return evtID
 	}
@@ -338,7 +338,8 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	}
 
 	var intent *appservice.IntentAPI
-	if evt.GetFrom().GetFromMe() {
+	// TODO is there a fromMe flag?
+	if evt.GetParticipantID() == portal.SelfUserID {
 		intent = source.DoublePuppetIntent
 		if intent == nil {
 			log.Debug().Msg("Dropping message from self as double puppeting is not enabled")
@@ -364,17 +365,17 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 				MsgType: event.MsgText,
 				Body:    data.MessageContent.GetContent(),
 			}
-		case *binary.MessageInfo_ImageContent:
+		case *binary.MessageInfo_MediaContent:
 			content = event.MessageEventContent{
 				MsgType: event.MsgNotice,
-				Body:    fmt.Sprintf("Attachment %s", data.ImageContent.GetImageName()),
+				Body:    fmt.Sprintf("Attachment %s", data.MediaContent.GetMediaName()),
 			}
 		}
 		resp, err := portal.sendMessage(intent, event.EventMessage, &content, nil, ts)
 		if err != nil {
 			log.Err(err).Msg("Failed to send message")
 		} else {
-			eventIDs[part.OrderInternal] = resp.EventID
+			eventIDs[part.GetActionMessageID()] = resp.EventID
 			lastEventID = resp.EventID
 		}
 	}
@@ -423,7 +424,7 @@ func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversati
 	for _, participant := range metadata.Participants {
 		if participant.IsMe {
 			continue
-		} else if participant.Id.Number == "" {
+		} else if participant.ID.Number == "" {
 			portal.zlog.Warn().Interface("participant", participant).Msg("No number found in non-self participant entry")
 			continue
 		}
@@ -433,7 +434,7 @@ func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversati
 			manyParticipants = true
 		}
 		portal.zlog.Debug().Interface("participant", participant).Msg("Syncing participant")
-		puppet := source.GetPuppetByID(participant.Id.ParticipantID, participant.Id.Number)
+		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
 		userIDs = append(userIDs, puppet.MXID)
 		puppet.Sync(source, participant)
 		if portal.MXID != "" {
@@ -445,12 +446,12 @@ func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversati
 			}
 		}
 	}
-	if !metadata.IsGroupChat && !manyParticipants && portal.OtherUserID != firstParticipant.Id.ParticipantID {
+	if !metadata.IsGroupChat && !manyParticipants && portal.OtherUserID != firstParticipant.ID.ParticipantID {
 		portal.zlog.Info().
 			Str("old_other_user_id", portal.OtherUserID).
-			Str("new_other_user_id", firstParticipant.Id.ParticipantID).
+			Str("new_other_user_id", firstParticipant.ID.ParticipantID).
 			Msg("Found other user ID in DM")
-		portal.OtherUserID = firstParticipant.Id.ParticipantID
+		portal.OtherUserID = firstParticipant.ID.ParticipantID
 		changed = true
 	}
 	return userIDs, changed
@@ -906,7 +907,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 				SetConversationID(portal.ID).
 				SetSelfParticipantID(portal.SelfUserID).
 				SetContent(text).
-				SetTmpID(txnID), "",
+				SetTmpID(txnID),
 		)
 		if err != nil {
 			go ms.sendMessageMetrics(evt, err, "Error sending", true)

@@ -3,42 +3,128 @@ package messages;
 
 option go_package = "../../binary";
 
-message EncodedPayload {
-    string requestID = 1;
-    int64 opcode = 2;
-    bytes encryptedData = 5;
-    string sessionID = 6;
+message RegisterRefreshPayload {
+    AuthMessage messageAuth = 1;
+    Device currBrowserDevice = 2;
+    int64 unixTimestamp = 3;
+    string signature = 4;
+    EmptyRefreshArr emptyRefreshArr = 13;
+    int32 messageType = 16;
 }
 
-message EncodedResponse {
-    string requestID = 1;
-    //int64 msg = 2;
-    int64 unixNano = 3;
-    int64 opcode = 4;
-    //bytes keyData = 5;
-    bool sub = 6;
-    int64 third = 7;
-    bytes encryptedData = 8;
-    bool field9 = 9;
+message EmptyRefreshArr {
+    EmptyEmptyArr emptyArr = 9;
 }
 
-message MessageData {
-    string requestID = 1;
-    int64 routingOpCode = 2;
-    string ts1 = 3;
-    int64 field5 = 5;
-    string ts2 = 6;
-    string someString = 7;
+message EmptyEmptyArr {
+
+}
+
+message InternalMessage {
+    bytes unknown1 = 1;
+    InternalMessageData data = 2;
+}
+
+message InternalMessageData {
+    string responseID = 1;
+    BugleRoute bugleRoute = 2;
+    string startExecute = 3;
+    //bytes unknown4 = 4;
+    MessageType messageType = 5;
+    string finishExecute = 6;
+    string millisecondsTaken = 7;
     Device mobile = 8;
     Device browser = 9;
-    string encodedData = 12;
-    string encodedRequestID = 17;
-    MsgTypeArr msgTypeArr = 23;
+    //bytes unknown5 = 10;
+    //bytes unknown6 = 11;
+    bytes protobufData = 12;
+    //bytes unknown7 = 13;
+    //bytes unknown8 = 14;
+    //bytes unknown9 = 15;
+    //bytes unknown10 = 16;
+    string signatureID = 17;
+    //bytes unknown11 = 18;
+    //bytes unknown12 = 19;
+    //bytes unknown13 = 20;
+    string timestamp = 21;
 }
 
-message MsgTypeArr {
+message InternalRequestData {
+    string sessionID = 1;
+    int64 timestamp = 3;
+    ActionType action = 4;
+    bool bool1 = 6;
+    bool bool2 = 7;
+    bytes encryptedData = 8;
+    bool bool3 = 9;
+}
+
+message SendMessage {
+    Device mobile = 1;
+    SendMessageData messageData = 2;
+    SendMessageAuth messageAuth = 3;
+    //bytes unknown1 = 4;
+    int64 TTL = 5; // might be something related to config
+    //bytes unknown2 = 6;
+    //bytes unknown3 = 7;
+    //bytes unknown4 = 8;
+    EmptyArr emptyArr = 9;
+}
+
+message SendMessageAuth {
+    string requestID = 1;
+    //bytes unknown1 = 2;
+    //bytes unknown2 = 3;
+    //bytes unknown3 = 4;
+    //bytes unknown4 = 5;
+    bytes tachyonAuthToken = 6;
+    ConfigVersion configVersion = 7;
+}
+
+message SendMessageInternal {
+    string requestID = 1;
+    ActionType action = 2;
+    bytes encryptedProtoData = 5;
+    string sessionID = 6;
+}
+/*
+requestID = 1
+
+encodedData = {
+    requestID = 1 ^same
+
+    sessionID = 6
+}
+*/
+message SendMessageData {
+   string requestID = 1;
+   BugleRoute bugleRoute = 2;
+   //bytes unknown1 = 3;
+   //bytes unknown2 = 4;
+   //bytes unknown3 = 5;
+   //bytes unknown4 = 6;
+   //bytes unknown5 = 7;
+   //bytes unknown6 = 8;
+   //bytes unknown7 = 9;
+   //bytes unknown8 = 10;
+   //bytes unknown9 = 11;
+   bytes protobufData = 12;
+    //bytes unknown10 = 13;
+   //bytes unknown11 = 14;
+   //bytes unknown12 = 15;
+   //bytes unknown13 = 16;
+   //bytes unknown14 = 17;
+   //bytes unknown15 = 18;
+   //bytes unknown16 = 19;
+   //bytes unknown17 = 20;
+   //bytes unknown18 = 21;
+   //bytes unknown19 = 22;
+   MessageTypeData messageTypeData = 23;
+}
+
+message MessageTypeData {
     EmptyArr emptyArr = 1;
-    int64 msgType = 2;
+    MessageType messageType = 2;
 }
 
 message EmptyArr {
@@ -47,8 +133,8 @@ message EmptyArr {
 
 message AuthMessage {
     string requestID = 1;
-    bytes rpcKey = 6;
-    Date date = 7;
+    bytes tachyonAuthToken = 6;
+    ConfigVersion configVersion = 7;
 }
 
 message ReceiveMessagesRequest {
@@ -66,21 +152,54 @@ message BaseData {
     EmptyArr emptyArr = 6;
 }
 
-message RPCResponse {
-    bytes unknown = 1;
-    MessageData data = 2;
-}
-
 message Device {
     int64 userID = 1;
-    string registrationID = 2;
+    string sourceID = 2;
     string network = 3;
 }
 
-message Date {
-    int64 year = 3;
-    int64 seq1 = 4;
-    int64 seq2 = 5;
-    int64 seq3 = 7;
-    int64 seq4 = 9;
+enum BugleRoute {
+    UNKNOWN_BUGLE_ROUTE = 0;
+    DataEvent = 19;
+    PairEvent = 14;
+}
+/*
+enum EventType {
+    UNKNOWN_EVENT_TYPE = 0;
+    ONE = 1;
+    TWO = 2;
+    THREE = 3;
+    FOUR = 4;
+    FIVE = 5;
+    SIXTEEN = 16;
+}
+*/
+
+message ConfigVersion {
+    int32 V1 = 3;
+    int32 V2 = 4;
+    int32 V3 = 5;
+    int32 V4 = 7;
+    int32 V5 = 9;
+}
+
+enum ActionType {
+    UNKNOWN_ACTION_TYPE = 0;
+    LIST_CONVERSATIONS = 1;
+    LIST_MESSAGES = 2;
+    SEND_MESSAGE = 3;
+    LIST_CONVERSATIONS_SYNC = 1111;
+    GET_UPDATES = 16;
+    GET_CONVERSATION_TYPE = 21;
+    NOTIFY_DITTO_ACTIVITY = 22;
+    DELETE_MESSAGE = 23;
+    RESEND_MESSAGE = 25;
+    IS_BUGLE_DEFAULT = 31;
+    SEND_REACTION = 38;
+}
+
+enum MessageType {
+    UNKNOWN_MESSAGE_TYPE = 0;
+    BUGLE_MESSAGE = 2;
+    BUGLE_ANNOTATION = 16;
 }

@@ -3,16 +3,28 @@ package events
 import (
 	"net/http"
 
-	"go.mau.fi/mautrix-gmessages/libgm/util"
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 type ClientReady struct {
-	Session *util.SessionResponse
+	SessionId     string
+	Conversations []*binary.Conversation
 }
 
-func NewClientReady(session *util.SessionResponse) *ClientReady {
+func NewClientReady(sessionId string, conversationList *binary.Conversations) *ClientReady {
 	return &ClientReady{
-		Session: session,
+		SessionId:     sessionId,
+		Conversations: conversationList.Conversations,
+	}
+}
+
+type AuthTokenRefreshed struct {
+	Token []byte
+}
+
+func NewAuthTokenRefreshed(token []byte) *AuthTokenRefreshed {
+	return &AuthTokenRefreshed{
+		Token: token,
 	}
 }
 

@@ -2,23 +2,33 @@ package libgm
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
+	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/payload"
+	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-type DevicePair struct {
-	Mobile  *binary.Device
-	Browser *binary.Device
+type AuthData struct {
+	TachyonAuthToken []byte             `json:"tachyon_token,omitempty"`
+	TTL              int64              `json:"ttl,omitempty"`
+	AuthenticatedAt  *time.Time         `json:"authenticated_at,omitempty"`
+	DevicePair       *pblite.DevicePair `json:"device_pair,omitempty"`
+	Cryptor          *crypto.Cryptor    `json:"crypto,omitempty"`
+	WebEncryptionKey []byte             `json:"web_encryption_key,omitempty"`
+	JWK              *crypto.JWK        `json:"jwk,omitempty"`
 }
 type Proxy func(*http.Request) (*url.URL, error)
 type EventHandler func(evt interface{})
@@ -26,67 +36,47 @@ type Client struct {
 	Logger         zerolog.Logger
 	Conversations  *Conversations
 	Session        *Session
+	Messages       *Messages
 	rpc            *RPC
-	devicePair     *DevicePair
 	pairer         *Pairer
-	cryptor        *crypto.Cryptor
-	imageCryptor   *crypto.ImageCryptor
 	evHandler      EventHandler
 	sessionHandler *SessionHandler
-	instructions   *Instructions
 
-	rpcKey []byte
-	ttl    int64
+	imageCryptor *crypto.ImageCryptor
+	authData     *AuthData
 
 	proxy Proxy
 	http  *http.Client
 }
 
-func NewClient(devicePair *DevicePair, cryptor *crypto.Cryptor, logger zerolog.Logger, proxy *string) *Client {
+func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
-		requests:        make(map[string]map[int64]*ResponseChan),
+		requests:        make(map[string]map[binary.ActionType]*ResponseChan),
 		responseTimeout: time.Duration(5000) * time.Millisecond,
 	}
-	if cryptor == nil {
-		cryptor = crypto.NewCryptor(nil, nil)
+	if authData == nil {
+		authData = &AuthData{}
 	}
-	jar, _ := cookiejar.New(nil)
+	if authData.Cryptor == nil {
+		authData.Cryptor = crypto.NewCryptor(nil, nil)
+	}
 	cli := &Client{
+		authData:       authData,
 		Logger:         logger,
-		devicePair:     devicePair,
-		sessionHandler: sessionHandler,
-		cryptor:        cryptor,
 		imageCryptor:   &crypto.ImageCryptor{},
-		http: &http.Client{
-			Jar: jar,
-		},
+		sessionHandler: sessionHandler,
+		http:           &http.Client{},
 	}
 	sessionHandler.client = cli
-	cli.instructions = NewInstructions(cli.cryptor)
-	if proxy != nil {
-		cli.SetProxy(*proxy)
-	}
 	rpc := &RPC{client: cli, http: &http.Client{Transport: &http.Transport{Proxy: cli.proxy}}}
 	cli.rpc = rpc
-	cli.Logger.Debug().Any("data", cryptor).Msg("Cryptor")
+	cli.Logger.Debug().Any("data", cli.authData.Cryptor).Msg("Cryptor")
 	cli.setApiMethods()
+	cli.FetchConfigVersion()
 	return cli
 }
 
-var baseURL, _ = url.Parse("https://messages.google.com/")
-
-func (c *Client) GetCookies() []*http.Cookie {
-	return c.http.Jar.Cookies(baseURL)
-}
-
-func (c *Client) SetCookies(cookies []*http.Cookie) {
-	c.http.Jar.SetCookies(baseURL, cookies)
-}
-
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
-	if eventHandler == nil {
-		eventHandler = func(_ interface{}) {}
-	}
 	c.evHandler = eventHandler
 }
 
@@ -104,41 +94,65 @@ func (c *Client) SetProxy(proxy string) error {
 	return nil
 }
 
-func (c *Client) Connect(rpcKey []byte) error {
-	rpcPayload, receiveMesageSessionID, err := payload.ReceiveMessages(rpcKey)
-	if err != nil {
-		panic(err)
-		return err
-	}
-	c.rpc.rpcSessionID = receiveMesageSessionID
-	c.rpcKey = rpcKey
-	go c.rpc.ListenReceiveMessages(rpcPayload)
-	c.Logger.Debug().Any("rpcKey", rpcKey).Msg("Successfully connected to server")
-	if c.devicePair != nil {
-		sendInitialDataErr := c.rpc.sendInitialData()
-		if sendInitialDataErr != nil {
-			panic(sendInitialDataErr)
-		}
-	}
-	return nil
-}
+func (c *Client) Connect() error {
+	if c.authData.TachyonAuthToken != nil {
 
-func (c *Client) Reconnect(rpcKey []byte) error {
-	c.rpc.CloseConnection()
-	for c.rpc.conn != nil {
-		time.Sleep(time.Millisecond * 100)
+		hasExpired, authenticatedAtSeconds := c.hasTachyonTokenExpired()
+		if hasExpired {
+			c.Logger.Error().Any("expired", hasExpired).Any("secondsSince", authenticatedAtSeconds).Msg("TachyonToken has expired! attempting to refresh")
+			refreshErr := c.refreshAuthToken()
+			if refreshErr != nil {
+				log.Fatal(refreshErr)
+			}
+		}
+		c.Logger.Info().Any("secondsSince", authenticatedAtSeconds).Any("token", c.authData.TachyonAuthToken).Msg("TachyonToken has not expired, attempting to connect...")
+
+		webEncryptionKeyResponse, webEncryptionKeyErr := c.GetWebEncryptionKey()
+		if webEncryptionKeyErr != nil {
+			c.Logger.Err(webEncryptionKeyErr).Any("response", webEncryptionKeyResponse).Msg("GetWebEncryptionKey request failed")
+			return webEncryptionKeyErr
+		}
+		c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
+		rpcPayload, receiveMessageSessionId, err := payload.ReceiveMessages(c.authData.TachyonAuthToken)
+		if err != nil {
+			log.Fatal(err)
+			return err
+		}
+		c.rpc.rpcSessionId = receiveMessageSessionId
+		go c.rpc.ListenReceiveMessages(rpcPayload)
+		c.sessionHandler.startAckInterval()
+
+		bugleRes, bugleErr := c.Session.IsBugleDefault()
+		if bugleErr != nil {
+			log.Fatal(bugleErr)
+		}
+		c.Logger.Info().Any("isBugle", bugleRes.Success).Msg("IsBugleDefault")
+		sessionErr := c.Session.SetActiveSession()
+		if sessionErr != nil {
+			log.Fatal(sessionErr)
+		}
+		//c.Logger.Debug().Any("tachyonAuthToken", c.authData.TachyonAuthToken).Msg("Successfully connected to server")
+		return nil
+	} else {
+		pairer, err := c.NewPairer(nil, 20)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.pairer = pairer
+		registered, err2 := c.pairer.RegisterPhoneRelay()
+		if err2 != nil {
+			return err2
+		}
+		c.authData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
+		rpcPayload, receiveMessageSessionId, err := payload.ReceiveMessages(c.authData.TachyonAuthToken)
+		if err != nil {
+			log.Fatal(err)
+			return err
+		}
+		c.rpc.rpcSessionId = receiveMessageSessionId
+		go c.rpc.ListenReceiveMessages(rpcPayload)
+		return nil
 	}
-	err := c.Connect(rpcKey)
-	if err != nil {
-		c.Logger.Err(err).Any("rpcKey", rpcKey).Msg("Failed to reconnect")
-		return err
-	}
-	c.Logger.Debug().Any("rpcKey", rpcKey).Msg("Successfully reconnected to server")
-	sendInitialDataErr := c.rpc.sendInitialData()
-	if sendInitialDataErr != nil {
-		panic(sendInitialDataErr)
-	}
-	return nil
 }
 
 func (c *Client) Disconnect() {
@@ -151,7 +165,34 @@ func (c *Client) IsConnected() bool {
 }
 
 func (c *Client) IsLoggedIn() bool {
-	return c.devicePair != nil
+	return c.authData != nil && c.authData.DevicePair != nil
+}
+
+func (c *Client) hasTachyonTokenExpired() (bool, string) {
+	if c.authData.TachyonAuthToken == nil || c.authData.AuthenticatedAt == nil {
+		return true, ""
+	} else {
+		duration := time.Since(*c.authData.AuthenticatedAt)
+		seconds := fmt.Sprintf("%.3f", duration.Seconds())
+		if duration.Microseconds() > 86400000000 {
+			return true, seconds
+		}
+		return false, seconds
+	}
+}
+
+func (c *Client) Reconnect() error {
+	c.rpc.CloseConnection()
+	for c.rpc.conn != nil {
+		time.Sleep(time.Millisecond * 100)
+	}
+	err := c.Connect()
+	if err != nil {
+		c.Logger.Err(err).Any("tachyonAuthToken", c.authData.TachyonAuthToken).Msg("Failed to reconnect")
+		return err
+	}
+	c.Logger.Debug().Any("tachyonAuthToken", c.authData.TachyonAuthToken).Msg("Successfully reconnected to server")
+	return nil
 }
 
 func (c *Client) triggerEvent(evt interface{}) {
@@ -161,63 +202,39 @@ func (c *Client) triggerEvent(evt interface{}) {
 }
 
 func (c *Client) setApiMethods() {
-	c.Conversations = &Conversations{
-		client: c,
-		openConversation: openConversation{
-			client: c,
-		},
-		fetchConversationMessages: fetchConversationMessages{
-			client: c,
-		},
-	}
-	c.Session = &Session{
-		client: c,
-		prepareNewSession: prepareNewSession{
-			client: c,
-		},
-		newSession: newSession{
-			client: c,
-		},
-	}
+	c.Conversations = &Conversations{client: c}
+	c.Session = &Session{client: c}
+	c.Messages = &Messages{client: c}
 }
 
-func (c *Client) decryptImages(messages *binary.FetchMessagesResponse) error {
+func (c *Client) decryptMedias(messages *binary.FetchMessagesResponse) error {
 	for _, msg := range messages.Messages {
-		switch msg.GetType() {
-		case *binary.MessageType_IMAGE.Enum():
-			for _, details := range msg.GetMessageInfo() {
-				switch data := details.GetData().(type) {
-				case *binary.MessageInfo_ImageContent:
-					decryptedImageData, err := c.decryptImageData(data.ImageContent.ImageID, data.ImageContent.DecryptionKey)
-					if err != nil {
-						panic(err)
-						return err
-					}
-					data.ImageContent.ImageData = decryptedImageData
+		for _, details := range msg.GetMessageInfo() {
+			switch data := details.GetData().(type) {
+			case *binary.MessageInfo_MediaContent:
+				decryptedMediaData, err := c.decryptMediaData(data.MediaContent.MediaID, data.MediaContent.DecryptionKey)
+				if err != nil {
+					log.Fatal(err)
+					return err
 				}
+				data.MediaContent.MediaData = decryptedMediaData
 			}
 		}
 	}
 	return nil
 }
 
-func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
+func (c *Client) decryptMediaData(mediaId string, key []byte) ([]byte, error) {
 	reqId := util.RandomUUIDv4()
 	download_metadata := &binary.UploadImagePayload{
 		MetaData: &binary.ImageMetaData{
-			ImageID:   imageId,
+			ImageID:   mediaId,
 			Encrypted: true,
 		},
 		AuthData: &binary.AuthMessage{
-			RequestID: reqId,
-			RpcKey:    c.rpcKey,
-			Date: &binary.Date{
-				Year: 2023,
-				Seq1: 6,
-				Seq2: 22,
-				Seq3: 4,
-				Seq4: 6,
-			},
+			RequestID:        reqId,
+			TachyonAuthToken: c.authData.TachyonAuthToken,
+			ConfigVersion:    payload.ConfigMessage,
 		},
 	}
 	download_metadata_bytes, err2 := binary.EncodeProtoMessage(download_metadata)
@@ -244,8 +261,154 @@ func (c *Client) decryptImageData(imageId string, key []byte) ([]byte, error) {
 	c.imageCryptor.UpdateDecryptionKey(key)
 	decryptedImageBytes, decryptionErr := c.imageCryptor.DecryptData(encryptedBuffImg)
 	if decryptionErr != nil {
-		c.Logger.Err(err).Msg("Image decryption failed")
+		log.Println("Error:", decryptionErr)
 		return nil, decryptionErr
 	}
 	return decryptedImageBytes, nil
+}
+
+func (c *Client) FetchConfigVersion() {
+	req, bErr := http.NewRequest("GET", util.CONFIG_URL, nil)
+	if bErr != nil {
+		log.Fatal(bErr)
+	}
+
+	configRes, requestErr := c.http.Do(req)
+	if requestErr != nil {
+		log.Fatal(requestErr)
+	}
+
+	responseBody, readErr := io.ReadAll(configRes.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	version, parseErr := util.ParseConfigVersion(responseBody)
+	if parseErr != nil {
+		log.Fatal(parseErr)
+	}
+
+	currVersion := payload.ConfigMessage
+	if version.V1 != currVersion.V1 || version.V2 != currVersion.V2 || version.V3 != currVersion.V3 {
+		toLog := c.diffVersionFormat(currVersion, version)
+		c.Logger.Info().Any("version", toLog).Msg("There's a new version available!")
+	} else {
+		c.Logger.Info().Any("version", currVersion).Msg("You are running on the latest version.")
+	}
+}
+
+func (c *Client) diffVersionFormat(curr *binary.ConfigVersion, latest *binary.ConfigVersion) string {
+	return fmt.Sprintf("%d.%d.%d -> %d.%d.%d", curr.V1, curr.V2, curr.V3, latest.V1, latest.V2, latest.V3)
+}
+
+func (c *Client) updateWebEncryptionKey(key []byte) {
+	c.Logger.Debug().Any("key", key).Msg("Updated WebEncryptionKey")
+	c.authData.WebEncryptionKey = key
+}
+
+func (c *Client) updateJWK(jwk *crypto.JWK) {
+	c.Logger.Debug().Any("jwk", jwk).Msg("Updated JWK")
+	c.authData.JWK = jwk
+}
+
+func (c *Client) updateTachyonAuthToken(t []byte) {
+	authenticatedAt := util.TimestampNow()
+	c.authData.TachyonAuthToken = t
+	c.authData.AuthenticatedAt = &authenticatedAt
+	c.Logger.Debug().Any("authenticatedAt", authenticatedAt).Any("tachyonAuthToken", t).Msg("Updated TachyonAuthToken")
+}
+
+func (c *Client) updateTTL(ttl int64) {
+	c.authData.TTL = ttl
+	c.Logger.Debug().Any("ttl", ttl).Msg("Updated TTL")
+}
+
+func (c *Client) updateDevicePair(devicePair *pblite.DevicePair) {
+	c.authData.DevicePair = devicePair
+	c.Logger.Debug().Any("devicePair", devicePair).Msg("Updated DevicePair")
+}
+
+func (c *Client) SaveAuthSession(path string) error {
+	toSaveJson, jsonErr := json.Marshal(c.authData)
+	if jsonErr != nil {
+		return jsonErr
+	}
+	writeErr := os.WriteFile(path, toSaveJson, os.ModePerm)
+	return writeErr
+}
+
+func LoadAuthSession(path string) (*AuthData, error) {
+	jsonData, readErr := os.ReadFile(path)
+	if readErr != nil {
+		return nil, readErr
+	}
+
+	sessionData := &AuthData{}
+	marshalErr := json.Unmarshal(jsonData, sessionData)
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+
+	return sessionData, nil
+}
+
+func (c *Client) refreshAuthToken() error {
+
+	jwk := c.authData.JWK
+	requestId := util.RandomUUIDv4()
+	timestamp := time.Now().UnixMilli() * 1000
+
+	sig, sigErr := jwk.SignRequest(requestId, int64(timestamp))
+	if sigErr != nil {
+		return sigErr
+	}
+
+	payloadMessage, messageErr := payload.RegisterRefresh(sig, requestId, int64(timestamp), c.authData.DevicePair.Browser, c.authData.TachyonAuthToken)
+	if messageErr != nil {
+		return messageErr
+	}
+
+	c.Logger.Info().Any("payload", string(payloadMessage)).Msg("Attempting to refresh auth token")
+
+	refreshResponse, requestErr := c.rpc.sendMessageRequest(util.REGISTER_REFRESH, payloadMessage)
+	if requestErr != nil {
+		return requestErr
+	}
+
+	if refreshResponse.StatusCode == 401 {
+		return fmt.Errorf("failed to refresh auth token: unauthorized (try reauthenticating through qr code)")
+	}
+
+	if refreshResponse.StatusCode == 400 {
+		return fmt.Errorf("failed to refresh auth token: signature failed")
+	}
+	responseBody, readErr := io.ReadAll(refreshResponse.Body)
+	if readErr != nil {
+		return readErr
+	}
+
+	var deserialized []interface{}
+
+	marshalErr := json.Unmarshal(responseBody, &deserialized)
+	if marshalErr != nil {
+		return marshalErr
+	}
+
+	resp := &binary.RegisterRefreshResponse{}
+
+	deserializeErr := pblite.Deserialize(deserialized, resp.ProtoReflect())
+	if deserializeErr != nil {
+		return deserializeErr
+	}
+
+	token := resp.GetTokenData().GetTachyonAuthToken()
+	if token == nil {
+		return fmt.Errorf("failed to refresh auth token: something happened")
+	}
+
+	c.Logger.Error().Any("expiry", resp.GetTokenData().GetValidFor()).Msg("TACHYON TOKEN VALID FOR")
+
+	c.updateTachyonAuthToken(token)
+	c.triggerEvent(events.NewAuthTokenRefreshed(token))
+	return nil
 }

@@ -1,65 +1,62 @@
 package libgm
 
-import "go.mau.fi/mautrix-gmessages/libgm/util"
+import (
+	"fmt"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
+)
 
 type Session struct {
 	client *Client
-
-	prepareNewSession prepareNewSession
-	newSession        newSession
 }
 
-func (s *Session) SetActiveSession() (*util.SessionResponse, error) {
-	s.client.sessionHandler.ResetSessionID()
+// start receiving updates from mobile on this session
+func (s *Session) SetActiveSession() error {
+	s.client.sessionHandler.ResetSessionId()
 
-	prepareResponses, prepareSessionErr := s.prepareNewSession.Execute()
-	if prepareSessionErr != nil {
-		return nil, prepareSessionErr
+	actionType := binary.ActionType_GET_UPDATES
+	_, sendErr := s.client.sessionHandler.completeSendMessage(actionType, false, nil)
+	if sendErr != nil {
+		return sendErr
 	}
-
-	newSessionResponses, newSessionErr := s.newSession.Execute()
-	if newSessionErr != nil {
-		return nil, newSessionErr
-	}
-
-	sessionResponse, processFail := s.client.processSessionResponse(prepareResponses, newSessionResponses)
-	if processFail != nil {
-		return nil, processFail
-	}
-
-	return sessionResponse, nil
+	return nil
 }
 
-type prepareNewSession struct {
-	client *Client
-}
+func (s *Session) IsBugleDefault() (*binary.IsBugleDefaultResponse, error) {
+	s.client.sessionHandler.ResetSessionId()
 
-func (p *prepareNewSession) Execute() ([]*Response, error) {
-	instruction, _ := p.client.instructions.GetInstruction(PREPARE_NEW_SESSION_OPCODE)
-	sentRequestID, _ := p.client.createAndSendRequest(instruction.Opcode, p.client.ttl, false, nil)
+	actionType := binary.ActionType_IS_BUGLE_DEFAULT
+	sentRequestId, sendErr := s.client.sessionHandler.completeSendMessage(actionType, true, nil)
+	if sendErr != nil {
+		return nil, sendErr
+	}
 
-	responses, err := p.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
+	response, err := s.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
 
-	return responses, nil
-}
-
-type newSession struct {
-	client *Client
-}
-
-func (n *newSession) Execute() ([]*Response, error) {
-	instruction, _ := n.client.instructions.GetInstruction(NEW_SESSION_OPCODE)
-	sentRequestID, _ := n.client.createAndSendRequest(instruction.Opcode, 0, true, nil)
-
-	responses, err := n.client.sessionHandler.WaitForResponse(sentRequestID, instruction.Opcode)
-	if err != nil {
-		return nil, err
+	res, ok := response.Data.Decrypted.(*binary.IsBugleDefaultResponse)
+	if !ok {
+		return nil, fmt.Errorf("failed to assert response into IsBugleDefaultResponse")
 	}
 
-	// Rest of the processing...
+	return res, nil
+}
 
-	return responses, nil
+func (s *Session) NotifyDittoActivity() error {
+	payload := &binary.NotifyDittoActivityPayload{Success: true}
+	actionType := binary.ActionType_NOTIFY_DITTO_ACTIVITY
+
+	sentRequestId, sendErr := s.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	if sendErr != nil {
+		return sendErr
+	}
+
+	_, err := s.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
