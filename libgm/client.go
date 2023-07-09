@@ -212,7 +212,7 @@ func (c *Client) decryptMedias(messages *binary.FetchMessagesResponse) error {
 		for _, details := range msg.GetMessageInfo() {
 			switch data := details.GetData().(type) {
 			case *binary.MessageInfo_MediaContent:
-				decryptedMediaData, err := c.decryptMediaData(data.MediaContent.MediaID, data.MediaContent.DecryptionKey)
+				decryptedMediaData, err := c.DownloadMedia(data.MediaContent.MediaID, data.MediaContent.DecryptionKey)
 				if err != nil {
 					log.Fatal(err)
 					return err
@@ -224,11 +224,11 @@ func (c *Client) decryptMedias(messages *binary.FetchMessagesResponse) error {
 	return nil
 }
 
-func (c *Client) decryptMediaData(mediaId string, key []byte) ([]byte, error) {
+func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	reqId := util.RandomUUIDv4()
 	download_metadata := &binary.UploadImagePayload{
 		MetaData: &binary.ImageMetaData{
-			ImageID:   mediaId,
+			ImageID:   mediaID,
 			Encrypted: true,
 		},
 		AuthData: &binary.AuthMessage{

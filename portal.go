@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	log "maunium.net/go/maulogger/v2"
 
@@ -312,6 +313,16 @@ func (portal *Portal) isOutgoingMessage(evt *binary.Message) id.EventID {
 	return ""
 }
 
+func hasInProgressMedia(msg *binary.Message) bool {
+	for _, part := range msg.MessageInfo {
+		media, ok := part.GetData().(*binary.MessageInfo_MediaContent)
+		if ok && media.MediaContent.GetMediaID() == "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	if len(portal.MXID) == 0 {
 		portal.zlog.Warn().Msg("handleMessage called even though portal.MXID is empty")
@@ -322,6 +333,15 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		Str("participant_id", evt.ParticipantID).
 		Str("action", "handleMessage").
 		Logger()
+	switch evt.GetMessageStatus().GetStatus() {
+	case binary.MessageStatusType_INCOMING_AUTO_DOWNLOADING, binary.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
+		log.Debug().Msg("Not handling incoming message that is auto downloading")
+		return
+	}
+	if hasInProgressMedia(evt) {
+		log.Debug().Msg("Not handling incoming message that doesn't have full media yet")
+		return
+	}
 	if evtID := portal.isOutgoingMessage(evt); evtID != "" {
 		log.Debug().Str("event_id", evtID.String()).Msg("Got echo for outgoing message")
 		return
@@ -366,9 +386,15 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 				Body:    data.MessageContent.GetContent(),
 			}
 		case *binary.MessageInfo_MediaContent:
-			content = event.MessageEventContent{
-				MsgType: event.MsgNotice,
-				Body:    fmt.Sprintf("Attachment %s", data.MediaContent.GetMediaName()),
+			contentPtr, err := portal.convertGoogleMedia(source, intent, data.MediaContent)
+			if err != nil {
+				log.Err(err).Msg("Failed to copy attachment")
+				content = event.MessageEventContent{
+					MsgType: event.MsgNotice,
+					Body:    fmt.Sprintf("Failed to transfer attachment %s", data.MediaContent.GetMediaName()),
+				}
+			} else {
+				content = *contentPtr
 			}
 		}
 		resp, err := portal.sendMessage(intent, event.EventMessage, &content, nil, ts)
@@ -382,6 +408,76 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	portal.markHandled(evt, eventIDs, true)
 	portal.sendDeliveryReceipt(lastEventID)
 	log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
+}
+
+var mediaFormatToMime = map[binary.MediaFormats]string{
+	binary.MediaFormats_UNSPECIFIED_TYPE: "",
+
+	binary.MediaFormats_IMAGE_JPEG:        "image/jpeg",
+	binary.MediaFormats_IMAGE_JPG:         "image/jpeg",
+	binary.MediaFormats_IMAGE_PNG:         "image/png",
+	binary.MediaFormats_IMAGE_GIF:         "image/gif",
+	binary.MediaFormats_IMAGE_WBMP:        "image/vnd.wap.vbmp",
+	binary.MediaFormats_IMAGE_X_MS_BMP:    "image/bmp",
+	binary.MediaFormats_IMAGE_UNSPECIFIED: "",
+
+	binary.MediaFormats_VIDEO_MP4:         "video/mp4",
+	binary.MediaFormats_VIDEO_3G2:         "video/3gpp2",
+	binary.MediaFormats_VIDEO_3GPP:        "video/3gpp",
+	binary.MediaFormats_VIDEO_WEBM:        "video/webm",
+	binary.MediaFormats_VIDEO_MKV:         "video/x-matroska",
+	binary.MediaFormats_VIDEO_UNSPECIFIED: "",
+
+	binary.MediaFormats_AUDIO_AAC:         "audio/aac",
+	binary.MediaFormats_AUDIO_AMR:         "audio/amr",
+	binary.MediaFormats_AUDIO_MP3:         "audio/mp3",
+	binary.MediaFormats_AUDIO_MPEG:        "audio/mpeg",
+	binary.MediaFormats_AUDIO_MPG:         "audio/mpeg",
+	binary.MediaFormats_AUDIO_MP4:         "audio/mp4",
+	binary.MediaFormats_AUDIO_MP4_LATM:    "audio/mp4a-latm",
+	binary.MediaFormats_AUDIO_3GPP:        "audio/3gpp",
+	binary.MediaFormats_AUDIO_OGG:         "audio/ogg",
+	binary.MediaFormats_AUDIO_OGG2:        "audio/ogg",
+	binary.MediaFormats_AUDIO_UNSPECIFIED: "",
+
+	binary.MediaFormats_TEXT_VCARD: "text/vcard",
+	binary.MediaFormats_APP_PDF:    "application/pdf",
+	binary.MediaFormats_APP_TXT:    "text/plain",
+	binary.MediaFormats_APP_HTML:   "text/html",
+	binary.MediaFormats_APP_SMIL:   "application/smil",
+}
+
+func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.IntentAPI, msg *binary.MediaContent) (*event.MessageEventContent, error) {
+	var data []byte
+	var err error
+	data, err = source.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
+	if err != nil {
+		return nil, err
+	}
+	mime := mediaFormatToMime[msg.GetFormat()]
+	if mime == "" {
+		mime = mimetype.Detect(data).String()
+	}
+	msgtype := event.MsgFile
+	switch strings.Split(mime, "/")[0] {
+	case "image":
+		msgtype = event.MsgImage
+	case "video":
+		msgtype = event.MsgVideo
+		// TODO convert weird formats to mp4
+	case "audio":
+		msgtype = event.MsgAudio
+		// TODO convert everything to ogg and include voice message metadata
+	}
+	content := &event.MessageEventContent{
+		MsgType: msgtype,
+		Body:    msg.MediaName,
+		Info: &event.FileInfo{
+			MimeType: mime,
+			Size:     len(data),
+		},
+	}
+	return content, portal.uploadMedia(intent, data, content)
 }
 
 func (portal *Portal) isRecentlyHandled(id string) bool {

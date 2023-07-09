@@ -10,7 +10,7 @@
 * Google Messages → Matrix
   * [ ] Message content
     * [x] Plain text
-    * [ ] Media/files
+    * [x] Media/files
     * [ ] Replies (RCS)
   * [ ] Reactions
   * [ ] Typing notifications
