@@ -30,7 +30,6 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"maunium.net/go/maulogger/v2"
-
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
@@ -190,7 +189,7 @@ func (br *GMBridge) newBlankPortal(key database.Key) *Portal {
 		messages:       make(chan PortalMessage, br.Config.Bridge.PortalMessageBuffer),
 		matrixMessages: make(chan PortalMatrixMessage, br.Config.Bridge.PortalMessageBuffer),
 
-		outgoingMessages: make(map[string]id.EventID),
+		outgoingMessages: make(map[string]*outgoingMessage),
 	}
 	go portal.handleMessageLoop()
 	return portal
@@ -215,6 +214,12 @@ type PortalMatrixMessage struct {
 	receivedAt time.Time
 }
 
+type outgoingMessage struct {
+	*event.Event
+	Saved        bool
+	Checkpointed bool
+}
+
 type Portal struct {
 	*database.Portal
 
@@ -234,7 +239,7 @@ type Portal struct {
 	recentlyHandledLock  sync.Mutex
 	recentlyHandledIndex uint8
 
-	outgoingMessages     map[string]id.EventID
+	outgoingMessages     map[string]*outgoingMessage
 	outgoingMessagesLock sync.Mutex
 
 	currentlyTyping     []id.UserID
@@ -301,18 +306,36 @@ func (portal *Portal) handleMessageLoop() {
 	}
 }
 
-func (portal *Portal) isOutgoingMessage(evt *binary.Message) id.EventID {
+func (portal *Portal) isOutgoingMessage(msg *binary.Message) id.EventID {
 	portal.outgoingMessagesLock.Lock()
 	defer portal.outgoingMessagesLock.Unlock()
-	evtID, ok := portal.outgoingMessages[evt.TmpID]
+	out, ok := portal.outgoingMessages[msg.TmpID]
 	if ok {
-		delete(portal.outgoingMessages, evt.TmpID)
-		portal.markHandled(evt, map[string]id.EventID{"": evtID}, true)
-		return evtID
+		if !out.Saved {
+			portal.markHandled(msg, map[string]id.EventID{"": out.ID}, true)
+			out.Saved = true
+		}
+		switch msg.GetMessageStatus().GetStatus() {
+		case binary.MessageStatusType_OUTGOING_DELIVERED, binary.MessageStatusType_OUTGOING_COMPLETE, binary.MessageStatusType_OUTGOING_DISPLAYED:
+			delete(portal.outgoingMessages, msg.TmpID)
+			portal.sendStatusEvent(out.ID, "", nil)
+		case binary.MessageStatusType_OUTGOING_FAILED_GENERIC,
+			binary.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER,
+			binary.MessageStatusType_OUTGOING_CANCELED,
+			binary.MessageStatusType_OUTGOING_FAILED_TOO_LARGE,
+			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS,
+			binary.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK,
+			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
+			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION,
+			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
+			err := OutgoingStatusError(msg.GetMessageStatus().GetStatus())
+			portal.sendStatusEvent(out.ID, "", err)
+			// TODO error notice
+		}
+		return out.ID
 	}
 	return ""
 }
-
 func hasInProgressMedia(msg *binary.Message) bool {
 	for _, part := range msg.MessageInfo {
 		media, ok := part.GetData().(*binary.MessageInfo_MediaContent)
@@ -1022,7 +1045,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 
 	txnID := util.GenerateTmpId()
 	portal.outgoingMessagesLock.Lock()
-	portal.outgoingMessages[txnID] = evt.ID
+	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
 	portal.outgoingMessagesLock.Unlock()
 	switch content.MsgType {
 	case event.MsgText, event.MsgEmote, event.MsgNotice:

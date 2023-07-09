@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,74 +30,51 @@ import (
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 var (
-	errUserNotConnected            = errors.New("you are not connected to WhatsApp")
-	errDifferentUser               = errors.New("user is not the recipient of this private chat portal")
-	errUserNotLoggedIn             = errors.New("user is not logged in and chat has no relay bot")
 	errMNoticeDisabled             = errors.New("bridging m.notice messages is disabled")
 	errUnexpectedParsedContentType = errors.New("unexpected parsed content type")
-	errInvalidGeoURI               = errors.New("invalid `geo:` URI in message")
 	errUnknownMsgType              = errors.New("unknown msgtype")
 	errMediaUnsupportedType        = errors.New("unsupported media type")
-	errTargetNotFound              = errors.New("target event not found")
-	errReactionDatabaseNotFound    = errors.New("reaction database entry not found")
-	errReactionTargetNotFound      = errors.New("reaction target message not found")
-	errTargetIsFake                = errors.New("target is a fake event")
-	errReactionSentBySomeoneElse   = errors.New("target reaction was sent by someone else")
-	errDMSentByOtherUser           = errors.New("target message was sent by the other user in a DM")
-	errPollMissingQuestion         = errors.New("poll message is missing question")
-	errPollDuplicateOption         = errors.New("poll options must be unique")
 
-	errEditUnknownTarget     = errors.New("unknown edit target message")
-	errEditUnknownTargetType = errors.New("unsupported edited message type")
-	errEditDifferentSender   = errors.New("can't edit message sent by another user")
-	errEditTooOld            = errors.New("message is too old to be edited")
-
-	errBroadcastReactionNotSupported = errors.New("reacting to status messages is not currently supported")
-	errBroadcastSendDisabled         = errors.New("sending status messages is disabled")
-
-	errMessageTakingLong     = errors.New("bridging the message is taking longer than usual")
-	errTimeoutBeforeHandling = errors.New("message timed out before handling was started")
+	errMessageTakingLong = errors.New("bridging the message is taking longer than usual")
 )
 
+type OutgoingStatusError binary.MessageStatusType
+
+func (ose OutgoingStatusError) Error() string {
+	return strings.TrimPrefix(string((binary.MessageStatusType)(ose).Descriptor().Name()), "OUTGOING_")
+}
+
+func (ose OutgoingStatusError) HumanError() string {
+	return ""
+}
+
+func (ose OutgoingStatusError) Is(other error) bool {
+	otherOSE, ok := other.(OutgoingStatusError)
+	if !ok {
+		return false
+	}
+	return int(ose) == int(otherOSE)
+}
+
 func errorToStatusReason(err error) (reason event.MessageStatusReason, status event.MessageStatus, isCertain, sendNotice bool, humanMessage string) {
+	var ose OutgoingStatusError
 	switch {
 	case errors.Is(err, errUnexpectedParsedContentType),
-		errors.Is(err, errUnknownMsgType),
-		errors.Is(err, errInvalidGeoURI),
-		errors.Is(err, errBroadcastReactionNotSupported),
-		errors.Is(err, errBroadcastSendDisabled):
+		errors.Is(err, errUnknownMsgType):
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, true, ""
 	case errors.Is(err, errMNoticeDisabled):
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, false, ""
-	case errors.Is(err, errMediaUnsupportedType),
-		errors.Is(err, errPollMissingQuestion),
-		errors.Is(err, errPollDuplicateOption),
-		errors.Is(err, errEditDifferentSender),
-		errors.Is(err, errEditTooOld),
-		errors.Is(err, errEditUnknownTarget),
-		errors.Is(err, errEditUnknownTargetType):
+	case errors.Is(err, errMediaUnsupportedType):
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, true, err.Error()
-	case errors.Is(err, errTimeoutBeforeHandling):
-		return event.MessageStatusTooOld, event.MessageStatusRetriable, true, true, "the message was too old when it reached the bridge, so it was not handled"
 	case errors.Is(err, context.DeadlineExceeded):
 		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "handling the message took too long and was cancelled"
-	case errors.Is(err, errMessageTakingLong):
-		return event.MessageStatusTooOld, event.MessageStatusPending, false, true, err.Error()
-	case errors.Is(err, errTargetNotFound),
-		errors.Is(err, errTargetIsFake),
-		errors.Is(err, errReactionDatabaseNotFound),
-		errors.Is(err, errReactionTargetNotFound),
-		errors.Is(err, errReactionSentBySomeoneElse),
-		errors.Is(err, errDMSentByOtherUser):
-		return event.MessageStatusGenericError, event.MessageStatusFail, true, false, ""
-	case errors.Is(err, errUserNotConnected):
-		return event.MessageStatusGenericError, event.MessageStatusRetriable, true, true, ""
-	case errors.Is(err, errUserNotLoggedIn),
-		errors.Is(err, errDifferentUser):
-		return event.MessageStatusGenericError, event.MessageStatusRetriable, true, false, ""
+	case errors.As(err, &ose):
+		return event.MessageStatusNetworkError, event.MessageStatusFail, true, true, ose.HumanError()
 	default:
 		return event.MessageStatusGenericError, event.MessageStatusRetriable, false, true, ""
 	}
@@ -209,7 +187,6 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 		portal.log.Debugfln("Handled Matrix %s %s", msgType, evtDescription)
 		portal.sendDeliveryReceipt(evt.ID)
 		portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
-		portal.sendStatusEvent(origEvtID, evt.ID, nil)
 		if prevNotice := ms.popNoticeID(); prevNotice != "" {
 			_, _ = portal.MainIntent().RedactEvent(portal.MXID, prevNotice, mautrix.ReqRedact{
 				Reason: "error resolved",
