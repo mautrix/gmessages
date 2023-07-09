@@ -597,7 +597,8 @@ func (portal *Portal) UpdateBridgeInfo() {
 func (portal *Portal) shouldSetDMRoomMetadata() bool {
 	return !portal.IsPrivateChat() ||
 		portal.bridge.Config.Bridge.PrivateChatPortalMeta == "always" ||
-		(portal.IsEncrypted() && portal.bridge.Config.Bridge.PrivateChatPortalMeta != "never")
+		((portal.IsEncrypted() || (portal.MXID == "" && portal.bridge.Config.Bridge.Encryption.Default)) &&
+			portal.bridge.Config.Bridge.PrivateChatPortalMeta != "never")
 }
 
 func (portal *Portal) GetEncryptionEventContent() (evt *event.EncryptionEventContent) {
