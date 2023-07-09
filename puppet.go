@@ -229,7 +229,7 @@ func (puppet *Puppet) UpdateContactInfo() bool {
 
 	contactInfo := map[string]any{
 		"com.beeper.bridge.identifiers": []string{
-			fmt.Sprintf("tel:+%s", puppet.Phone),
+			fmt.Sprintf("tel:%s", puppet.Phone),
 		},
 		"com.beeper.bridge.remote_id": puppet.Key.String(),
 		"com.beeper.bridge.service":   "gmessages",
