@@ -7,10 +7,10 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 )
 
-func RegisterRefresh(sig string, requestId string, timestamp int64, browser *binary.Device, tachyonAuthToken []byte) ([]byte, error) {
+func RegisterRefresh(sig []byte, requestID string, timestamp int64, browser *binary.Device, tachyonAuthToken []byte) ([]byte, error) {
 	payload := &binary.RegisterRefreshPayload{
 		MessageAuth: &binary.AuthMessage{
-			RequestID:        requestId,
+			RequestID:        requestID,
 			TachyonAuthToken: tachyonAuthToken,
 			ConfigVersion:    ConfigMessage,
 		},

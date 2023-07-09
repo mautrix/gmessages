@@ -406,8 +406,6 @@ func (c *Client) refreshAuthToken() error {
 		return fmt.Errorf("failed to refresh auth token: something happened")
 	}
 
-	c.Logger.Error().Any("expiry", resp.GetTokenData().GetValidFor()).Msg("TACHYON TOKEN VALID FOR")
-
 	c.updateTachyonAuthToken(token)
 	c.triggerEvent(events.NewAuthTokenRefreshed(token))
 	return nil
