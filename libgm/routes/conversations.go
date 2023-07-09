@@ -28,3 +28,21 @@ var GET_CONVERSATION_TYPE = Route{
 	UseSessionID:   false,
 	UseTTL:         true,
 }
+
+var GET_PARTICIPANT_THUMBNAIL = Route{
+	Action:         binary.ActionType_GET_PARTICIPANTS_THUMBNAIL,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: &binary.ParticipantThumbnail{},
+	UseSessionID:   false,
+	UseTTL:         true,
+}
+
+var UPDATE_CONVERSATION = Route{
+	Action:         binary.ActionType_UPDATE_CONVERSATION,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: &binary.UpdateConversationResponse{},
+	UseSessionID:   false,
+	UseTTL:         true,
+}

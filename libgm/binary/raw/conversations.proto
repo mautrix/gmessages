@@ -5,6 +5,10 @@ option go_package = "../../binary";
 
 import "reactions.proto";
 
+message GetParticipantThumbnailPayload {
+    string conversationID = 1;
+}
+
 message ResendMessagePayload {
     string messageID = 2;
 }
@@ -160,7 +164,7 @@ message Conversation {
     string conversationID = 1;
     string name = 2;
     LatestMessage latestMessage = 4;
-    int64 timestampMs = 5;
+    int64 lastMessageTimestamp = 5;
 
     bool isGroupChat = 10; // not certain
     string selfParticipantID = 11;
@@ -171,7 +175,7 @@ message Conversation {
     string latestMessageID = 17;
     repeated Participant participants = 20;
     repeated string otherParticipants = 21; // participant ids excluding me
-    int64 type = 22;
+    ConversationType type = 22;
     bool subType = 24;
     bool thirdType = 29;
 }
@@ -211,7 +215,13 @@ message LatestMessageStatus {
 }
 
 message Muted {
-    bool isMuted = 1;
+    int64 isMuted = 1;
+}
+
+enum ConversationType {
+    UNKNOWN_CONVERSATION_TYPE = 0;
+    SMS = 1;
+    RCS = 2;
 }
 
 enum MessageStatusType {

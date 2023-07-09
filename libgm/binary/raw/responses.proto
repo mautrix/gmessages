@@ -7,6 +7,21 @@ import "events.proto";
 import "messages.proto";
 import "conversations.proto";
 
+message ParticipantThumbnail {
+    repeated Thumbnail thumbnail = 1;
+}
+
+message Thumbnail {
+    string participantId = 1;
+    ThumbnailData data = 2;
+}
+
+message ThumbnailData {
+    bytes imageBuffer = 3;
+    int32 someInt = 4;
+    conversations.Pixels pixels = 5;
+}
+
 message RegisterRefreshResponse {
     RefreshAuthData tokenData = 2;
 }
@@ -90,8 +105,4 @@ message CoordinateMessage {
 message AuthKeyData {
     bytes tachyonAuthToken = 1;
     int64 validFor = 2;
-}
-
-enum ConversationType {
-    UNKNOWN_CONVERSATION_TYPE = 0;
 }

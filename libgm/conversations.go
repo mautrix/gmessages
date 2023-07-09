@@ -122,3 +122,53 @@ func (c *Conversations) SendMessage(messageBuilder *MessageBuilder) (*binary.Sen
 	c.client.Logger.Debug().Any("res", res).Msg("sent message!")
 	return res, nil
 }
+
+func (c *Conversations) GetParticipantThumbnail(convID string) (*binary.ParticipantThumbnail, error) {
+	payload := &binary.GetParticipantThumbnailPayload{ConversationID: convID}
+	actionType := binary.ActionType_GET_PARTICIPANTS_THUMBNAIL
+
+	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	if sendErr != nil {
+		return nil, sendErr
+	}
+
+	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	if err != nil {
+		return nil, err
+	}
+
+	res, ok := response.Data.Decrypted.(*binary.ParticipantThumbnail)
+	if !ok {
+		return nil, fmt.Errorf("failed to assert response into ParticipantThumbnail")
+	}
+
+	return res, nil
+}
+
+func (c *Conversations) Update(convBuilder *ConversationBuilder) (*binary.UpdateConversationResponse, error) {
+	data := &binary.UpdateConversationPayload{}
+
+	payload, buildErr := convBuilder.Build(data)
+	if buildErr != nil {
+		panic(buildErr)
+	}
+
+	actionType := binary.ActionType_UPDATE_CONVERSATION
+
+	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	if sendErr != nil {
+		return nil, sendErr
+	}
+
+	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	if err != nil {
+		return nil, err
+	}
+
+	res, ok := response.Data.Decrypted.(*binary.UpdateConversationResponse)
+	if !ok {
+		return nil, fmt.Errorf("failed to assert response into UpdateConversationResponse")
+	}
+
+	return res, nil
+}
