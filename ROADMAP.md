@@ -11,7 +11,7 @@
   * [ ] Message content
     * [x] Plain text
     * [x] Media/files
-    * [ ] Replies (RCS)
+    * [x] Replies (RCS)
   * [ ] Reactions
   * [ ] Typing notifications
   * [ ] Read receipts

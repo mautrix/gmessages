@@ -102,7 +102,7 @@ message Message {
     string tmpID = 12;
     int64 someInt = 16;
     repeated reactions.ReactionResponse reactions = 19;
-
+    ReplyMessage replyMessage = 21;
 }
 
 message ReplyMessage {

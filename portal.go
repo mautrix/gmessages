@@ -333,6 +333,7 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		Str("participant_id", evt.ParticipantID).
 		Str("action", "handleMessage").
 		Logger()
+	ctx := log.WithContext(context.TODO())
 	switch evt.GetMessageStatus().GetStatus() {
 	case binary.MessageStatusType_INCOMING_AUTO_DOWNLOADING, binary.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
 		log.Debug().Msg("Not handling incoming message that is auto downloading")
@@ -349,7 +350,7 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		log.Debug().Msg("Not handling recent duplicate message")
 		return
 	}
-	existingMsg, err := portal.bridge.DB.Message.GetByID(context.TODO(), portal.Key, evt.MessageID)
+	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, evt.MessageID)
 	if err != nil {
 		log.Err(err).Msg("Failed to check if message is duplicate")
 	} else if existingMsg != nil {
@@ -374,6 +375,19 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		intent = puppet.IntentFor(portal)
 	}
 
+	var replyTo id.EventID
+	if evt.GetReplyMessage() != nil {
+		replyToID := evt.GetReplyMessage().GetMessageID()
+		msg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, replyToID)
+		if err != nil {
+			log.Err(err).Str("reply_to_id", replyToID).Msg("Failed to get reply target message")
+		} else if msg == nil {
+			log.Warn().Str("reply_to_id", replyToID).Msg("Reply target message not found")
+		} else {
+			replyTo = msg.MXID
+		}
+	}
+
 	eventIDs := make(map[string]id.EventID)
 	var lastEventID id.EventID
 	ts := time.UnixMicro(evt.Timestamp).UnixMilli()
@@ -396,6 +410,9 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 			} else {
 				content = *contentPtr
 			}
+		}
+		if replyTo != "" {
+			content.RelatesTo = &event.RelatesTo{InReplyTo: &event.InReplyTo{EventID: replyTo}}
 		}
 		resp, err := portal.sendMessage(intent, event.EventMessage, &content, nil, ts)
 		if err != nil {
