@@ -11,22 +11,6 @@ import (
 var SequenceOne = []int{1, 2, 840, 10045, 2, 1}
 var SequenceTwo = []int{1, 2, 840, 10045, 3, 1, 7}
 
-func EncodeBNA(a []byte) []byte {
-	b := 0
-	for b < len(a) && a[b] == 0 {
-		b++
-	}
-
-	c := 0
-	if b < len(a) && (a[b]&128) == 128 {
-		c = 1
-	}
-
-	d := make([]byte, len(a)-b+c)
-	copy(d[c:], a[b:])
-	return d
-}
-
 func EncodeValues(a *[]byte, b []int) {
 	*a = append(*a, 6)
 	idx := len(*a)
