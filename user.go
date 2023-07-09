@@ -541,24 +541,33 @@ func (user *User) HandleEvent(event interface{}) {
 			user.zlog.Err(err).Msg("Failed to update session in database")
 		}
 	case *binary.Conversation:
-		portal := user.GetPortalByID(v.GetConversationID())
-		if portal.MXID != "" {
-			portal.UpdateMetadata(user, v)
-		} else {
-			err := portal.CreateMatrixRoom(user, v)
-			if err != nil {
-				user.zlog.Err(err).Msg("Error creating Matrix room from conversation event")
-			}
-		}
+		user.syncConversation(v)
 	case *binary.Message:
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v, source: user}
 	case *events.ClientReady:
 		user.zlog.Trace().Any("data", v).Msg("Client is ready!")
+		go func() {
+			for _, conv := range v.Conversations {
+				user.syncConversation(conv)
+			}
+		}()
 	case *events.BrowserActive:
 		user.zlog.Trace().Any("data", v).Msg("Browser active")
 	default:
 		user.zlog.Trace().Any("data", v).Msg("Unknown event")
+	}
+}
+
+func (user *User) syncConversation(v *binary.Conversation) {
+	portal := user.GetPortalByID(v.GetConversationID())
+	if portal.MXID != "" {
+		portal.UpdateMetadata(user, v)
+	} else {
+		err := portal.CreateMatrixRoom(user, v)
+		if err != nil {
+			user.zlog.Err(err).Msg("Error creating Matrix room from conversation event")
+		}
 	}
 }
 
