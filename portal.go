@@ -29,7 +29,7 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
-	log "maunium.net/go/maulogger/v2"
+	"maunium.net/go/maulogger/v2"
 
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
@@ -220,7 +220,7 @@ type Portal struct {
 
 	bridge *GMBridge
 	// Deprecated: use zerolog
-	log  log.Logger
+	log  maulogger.Logger
 	zlog zerolog.Logger
 
 	roomCreateLock sync.Mutex
@@ -999,11 +999,25 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	ms := metricSender{portal: portal, timings: &timings}
 
 	log := portal.zlog.With().Str("event_id", evt.ID.String()).Logger()
+	ctx := log.WithContext(context.TODO())
 	log.Debug().Dur("age", timings.totalReceive).Msg("Handling Matrix message")
 
 	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
 	if !ok {
 		return
+	}
+
+	var replyToID string
+	replyToMXID := content.RelatesTo.GetReplyTo()
+	if replyToMXID != "" {
+		replyToMsg, err := portal.bridge.DB.Message.GetByMXID(ctx, replyToMXID)
+		if err != nil {
+			log.Err(err).Str("reply_to_mxid", replyToMXID.String()).Msg("Failed to get reply target message")
+		} else if replyToMsg == nil {
+			log.Warn().Str("reply_to_mxid", replyToMXID.String()).Msg("Reply target message not found")
+		} else {
+			replyToID = replyToMsg.ID
+		}
 	}
 
 	txnID := util.GenerateTmpId()
@@ -1020,6 +1034,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 			sender.Client.NewMessageBuilder().
 				SetConversationID(portal.ID).
 				SetSelfParticipantID(portal.SelfUserID).
+				SetReplyMessage(replyToID).
 				SetContent(text).
 				SetTmpID(txnID),
 		)
