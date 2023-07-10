@@ -24,6 +24,11 @@ type RPC struct {
 	conn         io.ReadCloser
 	rpcSessionId string
 	listenID     int
+
+	skipCount int
+
+	recentUpdates    [32][32]byte
+	recentUpdatesPtr int
 }
 
 func (r *RPC) ListenReceiveMessages(payload []byte) {
@@ -142,7 +147,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 
 		accumulatedData = []byte{}
 		//r.client.Logger.Info().Any("val", msgArr).Msg("MsgArr")
-		go r.HandleRPCMsg(msgArr)
+		r.HandleRPCMsg(msgArr)
 	}
 }
 
@@ -155,8 +160,8 @@ func (r *RPC) isAcknowledgeMessage(data []byte) bool {
 		if parseErr != nil {
 			panic(parseErr)
 		}
-		skipCount = parsed.Container.Data.GetAckAmount().Count
-		r.client.Logger.Info().Any("count", skipCount).Msg("Messages To Skip")
+		r.skipCount = int(parsed.Container.Data.GetAckAmount().Count)
+		r.client.Logger.Info().Any("count", r.skipCount).Msg("Messages To Skip")
 	} else {
 		return false
 	}

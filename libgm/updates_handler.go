@@ -23,10 +23,16 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 			c.handleSettingsEvent(res, evt.SettingsEvent)
 
 		case *binary.UpdateEvents_ConversationEvent:
-			c.handleConversationEvent(res, evt.ConversationEvent.GetData())
+			if c.rpc.deduplicateUpdate(res) {
+				return
+			}
+			c.triggerEvent(evt.ConversationEvent.GetData())
 
 		case *binary.UpdateEvents_MessageEvent:
-			c.handleMessageEvent(res, evt.MessageEvent.GetData())
+			if c.rpc.deduplicateUpdate(res) {
+				return
+			}
+			c.triggerEvent(evt.MessageEvent.GetData())
 
 		case *binary.UpdateEvents_TypingEvent:
 			c.handleTypingEvent(res, evt.TypingEvent.GetData())

@@ -1,6 +1,7 @@
 package pblite
 
 import (
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -20,7 +21,8 @@ type RequestData struct {
 	Bool1         bool              `json:"bool1,omitempty"`
 	Bool2         bool              `json:"bool2,omitempty"`
 	EncryptedData []byte            `json:"requestData,omitempty"`
-	Decrypted     interface{}       `json:"decrypted,omitempty"`
+	RawDecrypted  []byte            `json:"-,omitempty"`
+	Decrypted     proto.Message     `json:"decrypted,omitempty"`
 	Bool3         bool              `json:"bool3,omitempty"`
 }
 
@@ -59,14 +61,19 @@ func DecodeAndDecryptInternalMessage(data []interface{}, cryptor *crypto.Cryptor
 			return nil, decodeErr
 		}
 		if internalRequestData.EncryptedData != nil {
-			var decryptedData = routes.Routes[internalRequestData.GetAction()].ResponseStruct.ProtoReflect().New().Interface()
-			decryptErr := cryptor.DecryptAndDecodeData(internalRequestData.EncryptedData, decryptedData)
-			if decryptErr != nil {
-				return nil, decryptErr
+			decryptedBytes, err := cryptor.Decrypt(internalRequestData.EncryptedData)
+			if err != nil {
+				return nil, err
 			}
-			resp = newResponseFromDataEvent(internalMessage.GetData(), internalRequestData, decryptedData)
+			responseStruct := routes.Routes[internalRequestData.GetAction()].ResponseStruct
+			deserializedData := responseStruct.ProtoReflect().New().Interface()
+			err = proto.Unmarshal(decryptedBytes, deserializedData)
+			if err != nil {
+				return nil, err
+			}
+			resp = newResponseFromDataEvent(internalMessage.GetData(), internalRequestData, decryptedBytes, deserializedData)
 		} else {
-			resp = newResponseFromDataEvent(internalMessage.GetData(), internalRequestData, nil)
+			resp = newResponseFromDataEvent(internalMessage.GetData(), internalRequestData, nil, nil)
 		}
 	}
 	return resp, nil
@@ -94,7 +101,7 @@ func newResponseFromPairEvent(internalMsg *binary.InternalMessageData, data *bin
 	return resp
 }
 
-func newResponseFromDataEvent(internalMsg *binary.InternalMessageData, internalRequestData *binary.InternalRequestData, decrypted protoreflect.ProtoMessage) *Response {
+func newResponseFromDataEvent(internalMsg *binary.InternalMessageData, internalRequestData *binary.InternalRequestData, rawData []byte, decrypted protoreflect.ProtoMessage) *Response {
 	resp := &Response{
 		ResponseId:        internalMsg.GetResponseID(),
 		BugleRoute:        internalMsg.GetBugleRoute(),
@@ -114,6 +121,7 @@ func newResponseFromDataEvent(internalMsg *binary.InternalMessageData, internalR
 			Bool2:         internalRequestData.GetBool2(),
 			EncryptedData: internalRequestData.GetEncryptedData(),
 			Decrypted:     decrypted,
+			RawDecrypted:  rawData,
 			Bool3:         internalRequestData.GetBool3(),
 		},
 		SignatureId: internalMsg.GetSignatureID(),

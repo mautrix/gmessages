@@ -7,6 +7,21 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 )
 
+func (c *Client) handleClientReady(newSessionId string) {
+	c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
+	conversations, convErr := c.Conversations.List(25)
+	if convErr != nil {
+		panic(convErr)
+	}
+	c.Logger.Debug().Any("conversations", conversations).Msg("got conversations")
+	notifyErr := c.Session.NotifyDittoActivity()
+	if notifyErr != nil {
+		panic(notifyErr)
+	}
+	readyEvt := events.NewClientReady(newSessionId, conversations)
+	c.triggerEvent(readyEvt)
+}
+
 func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAlertEvent) {
 	alertType := data.AlertType
 	switch alertType {
@@ -17,20 +32,8 @@ func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAle
 			evt := events.NewBrowserActive(newSessionId)
 			c.triggerEvent(evt)
 		} else {
-			c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
-			conversations, convErr := c.Conversations.List(25)
-			if convErr != nil {
-				panic(convErr)
-			}
-			c.Logger.Debug().Any("conversations", conversations).Msg("got conversations")
-			notifyErr := c.Session.NotifyDittoActivity()
-			if notifyErr != nil {
-				panic(notifyErr)
-			}
-			readyEvt := events.NewClientReady(newSessionId, conversations)
-			c.triggerEvent(readyEvt)
+			go c.handleClientReady(newSessionId)
 		}
-
 	case binary.AlertType_MOBILE_BATTERY_LOW:
 		c.Logger.Info().Msg("[MOBILE_BATTERY_LOW] Mobile device is on low battery")
 		evt := events.NewMobileBatteryLow()

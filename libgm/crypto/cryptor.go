@@ -88,18 +88,6 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	return encryptedDataWithoutHMAC, nil
 }
 
-func (c *Cryptor) DecryptAndDecodeData(encryptedData []byte, message proto.Message) error {
-	decryptedData, err := c.Decrypt(encryptedData)
-	if err != nil {
-		return err
-	}
-	err = binary.DecodeProtoMessage(decryptedData, message)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *Cryptor) EncodeAndEncryptData(message proto.Message) ([]byte, error) {
 	encodedData, encodeErr := binary.EncodeProtoMessage(message)
 	if encodeErr != nil {

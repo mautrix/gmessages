@@ -392,7 +392,11 @@ func (user *User) createClient() {
 		}
 	}
 	user.Client = libgm.NewClient(user.Session, user.zlog.With().Str("component", "libgm").Logger())
-	user.Client.SetEventHandler(user.HandleEvent)
+	user.Client.SetEventHandler(user.syncHandleEvent)
+}
+
+func (user *User) syncHandleEvent(ev any) {
+	go user.HandleEvent(ev)
 }
 
 func (user *User) Login(ctx context.Context) (<-chan string, error) {
@@ -555,7 +559,7 @@ func (user *User) HandleEvent(event interface{}) {
 	case *events.BrowserActive:
 		user.zlog.Trace().Any("data", v).Msg("Browser active")
 	default:
-		user.zlog.Trace().Any("data", v).Msg("Unknown event")
+		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
 }
 
