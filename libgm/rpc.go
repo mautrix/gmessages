@@ -31,6 +31,14 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 	listenID := r.listenID
 	errored := true
 	for r.listenID == listenID {
+		if r.client.authData.DevicePair != nil && r.client.authData.AuthenticatedAt.Add(20*time.Hour).Before(time.Now()) {
+			r.client.Logger.Debug().Msg("Refreshing auth token before starting new long-polling request")
+			err := r.client.refreshAuthToken()
+			if err != nil {
+				r.client.Logger.Err(err).Msg("Error refreshing auth token")
+				return
+			}
+		}
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
 		req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
 		if err != nil {
@@ -47,6 +55,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 			continue
 		}
 		if resp.StatusCode >= 400 && resp.StatusCode < 501 {
+			r.client.Logger.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
 			r.client.triggerEvent(&events.ListenFatalError{Resp: resp})
 			return
 		} else if resp.StatusCode >= 500 {
