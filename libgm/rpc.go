@@ -71,6 +71,14 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 		}
 		r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		r.conn = resp.Body
+		if r.client.authData.DevicePair != nil {
+			go func() {
+				err := r.client.Session.NotifyDittoActivity()
+				if err != nil {
+					r.client.Logger.Err(err).Msg("Error notifying ditto activity")
+				}
+			}()
+		}
 		r.startReadingData(resp.Body)
 	}
 }
