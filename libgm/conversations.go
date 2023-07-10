@@ -87,12 +87,6 @@ func (c *Conversations) FetchMessages(conversationId string, count int64, cursor
 		return nil, fmt.Errorf("failed to assert response into FetchMessagesResponse")
 	}
 
-	decryptErr := c.client.decryptMedias(res)
-	if decryptErr != nil {
-		return nil, decryptErr
-	}
-
-	c.client.Logger.Debug().Any("messageData", res).Msg("fetchmessages")
 	return res, nil
 }
 

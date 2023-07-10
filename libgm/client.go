@@ -206,23 +206,6 @@ func (c *Client) setApiMethods() {
 	c.Messages = &Messages{client: c}
 }
 
-func (c *Client) decryptMedias(messages *binary.FetchMessagesResponse) error {
-	for _, msg := range messages.Messages {
-		for _, details := range msg.GetMessageInfo() {
-			switch data := details.GetData().(type) {
-			case *binary.MessageInfo_MediaContent:
-				decryptedMediaData, err := c.DownloadMedia(data.MediaContent.MediaID, data.MediaContent.DecryptionKey)
-				if err != nil {
-					panic(err)
-					return err
-				}
-				data.MediaContent.MediaData = decryptedMediaData
-			}
-		}
-	}
-	return nil
-}
-
 func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	reqId := util.RandomUUIDv4()
 	download_metadata := &binary.UploadImagePayload{
