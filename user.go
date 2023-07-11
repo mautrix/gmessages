@@ -564,14 +564,25 @@ func (user *User) HandleEvent(event interface{}) {
 }
 
 func (user *User) syncConversation(v *binary.Conversation) {
+	updateType := v.GetStatus()
 	portal := user.GetPortalByID(v.GetConversationID())
 	if portal.MXID != "" {
-		portal.UpdateMetadata(user, v)
-	} else {
+		switch updateType {
+		case binary.ConvUpdateTypes_DELETED:
+			user.zlog.Info().Str("conversation_id", portal.ID).Msg("Got delete event, cleaning up portal")
+			portal.Delete()
+			portal.Cleanup(false)
+		default:
+			portal.UpdateMetadata(user, v)
+			portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID)
+		}
+	} else if updateType == binary.ConvUpdateTypes_UNARCHIVED || updateType == binary.ConvUpdateTypes_ARCHIVED {
 		err := portal.CreateMatrixRoom(user, v)
 		if err != nil {
 			user.zlog.Err(err).Msg("Error creating Matrix room from conversation event")
 		}
+	} else {
+		user.zlog.Debug().Str("update_type", updateType.String()).Msg("Not creating portal for conversation")
 	}
 }
 

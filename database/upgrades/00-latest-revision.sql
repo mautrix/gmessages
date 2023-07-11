@@ -27,9 +27,9 @@ CREATE TABLE puppet (
     avatar_set       BOOLEAN NOT NULL DEFAULT false,
     contact_info_set BOOLEAN NOT NULL DEFAULT false,
 
-    FOREIGN KEY (receiver) REFERENCES "user"(rowid) ON DELETE CASCADE,
-    UNIQUE (phone, receiver),
-    PRIMARY KEY (id, receiver)
+    PRIMARY KEY (id, receiver),
+    CONSTRAINT puppet_user_fkey    FOREIGN KEY (receiver) REFERENCES "user"(rowid) ON DELETE CASCADE,
+    CONSTRAINT puppet_phone_unique UNIQUE (phone, receiver)
 );
 
 CREATE TABLE portal (
@@ -46,9 +46,9 @@ CREATE TABLE portal (
     encrypted  BOOLEAN NOT NULL DEFAULT false,
     in_space   BOOLEAN NOT NULL DEFAULT false,
 
-    FOREIGN KEY (receiver) REFERENCES "user"(rowid) ON DELETE CASCADE,
-    FOREIGN KEY (other_user, receiver) REFERENCES puppet(id, receiver) ON DELETE CASCADE,
-    PRIMARY KEY (id, receiver)
+    PRIMARY KEY (id, receiver),
+    CONSTRAINT portal_user_fkey   FOREIGN KEY (receiver) REFERENCES "user"(rowid) ON DELETE CASCADE,
+    CONSTRAINT portal_puppet_fkey FOREIGN KEY (other_user, receiver) REFERENCES puppet(id, receiver) ON DELETE CASCADE
 );
 
 CREATE TABLE message (
@@ -58,7 +58,8 @@ CREATE TABLE message (
     mxid          TEXT   NOT NULL UNIQUE,
     sender        TEXT   NOT NULL,
     timestamp     BIGINT NOT NULL,
+    status        jsonb  NOT NULL,
 
     PRIMARY KEY (conv_id, conv_receiver, id),
-    FOREIGN KEY (conv_id, conv_receiver) REFERENCES portal(id, receiver) ON DELETE CASCADE
+    CONSTRAINT message_portal_fkey FOREIGN KEY (conv_id, conv_receiver) REFERENCES portal(id, receiver) ON DELETE CASCADE
 );

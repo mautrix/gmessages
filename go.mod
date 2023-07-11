@@ -3,17 +3,17 @@ module go.mau.fi/mautrix-gmessages
 go 1.20
 
 require (
+	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/rs/zerolog v1.29.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.1.0
 	maunium.net/go/maulogger/v2 v2.4.1
-	maunium.net/go/mautrix v0.15.4-0.20230628151140-e99578a15474
+	maunium.net/go/mautrix v0.15.4-0.20230711231757-65db706cd3ce
 )
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect

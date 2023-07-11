@@ -30,6 +30,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"maunium.net/go/maulogger/v2"
+
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
@@ -233,7 +234,8 @@ type Portal struct {
 	backfillLock   sync.Mutex
 	avatarLock     sync.Mutex
 
-	latestEventBackfillLock sync.Mutex
+	forwardBackfillLock sync.Mutex
+	lastMessageTS       time.Time
 
 	recentlyHandled      [recentlyHandledLength]string
 	recentlyHandledLock  sync.Mutex
@@ -261,8 +263,8 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 	if len(portal.MXID) == 0 {
 		return
 	}
-	portal.latestEventBackfillLock.Lock()
-	defer portal.latestEventBackfillLock.Unlock()
+	portal.forwardBackfillLock.Lock()
+	defer portal.forwardBackfillLock.Unlock()
 	switch {
 	case msg.evt != nil:
 		portal.handleMessage(msg.source, msg.evt)
@@ -274,8 +276,8 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 }
 
 func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
-	portal.latestEventBackfillLock.Lock()
-	defer portal.latestEventBackfillLock.Unlock()
+	portal.forwardBackfillLock.Lock()
+	defer portal.forwardBackfillLock.Unlock()
 	evtTS := time.UnixMilli(msg.evt.Timestamp)
 	timings := messageTimings{
 		initReceive:  msg.evt.Mautrix.ReceivedAt.Sub(evtTS),
@@ -312,13 +314,17 @@ func (portal *Portal) isOutgoingMessage(msg *binary.Message) id.EventID {
 	out, ok := portal.outgoingMessages[msg.TmpID]
 	if ok {
 		if !out.Saved {
-			portal.markHandled(msg, map[string]id.EventID{"": out.ID}, true)
+			portal.markHandled(&ConvertedMessage{
+				ID:        msg.MessageID,
+				Timestamp: time.UnixMicro(msg.GetTimestamp()),
+				SenderID:  msg.ParticipantID,
+			}, out.ID, true)
 			out.Saved = true
 		}
 		switch msg.GetMessageStatus().GetStatus() {
 		case binary.MessageStatusType_OUTGOING_DELIVERED, binary.MessageStatusType_OUTGOING_COMPLETE, binary.MessageStatusType_OUTGOING_DISPLAYED:
 			delete(portal.outgoingMessages, msg.TmpID)
-			portal.sendStatusEvent(out.ID, "", nil)
+			go portal.sendStatusEvent(out.ID, "", nil)
 		case binary.MessageStatusType_OUTGOING_FAILED_GENERIC,
 			binary.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER,
 			binary.MessageStatusType_OUTGOING_CANCELED,
@@ -329,7 +335,7 @@ func (portal *Portal) isOutgoingMessage(msg *binary.Message) id.EventID {
 			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION,
 			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
 			err := OutgoingStatusError(msg.GetMessageStatus().GetStatus())
-			portal.sendStatusEvent(out.ID, "", err)
+			go portal.sendStatusEvent(out.ID, "", err)
 			// TODO error notice
 		}
 		return out.ID
@@ -351,6 +357,8 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		portal.zlog.Warn().Msg("handleMessage called even though portal.MXID is empty")
 		return
 	}
+	eventTS := time.UnixMicro(evt.GetTimestamp())
+	portal.lastMessageTS = eventTS
 	log := portal.zlog.With().
 		Str("message_id", evt.MessageID).
 		Str("participant_id", evt.ParticipantID).
@@ -381,39 +389,81 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		return
 	}
 
-	var intent *appservice.IntentAPI
+	converted := portal.convertGoogleMessage(ctx, source, evt, false)
+	if converted == nil {
+		return
+	}
+
+	eventIDs := make([]id.EventID, 0, len(converted.Parts))
+	for _, part := range converted.Parts {
+		resp, err := portal.sendMessage(converted.Intent, event.EventMessage, part.Content, part.Extra, converted.Timestamp.UnixMilli())
+		if err != nil {
+			log.Err(err).Msg("Failed to send message")
+		} else {
+			eventIDs = append(eventIDs, resp.EventID)
+		}
+	}
+	portal.markHandled(converted, eventIDs[0], true)
+	portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
+	log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
+}
+
+type ConvertedMessagePart struct {
+	Content *event.MessageEventContent
+	Extra   map[string]any
+}
+
+type ConvertedMessage struct {
+	ID       string
+	SenderID string
+
+	Intent    *appservice.IntentAPI
+	Timestamp time.Time
+	ReplyTo   string
+	Parts     []ConvertedMessagePart
+}
+
+func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *binary.Message, backfill bool) *ConvertedMessage {
+	log := zerolog.Ctx(ctx)
+
+	var cm ConvertedMessage
+	cm.SenderID = evt.ParticipantID
+	cm.ID = evt.MessageID
+	cm.Timestamp = time.UnixMicro(evt.Timestamp)
+
 	// TODO is there a fromMe flag?
 	if evt.GetParticipantID() == portal.SelfUserID {
-		intent = source.DoublePuppetIntent
-		if intent == nil {
+		cm.Intent = source.DoublePuppetIntent
+		if cm.Intent == nil {
 			log.Debug().Msg("Dropping message from self as double puppeting is not enabled")
-			return
+			return nil
 		}
 	} else {
 		puppet := source.GetPuppetByID(evt.ParticipantID, "")
 		if puppet == nil {
-			log.Debug().Msg("Dropping message from unknown participant")
-			return
+			log.Debug().Str("participant_id", evt.ParticipantID).Msg("Dropping message from unknown participant")
+			return nil
 		}
-		intent = puppet.IntentFor(portal)
+		cm.Intent = puppet.IntentFor(portal)
 	}
 
 	var replyTo id.EventID
 	if evt.GetReplyMessage() != nil {
-		replyToID := evt.GetReplyMessage().GetMessageID()
-		msg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, replyToID)
+		cm.ReplyTo = evt.GetReplyMessage().GetMessageID()
+		msg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, cm.ReplyTo)
 		if err != nil {
-			log.Err(err).Str("reply_to_id", replyToID).Msg("Failed to get reply target message")
+			log.Err(err).Str("reply_to_id", cm.ReplyTo).Msg("Failed to get reply target message")
 		} else if msg == nil {
-			log.Warn().Str("reply_to_id", replyToID).Msg("Reply target message not found")
+			if backfill {
+				replyTo = portal.deterministicEventID(cm.ReplyTo, 0)
+			} else {
+				log.Warn().Str("reply_to_id", cm.ReplyTo).Msg("Reply target message not found")
+			}
 		} else {
 			replyTo = msg.MXID
 		}
 	}
 
-	eventIDs := make(map[string]id.EventID)
-	var lastEventID id.EventID
-	ts := time.UnixMicro(evt.Timestamp).UnixMilli()
 	for _, part := range evt.MessageInfo {
 		var content event.MessageEventContent
 		switch data := part.GetData().(type) {
@@ -423,7 +473,7 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 				Body:    data.MessageContent.GetContent(),
 			}
 		case *binary.MessageInfo_MediaContent:
-			contentPtr, err := portal.convertGoogleMedia(source, intent, data.MediaContent)
+			contentPtr, err := portal.convertGoogleMedia(source, cm.Intent, data.MediaContent)
 			if err != nil {
 				log.Err(err).Msg("Failed to copy attachment")
 				content = event.MessageEventContent{
@@ -437,17 +487,44 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		if replyTo != "" {
 			content.RelatesTo = &event.RelatesTo{InReplyTo: &event.InReplyTo{EventID: replyTo}}
 		}
-		resp, err := portal.sendMessage(intent, event.EventMessage, &content, nil, ts)
-		if err != nil {
-			log.Err(err).Msg("Failed to send message")
-		} else {
-			eventIDs[part.GetActionMessageID()] = resp.EventID
-			lastEventID = resp.EventID
-		}
+		cm.Parts = append(cm.Parts, ConvertedMessagePart{
+			Content: &content,
+		})
 	}
-	portal.markHandled(evt, eventIDs, true)
-	portal.sendDeliveryReceipt(lastEventID)
-	log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
+	if portal.bridge.Config.Bridge.CaptionInMessage {
+		cm.MergeCaption()
+	}
+	return &cm
+}
+
+func (msg *ConvertedMessage) MergeCaption() {
+	if len(msg.Parts) != 2 {
+		return
+	}
+
+	var textPart, filePart ConvertedMessagePart
+	if msg.Parts[0].Content.MsgType == event.MsgText {
+		textPart = msg.Parts[0]
+		filePart = msg.Parts[1]
+	} else {
+		textPart = msg.Parts[1]
+		filePart = msg.Parts[0]
+	}
+
+	if textPart.Content.MsgType != event.MsgText {
+		return
+	}
+	switch filePart.Content.MsgType {
+	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
+	default:
+		return
+	}
+
+	filePart.Content.FileName = filePart.Content.Body
+	filePart.Content.Body = textPart.Content.Body
+	filePart.Content.Format = textPart.Content.Format
+	filePart.Content.FormattedBody = textPart.Content.FormattedBody
+	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
 var mediaFormatToMime = map[binary.MediaFormats]string{
@@ -530,18 +607,16 @@ func (portal *Portal) isRecentlyHandled(id string) bool {
 	return false
 }
 
-func (portal *Portal) markHandled(info *binary.Message, mxids map[string]id.EventID, recent bool) *database.Message {
+func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, recent bool) *database.Message {
 	msg := portal.bridge.DB.Message.New()
 	msg.Chat = portal.Key
-	msg.ID = info.MessageID
-	for _, evtID := range mxids {
-		msg.MXID = evtID
-	}
-	msg.Timestamp = time.UnixMicro(info.Timestamp)
-	msg.Sender = info.ParticipantID
+	msg.ID = cm.ID
+	msg.MXID = eventID
+	msg.Timestamp = cm.Timestamp
+	msg.Sender = cm.SenderID
 	err := msg.Insert(context.TODO())
 	if err != nil {
-		portal.zlog.Err(err).Str("message_id", info.MessageID).Msg("Failed to insert message to database")
+		portal.zlog.Err(err).Str("message_id", cm.ID).Msg("Failed to insert message to database")
 	}
 
 	if recent {
@@ -549,7 +624,7 @@ func (portal *Portal) markHandled(info *binary.Message, mxids map[string]id.Even
 		index := portal.recentlyHandledIndex
 		portal.recentlyHandledIndex = (portal.recentlyHandledIndex + 1) % recentlyHandledLength
 		portal.recentlyHandledLock.Unlock()
-		portal.recentlyHandled[index] = info.MessageID
+		portal.recentlyHandled[index] = cm.ID
 	}
 	return msg
 }
@@ -840,6 +915,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *binary.Conversation) er
 	portal.zlog.Info().Str("room_id", resp.RoomID.String()).Msg("Matrix room created")
 	portal.InSpace = false
 	portal.NameSet = len(req.Name) > 0
+	portal.forwardBackfillLock.Lock()
 	portal.MXID = resp.RoomID
 	portal.bridge.portalsLock.Lock()
 	portal.bridge.portalsByMXID[portal.MXID] = portal
@@ -874,7 +950,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *binary.Conversation) er
 		portal.ensureUserInvited(user)
 	}
 	user.syncChatDoublePuppetDetails(portal, conv, true)
-
+	go portal.initialForwardBackfill(user)
 	go portal.addToPersonalSpace(user, true)
 	return nil
 }
