@@ -50,24 +50,26 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("action", "missed forward backfill").
 		Logger()
 	ctx := log.WithContext(context.TODO())
-	if portal.lastMessageTS.IsZero() {
-		lastMsg, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
-		if err != nil {
-			log.Err(err).Msg("Failed to get last message in chat")
-			return
-		} else if lastMsg == nil {
-			log.Debug().Msg("No messages in chat")
-		} else {
-			portal.lastMessageTS = lastMsg.Timestamp
+	if !lastMessageTS.IsZero() {
+		if portal.lastMessageTS.IsZero() {
+			lastMsg, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
+			if err != nil {
+				log.Err(err).Msg("Failed to get last message in chat")
+				return
+			} else if lastMsg == nil {
+				log.Debug().Msg("No messages in chat")
+			} else {
+				portal.lastMessageTS = lastMsg.Timestamp
+			}
 		}
-	}
-	if !lastMessageTS.After(portal.lastMessageTS) {
-		log.Trace().
-			Time("latest_message_ts", lastMessageTS).
-			Str("latest_message_id", lastMessageID).
-			Time("last_bridged_ts", portal.lastMessageTS).
-			Msg("Nothing to backfill")
-		return
+		if !lastMessageTS.After(portal.lastMessageTS) {
+			log.Trace().
+				Time("latest_message_ts", lastMessageTS).
+				Str("latest_message_id", lastMessageID).
+				Time("last_bridged_ts", portal.lastMessageTS).
+				Msg("Nothing to backfill")
+			return
+		}
 	}
 	log.Info().
 		Time("latest_message_ts", lastMessageTS).
@@ -114,6 +116,10 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 				maxTS = c.Timestamp
 			}
 		}
+	}
+	if len(converted) == 0 {
+		log.Debug().Msg("Didn't get any converted messages")
+		return
 	}
 	log.Debug().
 		Int("converted_count", len(converted)).
