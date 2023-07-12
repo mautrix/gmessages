@@ -24,11 +24,10 @@ import (
 	"strings"
 	"time"
 
-	log "maunium.net/go/maulogger/v2"
-
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"maunium.net/go/mautrix/id"
 	"maunium.net/go/mautrix/util/dbutil"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 type MessageQuery struct {
@@ -78,8 +77,7 @@ type MessageStatus struct {
 }
 
 type Message struct {
-	db  *Database
-	log log.Logger
+	db *Database
 
 	Chat      Key
 	ID        string

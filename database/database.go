@@ -28,10 +28,11 @@ import (
 type Database struct {
 	*dbutil.Database
 
-	User    *UserQuery
-	Portal  *PortalQuery
-	Puppet  *PuppetQuery
-	Message *MessageQuery
+	User     *UserQuery
+	Portal   *PortalQuery
+	Puppet   *PuppetQuery
+	Message  *MessageQuery
+	Reaction *ReactionQuery
 }
 
 func New(baseDB *dbutil.Database) *Database {
@@ -41,6 +42,7 @@ func New(baseDB *dbutil.Database) *Database {
 	db.Portal = &PortalQuery{db: db}
 	db.Puppet = &PuppetQuery{db: db}
 	db.Message = &MessageQuery{db: db}
+	db.Reaction = &ReactionQuery{db: db}
 	return db
 }
 

@@ -30,6 +30,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"maunium.net/go/maulogger/v2"
+	"maunium.net/go/mautrix/util/variationselector"
 
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
@@ -358,7 +359,9 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		return
 	}
 	eventTS := time.UnixMicro(evt.GetTimestamp())
-	portal.lastMessageTS = eventTS
+	if eventTS.After(portal.lastMessageTS) {
+		portal.lastMessageTS = eventTS
+	}
 	log := portal.zlog.With().
 		Str("message_id", evt.MessageID).
 		Str("participant_id", evt.ParticipantID).
@@ -369,6 +372,9 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	case binary.MessageStatusType_INCOMING_AUTO_DOWNLOADING, binary.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
 		log.Debug().Msg("Not handling incoming message that is auto downloading")
 		return
+	case binary.MessageStatusType_MESSAGE_DELETED:
+		// TODO handle deletion
+		return
 	}
 	if hasInProgressMedia(evt) {
 		log.Debug().Msg("Not handling incoming message that doesn't have full media yet")
@@ -377,15 +383,13 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	if evtID := portal.isOutgoingMessage(evt); evtID != "" {
 		log.Debug().Str("event_id", evtID.String()).Msg("Got echo for outgoing message")
 		return
-	} else if portal.isRecentlyHandled(evt.MessageID) {
-		log.Debug().Msg("Not handling recent duplicate message")
-		return
 	}
 	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, evt.MessageID)
 	if err != nil {
 		log.Err(err).Msg("Failed to check if message is duplicate")
 	} else if existingMsg != nil {
 		log.Debug().Msg("Not handling duplicate message")
+		portal.syncReactions(ctx, source, existingMsg, evt.Reactions)
 		return
 	}
 
@@ -408,6 +412,73 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
 }
 
+func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*binary.ReactionResponse) {
+	log := zerolog.Ctx(ctx)
+	existing, err := portal.bridge.DB.Reaction.GetAllByMessage(ctx, portal.Key, message.ID)
+	if err != nil {
+		log.Err(err).Msg("Failed to get existing reactions from db to sync reactions")
+		return
+	}
+	remove := make(map[string]*database.Reaction, len(existing))
+	for _, reaction := range existing {
+		remove[reaction.Sender] = reaction
+	}
+	for _, reaction := range reactions {
+		emoji := reaction.GetData().GetUnicode()
+		if emoji == "" {
+			emoji = reaction.GetData().GetType().Unicode()
+			if emoji == "" {
+				continue
+			}
+		}
+		for _, participant := range reaction.GetParticipantIDs() {
+			dbReaction, ok := remove[participant]
+			if ok {
+				delete(remove, participant)
+				if dbReaction.Reaction == emoji {
+					continue
+				}
+			}
+			intent := portal.getIntent(ctx, source, participant)
+			if intent == nil {
+				continue
+			}
+			var resp *mautrix.RespSendEvent
+			resp, err = intent.SendReaction(portal.MXID, message.MXID, variationselector.Add(emoji))
+			if err != nil {
+				log.Err(err).Str("reaction_sender_id", participant).Msg("Failed to send reaction")
+				continue
+			}
+			if dbReaction == nil {
+				dbReaction = portal.bridge.DB.Reaction.New()
+				dbReaction.Chat = portal.Key
+				dbReaction.Sender = participant
+				dbReaction.MessageID = message.ID
+			} else if _, err = intent.RedactEvent(portal.MXID, dbReaction.MXID); err != nil {
+				log.Err(err).Str("reaction_sender_id", participant).Msg("Failed to redact old reaction after adding new one")
+			}
+			dbReaction.Reaction = emoji
+			dbReaction.MXID = resp.EventID
+			err = dbReaction.Insert(ctx)
+			if err != nil {
+				log.Err(err).Str("reaction_sender_id", participant).Msg("Failed to insert added reaction into db")
+			}
+		}
+	}
+	for _, reaction := range remove {
+		intent := portal.getIntent(ctx, source, reaction.Sender)
+		if intent == nil {
+			continue
+		}
+		_, err = intent.RedactEvent(portal.MXID, reaction.MXID)
+		if err != nil {
+			log.Err(err).Str("reaction_sender_id", reaction.Sender).Msg("Failed to redact removed reaction")
+		} else if err = reaction.Delete(ctx); err != nil {
+			log.Err(err).Str("reaction_sender_id", reaction.Sender).Msg("Failed to remove reaction from db")
+		}
+	}
+}
+
 type ConvertedMessagePart struct {
 	Content *event.MessageEventContent
 	Extra   map[string]any
@@ -423,6 +494,24 @@ type ConvertedMessage struct {
 	Parts     []ConvertedMessagePart
 }
 
+func (portal *Portal) getIntent(ctx context.Context, source *User, participant string) *appservice.IntentAPI {
+	if participant == portal.SelfUserID {
+		intent := source.DoublePuppetIntent
+		if intent == nil {
+			zerolog.Ctx(ctx).Debug().Msg("Dropping message from self as double puppeting is not enabled")
+			return nil
+		}
+		return intent
+	} else {
+		puppet := source.GetPuppetByID(participant, "")
+		if puppet == nil {
+			zerolog.Ctx(ctx).Debug().Str("participant_id", participant).Msg("Dropping message from unknown participant")
+			return nil
+		}
+		return puppet.IntentFor(portal)
+	}
+}
+
 func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *binary.Message, backfill bool) *ConvertedMessage {
 	log := zerolog.Ctx(ctx)
 
@@ -430,21 +519,9 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.SenderID = evt.ParticipantID
 	cm.ID = evt.MessageID
 	cm.Timestamp = time.UnixMicro(evt.Timestamp)
-
-	// TODO is there a fromMe flag?
-	if evt.GetParticipantID() == portal.SelfUserID {
-		cm.Intent = source.DoublePuppetIntent
-		if cm.Intent == nil {
-			log.Debug().Msg("Dropping message from self as double puppeting is not enabled")
-			return nil
-		}
-	} else {
-		puppet := source.GetPuppetByID(evt.ParticipantID, "")
-		if puppet == nil {
-			log.Debug().Str("participant_id", evt.ParticipantID).Msg("Dropping message from unknown participant")
-			return nil
-		}
-		cm.Intent = puppet.IntentFor(portal)
+	cm.Intent = portal.getIntent(ctx, source, evt.ParticipantID)
+	if cm.Intent == nil {
+		return nil
 	}
 
 	var replyTo id.EventID

@@ -568,6 +568,7 @@ func (user *User) syncConversation(v *binary.Conversation) {
 	portal := user.GetPortalByID(v.GetConversationID())
 	if portal.MXID != "" {
 		switch updateType {
+		// TODO also delete if blocked?
 		case binary.ConvUpdateTypes_DELETED:
 			user.zlog.Info().Str("conversation_id", portal.ID).Msg("Got delete event, cleaning up portal")
 			portal.Delete()

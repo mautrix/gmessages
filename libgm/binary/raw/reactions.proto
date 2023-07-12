@@ -21,13 +21,13 @@ message SendReactionResponse {
 }
 
 message ReactionData {
-    bytes emojiUnicode = 1;
-    int64 emojiType = 2;
+    string unicode = 1;
+    EmojiType type = 2;
 }
 
 message ReactionResponse {
     ReactionData data = 1;
-    repeated string reactorParticipantsID = 2; // participants reacted with this emoji
+    repeated string participantIDs = 2;
 }
 
 message EmojiMeta {
@@ -35,11 +35,11 @@ message EmojiMeta {
 }
 
 message EmojiMetaData {
-    bytes emojiUnicode = 1;
+    string unicode = 1;
     repeated string names = 2;
 }
 
-enum Emojis {
+enum EmojiType {
     REACTION_TYPE_UNSPECIFIED = 0;
     LIKE = 1;
     LOVE = 2;

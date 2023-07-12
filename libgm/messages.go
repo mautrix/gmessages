@@ -10,12 +10,7 @@ type Messages struct {
 	client *Client
 }
 
-func (m *Messages) React(reactionBuilder *ReactionBuilder) (*binary.SendReactionResponse, error) {
-	payload, buildErr := reactionBuilder.Build()
-	if buildErr != nil {
-		return nil, buildErr
-	}
-
+func (m *Messages) React(payload *binary.SendReactionPayload) (*binary.SendReactionResponse, error) {
 	actionType := binary.ActionType_SEND_REACTION
 
 	sentRequestId, sendErr := m.client.sessionHandler.completeSendMessage(actionType, true, payload)

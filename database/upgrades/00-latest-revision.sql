@@ -55,11 +55,25 @@ CREATE TABLE message (
     conv_id       TEXT   NOT NULL,
     conv_receiver BIGINT NOT NULL,
     id            TEXT   NOT NULL,
-    mxid          TEXT   NOT NULL UNIQUE,
+    mxid          TEXT   NOT NULL,
     sender        TEXT   NOT NULL,
     timestamp     BIGINT NOT NULL,
     status        jsonb  NOT NULL,
 
     PRIMARY KEY (conv_id, conv_receiver, id),
-    CONSTRAINT message_portal_fkey FOREIGN KEY (conv_id, conv_receiver) REFERENCES portal(id, receiver) ON DELETE CASCADE
+    CONSTRAINT message_portal_fkey FOREIGN KEY (conv_id, conv_receiver) REFERENCES portal(id, receiver) ON DELETE CASCADE,
+    CONSTRAINT message_mxid_unique UNIQUE (mxid)
 );
+
+CREATE TABLE reaction (
+    conv_id       TEXT   NOT NULL,
+    conv_receiver BIGINT NOT NULL,
+    msg_id        TEXT   NOT NULL,
+    sender        TEXT   NOT NULL,
+    reaction      TEXT   NOT NULL,
+    mxid          TEXT   NOT NULL,
+
+    PRIMARY KEY (conv_id, conv_receiver, msg_id, sender),
+    CONSTRAINT reaction_message_fkey FOREIGN KEY (conv_id, conv_receiver, msg_id) REFERENCES message(conv_id, conv_receiver, id) ON DELETE CASCADE,
+    CONSTRAINT reaction_mxid_unique  UNIQUE (mxid)
+)
