@@ -27,7 +27,7 @@ type RPC struct {
 
 	skipCount int
 
-	recentUpdates    [32][32]byte
+	recentUpdates    [8][32]byte
 	recentUpdatesPtr int
 }
 
