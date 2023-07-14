@@ -4,7 +4,7 @@
     * [x] Plain text
     * [ ] Media/files
     * [x] Replies (RCS)
-  * [ ] Reactions (RCS)
+  * [x] Reactions (RCS)
   * [ ] Typing notifications (RCS)
   * [ ] Read receipts (RCS)
 * Google Messages → Matrix
@@ -12,9 +12,9 @@
     * [x] Plain text
     * [x] Media/files
     * [x] Replies (RCS)
-  * [ ] Reactions
-  * [ ] Typing notifications
-  * [ ] Read receipts
+  * [x] Reactions (RCS)
+  * [ ] Typing notifications (RCS)
+  * [ ] Read receipts (RCS)
 * Misc
   * [x] Automatic portal creation
     * [x] After login

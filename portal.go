@@ -1174,7 +1174,10 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timings messageTimings) {
 	ms := metricSender{portal: portal, timings: &timings}
 
-	log := portal.zlog.With().Str("event_id", evt.ID.String()).Logger()
+	log := portal.zlog.With().
+		Str("event_id", evt.ID.String()).
+		Str("action", "handle matrix message").
+		Logger()
 	ctx := log.WithContext(context.TODO())
 	log.Debug().Dur("age", timings.totalReceive).Msg("Handling Matrix message")
 
@@ -1225,7 +1228,78 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 }
 
 func (portal *Portal) HandleMatrixReaction(sender *User, evt *event.Event) {
+	err := portal.handleMatrixReaction(sender, evt)
+	go portal.sendMessageMetrics(evt, err, "Error sending", nil)
+}
 
+func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error {
+	content, ok := evt.Content.Parsed.(*event.ReactionEventContent)
+	if !ok {
+		return fmt.Errorf("unexpected parsed content type %T", evt.Content.Parsed)
+	}
+	log := portal.zlog.With().
+		Str("event_id", evt.ID.String()).
+		Str("target_event_id", content.RelatesTo.EventID.String()).
+		Str("action", "handle matrix reaction").
+		Logger()
+	ctx := log.WithContext(context.Background())
+	log.Debug().Msg("Handling Matrix reaction")
+
+	msg, err := portal.bridge.DB.Message.GetByMXID(ctx, content.RelatesTo.EventID)
+	if err != nil {
+		log.Err(err).Msg("Failed to get reaction target event")
+		return fmt.Errorf("failed to get event from database")
+	} else if msg == nil {
+		return errTargetNotFound
+	}
+
+	existingReaction, err := portal.bridge.DB.Reaction.GetByID(ctx, portal.Key, msg.ID, portal.SelfUserID)
+	if err != nil {
+		log.Err(err).Msg("Failed to get existing reaction")
+		return fmt.Errorf("failed to get existing reaction from database")
+	}
+
+	emoji := variationselector.Remove(content.RelatesTo.Key)
+	action := binary.Reaction_ADD
+	if existingReaction != nil {
+		action = binary.Reaction_SWITCH
+	}
+	resp, err := sender.Client.Messages.React(&binary.SendReactionPayload{
+		MessageID: msg.ID,
+		ReactionData: &binary.ReactionData{
+			Unicode: emoji,
+			Type:    binary.UnicodeToEmojiType(emoji),
+		},
+		Action: action,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send reaction: %w", err)
+	} else if !resp.Success {
+		return fmt.Errorf("got non-success response")
+	}
+	if existingReaction == nil {
+		existingReaction = portal.bridge.DB.Reaction.New()
+		existingReaction.Chat = portal.Key
+		existingReaction.MessageID = msg.ID
+		existingReaction.Sender = portal.SelfUserID
+	} else if sender.DoublePuppetIntent != nil {
+		_, err = sender.DoublePuppetIntent.RedactEvent(portal.MXID, existingReaction.MXID)
+		if err != nil {
+			log.Err(err).Msg("Failed to redact old reaction with double puppet after new Matrix reaction")
+		}
+	} else {
+		_, err = portal.MainIntent().RedactEvent(portal.MXID, existingReaction.MXID)
+		if err != nil {
+			log.Err(err).Msg("Failed to redact old reaction with main intent after new Matrix reaction")
+		}
+	}
+	existingReaction.Reaction = emoji
+	existingReaction.MXID = evt.ID
+	err = existingReaction.Insert(ctx)
+	if err != nil {
+		log.Err(err).Msg("Failed to save reaction from Matrix to database")
+	}
+	return nil
 }
 
 func (portal *Portal) Delete() {

@@ -39,6 +39,7 @@ var (
 	errUnexpectedParsedContentType = errors.New("unexpected parsed content type")
 	errUnknownMsgType              = errors.New("unknown msgtype")
 	errMediaUnsupportedType        = errors.New("unsupported media type")
+	errTargetNotFound              = errors.New("target event not found")
 
 	errMessageTakingLong = errors.New("bridging the message is taking longer than usual")
 )
@@ -73,6 +74,8 @@ func errorToStatusReason(err error) (reason event.MessageStatusReason, status ev
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, true, err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
 		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "handling the message took too long and was cancelled"
+	case errors.Is(err, errTargetNotFound):
+		return event.MessageStatusGenericError, event.MessageStatusFail, true, false, ""
 	case errors.As(err, &ose):
 		return event.MessageStatusNetworkError, event.MessageStatusFail, true, true, ose.HumanError()
 	default:
@@ -187,6 +190,9 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 		portal.log.Debugfln("Handled Matrix %s %s", msgType, evtDescription)
 		portal.sendDeliveryReceipt(evt.ID)
 		portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
+		if msgType != "message" {
+			portal.sendStatusEvent(origEvtID, evt.ID, nil)
+		}
 		if prevNotice := ms.popNoticeID(); prevNotice != "" {
 			_, _ = portal.MainIntent().RedactEvent(portal.MXID, prevNotice, mautrix.ReqRedact{
 				Reason: "error resolved",
