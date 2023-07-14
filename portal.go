@@ -291,6 +291,8 @@ func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
 		portal.HandleMatrixMessage(msg.user, msg.evt, timings)
 	case event.EventReaction:
 		portal.HandleMatrixReaction(msg.user, msg.evt)
+	case event.EventRedaction:
+		portal.HandleMatrixRedaction(msg.user, msg.evt)
 	default:
 		portal.zlog.Warn().
 			Str("event_type", msg.evt.Type.Type).
@@ -365,7 +367,8 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	log := portal.zlog.With().
 		Str("message_id", evt.MessageID).
 		Str("participant_id", evt.ParticipantID).
-		Str("action", "handleMessage").
+		Str("status", evt.GetMessageStatus().GetStatus().String()).
+		Str("action", "handle google message").
 		Logger()
 	ctx := log.WithContext(context.TODO())
 	switch evt.GetMessageStatus().GetStatus() {
@@ -373,7 +376,7 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		log.Debug().Msg("Not handling incoming message that is auto downloading")
 		return
 	case binary.MessageStatusType_MESSAGE_DELETED:
-		// TODO handle deletion
+		portal.handleGoogleDeletion(ctx, evt.MessageID)
 		return
 	}
 	if hasInProgressMedia(evt) {
@@ -410,6 +413,24 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 	portal.markHandled(converted, eventIDs[0], true)
 	portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
 	log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
+}
+
+func (portal *Portal) handleGoogleDeletion(ctx context.Context, messageID string) {
+	log := zerolog.Ctx(ctx)
+	msg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, messageID)
+	if err != nil {
+		log.Err(err).Msg("Failed to get deleted message from database")
+	} else if msg == nil {
+		log.Debug().Msg("Didn't find deleted message in database")
+	} else {
+		if _, err = portal.MainIntent().RedactEvent(portal.MXID, msg.MXID); err != nil {
+			log.Err(err).Msg("Faield to redact deleted message")
+		}
+		if err = msg.Delete(ctx); err != nil {
+			log.Err(err).Msg("Failed to delete message from database")
+		}
+		log.Debug().Msg("Handled message deletion")
+	}
 }
 
 func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*binary.ReactionResponse) {
@@ -1242,7 +1263,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		Str("target_event_id", content.RelatesTo.EventID.String()).
 		Str("action", "handle matrix reaction").
 		Logger()
-	ctx := log.WithContext(context.Background())
+	ctx := log.WithContext(context.TODO())
 	log.Debug().Msg("Handling Matrix reaction")
 
 	msg, err := portal.bridge.DB.Message.GetByMXID(ctx, content.RelatesTo.EventID)
@@ -1265,12 +1286,9 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		action = binary.Reaction_SWITCH
 	}
 	resp, err := sender.Client.Messages.React(&binary.SendReactionPayload{
-		MessageID: msg.ID,
-		ReactionData: &binary.ReactionData{
-			Unicode: emoji,
-			Type:    binary.UnicodeToEmojiType(emoji),
-		},
-		Action: action,
+		MessageID:    msg.ID,
+		ReactionData: binary.MakeReactionData(emoji),
+		Action:       action,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send reaction: %w", err)
@@ -1300,6 +1318,76 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		log.Err(err).Msg("Failed to save reaction from Matrix to database")
 	}
 	return nil
+}
+
+func (portal *Portal) HandleMatrixRedaction(sender *User, evt *event.Event) {
+	err := portal.handleMatrixRedaction(sender, evt)
+	go portal.sendMessageMetrics(evt, err, "Error sending", nil)
+}
+
+func (portal *Portal) handleMatrixMessageRedaction(ctx context.Context, sender *User, redacts id.EventID) error {
+	log := zerolog.Ctx(ctx)
+	msg, err := portal.bridge.DB.Message.GetByMXID(ctx, redacts)
+	if err != nil {
+		log.Err(err).Msg("Failed to get redaction target message")
+		return fmt.Errorf("failed to get event from database")
+	} else if msg == nil {
+		return errTargetNotFound
+	}
+	resp, err := sender.Client.Messages.Delete(msg.ID)
+	if err != nil {
+		return fmt.Errorf("failed to send message removal: %w", err)
+	} else if !resp.Success {
+		return fmt.Errorf("got non-success response")
+	}
+	err = msg.Delete(ctx)
+	if err != nil {
+		log.Err(err).Msg("Failed to delete message from database after Matrix redaction")
+	}
+	return nil
+}
+
+func (portal *Portal) handleMatrixReactionRedaction(ctx context.Context, sender *User, redacts id.EventID) error {
+	log := zerolog.Ctx(ctx)
+	existingReaction, err := portal.bridge.DB.Reaction.GetByMXID(ctx, redacts)
+	if err != nil {
+		log.Err(err).Msg("Failed to get redaction target reaction")
+		return fmt.Errorf("failed to get event from database")
+	} else if existingReaction == nil {
+		return errTargetNotFound
+	}
+
+	resp, err := sender.Client.Messages.React(&binary.SendReactionPayload{
+		MessageID:    existingReaction.MessageID,
+		ReactionData: binary.MakeReactionData(existingReaction.Reaction),
+		Action:       binary.Reaction_REMOVE,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send reaction removal: %w", err)
+	} else if !resp.Success {
+		return fmt.Errorf("got non-success response")
+	}
+	err = existingReaction.Delete(ctx)
+	if err != nil {
+		log.Err(err).Msg("Failed to remove reaction from database after Matrix redaction")
+	}
+	return nil
+}
+
+func (portal *Portal) handleMatrixRedaction(sender *User, evt *event.Event) error {
+	log := portal.zlog.With().
+		Str("event_id", evt.ID.String()).
+		Str("target_event_id", evt.Redacts.String()).
+		Str("action", "handle matrix redaction").
+		Logger()
+	ctx := log.WithContext(context.TODO())
+	log.Debug().Msg("Handling Matrix redaction")
+
+	err := portal.handleMatrixMessageRedaction(ctx, sender, evt.Redacts)
+	if err == errTargetNotFound {
+		err = portal.handleMatrixReactionRedaction(ctx, sender, evt.Redacts)
+	}
+	return err
 }
 
 func (portal *Portal) Delete() {

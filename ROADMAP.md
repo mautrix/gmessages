@@ -7,6 +7,7 @@
   * [x] Reactions (RCS)
   * [ ] Typing notifications (RCS)
   * [ ] Read receipts (RCS)
+  * [x] Message deletions (own device only)
 * Google Messages → Matrix
   * [ ] Message content
     * [x] Plain text
@@ -15,6 +16,7 @@
   * [x] Reactions (RCS)
   * [ ] Typing notifications (RCS)
   * [ ] Read receipts (RCS)
+  * [x] Message deletions (own device only)
 * Misc
   * [x] Automatic portal creation
     * [x] After login

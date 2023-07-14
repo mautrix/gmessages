@@ -79,3 +79,10 @@ func UnicodeToEmojiType(emoji string) EmojiType {
 		return EmojiType_CUSTOM
 	}
 }
+
+func MakeReactionData(emoji string) *ReactionData {
+	return &ReactionData{
+		Unicode: emoji,
+		Type:    UnicodeToEmojiType(emoji),
+	}
+}
