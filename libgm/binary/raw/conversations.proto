@@ -165,6 +165,7 @@ message Conversation {
     string name = 2;
     LatestMessage latestMessage = 4;
     int64 lastMessageTimestamp = 5;
+    bool unread = 6;
 
     bool isGroupChat = 10; // not certain
     string selfParticipantID = 11;
@@ -177,6 +178,7 @@ message Conversation {
     repeated string otherParticipants = 21; // participant ids excluding me
     ConversationType type = 22;
     bool subType = 24;
+    int64 unknownTimestamp = 28; // set to lastMessageTimestamp + 1000 when marking as unread?
     bool thirdType = 29;
 }
 

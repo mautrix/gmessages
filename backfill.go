@@ -32,7 +32,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/database"
 )
 
-func (portal *Portal) initialForwardBackfill(user *User) {
+func (portal *Portal) initialForwardBackfill(user *User, markRead bool) {
 	// This is only called from CreateMatrixRoom which locks forwardBackfillLock
 	defer portal.forwardBackfillLock.Unlock()
 	log := portal.zlog.With().
@@ -40,10 +40,10 @@ func (portal *Portal) initialForwardBackfill(user *User) {
 		Logger()
 	ctx := log.WithContext(context.TODO())
 
-	portal.forwardBackfill(ctx, user, time.Time{}, 50)
+	portal.forwardBackfill(ctx, user, time.Time{}, 50, markRead)
 }
 
-func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string) {
+func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead bool) {
 	portal.forwardBackfillLock.Lock()
 	defer portal.forwardBackfillLock.Unlock()
 	log := portal.zlog.With().
@@ -76,7 +76,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("latest_message_id", lastMessageID).
 		Time("last_bridged_ts", portal.lastMessageTS).
 		Msg("Backfilling missed messages")
-	portal.forwardBackfill(ctx, user, portal.lastMessageTS, 100)
+	portal.forwardBackfill(ctx, user, portal.lastMessageTS, 100, markRead)
 }
 
 func (portal *Portal) deterministicEventID(messageID string, part int) id.EventID {
@@ -85,7 +85,7 @@ func (portal *Portal) deterministicEventID(messageID string, part int) id.EventI
 	return id.EventID(fmt.Sprintf("$%s:messages.google.com", base64.RawURLEncoding.EncodeToString(sum[:])))
 }
 
-func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int64) {
+func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int64, markRead bool) {
 	log := zerolog.Ctx(ctx)
 	resp, err := user.Client.Conversations.FetchMessages(portal.ID, limit, nil)
 	if err != nil {
@@ -126,14 +126,24 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 		Msg("Converted messages for backfill")
 
 	if batchSending {
-		portal.backfillSendBatch(ctx, converted)
+		var markReadBy id.UserID
+		if markRead {
+			markReadBy = user.MXID
+		}
+		portal.backfillSendBatch(ctx, converted, markReadBy)
 	} else {
-		portal.backfillSendLegacy(ctx, converted)
+		lastEventID := portal.backfillSendLegacy(ctx, converted)
+		if markRead && user.DoublePuppetIntent != nil {
+			err = user.DoublePuppetIntent.MarkRead(portal.MXID, lastEventID)
+			if err != nil {
+				log.Err(err).Msg("Failed to mark room as read after backfill")
+			}
+		}
 	}
 	portal.lastMessageTS = maxTS
 }
 
-func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*ConvertedMessage) {
+func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*ConvertedMessage, markReadBy id.UserID) {
 	log := zerolog.Ctx(ctx)
 	events := make([]*event.Event, 0, len(converted))
 	dbMessages := make([]*database.Message, 0, len(converted))
@@ -176,7 +186,7 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 	}
 	_, err := portal.MainIntent().BeeperBatchSend(portal.MXID, &mautrix.ReqBeeperBatchSend{
 		Forward:    true,
-		MarkReadBy: "",
+		MarkReadBy: markReadBy,
 		Events:     events,
 	})
 	if err != nil {
@@ -189,8 +199,9 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 	}
 }
 
-func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*ConvertedMessage) {
+func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*ConvertedMessage) id.EventID {
 	log := zerolog.Ctx(ctx)
+	var lastEventID id.EventID
 	eventIDs := make(map[string]id.EventID)
 	for _, msg := range converted {
 		var eventID id.EventID
@@ -210,9 +221,13 @@ func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*Conve
 				eventID = resp.EventID
 				eventIDs[msg.ID] = resp.EventID
 			}
+			if resp != nil {
+				lastEventID = resp.EventID
+			}
 		}
 		if eventID != "" {
 			portal.markHandled(msg, eventID, false)
 		}
 	}
+	return lastEventID
 }

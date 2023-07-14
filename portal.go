@@ -1048,7 +1048,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *binary.Conversation) er
 		portal.ensureUserInvited(user)
 	}
 	user.syncChatDoublePuppetDetails(portal, conv, true)
-	go portal.initialForwardBackfill(user)
+	go portal.initialForwardBackfill(user, !conv.GetUnread())
 	go portal.addToPersonalSpace(user, true)
 	return nil
 }
