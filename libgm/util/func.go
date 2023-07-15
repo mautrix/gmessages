@@ -177,11 +177,11 @@ func ParseConfigVersion(res []byte) (*binary.ConfigVersion, error) {
 	}
 
 	configMessage := &binary.ConfigVersion{
-		V1: int32(first),
-		V2: int32(second),
-		V3: int32(third),
-		V4: 4,
-		V5: 6,
+		Year:  int32(first),
+		Month: int32(second),
+		Day:   int32(third),
+		V1:    4,
+		V2:    6,
 	}
 	return configMessage, nil
 }

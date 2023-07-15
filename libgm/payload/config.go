@@ -5,13 +5,12 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-// 202306220406
 var ConfigMessage = &binary.ConfigVersion{
-	V1: 2023,
-	V2: 7,
-	V3: 10,
-	V4: 4,
-	V5: 6,
+	Year:  2023,
+	Month: 7,
+	Day:   10,
+	V1:    4,
+	V2:    6,
 }
 var Network = "Bugle"
 var BrowserDetailsMessage = &binary.BrowserDetails{

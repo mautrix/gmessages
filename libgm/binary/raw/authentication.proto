@@ -51,7 +51,7 @@ message CurrentDeviceData {
     messages.Device browser = 1;
 }
 
-message UrlData {
+message URLData {
     bytes pairingKey = 1;
     bytes AESKey = 2;
     bytes HMACKey = 3;

@@ -31,23 +31,17 @@ message InternalMessageData {
     string responseID = 1;
     BugleRoute bugleRoute = 2;
     string startExecute = 3;
-    //bytes unknown4 = 4;
+
     MessageType messageType = 5;
     string finishExecute = 6;
     string millisecondsTaken = 7;
     Device mobile = 8;
     Device browser = 9;
-    //bytes unknown5 = 10;
-    //bytes unknown6 = 11;
+
     bytes protobufData = 12;
-    //bytes unknown7 = 13;
-    //bytes unknown8 = 14;
-    //bytes unknown9 = 15;
-    //bytes unknown10 = 16;
+
     string signatureID = 17;
-    //bytes unknown11 = 18;
-    //bytes unknown12 = 19;
-    //bytes unknown13 = 20;
+
     string timestamp = 21;
 }
 
@@ -65,20 +59,15 @@ message SendMessage {
     Device mobile = 1;
     SendMessageData messageData = 2;
     SendMessageAuth messageAuth = 3;
-    //bytes unknown1 = 4;
+
     int64 TTL = 5; // might be something related to config
-    //bytes unknown2 = 6;
-    //bytes unknown3 = 7;
-    //bytes unknown4 = 8;
+
     EmptyArr emptyArr = 9;
 }
 
 message SendMessageAuth {
     string requestID = 1;
-    //bytes unknown1 = 2;
-    //bytes unknown2 = 3;
-    //bytes unknown3 = 4;
-    //bytes unknown4 = 5;
+
     bytes tachyonAuthToken = 6;
     ConfigVersion configVersion = 7;
 }
@@ -101,26 +90,9 @@ encodedData = {
 message SendMessageData {
    string requestID = 1;
    BugleRoute bugleRoute = 2;
-   //bytes unknown1 = 3;
-   //bytes unknown2 = 4;
-   //bytes unknown3 = 5;
-   //bytes unknown4 = 6;
-   //bytes unknown5 = 7;
-   //bytes unknown6 = 8;
-   //bytes unknown7 = 9;
-   //bytes unknown8 = 10;
-   //bytes unknown9 = 11;
+
    bytes protobufData = 12;
-    //bytes unknown10 = 13;
-   //bytes unknown11 = 14;
-   //bytes unknown12 = 15;
-   //bytes unknown13 = 16;
-   //bytes unknown14 = 17;
-   //bytes unknown15 = 18;
-   //bytes unknown16 = 19;
-   //bytes unknown17 = 20;
-   //bytes unknown18 = 21;
-   //bytes unknown19 = 22;
+
    MessageTypeData messageTypeData = 23;
 }
 
@@ -178,11 +150,11 @@ enum EventType {
 */
 
 message ConfigVersion {
-    int32 V1 = 3;
-    int32 V2 = 4;
-    int32 V3 = 5;
-    int32 V4 = 7;
-    int32 V5 = 9;
+    int32 Year = 3;
+    int32 Month = 4;
+    int32 Day = 5;
+    int32 V1 = 7;
+    int32 V2 = 9;
 }
 
 enum ActionType {

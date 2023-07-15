@@ -487,7 +487,7 @@ func (x *CurrentDeviceData) GetBrowser() *Device {
 	return nil
 }
 
-type UrlData struct {
+type URLData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -497,8 +497,8 @@ type UrlData struct {
 	HMACKey    []byte `protobuf:"bytes,3,opt,name=HMACKey,proto3" json:"HMACKey,omitempty"`
 }
 
-func (x *UrlData) Reset() {
-	*x = UrlData{}
+func (x *URLData) Reset() {
+	*x = URLData{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_authentication_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -506,13 +506,13 @@ func (x *UrlData) Reset() {
 	}
 }
 
-func (x *UrlData) String() string {
+func (x *URLData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UrlData) ProtoMessage() {}
+func (*URLData) ProtoMessage() {}
 
-func (x *UrlData) ProtoReflect() protoreflect.Message {
+func (x *URLData) ProtoReflect() protoreflect.Message {
 	mi := &file_authentication_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -524,26 +524,26 @@ func (x *UrlData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UrlData.ProtoReflect.Descriptor instead.
-func (*UrlData) Descriptor() ([]byte, []int) {
+// Deprecated: Use URLData.ProtoReflect.Descriptor instead.
+func (*URLData) Descriptor() ([]byte, []int) {
 	return file_authentication_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *UrlData) GetPairingKey() []byte {
+func (x *URLData) GetPairingKey() []byte {
 	if x != nil {
 		return x.PairingKey
 	}
 	return nil
 }
 
-func (x *UrlData) GetAESKey() []byte {
+func (x *URLData) GetAESKey() []byte {
 	if x != nil {
 		return x.AESKey
 	}
 	return nil
 }
 
-func (x *UrlData) GetHMACKey() []byte {
+func (x *URLData) GetHMACKey() []byte {
 	if x != nil {
 		return x.HMACKey
 	}
@@ -789,8 +789,8 @@ var file_authentication_proto_rawDesc = []byte{
 	0x72, 0x65, 0x6e, 0x74, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x44, 0x61, 0x74, 0x61, 0x12, 0x2a,
 	0x0a, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x10, 0x2e, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x73, 0x2e, 0x44, 0x65, 0x76, 0x69, 0x63,
-	0x65, 0x52, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65, 0x72, 0x22, 0x5b, 0x0a, 0x07, 0x55, 0x72,
-	0x6c, 0x44, 0x61, 0x74, 0x61, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x61, 0x69, 0x72, 0x69, 0x6e, 0x67,
+	0x65, 0x52, 0x07, 0x62, 0x72, 0x6f, 0x77, 0x73, 0x65, 0x72, 0x22, 0x5b, 0x0a, 0x07, 0x55, 0x52,
+	0x4c, 0x44, 0x61, 0x74, 0x61, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x61, 0x69, 0x72, 0x69, 0x6e, 0x67,
 	0x4b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0a, 0x70, 0x61, 0x69, 0x72, 0x69,
 	0x6e, 0x67, 0x4b, 0x65, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x41, 0x45, 0x53, 0x4b, 0x65, 0x79, 0x18,
 	0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x41, 0x45, 0x53, 0x4b, 0x65, 0x79, 0x12, 0x18, 0x0a,
@@ -840,7 +840,7 @@ var file_authentication_proto_goTypes = []interface{}{
 	(*KeyData)(nil),                 // 4: authentication.KeyData
 	(*WebAuthKey)(nil),              // 5: authentication.WebAuthKey
 	(*CurrentDeviceData)(nil),       // 6: authentication.CurrentDeviceData
-	(*UrlData)(nil),                 // 7: authentication.UrlData
+	(*URLData)(nil),                 // 7: authentication.URLData
 	(*TokenData)(nil),               // 8: authentication.TokenData
 	(*PairedData)(nil),              // 9: authentication.PairedData
 	(*RevokePairData)(nil),          // 10: authentication.RevokePairData
@@ -964,7 +964,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UrlData); i {
+			switch v := v.(*URLData); i {
 			case 0:
 				return &v.state
 			case 1:

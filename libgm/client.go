@@ -270,7 +270,7 @@ func (c *Client) FetchConfigVersion() {
 	}
 
 	currVersion := payload.ConfigMessage
-	if version.V1 != currVersion.V1 || version.V2 != currVersion.V2 || version.V3 != currVersion.V3 {
+	if version.Year != currVersion.Year || version.Month != currVersion.Month || version.Day != currVersion.Day {
 		toLog := c.diffVersionFormat(currVersion, version)
 		c.Logger.Info().Any("version", toLog).Msg("There's a new version available!")
 	} else {
@@ -279,7 +279,7 @@ func (c *Client) FetchConfigVersion() {
 }
 
 func (c *Client) diffVersionFormat(curr *binary.ConfigVersion, latest *binary.ConfigVersion) string {
-	return fmt.Sprintf("%d.%d.%d -> %d.%d.%d", curr.V1, curr.V2, curr.V3, latest.V1, latest.V2, latest.V3)
+	return fmt.Sprintf("%d.%d.%d -> %d.%d.%d", curr.Year, curr.Month, curr.Day, latest.Year, latest.Month, latest.Day)
 }
 
 func (c *Client) updateWebEncryptionKey(key []byte) {
@@ -338,7 +338,6 @@ func (c *Client) RefreshAuthToken() error {
 }
 
 func (c *Client) refreshAuthToken() error {
-
 	jwk := c.authData.JWK
 	requestId := util.RandomUUIDv4()
 	timestamp := time.Now().UnixMilli() * 1000
