@@ -50,7 +50,7 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		p.client.Logger.Err(err)
 		return &binary.RegisterPhoneRelayResponse{}, err
 	}
-	relayResponse, reqErr := p.client.MakeRelayRequest(util.REGISTER_PHONE_RELAY, body)
+	relayResponse, reqErr := p.client.MakeRelayRequest(util.RegisterPhoneRelayURL, body)
 	if reqErr != nil {
 		p.client.Logger.Err(reqErr)
 		return nil, err
@@ -102,7 +102,7 @@ func (p *Pairer) RefreshPhoneRelay() {
 		p.client.Logger.Err(err).Msg("refresh phone relay err")
 		return
 	}
-	relayResponse, reqErr := p.client.MakeRelayRequest(util.REFRESH_PHONE_RELAY, body)
+	relayResponse, reqErr := p.client.MakeRelayRequest(util.RefreshPhoneRelayURL, body)
 	if reqErr != nil {
 		p.client.Logger.Err(reqErr).Msg("refresh phone relay err")
 	}
@@ -137,7 +137,7 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	webKeyResponse, err := c.MakeRelayRequest(util.GET_WEB_ENCRYPTION_KEY, body)
+	webKeyResponse, err := c.MakeRelayRequest(util.GetWebEncryptionKeyURL, body)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	revokeResp, err := c.MakeRelayRequest(util.REVOKE_RELAY_PAIRING, payload)
+	revokeResp, err := c.MakeRelayRequest(util.RevokeRelayPairingURL, payload)
 	if err != nil {
 		return nil, err
 	}

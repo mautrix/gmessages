@@ -88,7 +88,7 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 		return nil, buildPayloadErr
 	}
 
-	req, reqErr := http.NewRequest("POST", util.UPLOAD_MEDIA, bytes.NewBuffer([]byte(startUploadPayload)))
+	req, reqErr := http.NewRequest("POST", util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
 	if reqErr != nil {
 		return nil, reqErr
 	}

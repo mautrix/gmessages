@@ -41,7 +41,7 @@ func (s *SessionHandler) sendMessageNoResponse(actionType binary.ActionType, enc
 		return err
 	}
 
-	_, err = s.client.rpc.sendMessageRequest(util.SEND_MESSAGE, payload)
+	_, err = s.client.rpc.sendMessageRequest(util.SendMessageURL, payload)
 	return err
 }
 
@@ -52,7 +52,7 @@ func (s *SessionHandler) sendAsyncMessage(actionType binary.ActionType, encrypte
 	}
 
 	ch := s.waitResponse(requestID)
-	_, reqErr := s.client.rpc.sendMessageRequest(util.SEND_MESSAGE, payload)
+	_, reqErr := s.client.rpc.sendMessageRequest(util.SendMessageURL, payload)
 	if reqErr != nil {
 		s.cancelResponse(requestID, ch)
 		return nil, reqErr
@@ -157,7 +157,7 @@ func (s *SessionHandler) sendAckRequest() {
 	if err != nil {
 		panic(err)
 	}
-	_, err = s.client.rpc.sendMessageRequest(util.ACK_MESSAGES, jsonData)
+	_, err = s.client.rpc.sendMessageRequest(util.AckMessagesURL, jsonData)
 	if err != nil {
 		panic(err)
 	}

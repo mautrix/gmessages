@@ -212,7 +212,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 		return nil, err2
 	}
 	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
-	req, err := http.NewRequest("GET", util.UPLOAD_MEDIA, nil)
+	req, err := http.NewRequest("GET", util.UploadMediaURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	if reqErr != nil {
 		return nil, reqErr
 	}
-	c.Logger.Info().Any("url", util.UPLOAD_MEDIA).Any("headers", res.Request.Header).Msg("Decrypt Image Headers")
+	c.Logger.Info().Any("url", util.UploadMediaURL).Any("headers", res.Request.Header).Msg("Decrypt Image Headers")
 	defer res.Body.Close()
 	encryptedBuffImg, err3 := io.ReadAll(res.Body)
 	if err3 != nil {
@@ -240,7 +240,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 }
 
 func (c *Client) FetchConfigVersion() {
-	req, bErr := http.NewRequest("GET", util.CONFIG_URL, nil)
+	req, bErr := http.NewRequest("GET", util.ConfigUrl, nil)
 	if bErr != nil {
 		panic(bErr)
 	}
@@ -345,7 +345,7 @@ func (c *Client) refreshAuthToken() error {
 
 	c.Logger.Info().Any("payload", string(payloadMessage)).Msg("Attempting to refresh auth token")
 
-	refreshResponse, requestErr := c.rpc.sendMessageRequest(util.REGISTER_REFRESH, payloadMessage)
+	refreshResponse, requestErr := c.rpc.sendMessageRequest(util.RegisterRefreshURL, payloadMessage)
 	if requestErr != nil {
 		return requestErr
 	}

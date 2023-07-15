@@ -49,7 +49,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 			}
 		}
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
-		req, err := http.NewRequest("POST", util.RECEIVE_MESSAGES, bytes.NewReader(payload))
+		req, err := http.NewRequest("POST", util.ReceiveMessagesURL, bytes.NewReader(payload))
 		if err != nil {
 			panic(fmt.Errorf("Error creating request: %v", err))
 		}

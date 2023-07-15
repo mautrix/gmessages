@@ -1,26 +1,26 @@
 package util
 
-var MESSAGES_GOOGLE_BASE_URL = "https://messages.google.com"
+const messagesBaseURL = "https://messages.google.com"
 
-var MESSAGES_GOOGLE_AUTHENTICATION = MESSAGES_GOOGLE_BASE_URL + "/web/authentication"
-var MESSAGES_GOOGLE_TIMESOURCE = MESSAGES_GOOGLE_BASE_URL + "/web/timesource"
+const GoogleAuthenticationURL = messagesBaseURL + "/web/authentication"
+const GoogleTimesourceURL = messagesBaseURL + "/web/timesource"
 
-var INSTANT_MESSAGING = "https://instantmessaging-pa.googleapis.com"
+const instantMessangingBaseURL = "https://instantmessaging-pa.googleapis.com"
 
-var UPLOAD_MEDIA = INSTANT_MESSAGING + "/upload"
+const UploadMediaURL = instantMessangingBaseURL + "/upload"
 
-var PAIRING = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instantmessaging.v1.Pairing"
-var REGISTER_PHONE_RELAY = PAIRING + "/RegisterPhoneRelay"
-var REFRESH_PHONE_RELAY = PAIRING + "/RefreshPhoneRelay"
-var GET_WEB_ENCRYPTION_KEY = PAIRING + "/GetWebEncryptionKey"
-var REVOKE_RELAY_PAIRING = PAIRING + "/RevokeRelayPairing"
+const pairingBaseURL = instantMessangingBaseURL + "/$rpc/google.internal.communications.instantmessaging.v1.Pairing"
+const RegisterPhoneRelayURL = pairingBaseURL + "/RegisterPhoneRelay"
+const RefreshPhoneRelayURL = pairingBaseURL + "/RefreshPhoneRelay"
+const GetWebEncryptionKeyURL = pairingBaseURL + "/GetWebEncryptionKey"
+const RevokeRelayPairingURL = pairingBaseURL + "/RevokeRelayPairing"
 
-var MESSAGING = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instantmessaging.v1.Messaging"
-var RECEIVE_MESSAGES = MESSAGING + "/ReceiveMessages"
-var SEND_MESSAGE = MESSAGING + "/SendMessage"
-var ACK_MESSAGES = MESSAGING + "/AckMessages"
+const messagingBaseURL = instantMessangingBaseURL + "/$rpc/google.internal.communications.instantmessaging.v1.Messaging"
+const ReceiveMessagesURL = messagingBaseURL + "/ReceiveMessages"
+const SendMessageURL = messagingBaseURL + "/SendMessage"
+const AckMessagesURL = messagingBaseURL + "/AckMessages"
 
-var REGISTRATION = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instantmessaging.v1.Registration"
-var REGISTER_REFRESH = REGISTRATION + "/RegisterRefresh"
+const registrationBaseURL = instantMessangingBaseURL + "/$rpc/google.internal.communications.instantmessaging.v1.Registration"
+const RegisterRefreshURL = registrationBaseURL + "/RegisterRefresh"
 
-var CONFIG_URL = "https://messages.google.com/web/config"
+const ConfigUrl = "https://messages.google.com/web/config"
