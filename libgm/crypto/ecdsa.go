@@ -4,7 +4,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"math/big"
 )
 
@@ -68,6 +70,17 @@ func (t *JWK) MarshalPubKey() ([]byte, error) {
 		return nil, err
 	}
 	return elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y), nil
+}
+
+func (t *JWK) SignRequest(requestID string, timestamp int64) ([]byte, error) {
+	signBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", requestID, timestamp)))
+
+	privKey, privErr := t.GetPrivateKey()
+	if privErr != nil {
+		return nil, privErr
+	}
+
+	return ecdsa.SignASN1(rand.Reader, privKey, signBytes[:])
 }
 
 // GenerateECDSAKey generates a new ECDSA private key with P-256 curve

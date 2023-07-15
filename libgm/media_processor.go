@@ -2,13 +2,15 @@ package libgm
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -58,7 +60,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	defer res.Body.Close()
 
 	rHeaders := res.Header
-	googleResponse, err3 := io.ReadAll(res.Body)
+	googleResponse, err3 := io.ReadAll(base64.NewDecoder(base64.StdEncoding, res.Body))
 	if err3 != nil {
 		return nil, err3
 	}
@@ -67,7 +69,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	c.Logger.Debug().Str("upload_status", uploadStatus).Msg("Upload complete")
 
 	mediaIDs := &binary.UploadMediaResponse{}
-	err3 = crypto.DecodeAndEncodeB64(string(googleResponse), mediaIDs)
+	err3 = proto.Unmarshal(googleResponse, mediaIDs)
 	if err3 != nil {
 		return nil, err3
 	}
@@ -135,10 +137,11 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 		Mobile: c.authData.DevicePair.Mobile,
 	}
 
-	protoDataEncoded, protoEncodeErr := crypto.EncodeProtoB64(protoData)
-	if protoEncodeErr != nil {
-		return "", protoEncodeErr
+	protoDataBytes, err := proto.Marshal(protoData)
+	if err != nil {
+		return "", err
 	}
+	protoDataEncoded := base64.StdEncoding.EncodeToString(protoDataBytes)
 
 	return protoDataEncoded, nil
 }

@@ -1,6 +1,8 @@
 package payload
 
 import (
+	"google.golang.org/protobuf/proto"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
@@ -30,7 +32,7 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContaine
 			},
 		},
 	}
-	encoded, err4 := binary.EncodeProtoMessage(payloadData)
+	encoded, err4 := proto.Marshal(payloadData)
 	if err4 != nil {
 		return nil, payloadData, err4
 	}

@@ -1,13 +1,5 @@
 package crypto
 
-import (
-	"encoding/base64"
-
-	"google.golang.org/protobuf/proto"
-
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
-)
-
 var SequenceOne = []int{1, 2, 840, 10045, 2, 1}
 var SequenceTwo = []int{1, 2, 840, 10045, 3, 1, 7}
 
@@ -50,13 +42,4 @@ func AppendByteSequence(byteArr1 []byte, byteArr2 []byte, uncompressedPublicKey 
 	copiedByteArray = HelperAppendBytes(copiedByteArray, uint8(len(uncompressedPublicKey)+1))
 	copiedByteArray = HelperAppendBytes(copiedByteArray, 0)
 	return copiedByteArray
-}
-
-func EncodeProtoB64(message proto.Message) (string, error) {
-	protoBytes, protoErr := binary.EncodeProtoMessage(message)
-	if protoErr != nil {
-		return "", protoErr
-	}
-	encodedStr := base64.StdEncoding.EncodeToString(protoBytes)
-	return encodedStr, nil
 }

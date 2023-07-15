@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
@@ -208,7 +209,7 @@ func (c *Client) setApiMethods() {
 
 func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	reqId := util.RandomUUIDv4()
-	download_metadata := &binary.UploadImagePayload{
+	downloadMetadata := &binary.UploadImagePayload{
 		MetaData: &binary.ImageMetaData{
 			ImageID:   mediaID,
 			Encrypted: true,
@@ -219,16 +220,16 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 			ConfigVersion:    payload.ConfigMessage,
 		},
 	}
-	download_metadata_bytes, err2 := binary.EncodeProtoMessage(download_metadata)
+	downloadMetadataBytes, err2 := proto.Marshal(downloadMetadata)
 	if err2 != nil {
 		return nil, err2
 	}
-	download_metadata_b64 := base64.StdEncoding.EncodeToString(download_metadata_bytes)
+	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
 	req, err := http.NewRequest("GET", util.UPLOAD_MEDIA, nil)
 	if err != nil {
 		return nil, err
 	}
-	util.BuildUploadHeaders(req, download_metadata_b64)
+	util.BuildUploadHeaders(req, downloadMetadataEncoded)
 	res, reqErr := c.http.Do(req)
 	if reqErr != nil {
 		return nil, reqErr

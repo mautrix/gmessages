@@ -8,10 +8,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"io"
-
-	"google.golang.org/protobuf/proto"
-
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 type Cryptor struct {
@@ -86,18 +82,4 @@ func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	stream.XORKeyStream(encryptedDataWithoutHMAC, encryptedDataWithoutHMAC)
 
 	return encryptedDataWithoutHMAC, nil
-}
-
-func (c *Cryptor) EncodeAndEncryptData(message proto.Message) ([]byte, error) {
-	encodedData, encodeErr := binary.EncodeProtoMessage(message)
-	if encodeErr != nil {
-		return nil, encodeErr
-	}
-
-	encryptedData, encryptErr := c.Encrypt(encodedData)
-	if encryptErr != nil {
-		return nil, encryptErr
-	}
-
-	return encryptedData, nil
 }

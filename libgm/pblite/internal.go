@@ -44,14 +44,14 @@ func DecryptInternalMessage(internalMessage *binary.InternalMessage, cryptor *cr
 	switch internalMessage.Data.BugleRoute {
 	case binary.BugleRoute_PairEvent:
 		decodedData := &binary.PairEvents{}
-		decodeErr := binary.DecodeProtoMessage(internalMessage.Data.ProtobufData, decodedData)
+		decodeErr := proto.Unmarshal(internalMessage.Data.ProtobufData, decodedData)
 		if decodeErr != nil {
 			return nil, decodeErr
 		}
 		resp = newResponseFromPairEvent(internalMessage.GetData(), decodedData)
 	case binary.BugleRoute_DataEvent:
 		internalRequestData := &binary.InternalRequestData{}
-		decodeErr := binary.DecodeProtoMessage(internalMessage.Data.ProtobufData, internalRequestData)
+		decodeErr := proto.Unmarshal(internalMessage.Data.ProtobufData, internalRequestData)
 		if decodeErr != nil {
 			return nil, decodeErr
 		}

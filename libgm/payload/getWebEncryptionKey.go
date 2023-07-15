@@ -1,6 +1,8 @@
 package payload
 
 import (
+	"google.golang.org/protobuf/proto"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -14,7 +16,7 @@ func GetWebEncryptionKey(WebPairKey []byte) ([]byte, *binary.AuthenticationConta
 			ConfigVersion:    ConfigMessage,
 		},
 	}
-	encodedPayload, err2 := binary.EncodeProtoMessage(payload)
+	encodedPayload, err2 := proto.Marshal(payload)
 	if err2 != nil {
 		return nil, payload, err2
 	}

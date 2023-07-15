@@ -4,6 +4,8 @@ import (
 	"io"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
@@ -59,7 +61,7 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 	}
 	relayResponse.Body.Close()
 	res := &binary.RegisterPhoneRelayResponse{}
-	err3 := binary.DecodeProtoMessage(responseBody, res)
+	err3 := proto.Unmarshal(responseBody, res)
 	if err3 != nil {
 		return nil, err3
 	}
@@ -105,7 +107,7 @@ func (p *Pairer) RefreshPhoneRelay() {
 	}
 	p.client.Logger.Debug().Any("responseLength", len(responseBody)).Msg("Response Body Length")
 	res := &binary.RefreshPhoneRelayResponse{}
-	err3 := binary.DecodeProtoMessage(responseBody, res)
+	err3 := proto.Unmarshal(responseBody, res)
 	if err3 != nil {
 		p.client.Logger.Err(err3)
 	}
@@ -138,7 +140,7 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 	}
 	//p.client.Logger.Debug().Any("responseLength", len(responseBody)).Any("raw", responseBody).Msg("Response Body Length")
 	parsedResponse := &binary.WebEncryptionKeyResponse{}
-	err2 = binary.DecodeProtoMessage(responseBody, parsedResponse)
+	err2 = proto.Unmarshal(responseBody, parsedResponse)
 	if err2 != nil {
 		c.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
 		return nil, err2
