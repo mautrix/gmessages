@@ -24,6 +24,7 @@ type RPC struct {
 	client       *Client
 	http         *http.Client
 	conn         io.ReadCloser
+	stopping     bool
 	rpcSessionId string
 	listenID     int
 
@@ -105,6 +106,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 */
 
 func (r *RPC) startReadingData(rc io.ReadCloser) {
+	r.stopping = false
 	defer rc.Close()
 	reader := bufio.NewReader(rc)
 	buf := make([]byte, 2621440)
@@ -122,7 +124,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		n, err = reader.Read(buf)
 		if err != nil {
 			var logEvt *zerolog.Event
-			if errors.Is(err, io.EOF) && expectEOF {
+			if (errors.Is(err, io.EOF) && expectEOF) || r.stopping {
 				logEvt = r.client.Logger.Debug()
 			} else {
 				logEvt = r.client.Logger.Warn()
@@ -174,7 +176,8 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 
 func (r *RPC) CloseConnection() {
 	if r.conn != nil {
-		r.client.Logger.Debug().Msg("Attempting to connection...")
+		r.client.Logger.Debug().Msg("Closing connection manually")
+		r.stopping = true
 		r.conn.Close()
 		r.conn = nil
 	}
