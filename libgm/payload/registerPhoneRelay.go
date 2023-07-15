@@ -11,9 +11,9 @@ import (
 func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContainer, error) {
 	id := util.RandomUUIDv4()
 
-	encryptedKeys, encryptErr := uncompressKey(jwk)
-	if encryptErr != nil {
-		return nil, nil, encryptErr
+	key, err := jwk.MarshalX509PublicKey()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	payloadData := &binary.AuthenticationContainer{
@@ -27,7 +27,7 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContaine
 			KeyData: &binary.KeyData{
 				EcdsaKeys: &binary.ECDSAKeys{
 					Field1:        2,
-					EncryptedKeys: encryptedKeys,
+					EncryptedKeys: key,
 				},
 			},
 		},
@@ -37,24 +37,4 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContaine
 		return nil, payloadData, err4
 	}
 	return encoded, payloadData, nil
-}
-
-func uncompressKey(jwk *crypto.JWK) ([]byte, error) {
-	uncompressedPublicKey, err3 := jwk.MarshalPubKey()
-	if err3 != nil {
-		return nil, err3
-	}
-	var emptyByteArray []byte
-	crypto.EncodeValues(&emptyByteArray, crypto.SequenceOne)
-	crypto.EncodeValues(&emptyByteArray, crypto.SequenceTwo)
-
-	var copiedByteArray []byte
-	copiedByteArray = crypto.AppendByteSequence(copiedByteArray, emptyByteArray, uncompressedPublicKey)
-	for _, value := range uncompressedPublicKey {
-		copiedByteArray = crypto.HelperAppendBytes(copiedByteArray, value)
-	}
-
-	var encryptedKeys []byte
-	encryptedKeys = crypto.AppendBytes(encryptedKeys, copiedByteArray[0:])
-	return encryptedKeys, nil
 }

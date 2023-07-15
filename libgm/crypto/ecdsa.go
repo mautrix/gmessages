@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -64,12 +65,12 @@ func (t *JWK) GetPublicKey() (*ecdsa.PublicKey, error) {
 	return pubKey, nil
 }
 
-func (t *JWK) MarshalPubKey() ([]byte, error) {
+func (t *JWK) MarshalX509PublicKey() ([]byte, error) {
 	pubKey, err := t.GetPublicKey()
 	if err != nil {
 		return nil, err
 	}
-	return elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y), nil
+	return x509.MarshalPKIXPublicKey(pubKey)
 }
 
 func (t *JWK) SignRequest(requestID string, timestamp int64) ([]byte, error) {
