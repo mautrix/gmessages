@@ -82,7 +82,7 @@ func serializeOneOrList(fieldDescriptor protoreflect.FieldDescriptor, fieldValue
 func serializeOne(fieldDescriptor protoreflect.FieldDescriptor, fieldValue protoreflect.Value) (any, error) {
 	switch fieldDescriptor.Kind() {
 	case protoreflect.MessageKind:
-		serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
+		serializedMsg, err := SerializeToSlice(fieldValue.Message().Interface())
 		if err != nil {
 			return nil, err
 		}
@@ -106,21 +106,22 @@ func serializeOne(fieldDescriptor protoreflect.FieldDescriptor, fieldValue proto
 	}
 }
 
-func Serialize(m protoreflect.Message) ([]any, error) {
+func SerializeToSlice(msg proto.Message) ([]any, error) {
+	ref := msg.ProtoReflect()
 	maxFieldNumber := 0
-	for i := 0; i < m.Descriptor().Fields().Len(); i++ {
-		fieldNumber := int(m.Descriptor().Fields().Get(i).Number())
+	for i := 0; i < ref.Descriptor().Fields().Len(); i++ {
+		fieldNumber := int(ref.Descriptor().Fields().Get(i).Number())
 		if fieldNumber > maxFieldNumber {
 			maxFieldNumber = fieldNumber
 		}
 	}
 
 	serialized := make([]any, maxFieldNumber)
-	for i := 0; i < m.Descriptor().Fields().Len(); i++ {
-		fieldDescriptor := m.Descriptor().Fields().Get(i)
-		fieldValue := m.Get(fieldDescriptor)
+	for i := 0; i < ref.Descriptor().Fields().Len(); i++ {
+		fieldDescriptor := ref.Descriptor().Fields().Get(i)
+		fieldValue := ref.Get(fieldDescriptor)
 		fieldNumber := int(fieldDescriptor.Number())
-		if !m.Has(fieldDescriptor) {
+		if !ref.Has(fieldDescriptor) {
 			continue
 		}
 		serializedVal, err := serializeOneOrList(fieldDescriptor, fieldValue)
@@ -133,8 +134,8 @@ func Serialize(m protoreflect.Message) ([]any, error) {
 	return serialized, nil
 }
 
-func SerializeToJSON(m proto.Message) ([]byte, error) {
-	serialized, err := Serialize(m.ProtoReflect())
+func Marshal(m proto.Message) ([]byte, error) {
+	serialized, err := SerializeToSlice(m)
 	if err != nil {
 		return nil, err
 	}

@@ -1,8 +1,6 @@
 package payload
 
 import (
-	"encoding/json"
-
 	"github.com/google/uuid"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -20,11 +18,7 @@ func ReceiveMessages(rpcKey []byte) ([]byte, string, error) {
 			Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject1{},
 		},
 	}
-	data, err := pblite.Serialize(payload.ProtoReflect())
-	if err != nil {
-		return nil, "", err
-	}
-	jsonData, err := json.Marshal(data)
+	jsonData, err := pblite.Marshal(payload)
 	if err != nil {
 		return nil, "", err
 	}

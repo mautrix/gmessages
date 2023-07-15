@@ -142,7 +142,7 @@ func (s *SessionHandler) sendAckRequest() {
 		EmptyArr: &binary.EmptyArr{},
 		Acks:     ackMessages,
 	}
-	jsonData, err := pblite.SerializeToJSON(ackMessagePayload)
+	jsonData, err := pblite.Marshal(ackMessagePayload)
 	if err != nil {
 		panic(err)
 	}

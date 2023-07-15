@@ -1,7 +1,6 @@
 package payload
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"google.golang.org/protobuf/proto"
@@ -113,15 +112,11 @@ func (sm *SendMessageBuilder) Build() ([]byte, error) {
 	}
 	sm.message.MessageData.ProtobufData = encodedMessage
 
-	messageProtoJSON, serializeErr := pblite.Serialize(sm.message.ProtoReflect())
+	protoJSONBytes, serializeErr := pblite.Marshal(sm.message)
 	if serializeErr != nil {
 		panic(serializeErr)
 		return nil, serializeErr
 	}
 
-	protoJSONBytes, marshalErr := json.Marshal(messageProtoJSON)
-	if marshalErr != nil {
-		return nil, marshalErr
-	}
 	return protoJSONBytes, nil
 }

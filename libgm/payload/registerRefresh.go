@@ -1,8 +1,6 @@
 package payload
 
 import (
-	"encoding/json"
-
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 )
@@ -21,14 +19,9 @@ func RegisterRefresh(sig []byte, requestID string, timestamp int64, browser *bin
 		MessageType:       2, // hmm
 	}
 
-	serialized, serializeErr := pblite.Serialize(payload.ProtoReflect())
+	jsonMessage, serializeErr := pblite.Marshal(payload)
 	if serializeErr != nil {
 		return nil, serializeErr
-	}
-
-	jsonMessage, marshalErr := json.Marshal(serialized)
-	if marshalErr != nil {
-		return nil, marshalErr
 	}
 
 	return jsonMessage, nil
