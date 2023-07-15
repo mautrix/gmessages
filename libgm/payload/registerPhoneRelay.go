@@ -38,12 +38,7 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContaine
 }
 
 func uncompressKey(jwk *crypto.JWK) ([]byte, error) {
-	decodedPrivateKey, err2 := jwk.PrivKeyB64Bytes()
-	if err2 != nil {
-		return nil, err2
-	}
-	jwk.PrivateBytes = decodedPrivateKey
-	uncompressedPublicKey, err3 := jwk.UncompressPubKey()
+	uncompressedPublicKey, err3 := jwk.MarshalPubKey()
 	if err3 != nil {
 		return nil, err3
 	}

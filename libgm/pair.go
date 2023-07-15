@@ -25,7 +25,7 @@ refreshQrCodeTime is the interval to refresh the qr code in seconds, this is usu
 func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer, error) {
 	if keyData == nil {
 		var err error
-		keyData, err = crypto.GenerateECDSA_P256_JWK()
+		keyData, err = crypto.GenerateECDSAKey()
 		c.updateJWK(keyData)
 		if err != nil {
 			c.Logger.Error().Any("data", keyData).Msg(err.Error())
