@@ -109,9 +109,10 @@ message Message {
     repeated MessageInfo messageInfo = 10;
     int64 type = 11;
     string tmpID = 12;
+    optional string subject = 14;
     int64 someInt = 16;
     repeated reactions.ReactionResponse reactions = 19;
-    ReplyMessage replyMessage = 21;
+    optional ReplyMessage replyMessage = 21;
 }
 
 message ReplyMessage {

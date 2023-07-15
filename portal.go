@@ -562,6 +562,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 		}
 	}
 
+	subject := evt.GetSubject()
 	for _, part := range evt.MessageInfo {
 		var content event.MessageEventContent
 		switch data := part.GetData().(type) {
@@ -569,6 +570,12 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 			content = event.MessageEventContent{
 				MsgType: event.MsgText,
 				Body:    data.MessageContent.GetContent(),
+			}
+			if subject != "" {
+				content.Format = event.FormatHTML
+				content.FormattedBody = fmt.Sprintf("<strong>%s</strong><br>%s", event.TextToHTML(subject), event.TextToHTML(content.Body))
+				content.Body = fmt.Sprintf("**%s**\n%s", subject, content.Body)
+				subject = ""
 			}
 		case *binary.MessageInfo_MediaContent:
 			contentPtr, err := portal.convertGoogleMedia(source, cm.Intent, data.MediaContent)
@@ -587,6 +594,14 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 		}
 		cm.Parts = append(cm.Parts, ConvertedMessagePart{
 			Content: &content,
+		})
+	}
+	if subject != "" {
+		cm.Parts = append(cm.Parts, ConvertedMessagePart{
+			Content: &event.MessageEventContent{
+				MsgType: event.MsgText,
+				Body:    subject,
+			},
 		})
 	}
 	if portal.bridge.Config.Bridge.CaptionInMessage {
