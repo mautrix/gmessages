@@ -32,6 +32,13 @@ type Config struct {
 		Listen  string `yaml:"listen"`
 	} `yaml:"metrics"`
 
+	GoogleMessages struct {
+		OS      string `yaml:"os"`
+		Browser string `yaml:"browser"`
+
+		AggressiveReconnect bool `yaml:"aggressive_reconnect"`
+	} `yaml:"google_messages"`
+
 	Bridge BridgeConfig `yaml:"bridge"`
 }
 

@@ -28,6 +28,8 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/config"
 	"go.mau.fi/mautrix-gmessages/database"
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/payload"
 )
 
 // Information to find out exactly which commit the bridge was built from.
@@ -64,6 +66,14 @@ type GMBridge struct {
 func (br *GMBridge) Init() {
 	br.CommandProcessor = commands.NewProcessor(&br.Bridge)
 	br.RegisterCommands()
+
+	payload.BrowserDetailsMessage.Os = br.Config.GoogleMessages.OS
+	browserVal, ok := binary.BrowserTypes_value[br.Config.GoogleMessages.Browser]
+	if !ok {
+		br.ZLog.Error().Str("browser_value", br.Config.GoogleMessages.Browser).Msg("Invalid browser value")
+	} else {
+		payload.BrowserDetailsMessage.BrowserType = binary.BrowserTypes(browserVal)
+	}
 
 	Segment.log = br.ZLog.With().Str("component", "segment").Logger()
 	Segment.key = br.Config.SegmentKey

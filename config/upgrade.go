@@ -31,6 +31,10 @@ func DoUpgrade(helper *up.Helper) {
 	helper.Copy(up.Bool, "metrics", "enabled")
 	helper.Copy(up.Str, "metrics", "listen")
 
+	helper.Copy(up.Str, "google_messages", "os")
+	helper.Copy(up.Str, "google_messages", "browser")
+	helper.Copy(up.Bool, "google_messages", "aggressive_reconnect")
+
 	helper.Copy(up.Str, "bridge", "username_template")
 	helper.Copy(up.Str, "bridge", "displayname_template")
 	helper.Copy(up.Bool, "bridge", "personal_filtering_spaces")

@@ -43,7 +43,7 @@ func RandomUUIDv4() string {
 func BuildRelayHeaders(req *http.Request, contentType string, accept string) {
 	req.Header.Add("host", "instantmessaging-pa.googleapis.com")
 	req.Header.Add("connection", "keep-alive")
-	req.Header.Add("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\"")
+	req.Header.Add("sec-ch-ua", SecUA)
 	req.Header.Add("x-user-agent", XUserAgent)
 	req.Header.Add("x-goog-api-key", GoogleAPIKey)
 	if len(contentType) > 0 {
@@ -51,7 +51,7 @@ func BuildRelayHeaders(req *http.Request, contentType string, accept string) {
 	}
 	req.Header.Add("sec-ch-ua-mobile", "?0")
 	req.Header.Add("user-agent", UserAgent)
-	req.Header.Add("sec-ch-ua-platform", "\""+OS+"\"")
+	req.Header.Add("sec-ch-ua-platform", "\""+UAPlatform+"\"")
 	req.Header.Add("accept", accept)
 	req.Header.Add("origin", "https://messages.google.com")
 	req.Header.Add("sec-fetch-site", "cross-site")
@@ -65,10 +65,10 @@ func BuildUploadHeaders(req *http.Request, metadata string) {
 	req.Header.Add("host", "instantmessaging-pa.googleapis.com")
 	req.Header.Add("connection", "keep-alive")
 	req.Header.Add("x-goog-download-metadata", metadata)
-	req.Header.Add("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\"")
+	req.Header.Add("sec-ch-ua", SecUA)
 	req.Header.Add("sec-ch-ua-mobile", "?0")
 	req.Header.Add("user-agent", UserAgent)
-	req.Header.Add("sec-ch-ua-platform", "\""+OS+"\"")
+	req.Header.Add("sec-ch-ua-platform", "\""+UAPlatform+"\"")
 	req.Header.Add("accept", "*/*")
 	req.Header.Add("origin", "https://messages.google.com")
 	req.Header.Add("sec-fetch-site", "cross-site")
@@ -84,7 +84,7 @@ func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string
 
 	headers.Add("host", "instantmessaging-pa.googleapis.com")
 	headers.Add("connection", "keep-alive")
-	headers.Add("sec-ch-ua", "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\"")
+	headers.Add("sec-ch-ua", SecUA)
 	if protocol != "" {
 		headers.Add("x-goog-upload-protocol", protocol)
 	}
@@ -101,7 +101,7 @@ func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string
 	if uploadOffset != "" {
 		headers.Add("x-goog-upload-offset", uploadOffset)
 	}
-	headers.Add("sec-ch-ua-platform", "\""+OS+"\"")
+	headers.Add("sec-ch-ua-platform", "\""+UAPlatform+"\"")
 	headers.Add("accept", "*/*")
 	headers.Add("origin", "https://messages.google.com")
 	headers.Add("sec-fetch-site", "cross-site")
