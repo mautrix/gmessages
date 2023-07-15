@@ -546,6 +546,12 @@ func (user *User) HandleEvent(event interface{}) {
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to update session in database")
 		}
+	case *binary.RevokePairData:
+		user.zlog.Info().Any("revoked_device", v.GetRevokedDevice()).Msg("Got pair revoked event")
+		user.Logout(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMUnpaired,
+		}, false)
 	case *events.AuthTokenRefreshed:
 		err := user.Update(context.TODO())
 		if err != nil {

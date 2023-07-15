@@ -23,6 +23,7 @@ import (
 const (
 	GMListenError      status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError       status.BridgeStateErrorCode = "gm-listen-fatal-error"
+	GMUnpaired         status.BridgeStateErrorCode = "gm-unpaired"
 	GMNotConnected     status.BridgeStateErrorCode = "gm-not-connected"
 	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed status.BridgeStateErrorCode = "gm-connection-failed"
@@ -35,7 +36,8 @@ const (
 func init() {
 	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{
 		GMListenError:               "Error polling messages from Google Messages server, the bridge will try to reconnect",
-		GMFatalError:                "Google Messages login was invalidated, please re-link the bridge",
+		GMFatalError:                "Google Messages token was invalidated, please re-link the bridge",
+		GMUnpaired:                  "The bridge was unpaired from Google Messages, please re-link the bridge",
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",

@@ -23,6 +23,7 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 		}
 	case *binary.PairEvents_Revoked:
 		c.Logger.Debug().Any("data", evt).Msg("Revoked Device")
+		c.triggerEvent(evt.Revoked)
 	default:
 		c.Logger.Debug().Any("response", response).Any("evt", evt).Msg("Invalid PairEvents type")
 	}
