@@ -17,9 +17,9 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContaine
 	}
 
 	payloadData := &binary.AuthenticationContainer{
-		AuthMessage: &binary.AuthenticationMessage{
+		AuthMessage: &binary.AuthMessage{
 			RequestID:     id,
-			Network:       Network,
+			Network:       &Network,
 			ConfigVersion: ConfigMessage,
 		},
 		BrowserDetails: BrowserDetailsMessage,

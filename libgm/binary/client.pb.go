@@ -174,6 +174,7 @@ type NotifyDittoActivityPayload struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// This is not actually a boolean: after logging out, field 2 has value 2, and field 3 has value 1.
 	Success bool `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
 }
 

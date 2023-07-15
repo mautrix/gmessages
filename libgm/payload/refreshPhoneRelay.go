@@ -9,9 +9,9 @@ import (
 
 func RefreshPhoneRelay(rpcKey []byte) ([]byte, *binary.AuthenticationContainer, error) {
 	payload := &binary.AuthenticationContainer{
-		AuthMessage: &binary.AuthenticationMessage{
+		AuthMessage: &binary.AuthMessage{
 			RequestID:        util.RandomUUIDv4(),
-			Network:          Network,
+			Network:          &Network,
 			TachyonAuthToken: rpcKey,
 			ConfigVersion:    ConfigMessage,
 		},

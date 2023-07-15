@@ -10,7 +10,7 @@ import (
 func GetWebEncryptionKey(WebPairKey []byte) ([]byte, *binary.AuthenticationContainer, error) {
 	id := util.RandomUUIDv4()
 	payload := &binary.AuthenticationContainer{
-		AuthMessage: &binary.AuthenticationMessage{
+		AuthMessage: &binary.AuthMessage{
 			RequestID:        id,
 			TachyonAuthToken: WebPairKey,
 			ConfigVersion:    ConfigMessage,

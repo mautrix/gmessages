@@ -6,6 +6,7 @@ option go_package = "../../binary";
 import "messages.proto";
 
 message NotifyDittoActivityPayload {
+    // This is not actually a boolean: after logging out, field 2 has value 2, and field 3 has value 1.
     bool success = 2;
 }
 

@@ -107,7 +107,8 @@ message EmptyArr {
 
 message AuthMessage {
     string requestID = 1;
-    bytes tachyonAuthToken = 6;
+    optional string network = 3;
+    optional bytes tachyonAuthToken = 6;
     ConfigVersion configVersion = 7;
 }
 

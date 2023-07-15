@@ -14,20 +14,13 @@ message BrowserDetails {
 }
 
 message AuthenticationContainer {
-    AuthenticationMessage authMessage = 1;
+    messages.AuthMessage authMessage = 1;
     BrowserDetails browserDetails = 3;
 
     oneof data {
         KeyData keyData = 4;
         CurrentDeviceData deviceData = 5;
     }
-}
-
-message AuthenticationMessage {
-    string requestID = 1;
-    string network = 3;
-    bytes tachyonAuthToken = 6;
-    messages.ConfigVersion configVersion = 7;
 }
 
 message ECDSAKeys {
