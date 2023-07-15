@@ -55,7 +55,6 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 		}
 		util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
 		resp, reqErr := r.http.Do(req)
-		//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", util.RECEIVE_MESSAGES).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
 		if reqErr != nil {
 			r.client.triggerEvent(&events.ListenTemporaryError{Error: reqErr})
 			errored = true
@@ -190,7 +189,6 @@ func (r *RPC) sendMessageRequest(url string, payload []byte) (*http.Response, er
 	}
 	util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
 	resp, reqErr := r.client.http.Do(req)
-	//r.client.Logger.Info().Any("bodyLength", len(payload)).Any("url", url).Any("headers", resp.Request.Header).Msg("RPC Request Headers")
 	if reqErr != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}

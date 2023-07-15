@@ -48,16 +48,12 @@ func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
 		r.client.Logger.Error().Err(decodeErr).Msg("rpc decrypt msg err")
 		return
 	}
-	//r.client.Logger.Debug().Any("byteLength", len(data)).Any("unmarshaled", response).Any("raw", string(data)).Msg("RPC Msg")
 	if response == nil {
 		r.client.Logger.Error().Msg("nil response in rpc handler")
 		return
 	}
-	//r.client.Logger.Debug().Any("response", response).Msg("decrypted & decoded response")
 	_, waitingForResponse := r.client.sessionHandler.requests[response.Data.RequestId]
 
-	//r.client.Logger.Info().Any("raw", msgArr).Msg("Got msg")
-	//r.client.Logger.Debug().Any("waiting", waitingForResponse).Msg("got request! waiting?")
 	r.client.sessionHandler.addResponseAck(response.ResponseId)
 	if waitingForResponse {
 		r.client.sessionHandler.respondToRequestChannel(response)

@@ -16,7 +16,6 @@ func (c *Client) PostRequest(url string, payload []byte, headers interface{}) (*
 	reqHeaders := &http.Header{}
 	SetHeaders(reqHeaders, headers)
 	req.Header = *reqHeaders
-	//c.Logger.Info().Any("headers", req.Header).Msg("POST Request Headers")
 	res, reqErr := c.http.Do(req)
 	if reqErr != nil {
 		return res, reqErr
@@ -33,7 +32,6 @@ func (c *Client) GetRequest(url string, headers interface{}) (*http.Response, er
 	reqHeaders := &http.Header{}
 	SetHeaders(reqHeaders, headers)
 	req.Header = *reqHeaders
-	//c.Logger.Info().Any("headers", req.Header).Msg("GET Request Headers")
 	res, reqErr := c.http.Do(req)
 	if reqErr != nil {
 		return res, reqErr
@@ -48,7 +46,6 @@ func (c *Client) MakeRelayRequest(url string, body []byte) (*http.Response, erro
 	}
 	util.BuildRelayHeaders(req, "application/x-protobuf", "*/*")
 	res, reqErr := c.http.Do(req)
-	//c.Logger.Info().Any("bodyLength", len(body)).Any("url", url).Any("headers", res.Request.Header).Msg("Relay Request Headers")
 	if reqErr != nil {
 		return res, reqErr
 	}

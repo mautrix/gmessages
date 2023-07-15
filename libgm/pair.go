@@ -49,7 +49,6 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		p.client.Logger.Err(err)
 		return &binary.RegisterPhoneRelayResponse{}, err
 	}
-	//p.client.Logger.Debug().Any("keyByteLength", len(jsonPayload.GetPairDeviceData().EcdsaKeys.EncryptedKeys)).Any("json", jsonPayload).Any("base64", body).Msg("RegisterPhoneRelay Payload")
 	relayResponse, reqErr := p.client.MakeRelayRequest(util.REGISTER_PHONE_RELAY, body)
 	if reqErr != nil {
 		p.client.Logger.Err(reqErr)
@@ -95,7 +94,6 @@ func (p *Pairer) RefreshPhoneRelay() {
 		p.client.Logger.Err(err).Msg("refresh phone relay err")
 		return
 	}
-	//p.client.Logger.Debug().Any("keyByteLength", len(jsonPayload.PhoneRelay.tachyonAuthToken)).Any("json", jsonPayload).Any("base64", body).Msg("RefreshPhoneRelay Payload")
 	relayResponse, reqErr := p.client.MakeRelayRequest(util.REFRESH_PHONE_RELAY, body)
 	if reqErr != nil {
 		p.client.Logger.Err(reqErr).Msg("refresh phone relay err")
@@ -138,7 +136,6 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 		c.Logger.Err(err2).Msg("Web encryption key read response err")
 		return nil, err2
 	}
-	//p.client.Logger.Debug().Any("responseLength", len(responseBody)).Any("raw", responseBody).Msg("Response Body Length")
 	parsedResponse := &binary.WebEncryptionKeyResponse{}
 	err2 = proto.Unmarshal(responseBody, parsedResponse)
 	if err2 != nil {
