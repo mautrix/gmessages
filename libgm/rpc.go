@@ -176,6 +176,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 func (r *RPC) CloseConnection() {
 	if r.conn != nil {
 		r.client.Logger.Debug().Msg("Closing connection manually")
+		r.listenID++
 		r.stopping = true
 		r.conn.Close()
 		r.conn = nil
