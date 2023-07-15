@@ -246,6 +246,7 @@ func (br *GMBridge) NewUser(dbUser *database.User) *User {
 		zlog:   br.ZLog.With().Str("user_id", dbUser.MXID.String()).Logger(),
 	}
 	user.log = maulogadapt.ZeroAsMau(&user.zlog)
+	user.longPollingError = errors.New("not connected")
 
 	user.PermissionLevel = user.bridge.Config.Bridge.Permissions.Get(user.MXID)
 	user.Whitelisted = user.PermissionLevel >= bridgeconfig.PermissionLevelUser
@@ -462,6 +463,7 @@ func (user *User) DeleteConnection() {
 	user.connLock.Lock()
 	defer user.connLock.Unlock()
 	user.unlockedDeleteConnection()
+	user.longPollingError = errors.New("not connected")
 }
 
 func (user *User) HasSession() bool {
@@ -523,7 +525,7 @@ func (user *User) HandleEvent(event interface{}) {
 			StateEvent: status.StateBadCredentials,
 			Error:      GMFatalError,
 			Info:       map[string]any{"go_error": v.Error.Error()},
-		})
+		}, false)
 	case *events.ListenTemporaryError:
 		user.longPollingError = v.Error
 		user.BridgeState.Send(status.BridgeState{
@@ -600,10 +602,10 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 	if state.Info == nil {
 		state.Info = make(map[string]any)
 	}
-	state.Info["battery_low"] = user.batteryLow
-	state.Info["mobile_data"] = user.mobileData
-	state.Info["browser_active"] = user.browserInactiveType == ""
 	if state.StateEvent == status.StateConnected {
+		state.Info["battery_low"] = user.batteryLow
+		state.Info["mobile_data"] = user.mobileData
+		state.Info["browser_active"] = user.browserInactiveType == ""
 		if user.longPollingError != nil {
 			state.StateEvent = status.StateTransientDisconnect
 			state.Error = GMListenError
@@ -617,11 +619,19 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 	return state
 }
 
-func (user *User) Logout(state status.BridgeState) {
+func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) {
+	if user.Client != nil && unpair {
+		_, err := user.Client.Unpair()
+		if err != nil {
+			user.zlog.Debug().Err(err).Msg("Error sending unpair request")
+		} else {
+			logoutOK = true
+		}
+	}
 	user.removeFromPhoneMap(state)
-	// TODO invalidate token
 	user.DeleteConnection()
 	user.DeleteSession()
+	return
 }
 
 func (user *User) syncConversation(v *binary.Conversation) {

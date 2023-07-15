@@ -39,6 +39,7 @@ func (br *GMBridge) RegisterCommands() {
 	proc.AddHandlers(
 		cmdLogin,
 		cmdDeleteSession,
+		cmdLogout,
 		cmdReconnect,
 		cmdDisconnect,
 		cmdPing,
@@ -134,6 +135,28 @@ func (user *User) uploadQR(ce *WrappedCommandEvent, code string) (id.ContentURI,
 	return resp.ContentURI, true
 }
 
+var cmdLogout = &commands.FullHandler{
+	Func: wrapCommand(fnLogout),
+	Name: "logout",
+	Help: commands.HelpMeta{
+		Section:     commands.HelpSectionAuth,
+		Description: "Unpair the bridge and delete session information.",
+	},
+}
+
+func fnLogout(ce *WrappedCommandEvent) {
+	if ce.User.Session == nil && ce.User.Client == nil {
+		ce.Reply("You're not logged in")
+		return
+	}
+	logoutOK := ce.User.Logout(status.BridgeState{StateEvent: status.StateLoggedOut}, true)
+	if logoutOK {
+		ce.Reply("Successfully logged out")
+	} else {
+		ce.Reply("Session information removed, but unpairing may not have succeeded")
+	}
+}
+
 var cmdDeleteSession = &commands.FullHandler{
 	Func: wrapCommand(fnDeleteSession),
 	Name: "delete-session",
@@ -148,7 +171,7 @@ func fnDeleteSession(ce *WrappedCommandEvent) {
 		ce.Reply("Nothing to purge: no session information stored and no active connection.")
 		return
 	}
-	ce.User.Logout(status.BridgeState{StateEvent: status.StateLoggedOut})
+	ce.User.Logout(status.BridgeState{StateEvent: status.StateLoggedOut}, false)
 	ce.Reply("Session information purged")
 }
 

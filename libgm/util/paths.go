@@ -13,6 +13,7 @@ var PAIRING = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instantm
 var REGISTER_PHONE_RELAY = PAIRING + "/RegisterPhoneRelay"
 var REFRESH_PHONE_RELAY = PAIRING + "/RefreshPhoneRelay"
 var GET_WEB_ENCRYPTION_KEY = PAIRING + "/GetWebEncryptionKey"
+var REVOKE_RELAY_PAIRING = PAIRING + "/RevokeRelayPairing"
 
 var MESSAGING = INSTANT_MESSAGING + "/$rpc/google.internal.communications.instantmessaging.v1.Messaging"
 var RECEIVE_MESSAGES = MESSAGING + "/ReceiveMessages"

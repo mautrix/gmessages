@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -147,6 +148,38 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 		if c.pairer.ticker != nil {
 			c.pairer.ticker.Stop()
 		}
+	}
+	return parsedResponse, nil
+}
+
+func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
+	if c.authData.TachyonAuthToken == nil || c.authData.DevicePair == nil || c.authData.DevicePair.Browser == nil {
+		return nil, nil
+	}
+	payload, err := proto.Marshal(&binary.RevokeRelayPairing{
+		AuthMessage: &binary.AuthMessage{
+			RequestID:        uuid.NewString(),
+			TachyonAuthToken: c.authData.TachyonAuthToken,
+			ConfigVersion:    payload.ConfigMessage,
+		},
+		Browser: c.authData.DevicePair.Browser,
+	})
+	if err != nil {
+		return nil, err
+	}
+	revokeResp, err := c.MakeRelayRequest(util.REVOKE_RELAY_PAIRING, payload)
+	if err != nil {
+		return nil, err
+	}
+	responseBody, err := io.ReadAll(revokeResp.Body)
+	defer revokeResp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	parsedResponse := &binary.RevokeRelayPairingResponse{}
+	err = proto.Unmarshal(responseBody, parsedResponse)
+	if err != nil {
+		return nil, err
 	}
 	return parsedResponse, nil
 }

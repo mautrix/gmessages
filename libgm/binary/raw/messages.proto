@@ -55,6 +55,11 @@ message InternalRequestData {
     bool bool3 = 9;
 }
 
+message RevokeRelayPairing {
+    AuthMessage authMessage = 1;
+    Device browser = 2;
+}
+
 message SendMessage {
     Device mobile = 1;
     SendMessageData messageData = 2;

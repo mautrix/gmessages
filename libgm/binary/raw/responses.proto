@@ -26,6 +26,10 @@ message RegisterRefreshResponse {
     RefreshAuthData tokenData = 2;
 }
 
+message RevokeRelayPairingResponse {
+    // field 1 is an object with an unknown int64 in field 2
+}
+
 message RefreshAuthData {
     bytes tachyonAuthToken = 1;
     string validFor = 2;
