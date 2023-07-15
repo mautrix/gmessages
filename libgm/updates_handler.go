@@ -17,9 +17,11 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 
 		switch evt := data.Event.(type) {
 		case *binary.UpdateEvents_UserAlertEvent:
+			c.rpc.logContent(res)
 			c.handleUserAlertEvent(res, evt.UserAlertEvent)
 
 		case *binary.UpdateEvents_SettingsEvent:
+			c.rpc.logContent(res)
 			c.handleSettingsEvent(res, evt.SettingsEvent)
 
 		case *binary.UpdateEvents_ConversationEvent:
@@ -35,6 +37,7 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 			c.triggerEvent(evt.MessageEvent.GetData())
 
 		case *binary.UpdateEvents_TypingEvent:
+			c.rpc.logContent(res)
 			c.handleTypingEvent(res, evt.TypingEvent.GetData())
 		default:
 			c.Logger.Debug().Any("evt", evt).Any("res", res).Msg("Got unknown event type")

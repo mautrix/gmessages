@@ -21,6 +21,15 @@ func (r *RPC) deduplicateHash(hash [32]byte) bool {
 	return false
 }
 
+func (r *RPC) logContent(res *pblite.Response) {
+	if r.client.Logger.Trace().Enabled() && res.Data.Decrypted != nil {
+		r.client.Logger.Trace().
+			Str("proto_name", string(res.Data.Decrypted.ProtoReflect().Descriptor().FullName())).
+			Str("data", base64.StdEncoding.EncodeToString(res.Data.RawDecrypted)).
+			Msg("Got event")
+	}
+}
+
 func (r *RPC) deduplicateUpdate(response *pblite.Response) bool {
 	if response.Data.RawDecrypted != nil {
 		contentHash := sha256.Sum256(response.Data.RawDecrypted)
@@ -28,13 +37,7 @@ func (r *RPC) deduplicateUpdate(response *pblite.Response) bool {
 			r.client.Logger.Trace().Hex("data_hash", contentHash[:]).Msg("Ignoring duplicate update")
 			return true
 		}
-		if r.client.Logger.Trace().Enabled() {
-			r.client.Logger.Trace().
-				Str("proto_name", string(response.Data.Decrypted.ProtoReflect().Descriptor().FullName())).
-				Str("data", base64.StdEncoding.EncodeToString(response.Data.RawDecrypted)).
-				Hex("data_hash", contentHash[:]).
-				Msg("Got event")
-		}
+		r.logContent(response)
 	}
 	return false
 }

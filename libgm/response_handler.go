@@ -63,6 +63,7 @@ func (s *SessionHandler) respondToRequestChannel(res *pblite.Response) {
 		return
 	}
 	s.client.Logger.Debug().Any("actionType", actionType).Any("requestId", requestId).Msg("responding to request")
+	s.client.rpc.logContent(res)
 	actionResponseChan.response = res
 	actionResponseChan.wg.Done()
 
