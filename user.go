@@ -576,6 +576,7 @@ func (user *User) syncConversation(v *binary.Conversation) {
 		default:
 			portal.UpdateMetadata(user, v)
 			portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
+			// TODO sync read status if there was nothing backfilled
 		}
 	} else if updateType == binary.ConvUpdateTypes_UNARCHIVED || updateType == binary.ConvUpdateTypes_ARCHIVED {
 		err := portal.CreateMatrixRoom(user, v)

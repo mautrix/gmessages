@@ -253,8 +253,8 @@ type Portal struct {
 }
 
 var (
-	_ bridge.Portal = (*Portal)(nil)
-	//_ bridge.ReadReceiptHandlingPortal = (*Portal)(nil)
+	_ bridge.Portal                    = (*Portal)(nil)
+	_ bridge.ReadReceiptHandlingPortal = (*Portal)(nil)
 	//_ bridge.MembershipHandlingPortal  = (*Portal)(nil)
 	//_ bridge.MetaHandlingPortal        = (*Portal)(nil)
 	//_ bridge.TypingPortal              = (*Portal)(nil)
@@ -1245,6 +1245,41 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		}
 	default:
 		go ms.sendMessageMetrics(evt, fmt.Errorf("unsupported msgtype"), "Ignoring", true)
+	}
+}
+
+func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.EventID, receipt event.ReadReceipt) {
+	user := brUser.(*User)
+	log := portal.zlog.With().
+		Str("event_id", eventID.String()).
+		Time("receipt_ts", receipt.Timestamp).
+		Str("action", "handle matrix read receipt").
+		Logger()
+	ctx := log.WithContext(context.TODO())
+	log.Debug().Msg("Handling Matrix read receipt")
+	targetMessage, err := portal.bridge.DB.Message.GetByMXID(ctx, eventID)
+	if err != nil {
+		log.Err(err).Msg("Failed to get target message to handle read receipt")
+		return
+	} else if targetMessage == nil {
+		lastMessage, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
+		if err != nil {
+			log.Err(err).Msg("Failed to get last message to handle read receipt")
+			return
+		} else if receipt.Timestamp.Before(lastMessage.Timestamp) {
+			log.Debug().Msg("Ignoring read receipt for unknown message with timestamp before last message")
+			return
+		} else {
+			log.Debug().Msg("Marking last message in chat as read for receipt targeting unknown message")
+		}
+		targetMessage = lastMessage
+	}
+	log = log.With().Str("message_id", targetMessage.ID).Logger()
+	err = user.Client.Messages.MarkRead(portal.ID, targetMessage.ID)
+	if err != nil {
+		log.Err(err).Msg("Failed to mark message as read")
+	} else {
+		log.Debug().Msg("Marked message as read after Matrix read receipt")
 	}
 }
 

@@ -6,7 +6,7 @@
     * [x] Replies (RCS)
   * [x] Reactions (RCS)
   * [ ] Typing notifications (RCS)
-  * [ ] Read receipts (RCS)
+  * [x] Read receipts (RCS)
   * [x] Message deletions (own device only)
 * Google Messages → Matrix
   * [ ] Message content

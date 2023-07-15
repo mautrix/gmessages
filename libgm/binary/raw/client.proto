@@ -9,6 +9,11 @@ message NotifyDittoActivityPayload {
     bool success = 2;
 }
 
+message MessageReadPayload {
+    string conversationID = 2;
+    string messageID = 3;
+}
+
 message AckMessageResponse {
     AckContainer container = 1;
 }

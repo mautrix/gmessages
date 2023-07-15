@@ -20,6 +20,7 @@ var Routes = map[binary.ActionType]Route{
 	binary.ActionType_GET_UPDATES:                GET_UPDATES,
 	binary.ActionType_LIST_CONVERSATIONS:         LIST_CONVERSATIONS,
 	binary.ActionType_LIST_CONVERSATIONS_SYNC:    LIST_CONVERSATIONS_WITH_UPDATES,
+	binary.ActionType_MESSAGE_READ:               MESSAGE_READ,
 	binary.ActionType_NOTIFY_DITTO_ACTIVITY:      NOTIFY_DITTO_ACTIVITY,
 	binary.ActionType_GET_CONVERSATION_TYPE:      GET_CONVERSATION_TYPE,
 	binary.ActionType_LIST_MESSAGES:              LIST_MESSAGES,

@@ -37,3 +37,12 @@ var DELETE_MESSAGE = Route{
 	UseSessionID:   false,
 	UseTTL:         true,
 }
+
+var MESSAGE_READ = Route{
+	Action:         binary.ActionType_MESSAGE_READ,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: nil,
+	UseSessionID:   false,
+	UseTTL:         true,
+}

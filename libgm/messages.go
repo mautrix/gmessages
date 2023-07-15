@@ -54,3 +54,20 @@ func (m *Messages) Delete(messageId string) (*binary.DeleteMessageResponse, erro
 	m.client.Logger.Debug().Any("res", res).Msg("deleted message!")
 	return res, nil
 }
+
+func (m *Messages) MarkRead(conversationID, messageID string) error {
+	payload := &binary.MessageReadPayload{ConversationID: conversationID, MessageID: messageID}
+	actionType := binary.ActionType_MESSAGE_READ
+
+	sentRequestId, sendErr := m.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	if sendErr != nil {
+		return sendErr
+	}
+
+	_, err := m.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
