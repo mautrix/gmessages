@@ -106,8 +106,16 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 	reader := bufio.NewReader(rc)
 	buf := make([]byte, 2621440)
 	var accumulatedData []byte
+	n, err := reader.Read(buf[:2])
+	if err != nil {
+		r.client.Logger.Err(err).Msg("Error reading opening bytes")
+		return
+	} else if n != 2 || string(buf[:2]) != "[[" {
+		r.client.Logger.Err(err).Msg("Opening is not [[")
+		return
+	}
 	for {
-		n, err := reader.Read(buf)
+		n, err = reader.Read(buf)
 		if err != nil {
 			if errors.Is(err, os.ErrClosed) {
 				r.client.Logger.Err(err).Msg("Closed body from server")
@@ -118,81 +126,44 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 			return
 		}
 		chunk := buf[:n]
-		if n <= 25 { // this will catch the acknowledgement message unless you are required to ack 1000 messages for some reason
-			isAck := r.isAcknowledgeMessage(chunk)
-			if isAck {
-				r.client.Logger.Info().Any("isAck", isAck).Msg("Got Ack Message")
-			}
-			isHeartBeat := r.isHeartBeat(chunk)
-			if isHeartBeat {
-				r.client.Logger.Info().Any("heartBeat", isHeartBeat).Msg("Got heartbeat message")
-			}
-			isStartData := r.isStartRead(chunk)
-			if isStartData {
-				r.client.Logger.Info().Any("startRead", isHeartBeat).Msg("Got startReading message")
-			}
-			accumulatedData = []byte{}
-			continue
-		}
-
 		if len(accumulatedData) == 0 {
-			chunk = bytes.TrimPrefix(chunk, []byte{44})
+			if len(chunk) == 2 && string(chunk) == "]]" {
+				r.client.Logger.Debug().Msg("Got stream end marker")
+			}
+			chunk = bytes.TrimPrefix(chunk, []byte{','})
 		}
 		accumulatedData = append(accumulatedData, chunk...)
-		var msgArr []interface{}
-		err = r.tryUnmarshalJSON(accumulatedData, &msgArr)
-		if err != nil {
-			//r.client.Logger.Err(err).Any("accumulated", string(accumulatedData)).Msg("Unable to unmarshal data, will wait for more data")
+		if !json.Valid(accumulatedData) {
+			r.client.Logger.Debug().Str("data", string(chunk)).Msg("Invalid JSON")
 			continue
 		}
-
-		accumulatedData = []byte{}
-		//r.client.Logger.Info().Any("val", msgArr).Msg("MsgArr")
-		r.HandleRPCMsg(msgArr)
-	}
-}
-
-func (r *RPC) isAcknowledgeMessage(data []byte) bool {
-	if data[0] == 44 {
-		return false
-	}
-	if len(data) >= 3 && data[0] == 91 && data[1] == 91 && data[2] == 91 {
-		parsed, parseErr := r.parseAckMessage(data)
-		if parseErr != nil {
-			panic(parseErr)
+		var msgArr []any
+		err = json.Unmarshal(accumulatedData, &msgArr)
+		if err != nil {
+			r.client.Logger.Err(err).Msg("Error unmarshalling json")
+			continue
 		}
-		r.skipCount = int(parsed.Container.Data.GetAckAmount().Count)
-		r.client.Logger.Info().Any("count", r.skipCount).Msg("Messages To Skip")
-	} else {
-		return false
+		accumulatedData = accumulatedData[:0]
+		msg := &binary.InternalMessage{}
+		err = pblite.Deserialize(msgArr, msg.ProtoReflect())
+		if err != nil {
+			r.client.Logger.Err(err).Msg("Error deserializing pblite message")
+			continue
+		}
+		switch {
+		case msg.GetData() != nil:
+			r.HandleRPCMsg(msg)
+		case msg.GetAck() != nil:
+			r.client.Logger.Debug().Int32("count", msg.GetAck().GetCount()).Msg("Got startup ack count message")
+			r.skipCount = int(msg.GetAck().GetCount())
+		case msg.GetStartRead() != nil:
+			r.client.Logger.Trace().Msg("Got startRead message")
+		case msg.GetHeartbeat() != nil:
+			r.client.Logger.Trace().Msg("Got heartbeat message")
+		default:
+			r.client.Logger.Warn().Interface("data", msgArr).Msg("Got unknown message")
+		}
 	}
-	return true
-}
-
-func (r *RPC) parseAckMessage(data []byte) (*binary.AckMessageResponse, error) {
-	data = append(data, 93)
-	data = append(data, 93)
-
-	var msgArr []interface{}
-	marshalErr := json.Unmarshal(data, &msgArr)
-	if marshalErr != nil {
-		return nil, marshalErr
-	}
-
-	msg := &binary.AckMessageResponse{}
-	deserializeErr := pblite.Deserialize(msgArr, msg.ProtoReflect())
-	if deserializeErr != nil {
-		return nil, deserializeErr
-	}
-	return msg, nil
-}
-
-func (r *RPC) isStartRead(data []byte) bool {
-	return string(data) == "[[[null,null,null,[]]"
-}
-
-func (r *RPC) isHeartBeat(data []byte) bool {
-	return string(data) == ",[null,null,[]]"
 }
 
 func (r *RPC) CloseConnection() {

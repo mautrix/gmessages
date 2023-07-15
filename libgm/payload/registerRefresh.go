@@ -17,7 +17,7 @@ func RegisterRefresh(sig []byte, requestID string, timestamp int64, browser *bin
 		CurrBrowserDevice: browser,
 		UnixTimestamp:     timestamp,
 		Signature:         sig,
-		EmptyRefreshArr:   &binary.EmptyRefreshArr{EmptyArr: &binary.EmptyEmptyArr{}},
+		EmptyRefreshArr:   &binary.EmptyRefreshArr{EmptyArr: &binary.EmptyArr{}},
 		MessageType:       2, // hmm
 	}
 

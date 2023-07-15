@@ -1,7 +1,6 @@
 package libgm
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -125,38 +124,31 @@ func (s *SessionHandler) sendAckRequest() {
 	if len(s.ackMap) <= 0 {
 		return
 	}
-	reqId := util.RandomUUIDv4()
+	dataToAck := s.ackMap
+	s.ackMap = nil
+	ackMessages := make([]*binary.AckMessageData, len(dataToAck))
+	for i, reqID := range dataToAck {
+		ackMessages[i] = &binary.AckMessageData{
+			RequestID: reqID,
+			Device:    s.client.authData.DevicePair.Browser,
+		}
+	}
 	ackMessagePayload := &binary.AckMessagePayload{
 		AuthData: &binary.AuthMessage{
-			RequestID:        reqId,
+			RequestID:        util.RandomUUIDv4(),
 			TachyonAuthToken: s.client.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},
 		EmptyArr: &binary.EmptyArr{},
-		NoClue:   nil,
+		Acks:     ackMessages,
 	}
-	dataArray, err := pblite.Serialize(ackMessagePayload.ProtoReflect())
+	jsonData, err := pblite.SerializeToJSON(ackMessagePayload)
 	if err != nil {
-		panic(err)
-	}
-	ackMessages := make([][]interface{}, 0)
-	for _, reqId := range s.ackMap {
-		ackMessageData := &binary.AckMessageData{RequestID: reqId, Device: s.client.authData.DevicePair.Browser}
-		ackMessageDataArr, err := pblite.Serialize(ackMessageData.ProtoReflect())
-		if err != nil {
-			panic(err)
-		}
-		ackMessages = append(ackMessages, ackMessageDataArr)
-		s.ackMap = util.RemoveFromSlice(s.ackMap, reqId)
-	}
-	dataArray = append(dataArray, ackMessages)
-	jsonData, jsonErr := json.Marshal(dataArray)
-	if jsonErr != nil {
 		panic(err)
 	}
 	_, err = s.client.rpc.sendMessageRequest(util.ACK_MESSAGES, jsonData)
 	if err != nil {
 		panic(err)
 	}
-	s.client.Logger.Debug().Any("payload", jsonData).Msg("[ACK] Sent Request")
+	s.client.Logger.Debug().Any("payload", jsonData).Msg("Sent acks")
 }

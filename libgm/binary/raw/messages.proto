@@ -13,16 +13,18 @@ message RegisterRefreshPayload {
 }
 
 message EmptyRefreshArr {
-    EmptyEmptyArr emptyArr = 9;
+    EmptyArr emptyArr = 9;
 }
 
-message EmptyEmptyArr {
-
+message StartAckMessage {
+    optional int32 count = 1;
 }
 
 message InternalMessage {
-    bytes unknown1 = 1;
-    InternalMessageData data = 2;
+    optional InternalMessageData data = 2;
+    optional EmptyArr heartbeat = 3;
+    optional StartAckMessage ack = 4;
+    optional EmptyArr startRead = 5;
 }
 
 message InternalMessageData {

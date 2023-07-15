@@ -14,23 +14,10 @@ message MessageReadPayload {
     string messageID = 3;
 }
 
-message AckMessageResponse {
-    AckContainer container = 1;
-}
-message AckContainer {
-    AckData data = 1;
-}
-message AckData {
-    AckAmount ackAmount = 4;
-}
-message AckAmount {
-    int32 count = 1;
-}
-
 message AckMessagePayload {
     messages.AuthMessage authData = 1;
     messages.EmptyArr emptyArr = 2;
-    bytes noClue = 3;
+    repeated AckMessageData acks = 4;
 }
 
 message AckMessageData {

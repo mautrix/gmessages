@@ -11,12 +11,3 @@ const UserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, li
 const OS = "Linux"
 const XUserAgent = "grpc-web-javascript/0.1"
 const QRCodeURLBase = "https://support.google.com/messages/?p=web_computer#?c="
-
-// Deprecated
-var (
-	BROWSER_TYPE = BrowserType
-	GOOG_API_KEY = GoogleAPIKey
-	USER_AGENT   = UserAgent
-	X_USER_AGENT = XUserAgent
-	QR_CODE_URL  = QRCodeURLBase
-)

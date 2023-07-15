@@ -3,8 +3,6 @@ package libgm
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
-	"fmt"
 
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
@@ -41,15 +39,15 @@ func (r *RPC) deduplicateUpdate(response *pblite.Response) bool {
 	return false
 }
 
-func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
-	response, decodeErr := pblite.DecodeAndDecryptInternalMessage(msgArr, r.client.authData.Cryptor)
+func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
+	response, decodeErr := pblite.DecryptInternalMessage(msg, r.client.authData.Cryptor)
 	if decodeErr != nil {
-		r.client.Logger.Error().Err(fmt.Errorf("failed to deserialize response %s", msgArr)).Msg("rpc deserialize msg err")
+		r.client.Logger.Error().Err(decodeErr).Msg("rpc decrypt msg err")
 		return
 	}
 	//r.client.Logger.Debug().Any("byteLength", len(data)).Any("unmarshaled", response).Any("raw", string(data)).Msg("RPC Msg")
 	if response == nil {
-		r.client.Logger.Error().Err(fmt.Errorf("response data was nil %s", msgArr)).Msg("rpc msg data err")
+		r.client.Logger.Error().Msg("nil response in rpc handler")
 		return
 	}
 	//r.client.Logger.Debug().Any("response", response).Msg("decrypted & decoded response")
@@ -91,11 +89,6 @@ func (r *RPC) HandleRPCMsg(msgArr []interface{}) {
 		}
 	}
 
-}
-
-func (r *RPC) tryUnmarshalJSON(jsonData []byte, msgArr *[]interface{}) error {
-	err := json.Unmarshal(jsonData, &msgArr)
-	return err
 }
 
 func (r *RPC) HandleByLength(data []byte) {

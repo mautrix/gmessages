@@ -9,14 +9,14 @@ import (
 var ConfigMessage = &binary.ConfigVersion{
 	V1: 2023,
 	V2: 7,
-	V3: 3,
+	V3: 10,
 	V4: 4,
 	V5: 6,
 }
 var Network = "Bugle"
 var BrowserDetailsMessage = &binary.BrowserDetails{
-	UserAgent:   util.USER_AGENT,
-	BrowserType: util.BROWSER_TYPE,
+	UserAgent:   util.UserAgent,
+	BrowserType: util.BrowserType,
 	Os:          util.OS,
 	SomeBool:    true,
 }

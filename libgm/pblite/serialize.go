@@ -54,10 +54,57 @@ This means that any slice inside of the current slice, indicates another message
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+func serializeOneOrList(fieldDescriptor protoreflect.FieldDescriptor, fieldValue protoreflect.Value) (any, error) {
+	switch {
+	case fieldDescriptor.IsList():
+		var serializedList []any
+		list := fieldValue.List()
+		for i := 0; i < list.Len(); i++ {
+			serialized, err := serializeOne(fieldDescriptor, list.Get(i))
+			if err != nil {
+				return nil, err
+			}
+			serializedList = append(serializedList, serialized)
+		}
+		return serializedList, nil
+	default:
+		return serializeOne(fieldDescriptor, fieldValue)
+	}
+}
+
+func serializeOne(fieldDescriptor protoreflect.FieldDescriptor, fieldValue protoreflect.Value) (any, error) {
+	switch fieldDescriptor.Kind() {
+	case protoreflect.MessageKind:
+		serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
+		if err != nil {
+			return nil, err
+		}
+		return serializedMsg, nil
+	case protoreflect.BytesKind:
+		return base64.StdEncoding.EncodeToString(fieldValue.Bytes()), nil
+	case protoreflect.Int32Kind, protoreflect.Int64Kind:
+		return fieldValue.Int(), nil
+	case protoreflect.Uint32Kind, protoreflect.Uint64Kind:
+		return fieldValue.Uint(), nil
+	case protoreflect.FloatKind, protoreflect.DoubleKind:
+		return fieldValue.Float(), nil
+	case protoreflect.EnumKind:
+		return int(fieldValue.Enum()), nil
+	case protoreflect.BoolKind:
+		return fieldValue.Bool(), nil
+	case protoreflect.StringKind:
+		return fieldValue.String(), nil
+	default:
+		return nil, fmt.Errorf("unsupported field type %s in %s", fieldDescriptor.Kind(), fieldDescriptor.FullName())
+	}
+}
 
 func Serialize(m protoreflect.Message) ([]any, error) {
 	maxFieldNumber := 0
@@ -76,31 +123,20 @@ func Serialize(m protoreflect.Message) ([]any, error) {
 		if !m.Has(fieldDescriptor) {
 			continue
 		}
-		switch fieldDescriptor.Kind() {
-		case protoreflect.MessageKind:
-			serializedMsg, err := Serialize(fieldValue.Message().Interface().ProtoReflect())
-			if err != nil {
-				return nil, err
-			}
-			serialized[fieldNumber-1] = serializedMsg
-		case protoreflect.BytesKind:
-			serialized[fieldNumber-1] = base64.StdEncoding.EncodeToString(fieldValue.Bytes())
-		case protoreflect.Int32Kind, protoreflect.Int64Kind:
-			serialized[fieldNumber-1] = fieldValue.Int()
-		case protoreflect.Uint32Kind, protoreflect.Uint64Kind:
-			serialized[fieldNumber-1] = fieldValue.Uint()
-		case protoreflect.FloatKind, protoreflect.DoubleKind:
-			serialized[fieldNumber-1] = fieldValue.Float()
-		case protoreflect.EnumKind:
-			serialized[fieldNumber-1] = int(fieldValue.Enum())
-		case protoreflect.BoolKind:
-			serialized[fieldNumber-1] = fieldValue.Bool()
-		case protoreflect.StringKind:
-			serialized[fieldNumber-1] = fieldValue.String()
-		default:
-			return nil, fmt.Errorf("unsupported field type %s in %s", fieldDescriptor.Kind(), fieldDescriptor.FullName())
+		serializedVal, err := serializeOneOrList(fieldDescriptor, fieldValue)
+		if err != nil {
+			return nil, err
 		}
+		serialized[fieldNumber-1] = serializedVal
 	}
 
 	return serialized, nil
+}
+
+func SerializeToJSON(m proto.Message) ([]byte, error) {
+	serialized, err := Serialize(m.ProtoReflect())
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(serialized)
 }
