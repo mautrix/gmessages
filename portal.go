@@ -1207,7 +1207,24 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		return
 	}
 
-	var replyToID string
+	txnID := util.GenerateTmpID()
+	portal.outgoingMessagesLock.Lock()
+	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
+	portal.outgoingMessagesLock.Unlock()
+	if evt.Type == event.EventSticker {
+		content.MsgType = event.MsgImage
+	}
+	req := &binary.SendMessagePayload{
+		ConversationID: portal.ID,
+		TmpID:          txnID,
+		MessagePayload: &binary.MessagePayload{
+			ConversationID:    portal.ID,
+			TmpID:             txnID,
+			TmpID2:            txnID,
+			SelfParticipantID: portal.SelfUserID,
+		},
+	}
+
 	replyToMXID := content.RelatesTo.GetReplyTo()
 	if replyToMXID != "" {
 		replyToMsg, err := portal.bridge.DB.Message.GetByMXID(ctx, replyToMXID)
@@ -1216,35 +1233,46 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		} else if replyToMsg == nil {
 			log.Warn().Str("reply_to_mxid", replyToMXID.String()).Msg("Reply target message not found")
 		} else {
-			replyToID = replyToMsg.ID
+			req.IsReply = true
+			req.Reply = &binary.ReplyPayload{MessageID: replyToMsg.ID}
 		}
 	}
 
-	txnID := util.GenerateTmpID()
-	portal.outgoingMessagesLock.Lock()
-	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
-	portal.outgoingMessagesLock.Unlock()
 	switch content.MsgType {
 	case event.MsgText, event.MsgEmote, event.MsgNotice:
 		text := content.Body
 		if content.MsgType == event.MsgEmote {
 			text = "/me " + text
 		}
-		_, err := sender.Client.Conversations.SendMessage(
-			sender.Client.NewMessageBuilder().
-				SetConversationID(portal.ID).
-				SetSelfParticipantID(portal.SelfUserID).
-				SetReplyMessage(replyToID).
-				SetContent(text).
-				SetTmpID(txnID),
-		)
-		if err != nil {
-			go ms.sendMessageMetrics(evt, err, "Error sending", true)
-		} else {
-			go ms.sendMessageMetrics(evt, nil, "", true)
-		}
+		req.MessagePayload.MessageInfo = []*binary.MessageInfo{{
+			Data: &binary.MessageInfo_MessageContent{MessageContent: &binary.MessageContent{
+				Content: text,
+			}},
+		}}
+	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
+		//fileName := content.Body
+		//if content.FileName != "" {
+		//	fileName = content.FileName
+		//}
+		//sender.Client.StartUploadMedia()
+		//req.MessagePayload.MessageInfo = []*binary.MessageInfo{{
+		//	Data: &binary.MessageInfo_MediaContent{MediaContent: &binary.MediaContent{
+		//		Format:        0,
+		//		MediaID:       mediaID,
+		//		MediaName:     fileName,
+		//		Size:          int64(len(data)),
+		//		DecryptionKey: decryptionKey,
+		//	}},
+		//}}
 	default:
 		go ms.sendMessageMetrics(evt, fmt.Errorf("unsupported msgtype"), "Ignoring", true)
+		return
+	}
+	_, err := sender.Client.Conversations.SendMessage(req)
+	if err != nil {
+		go ms.sendMessageMetrics(evt, err, "Error sending", true)
+	} else {
+		go ms.sendMessageMetrics(evt, nil, "", true)
 	}
 }
 

@@ -90,12 +90,7 @@ func (c *Conversations) FetchMessages(conversationId string, count int64, cursor
 	return res, nil
 }
 
-func (c *Conversations) SendMessage(messageBuilder *MessageBuilder) (*binary.SendMessageResponse, error) {
-	payload, failedToBuild := messageBuilder.Build()
-	if failedToBuild != nil {
-		return nil, failedToBuild
-	}
-
+func (c *Conversations) SendMessage(payload *binary.SendMessagePayload) (*binary.SendMessageResponse, error) {
 	actionType := binary.ActionType_SEND_MESSAGE
 
 	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
