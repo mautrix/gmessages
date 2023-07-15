@@ -47,7 +47,7 @@ type Client struct {
 
 func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
-		requests:        make(map[string]map[binary.ActionType]*ResponseChan),
+		responseWaiters: make(map[string]chan<- *pblite.Response),
 		responseTimeout: time.Duration(5000) * time.Millisecond,
 	}
 	if authData == nil {

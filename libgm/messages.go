@@ -9,12 +9,7 @@ import (
 func (c *Client) SendReaction(payload *binary.SendReactionPayload) (*binary.SendReactionResponse, error) {
 	actionType := binary.ActionType_SEND_REACTION
 
-	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
-	if sendErr != nil {
-		return nil, sendErr
-	}
-
-	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.sendMessage(actionType, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -31,12 +26,7 @@ func (c *Client) DeleteMessage(messageID string) (*binary.DeleteMessageResponse,
 	payload := &binary.DeleteMessagePayload{MessageID: messageID}
 	actionType := binary.ActionType_DELETE_MESSAGE
 
-	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
-	if sendErr != nil {
-		return nil, sendErr
-	}
-
-	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.sendMessage(actionType, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -53,15 +43,6 @@ func (c *Client) MarkRead(conversationID, messageID string) error {
 	payload := &binary.MessageReadPayload{ConversationID: conversationID, MessageID: messageID}
 	actionType := binary.ActionType_MESSAGE_READ
 
-	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
-	if sendErr != nil {
-		return sendErr
-	}
-
-	_, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := c.sessionHandler.sendMessage(actionType, payload)
+	return err
 }

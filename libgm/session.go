@@ -7,26 +7,17 @@ import (
 )
 
 func (c *Client) SetActiveSession() error {
-	c.sessionHandler.ResetSessionId()
-
+	c.sessionHandler.ResetSessionID()
 	actionType := binary.ActionType_GET_UPDATES
-	_, sendErr := c.sessionHandler.completeSendMessage(actionType, false, nil)
-	if sendErr != nil {
-		return sendErr
-	}
-	return nil
+	return c.sessionHandler.sendMessageNoResponse(actionType, nil)
 }
 
 func (c *Client) IsBugleDefault() (*binary.IsBugleDefaultResponse, error) {
-	c.sessionHandler.ResetSessionId()
+	c.sessionHandler.ResetSessionID()
 
 	actionType := binary.ActionType_IS_BUGLE_DEFAULT
-	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, nil)
-	if sendErr != nil {
-		return nil, sendErr
-	}
 
-	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.sendMessage(actionType, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -43,15 +34,6 @@ func (c *Client) NotifyDittoActivity() error {
 	payload := &binary.NotifyDittoActivityPayload{Success: true}
 	actionType := binary.ActionType_NOTIFY_DITTO_ACTIVITY
 
-	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
-	if sendErr != nil {
-		return sendErr
-	}
-
-	_, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := c.sessionHandler.sendMessage(actionType, payload)
+	return err
 }

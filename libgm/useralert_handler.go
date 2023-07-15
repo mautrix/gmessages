@@ -26,9 +26,9 @@ func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAle
 	alertType := data.AlertType
 	switch alertType {
 	case binary.AlertType_BROWSER_ACTIVE:
-		newSessionId := res.Data.RequestId
+		newSessionId := res.Data.RequestID
 		c.Logger.Info().Any("sessionId", newSessionId).Msg("[NEW_BROWSER_ACTIVE] Opened new browser connection")
-		if newSessionId != c.sessionHandler.sessionId {
+		if newSessionId != c.sessionHandler.sessionID {
 			evt := events.NewBrowserActive(newSessionId)
 			c.triggerEvent(evt)
 		} else {

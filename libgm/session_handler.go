@@ -16,60 +16,64 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-/*
-type Response struct {
-	client *Client
-	ResponseId string
-	RoutingOpCode int64
-	Data *binary.EncodedResponse // base64 encoded (decode -> protomessage)
-
-	StartExecute string
-	FinishExecute string
-	DevicePair *pblite.DevicePair
-}
-*/
-
 type SessionHandler struct {
-	client   *Client
-	requests map[string]map[binary.ActionType]*ResponseChan
+	client *Client
+
+	responseWaiters     map[string]chan<- *pblite.Response
+	responseWaitersLock sync.Mutex
 
 	ackMapLock sync.Mutex
 	ackMap     []string
 	ackTicker  *time.Ticker
 
-	sessionId string
+	sessionID string
 
 	responseTimeout time.Duration
 }
 
-func (s *SessionHandler) SetResponseTimeout(milliSeconds int) {
-	s.responseTimeout = time.Duration(milliSeconds) * time.Millisecond
+func (s *SessionHandler) ResetSessionID() {
+	s.sessionID = util.RandomUUIDv4()
 }
 
-func (s *SessionHandler) ResetSessionId() {
-	s.sessionId = util.RandomUUIDv4()
+func (s *SessionHandler) sendMessageNoResponse(actionType binary.ActionType, encryptedData proto.Message) error {
+	_, payload, _, err := s.buildMessage(actionType, encryptedData)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.rpc.sendMessageRequest(util.SEND_MESSAGE, payload)
+	return err
 }
 
-func (s *SessionHandler) completeSendMessage(actionType binary.ActionType, addToChannel bool, encryptedData proto.Message) (string, error) {
-	requestId, payload, action, buildErr := s.buildMessage(actionType, encryptedData)
+func (s *SessionHandler) sendAsyncMessage(actionType binary.ActionType, encryptedData proto.Message) (<-chan *pblite.Response, error) {
+	requestID, payload, _, buildErr := s.buildMessage(actionType, encryptedData)
 	if buildErr != nil {
-		return "", buildErr
+		return nil, buildErr
 	}
 
-	if addToChannel {
-		s.addRequestToChannel(requestId, action)
-	}
+	ch := s.waitResponse(requestID)
 	_, reqErr := s.client.rpc.sendMessageRequest(util.SEND_MESSAGE, payload)
 	if reqErr != nil {
-		return "", reqErr
+		s.cancelResponse(requestID, ch)
+		return nil, reqErr
 	}
-	return requestId, nil
+	return ch, nil
+}
+
+func (s *SessionHandler) sendMessage(actionType binary.ActionType, encryptedData proto.Message) (*pblite.Response, error) {
+	ch, err := s.sendAsyncMessage(actionType, encryptedData)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO add timeout
+	return <-ch, nil
 }
 
 func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedData proto.Message) (string, []byte, binary.ActionType, error) {
-	var requestId string
+	var requestID string
 	pairedDevice := s.client.authData.DevicePair.Mobile
-	sessionId := s.client.sessionHandler.sessionId
+	sessionId := s.client.sessionHandler.sessionID
 	token := s.client.authData.TachyonAuthToken
 
 	routeInfo, ok := routes.Routes[actionType]
@@ -78,12 +82,12 @@ func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedDat
 	}
 
 	if routeInfo.UseSessionID {
-		requestId = s.sessionId
+		requestID = s.sessionID
 	} else {
-		requestId = util.RandomUUIDv4()
+		requestID = util.RandomUUIDv4()
 	}
 
-	tmpMessage := payload.NewSendMessageBuilder(token, pairedDevice, requestId, sessionId).SetRoute(routeInfo.Action).SetSessionId(s.sessionId)
+	tmpMessage := payload.NewSendMessageBuilder(token, pairedDevice, requestID, sessionId).SetRoute(routeInfo.Action).SetSessionId(s.sessionID)
 
 	if encryptedData != nil {
 		tmpMessage.SetEncryptedProtoMessage(encryptedData, s.client.authData.Cryptor)
@@ -98,16 +102,17 @@ func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedDat
 		return "", nil, 0, buildErr
 	}
 
-	return requestId, message, routeInfo.Action, nil
+	return requestID, message, routeInfo.Action, nil
 }
 
-func (s *SessionHandler) addResponseAck(responseId string) {
-	s.client.Logger.Debug().Any("responseId", responseId).Msg("Added to ack map")
+func (s *SessionHandler) queueMessageAck(messageID string) {
 	s.ackMapLock.Lock()
 	defer s.ackMapLock.Unlock()
-	hasResponseId := slices.Contains(s.ackMap, responseId)
-	if !hasResponseId {
-		s.ackMap = append(s.ackMap, responseId)
+	if !slices.Contains(s.ackMap, messageID) {
+		s.ackMap = append(s.ackMap, messageID)
+		s.client.Logger.Trace().Any("message_id", messageID).Msg("Queued ack for message")
+	} else {
+		s.client.Logger.Trace().Any("message_id", messageID).Msg("Ack for message was already queued")
 	}
 }
 

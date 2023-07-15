@@ -15,7 +15,7 @@ type DevicePair struct {
 }
 
 type RequestData struct {
-	RequestId     string            `json:"requestId,omitempty"`
+	RequestID     string            `json:"requestId,omitempty"`
 	Timestamp     int64             `json:"timestamp,omitempty"`
 	Action        binary.ActionType `json:"action,omitempty"`
 	Bool1         bool              `json:"bool1,omitempty"`
@@ -27,7 +27,7 @@ type RequestData struct {
 }
 
 type Response struct {
-	ResponseId        string             `json:"responseId,omitempty"`
+	ResponseID        string             `json:"responseId,omitempty"`
 	BugleRoute        binary.BugleRoute  `json:"bugleRoute,omitempty"`
 	StartExecute      string             `json:"startExecute,omitempty"`
 	MessageType       binary.MessageType `json:"eventType,omitempty"`
@@ -76,7 +76,7 @@ func DecryptInternalMessage(internalMessage *binary.InternalMessage, cryptor *cr
 
 func newResponseFromPairEvent(internalMsg *binary.InternalMessageData, data *binary.PairEvents) *Response {
 	resp := &Response{
-		ResponseId:        internalMsg.GetResponseID(),
+		ResponseID:        internalMsg.GetResponseID(),
 		BugleRoute:        internalMsg.GetBugleRoute(),
 		StartExecute:      internalMsg.GetStartExecute(),
 		MessageType:       internalMsg.GetMessageType(),
@@ -98,7 +98,7 @@ func newResponseFromPairEvent(internalMsg *binary.InternalMessageData, data *bin
 
 func newResponseFromDataEvent(internalMsg *binary.InternalMessageData, internalRequestData *binary.InternalRequestData, rawData []byte, decrypted protoreflect.ProtoMessage) *Response {
 	resp := &Response{
-		ResponseId:        internalMsg.GetResponseID(),
+		ResponseID:        internalMsg.GetResponseID(),
 		BugleRoute:        internalMsg.GetBugleRoute(),
 		StartExecute:      internalMsg.GetStartExecute(),
 		MessageType:       internalMsg.GetMessageType(),
@@ -109,7 +109,7 @@ func newResponseFromDataEvent(internalMsg *binary.InternalMessageData, internalR
 			Browser: internalMsg.GetBrowser(),
 		},
 		Data: RequestData{
-			RequestId:     internalRequestData.GetSessionID(),
+			RequestID:     internalRequestData.GetSessionID(),
 			Timestamp:     internalRequestData.GetTimestamp(),
 			Action:        internalRequestData.GetAction(),
 			Bool1:         internalRequestData.GetBool1(),

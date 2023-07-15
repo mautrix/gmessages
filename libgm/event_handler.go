@@ -52,34 +52,33 @@ func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
 		r.client.Logger.Error().Msg("nil response in rpc handler")
 		return
 	}
-	_, waitingForResponse := r.client.sessionHandler.requests[response.Data.RequestId]
 
-	r.client.sessionHandler.addResponseAck(response.ResponseId)
-	if waitingForResponse {
-		r.client.sessionHandler.respondToRequestChannel(response)
-	} else {
-		switch response.BugleRoute {
-		case binary.BugleRoute_PairEvent:
-			go r.client.handlePairingEvent(response)
-		case binary.BugleRoute_DataEvent:
-			if r.skipCount > 0 {
-				r.skipCount--
-				r.client.Logger.Debug().
-					Any("action", response.Data.Action).
-					Any("toSkip", r.skipCount).
-					Msg("Skipped DataEvent")
-				if response.Data.Decrypted != nil {
-					r.client.Logger.Trace().
-						Str("proto_name", string(response.Data.Decrypted.ProtoReflect().Descriptor().FullName())).
-						Str("data", base64.StdEncoding.EncodeToString(response.Data.RawDecrypted)).
-						Msg("Skipped event data")
-				}
-				return
+	r.client.sessionHandler.queueMessageAck(response.ResponseID)
+	if r.client.sessionHandler.receiveResponse(response) {
+		r.client.Logger.Debug().Str("request_id", response.Data.RequestID).Msg("Received response")
+		return
+	}
+	switch response.BugleRoute {
+	case binary.BugleRoute_PairEvent:
+		go r.client.handlePairingEvent(response)
+	case binary.BugleRoute_DataEvent:
+		if r.skipCount > 0 {
+			r.skipCount--
+			r.client.Logger.Debug().
+				Any("action", response.Data.Action).
+				Int("remaining_skip_count", r.skipCount).
+				Msg("Skipped DataEvent")
+			if response.Data.Decrypted != nil {
+				r.client.Logger.Trace().
+					Str("proto_name", string(response.Data.Decrypted.ProtoReflect().Descriptor().FullName())).
+					Str("data", base64.StdEncoding.EncodeToString(response.Data.RawDecrypted)).
+					Msg("Skipped event data")
 			}
-			r.client.handleUpdatesEvent(response)
-		default:
-			r.client.Logger.Debug().Any("res", response).Msg("Got unknown bugleroute")
+			return
 		}
+		r.client.handleUpdatesEvent(response)
+	default:
+		r.client.Logger.Debug().Any("res", response).Msg("Got unknown bugleroute")
 	}
 
 }
