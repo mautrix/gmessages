@@ -2,6 +2,7 @@ package libgm
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/exp/slices"
@@ -32,8 +33,9 @@ type SessionHandler struct {
 	client   *Client
 	requests map[string]map[binary.ActionType]*ResponseChan
 
-	ackMap    []string
-	ackTicker *time.Ticker
+	ackMapLock sync.Mutex
+	ackMap     []string
+	ackTicker  *time.Ticker
 
 	sessionId string
 
@@ -101,6 +103,8 @@ func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedDat
 
 func (s *SessionHandler) addResponseAck(responseId string) {
 	s.client.Logger.Debug().Any("responseId", responseId).Msg("Added to ack map")
+	s.ackMapLock.Lock()
+	defer s.ackMapLock.Unlock()
 	hasResponseId := slices.Contains(s.ackMap, responseId)
 	if !hasResponseId {
 		s.ackMap = append(s.ackMap, responseId)
@@ -121,11 +125,13 @@ func (s *SessionHandler) startAckInterval() {
 }
 
 func (s *SessionHandler) sendAckRequest() {
-	if len(s.ackMap) <= 0 {
-		return
-	}
+	s.ackMapLock.Lock()
 	dataToAck := s.ackMap
 	s.ackMap = nil
+	s.ackMapLock.Unlock()
+	if len(dataToAck) == 0 {
+		return
+	}
 	ackMessages := make([]*binary.AckMessageData, len(dataToAck))
 	for i, reqID := range dataToAck {
 		ackMessages[i] = &binary.AckMessageData{
