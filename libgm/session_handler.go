@@ -156,5 +156,5 @@ func (s *SessionHandler) sendAckRequest() {
 	if err != nil {
 		panic(err)
 	}
-	s.client.Logger.Debug().Any("payload", jsonData).Msg("Sent acks")
+	s.client.Logger.Debug().Strs("message_ids", dataToAck).Msg("Sent acks")
 }
