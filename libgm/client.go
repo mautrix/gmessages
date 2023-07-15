@@ -31,7 +31,7 @@ type AuthData struct {
 	JWK              *crypto.JWK        `json:"jwk,omitempty"`
 }
 type Proxy func(*http.Request) (*url.URL, error)
-type EventHandler func(evt interface{})
+type EventHandler func(evt any)
 type Client struct {
 	Logger         zerolog.Logger
 	rpc            *RPC
@@ -39,8 +39,7 @@ type Client struct {
 	evHandler      EventHandler
 	sessionHandler *SessionHandler
 
-	imageCryptor *crypto.ImageCryptor
-	authData     *AuthData
+	authData *AuthData
 
 	proxy Proxy
 	http  *http.Client
@@ -60,7 +59,6 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	cli := &Client{
 		authData:       authData,
 		Logger:         logger,
-		imageCryptor:   &crypto.ImageCryptor{},
 		sessionHandler: sessionHandler,
 		http:           &http.Client{},
 	}
@@ -230,8 +228,11 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 		return nil, err3
 	}
 	c.Logger.Debug().Any("key", key).Any("encryptedLength", len(encryptedBuffImg)).Msg("Attempting to decrypt image")
-	c.imageCryptor.UpdateDecryptionKey(key)
-	decryptedImageBytes, decryptionErr := c.imageCryptor.DecryptData(encryptedBuffImg)
+	cryptor, err := crypto.NewImageCryptor(key)
+	if err != nil {
+		return nil, err
+	}
+	decryptedImageBytes, decryptionErr := cryptor.DecryptData(encryptedBuffImg)
 	if decryptionErr != nil {
 		return nil, decryptionErr
 	}

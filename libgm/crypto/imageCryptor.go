@@ -19,14 +19,6 @@ func NewImageCryptor(key []byte) (*ImageCryptor, error) {
 	return &ImageCryptor{key: key}, nil
 }
 
-func (ic *ImageCryptor) GetKey() []byte {
-	return ic.key
-}
-
-func (ic *ImageCryptor) UpdateDecryptionKey(key []byte) {
-	ic.key = key
-}
-
 func (ic *ImageCryptor) Encrypt(imageBytes []byte, aad []byte) ([]byte, error) {
 	block, err := aes.NewCipher(ic.key)
 	if err != nil {
