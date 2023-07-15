@@ -25,7 +25,7 @@ func (m *Messages) React(payload *binary.SendReactionPayload) (*binary.SendReact
 
 	res, ok := response.Data.Decrypted.(*binary.SendReactionResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into SendReactionResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.SendReactionResponse", response.Data.Decrypted)
 	}
 
 	m.client.Logger.Debug().Any("res", res).Msg("sent reaction!")
@@ -48,7 +48,7 @@ func (m *Messages) Delete(messageId string) (*binary.DeleteMessageResponse, erro
 
 	res, ok := response.Data.Decrypted.(*binary.DeleteMessageResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into DeleteMessageResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.DeleteMessagesResponse", response.Data.Decrypted)
 	}
 
 	m.client.Logger.Debug().Any("res", res).Msg("deleted message!")

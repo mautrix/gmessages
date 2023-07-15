@@ -36,7 +36,7 @@ func (c *Conversations) List(count int64) (*binary.Conversations, error) {
 
 	res, ok := response.Data.Decrypted.(*binary.Conversations)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into Conversations")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.Conversations", response.Data.Decrypted)
 	}
 
 	return res, nil
@@ -58,7 +58,7 @@ func (c *Conversations) GetType(conversationId string) (*binary.GetConversationT
 
 	res, ok := response.Data.Decrypted.(*binary.GetConversationTypeResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into GetConversationTypeResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.GetConversationTypeResponse", response.Data.Decrypted)
 	}
 
 	return res, nil
@@ -84,7 +84,7 @@ func (c *Conversations) FetchMessages(conversationId string, count int64, cursor
 
 	res, ok := response.Data.Decrypted.(*binary.FetchMessagesResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into FetchMessagesResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.FetchMessagesResponse", response.Data.Decrypted)
 	}
 
 	return res, nil
@@ -105,7 +105,7 @@ func (c *Conversations) SendMessage(payload *binary.SendMessagePayload) (*binary
 
 	res, ok := response.Data.Decrypted.(*binary.SendMessageResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into SendMessageResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.SendMessageResponse", response.Data.Decrypted)
 	}
 
 	c.client.Logger.Debug().Any("res", res).Msg("sent message!")
@@ -128,7 +128,7 @@ func (c *Conversations) GetParticipantThumbnail(convID string) (*binary.Particip
 
 	res, ok := response.Data.Decrypted.(*binary.ParticipantThumbnail)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into ParticipantThumbnail")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.ParticipantThumbnail", response.Data.Decrypted)
 	}
 
 	return res, nil
@@ -156,7 +156,7 @@ func (c *Conversations) Update(convBuilder *ConversationBuilder) (*binary.Update
 
 	res, ok := response.Data.Decrypted.(*binary.UpdateConversationResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into UpdateConversationResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.UpdateConversationResponse", response.Data.Decrypted)
 	}
 
 	return res, nil

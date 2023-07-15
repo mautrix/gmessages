@@ -38,7 +38,7 @@ func (s *Session) IsBugleDefault() (*binary.IsBugleDefaultResponse, error) {
 
 	res, ok := response.Data.Decrypted.(*binary.IsBugleDefaultResponse)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert response into IsBugleDefaultResponse")
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.IsBugleDefaultResponse", response.Data.Decrypted)
 	}
 
 	return res, nil
