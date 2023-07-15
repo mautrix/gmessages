@@ -30,6 +30,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"maunium.net/go/maulogger/v2"
+	mutil "maunium.net/go/mautrix/util"
 	"maunium.net/go/mautrix/util/variationselector"
 
 	"maunium.net/go/mautrix"
@@ -40,6 +41,7 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/database"
+	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -640,43 +642,6 @@ func (msg *ConvertedMessage) MergeCaption() {
 	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
-var mediaFormatToMime = map[binary.MediaFormats]string{
-	binary.MediaFormats_UNSPECIFIED_TYPE: "",
-
-	binary.MediaFormats_IMAGE_JPEG:        "image/jpeg",
-	binary.MediaFormats_IMAGE_JPG:         "image/jpeg",
-	binary.MediaFormats_IMAGE_PNG:         "image/png",
-	binary.MediaFormats_IMAGE_GIF:         "image/gif",
-	binary.MediaFormats_IMAGE_WBMP:        "image/vnd.wap.vbmp",
-	binary.MediaFormats_IMAGE_X_MS_BMP:    "image/bmp",
-	binary.MediaFormats_IMAGE_UNSPECIFIED: "",
-
-	binary.MediaFormats_VIDEO_MP4:         "video/mp4",
-	binary.MediaFormats_VIDEO_3G2:         "video/3gpp2",
-	binary.MediaFormats_VIDEO_3GPP:        "video/3gpp",
-	binary.MediaFormats_VIDEO_WEBM:        "video/webm",
-	binary.MediaFormats_VIDEO_MKV:         "video/x-matroska",
-	binary.MediaFormats_VIDEO_UNSPECIFIED: "",
-
-	binary.MediaFormats_AUDIO_AAC:         "audio/aac",
-	binary.MediaFormats_AUDIO_AMR:         "audio/amr",
-	binary.MediaFormats_AUDIO_MP3:         "audio/mp3",
-	binary.MediaFormats_AUDIO_MPEG:        "audio/mpeg",
-	binary.MediaFormats_AUDIO_MPG:         "audio/mpeg",
-	binary.MediaFormats_AUDIO_MP4:         "audio/mp4",
-	binary.MediaFormats_AUDIO_MP4_LATM:    "audio/mp4a-latm",
-	binary.MediaFormats_AUDIO_3GPP:        "audio/3gpp",
-	binary.MediaFormats_AUDIO_OGG:         "audio/ogg",
-	binary.MediaFormats_AUDIO_OGG2:        "audio/ogg",
-	binary.MediaFormats_AUDIO_UNSPECIFIED: "",
-
-	binary.MediaFormats_TEXT_VCARD: "text/vcard",
-	binary.MediaFormats_APP_PDF:    "application/pdf",
-	binary.MediaFormats_APP_TXT:    "text/plain",
-	binary.MediaFormats_APP_HTML:   "text/html",
-	binary.MediaFormats_APP_SMIL:   "application/smil",
-}
-
 func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.IntentAPI, msg *binary.MediaContent) (*event.MessageEventContent, error) {
 	var data []byte
 	var err error
@@ -684,7 +649,7 @@ func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.Intent
 	if err != nil {
 		return nil, err
 	}
-	mime := mediaFormatToMime[msg.GetFormat()]
+	mime := libgm.FormatToMediaType[msg.GetFormat()].Format
 	if mime == "" {
 		mime = mimetype.Detect(data).String()
 	}
@@ -1207,28 +1172,8 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 	return nil
 }
 
-func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timings messageTimings) {
-	ms := metricSender{portal: portal, timings: &timings}
-
-	log := portal.zlog.With().
-		Str("event_id", evt.ID.String()).
-		Str("action", "handle matrix message").
-		Logger()
-	ctx := log.WithContext(context.TODO())
-	log.Debug().Dur("age", timings.totalReceive).Msg("Handling Matrix message")
-
-	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
-	if !ok {
-		return
-	}
-
-	txnID := util.GenerateTmpID()
-	portal.outgoingMessagesLock.Lock()
-	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
-	portal.outgoingMessagesLock.Unlock()
-	if evt.Type == event.EventSticker {
-		content.MsgType = event.MsgImage
-	}
+func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*binary.SendMessagePayload, error) {
+	log := zerolog.Ctx(ctx)
 	req := &binary.SendMessagePayload{
 		ConversationID: portal.ID,
 		TmpID:          txnID,
@@ -1265,26 +1210,71 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 			}},
 		}}
 	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
-		//fileName := content.Body
-		//if content.FileName != "" {
-		//	fileName = content.FileName
-		//}
-		//sender.Client.StartUploadMedia()
-		//req.MessagePayload.MessageInfo = []*binary.MessageInfo{{
-		//	Data: &binary.MessageInfo_MediaContent{MediaContent: &binary.MediaContent{
-		//		Format:        0,
-		//		MediaID:       mediaID,
-		//		MediaName:     fileName,
-		//		Size:          int64(len(data)),
-		//		DecryptionKey: decryptionKey,
-		//	}},
-		//}}
+		var url id.ContentURI
+		if content.File != nil {
+			url = content.File.URL.ParseOrIgnore()
+		} else {
+			url = content.URL.ParseOrIgnore()
+		}
+		if url.IsEmpty() {
+			return nil, errMissingMediaURL
+		}
+		data, err := portal.MainIntent().DownloadBytesContext(ctx, url)
+		if err != nil {
+			return nil, mutil.NewDualError(errMediaDownloadFailed, err)
+		}
+		if content.File != nil {
+			err = content.File.DecryptInPlace(data)
+			if err != nil {
+				return nil, mutil.NewDualError(errMediaDecryptFailed, err)
+			}
+		}
+		if content.Info.MimeType == "" {
+			content.Info.MimeType = mimetype.Detect(data).String()
+		}
+		fileName := content.Body
+		if content.FileName != "" {
+			fileName = content.FileName
+		}
+		resp, err := sender.Client.UploadMedia(data, fileName, content.Info.MimeType)
+		if err != nil {
+			return nil, mutil.NewDualError(errMediaReuploadFailed, err)
+		}
+		req.MessagePayload.MessageInfo = []*binary.MessageInfo{{
+			Data: &binary.MessageInfo_MediaContent{MediaContent: resp},
+		}}
 	default:
-		go ms.sendMessageMetrics(evt, fmt.Errorf("unsupported msgtype"), "Ignoring", true)
+		return nil, fmt.Errorf("%w %s", errUnknownMsgType, content.MsgType)
+	}
+	return req, nil
+}
+
+func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timings messageTimings) {
+	ms := metricSender{portal: portal, timings: &timings}
+
+	log := portal.zlog.With().
+		Str("event_id", evt.ID.String()).
+		Str("action", "handle matrix message").
+		Logger()
+	ctx := log.WithContext(context.TODO())
+	log.Debug().Dur("age", timings.totalReceive).Msg("Handling Matrix message")
+
+	content, ok := evt.Content.Parsed.(*event.MessageEventContent)
+	if !ok {
 		return
 	}
-	_, err := sender.Client.Conversations.SendMessage(req)
-	if err != nil {
+
+	txnID := util.GenerateTmpID()
+	portal.outgoingMessagesLock.Lock()
+	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
+	portal.outgoingMessagesLock.Unlock()
+	if evt.Type == event.EventSticker {
+		content.MsgType = event.MsgImage
+	}
+
+	if req, err := portal.convertMatrixMessage(ctx, sender, content, txnID); err != nil {
+		go ms.sendMessageMetrics(evt, err, "Error converting", true)
+	} else if _, err = sender.Client.Conversations.SendMessage(req); err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error sending", true)
 	} else {
 		go ms.sendMessageMetrics(evt, nil, "", true)

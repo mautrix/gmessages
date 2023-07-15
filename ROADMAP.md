@@ -1,15 +1,15 @@
 # Features & roadmap
 * Matrix → Google Messages
-  * [ ] Message content
+  * [x] Message content
     * [x] Plain text
-    * [ ] Media/files
+    * [x] Media/files
     * [x] Replies (RCS)
   * [x] Reactions (RCS)
   * [ ] Typing notifications (RCS)
   * [x] Read receipts (RCS)
   * [x] Message deletions (own device only)
 * Google Messages → Matrix
-  * [ ] Message content
+  * [x] Message content
     * [x] Plain text
     * [x] Media/files
     * [x] Replies (RCS)

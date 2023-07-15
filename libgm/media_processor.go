@@ -19,15 +19,14 @@ type StartGoogleUpload struct {
 	UploadStatus     string
 	ChunkGranularity int64
 	ControlURL       string
+	MimeType         string
 
-	Image               *Image
 	EncryptedMediaBytes []byte
 }
 
 type MediaUpload struct {
 	MediaID     string
 	MediaNumber int64
-	Image       *Image
 }
 
 var (
@@ -36,10 +35,9 @@ var (
 )
 
 func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, error) {
-	imageType := upload.Image.GetImageType()
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
-	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", imageType.Format, "")
+	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", upload.MimeType, "")
 	req, reqErr := http.NewRequest("POST", upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
 	if reqErr != nil {
 		return nil, reqErr
@@ -76,20 +74,13 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	return &MediaUpload{
 		MediaID:     mediaIDs.Media.MediaID,
 		MediaNumber: mediaIDs.Media.MediaNumber,
-		Image:       upload.Image,
 	}, nil
 }
 
-func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
-	imageType := image.GetImageType()
-
-	encryptedImageBytes, encryptErr := image.GetEncryptedBytes()
-	if encryptErr != nil {
-		return nil, encryptErr
-	}
+func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*StartGoogleUpload, error) {
 	encryptedImageSize := strconv.Itoa(len(encryptedImageBytes))
 
-	startUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "start", "", imageType.Format, "resumable")
+	startUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "start", "", mime, "resumable")
 	startUploadPayload, buildPayloadErr := c.buildStartUploadPayload()
 	if buildPayloadErr != nil {
 		return nil, buildPayloadErr
@@ -125,8 +116,8 @@ func (c *Client) StartUploadMedia(image *Image) (*StartGoogleUpload, error) {
 		UploadStatus:     rHeaders.Get("x-goog-upload-status"),
 		ChunkGranularity: int64(chunkGranularity),
 		ControlURL:       rHeaders.Get("x-goog-upload-control-url"),
+		MimeType:         mime,
 
-		Image:               image,
 		EncryptedMediaBytes: encryptedImageBytes,
 	}
 	return uploadResponse, nil

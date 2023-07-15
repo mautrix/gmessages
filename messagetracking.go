@@ -40,6 +40,10 @@ var (
 	errUnknownMsgType              = errors.New("unknown msgtype")
 	errMediaUnsupportedType        = errors.New("unsupported media type")
 	errTargetNotFound              = errors.New("target event not found")
+	errMissingMediaURL             = errors.New("missing media URL")
+	errMediaDownloadFailed         = errors.New("failed to download media")
+	errMediaDecryptFailed          = errors.New("failed to decrypt media")
+	errMediaReuploadFailed         = errors.New("failed to upload media to google")
 
 	errMessageTakingLong = errors.New("bridging the message is taking longer than usual")
 )

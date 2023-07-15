@@ -1,116 +1,87 @@
 package libgm
 
 import (
+	"strings"
+
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
-	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 type MediaType struct {
 	Extension string
 	Format    string
-	Type      int64
+	Type      binary.MediaFormats
 }
 
-var MediaTypes = map[string]MediaType{
-	"image/jpeg":     {Extension: "jpeg", Format: "image/jpeg", Type: 1},
-	"image/jpg":      {Extension: "jpg", Format: "image/jpg", Type: 2},
-	"image/png":      {Extension: "png", Format: "image/png", Type: 3},
-	"image/gif":      {Extension: "gif", Format: "image/gif", Type: 4},
-	"image/wbmp":     {Extension: "wbmp", Format: "image/wbmp", Type: 5},
-	"image/bmp":      {Extension: "bmp", Format: "image/bmp", Type: 6},
-	"image/x-ms-bmp": {Extension: "bmp", Format: "image/x-ms-bmp", Type: 6},
-	"image":          {Type: 7},
+var MimeToMediaType = map[string]MediaType{
+	"image/jpeg":     {Extension: "jpeg", Type: binary.MediaFormats_IMAGE_JPEG},
+	"image/jpg":      {Extension: "jpg", Type: binary.MediaFormats_IMAGE_JPG},
+	"image/png":      {Extension: "png", Type: binary.MediaFormats_IMAGE_PNG},
+	"image/gif":      {Extension: "gif", Type: binary.MediaFormats_IMAGE_GIF},
+	"image/wbmp":     {Extension: "wbmp", Type: binary.MediaFormats_IMAGE_WBMP},
+	"image/bmp":      {Extension: "bmp", Type: binary.MediaFormats_IMAGE_X_MS_BMP},
+	"image/x-ms-bmp": {Extension: "bmp", Type: binary.MediaFormats_IMAGE_X_MS_BMP},
 
-	"video/mp4":        {Extension: "mp4", Format: "video/mp4", Type: 8},
-	"video/3gpp2":      {Extension: "3gpp2", Format: "video/3gpp2", Type: 9},
-	"video/3gpp":       {Extension: "3gpp", Format: "video/3gpp", Type: 10},
-	"video/webm":       {Extension: "webm", Format: "video/webm", Type: 11},
-	"video/x-matroska": {Extension: "mkv", Format: "video/x-matroska", Type: 12},
-	"video":            {Type: 13},
+	"video/mp4":        {Extension: "mp4", Type: binary.MediaFormats_VIDEO_MP4},
+	"video/3gpp2":      {Extension: "3gpp2", Type: binary.MediaFormats_VIDEO_3G2},
+	"video/3gpp":       {Extension: "3gpp", Type: binary.MediaFormats_VIDEO_3GPP},
+	"video/webm":       {Extension: "webm", Type: binary.MediaFormats_VIDEO_WEBM},
+	"video/x-matroska": {Extension: "mkv", Type: binary.MediaFormats_VIDEO_MKV},
 
-	"audio/aac":      {Extension: "aac", Format: "audio/aac", Type: 14},
-	"audio/amr":      {Extension: "amr", Format: "audio/amr", Type: 15},
-	"audio/mp3":      {Extension: "mp3", Format: "audio/mp3", Type: 16},
-	"audio/mpeg":     {Extension: "mpeg", Format: "audio/mpeg", Type: 17},
-	"audio/mpg":      {Extension: "mpg", Format: "audio/mpg", Type: 18},
-	"audio/mp4":      {Extension: "mp4", Format: "audio/mp4", Type: 19},
-	"audio/mp4-latm": {Extension: "latm", Format: "audio/mp4-latm", Type: 20},
-	"audio/3gpp":     {Extension: "3gpp", Format: "audio/3gpp", Type: 21},
-	"audio/ogg":      {Extension: "ogg", Format: "audio/ogg", Type: 22},
-	"auidio":         {Type: 23},
+	"audio/aac":      {Extension: "aac", Type: binary.MediaFormats_AUDIO_AAC},
+	"audio/amr":      {Extension: "amr", Type: binary.MediaFormats_AUDIO_AMR},
+	"audio/mp3":      {Extension: "mp3", Type: binary.MediaFormats_AUDIO_MP3},
+	"audio/mpeg":     {Extension: "mpeg", Type: binary.MediaFormats_AUDIO_MPEG},
+	"audio/mpg":      {Extension: "mpg", Type: binary.MediaFormats_AUDIO_MPG},
+	"audio/mp4":      {Extension: "mp4", Type: binary.MediaFormats_AUDIO_MP4},
+	"audio/mp4-latm": {Extension: "latm", Type: binary.MediaFormats_AUDIO_MP4_LATM},
+	"audio/3gpp":     {Extension: "3gpp", Type: binary.MediaFormats_AUDIO_3GPP},
+	"audio/ogg":      {Extension: "ogg", Type: binary.MediaFormats_AUDIO_OGG},
 
-	"text/vcard":         {Extension: "vcard", Format: "text/vcard", Type: 24},
-	"text/x-vcard":       {Extension: "vcard", Format: "text/x-vcard", Type: 24},
-	"application/pdf":    {Extension: "pdf", Format: "application/pdf", Type: 25},
-	"text/plain":         {Extension: "txt", Format: "text/plain", Type: 26},
-	"text/html":          {Extension: "html", Format: "text/html", Type: 27},
-	"application/msword": {Extension: "doc", Format: "application/msword", Type: 28},
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {Extension: "docx", Format: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", Type: 29},
-	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {Extension: "pptx", Format: "application/vnd.openxmlformats-officedocument.presentationml.presentation", Type: 30},
-	"application/vnd.ms-powerpoint":                                             {Extension: "ppt", Format: "application/vnd.ms-powerpoint", Type: 31},
-	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         {Extension: "xlsx", Format: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Type: 32},
-	"application/vnd.ms-excel":                                                  {Extension: "xls", Format: "application/vnd.ms-excel", Type: 33},
-	"application/vnd.android.package-archive":                                   {Extension: "apk", Format: "application/vnd.android.package-archive", Type: 34},
-	"application/zip":          {Extension: "zip", Format: "application/zip", Type: 35},
-	"application/java-archive": {Extension: "jar", Format: "application/java-archive", Type: 36},
-	"text/x-vCalendar":         {Extension: "vcs", Format: "text/x-vCalendar", Type: 38},
-	"text/x-vcalendar":         {Extension: "ics", Format: "text/x-vcalendar", Type: 39},
-	"text/calendar":            {Extension: "ics", Format: "text/calendar", Type: 40},
-	"application/vcs":          {Extension: "vcs", Format: "application/vcs", Type: 41},
-	"application/ics":          {Extension: "ics", Format: "application/ics", Type: 42},
-	"application/hbs-vcs":      {Extension: "vcs", Format: "application/hbs-vcs", Type: 43},
+	"text/vcard":         {Extension: "vcard", Type: binary.MediaFormats_TEXT_VCARD},
+	"application/pdf":    {Extension: "pdf", Type: binary.MediaFormats_APP_PDF},
+	"text/plain":         {Extension: "txt", Type: binary.MediaFormats_APP_TXT},
+	"text/html":          {Extension: "html", Type: binary.MediaFormats_APP_HTML},
+	"application/msword": {Extension: "doc", Type: binary.MediaFormats_APP_DOC},
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {Extension: "docx", Type: binary.MediaFormats_APP_DOCX},
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {Extension: "pptx", Type: binary.MediaFormats_APP_PPTX},
+	"application/vnd.ms-powerpoint":                                             {Extension: "ppt", Type: binary.MediaFormats_APP_PPT},
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         {Extension: "xlsx", Type: binary.MediaFormats_APP_XLSX},
+	"application/vnd.ms-excel":                                                  {Extension: "xls", Type: binary.MediaFormats_APP_XLS},
+	"application/vnd.android.package-archive":                                   {Extension: "apk", Type: binary.MediaFormats_APP_APK},
+	"application/zip":          {Extension: "zip", Type: binary.MediaFormats_APP_ZIP},
+	"application/java-archive": {Extension: "jar", Type: binary.MediaFormats_APP_JAR},
+	"text/x-calendar":          {Extension: "vcs", Type: binary.MediaFormats_CAL_TEXT_VCALENDAR},
+	"text/calendar":            {Extension: "ics", Type: binary.MediaFormats_CAL_TEXT_CALENDAR},
+
+	"image":       {Type: binary.MediaFormats_IMAGE_UNSPECIFIED},
+	"video":       {Type: binary.MediaFormats_VIDEO_UNSPECIFIED},
+	"audio":       {Type: binary.MediaFormats_AUDIO_UNSPECIFIED},
+	"application": {Type: binary.MediaFormats_APP_UNSPECIFIED},
+	"text":        {Type: binary.MediaFormats_APP_TXT},
 }
 
-type Image struct {
-	imageCryptor *crypto.ImageCryptor
-
-	imageName  string
-	imageID    string
-	imageType  MediaType
-	imageBytes []byte
-	imageSize  int64
+var FormatToMediaType = map[binary.MediaFormats]MediaType{
+	binary.MediaFormats_CAL_TEXT_XVCALENDAR: MimeToMediaType["text/x-calendar"],
+	binary.MediaFormats_CAL_APPLICATION_VCS: MimeToMediaType["text/x-calendar"],
+	binary.MediaFormats_CAL_APPLICATION_ICS: MimeToMediaType["text/calendar"],
+	//binary.MediaFormats_CAL_APPLICATION_HBSVCS: ???
 }
 
-func (i *Image) GetEncryptedBytes() ([]byte, error) {
-	encryptedBytes, encryptErr := i.imageCryptor.EncryptData(i.imageBytes)
-	if encryptErr != nil {
-		return nil, encryptErr
+func init() {
+	for key, mediaType := range MimeToMediaType {
+		if strings.ContainsRune(key, '/') {
+			mediaType.Format = key
+		}
+		FormatToMediaType[mediaType.Type] = mediaType
 	}
-	return encryptedBytes, nil
 }
 
-func (i *Image) GetImageCryptor() *crypto.ImageCryptor {
-	return i.imageCryptor
-}
-
-func (i *Image) GetImageName() string {
-	return i.imageName
-}
-
-func (i *Image) GetImageBytes() []byte {
-	return i.imageBytes
-}
-
-func (i *Image) GetImageSize() int64 {
-	return i.imageSize
-}
-
-func (i *Image) GetImageType() MediaType {
-	return i.imageType
-}
-
-func (i *Image) GetImageID() string {
-	return i.imageID
-}
-
-// This is the equivalent of dragging an image into the window on messages web
-//
-// Keep in mind that adding an image to a MessageBuilder will also upload the image to googles server
-func (c *Client) UploadMedia(data []byte, mime string) (*binary.MediaContent, error) {
-	mediaType := MediaTypes[mime]
-	mediaID := util.GenerateImageID()
-	fileName := util.RandStr(8) + "." + mediaType.Extension
+func (c *Client) UploadMedia(data []byte, fileName, mime string) (*binary.MediaContent, error) {
+	mediaType := MimeToMediaType[mime]
+	if mediaType.Type == 0 {
+		mediaType = MimeToMediaType[strings.Split(mime, "/")[0]]
+	}
 	decryptionKey, err := crypto.GenerateKey(32)
 	if err != nil {
 		return nil, err
@@ -119,30 +90,23 @@ func (c *Client) UploadMedia(data []byte, mime string) (*binary.MediaContent, er
 	if err != nil {
 		return nil, err
 	}
-	image := &Image{
-		imageCryptor: cryptor,
-		imageID:      mediaID,
-		imageBytes:   data,
-		imageType:    mediaType,
-		imageSize:    int64(len(data)),
-		imageName:    fileName,
-	}
-
-	startUploadImage, err := c.StartUploadMedia(image)
+	encryptedBytes, err := cryptor.EncryptData(data)
 	if err != nil {
 		return nil, err
 	}
-
+	startUploadImage, err := c.StartUploadMedia(encryptedBytes, mime)
+	if err != nil {
+		return nil, err
+	}
 	upload, err := c.FinalizeUploadMedia(startUploadImage)
 	if err != nil {
 		return nil, err
 	}
-
 	return &binary.MediaContent{
-		Format:        binary.MediaFormats(image.GetImageType().Type),
+		Format:        mediaType.Type,
 		MediaID:       upload.MediaID,
-		MediaName:     image.GetImageName(),
-		Size:          image.GetImageSize(),
-		DecryptionKey: image.GetImageCryptor().GetKey(),
+		MediaName:     fileName,
+		Size:          int64(len(data)),
+		DecryptionKey: decryptionKey,
 	}, nil
 }
