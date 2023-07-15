@@ -90,7 +90,14 @@ func (p *Pairer) startRefreshRelayTask() {
 }
 
 func (p *Pairer) RefreshPhoneRelay() {
-	body, _, err := payload.RefreshPhoneRelay(p.client.authData.TachyonAuthToken)
+	body, err := proto.Marshal(&binary.AuthenticationContainer{
+		AuthMessage: &binary.AuthMessage{
+			RequestID:        util.RandomUUIDv4(),
+			Network:          &payload.Network,
+			TachyonAuthToken: p.client.authData.TachyonAuthToken,
+			ConfigVersion:    payload.ConfigMessage,
+		},
+	})
 	if err != nil {
 		p.client.Logger.Err(err).Msg("refresh phone relay err")
 		return
@@ -120,30 +127,30 @@ func (p *Pairer) RefreshPhoneRelay() {
 }
 
 func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error) {
-	body, rawData, err1 := payload.GetWebEncryptionKey(c.authData.TachyonAuthToken)
-	if err1 != nil {
-		c.Logger.Err(err1).Msg("web encryption key err")
-		return nil, err1
+	body, err := proto.Marshal(&binary.AuthenticationContainer{
+		AuthMessage: &binary.AuthMessage{
+			RequestID:        uuid.NewString(),
+			TachyonAuthToken: c.authData.TachyonAuthToken,
+			ConfigVersion:    payload.ConfigMessage,
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
-	c.Logger.Debug().Any("keyByteLength", len(rawData.AuthMessage.TachyonAuthToken)).Any("json", rawData).Any("base64", body).Msg("GetWebEncryptionKey Payload")
-	webKeyResponse, reqErr := c.MakeRelayRequest(util.GET_WEB_ENCRYPTION_KEY, body)
-	if reqErr != nil {
-		c.Logger.Err(reqErr).Msg("Web encryption key request err")
-		return nil, reqErr
+	webKeyResponse, err := c.MakeRelayRequest(util.GET_WEB_ENCRYPTION_KEY, body)
+	if err != nil {
+		return nil, err
 	}
-	responseBody, err2 := io.ReadAll(webKeyResponse.Body)
+	responseBody, err := io.ReadAll(webKeyResponse.Body)
 	defer webKeyResponse.Body.Close()
-	if err2 != nil {
-		c.Logger.Err(err2).Msg("Web encryption key read response err")
-		return nil, err2
+	if err != nil {
+		return nil, err
 	}
 	parsedResponse := &binary.WebEncryptionKeyResponse{}
-	err2 = proto.Unmarshal(responseBody, parsedResponse)
-	if err2 != nil {
-		c.Logger.Err(err2).Msg("Parse webkeyresponse into proto struct error")
-		return nil, err2
+	err = proto.Unmarshal(responseBody, parsedResponse)
+	if err != nil {
+		return nil, err
 	}
-	c.Logger.Debug().Any("webenckeyresponse", parsedResponse).Msg("Web encryption key")
 	if c.pairer != nil {
 		if c.pairer.ticker != nil {
 			c.pairer.ticker.Stop()
