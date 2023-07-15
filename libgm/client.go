@@ -372,16 +372,8 @@ func (c *Client) refreshAuthToken() error {
 		return readErr
 	}
 
-	var deserialized []interface{}
-
-	marshalErr := json.Unmarshal(responseBody, &deserialized)
-	if marshalErr != nil {
-		return marshalErr
-	}
-
 	resp := &binary.RegisterRefreshResponse{}
-
-	deserializeErr := pblite.Deserialize(deserialized, resp.ProtoReflect())
+	deserializeErr := pblite.Unmarshal(responseBody, resp)
 	if deserializeErr != nil {
 		return deserializeErr
 	}

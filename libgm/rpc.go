@@ -3,13 +3,15 @@ package libgm
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
@@ -86,6 +88,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 			}()
 		}
 		r.startReadingData(resp.Body)
+		r.conn = nil
 	}
 }
 
@@ -114,21 +117,27 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		r.client.Logger.Err(err).Msg("Opening is not [[")
 		return
 	}
+	var expectEOF bool
 	for {
 		n, err = reader.Read(buf)
 		if err != nil {
-			if errors.Is(err, os.ErrClosed) {
-				r.client.Logger.Err(err).Msg("Closed body from server")
-				r.conn = nil
-				return
+			var logEvt *zerolog.Event
+			if errors.Is(err, io.EOF) && expectEOF {
+				logEvt = r.client.Logger.Debug()
+			} else {
+				logEvt = r.client.Logger.Warn()
 			}
-			r.client.Logger.Err(err).Msg("Stopped reading data from server")
+			logEvt.Err(err).Msg("Stopped reading data from server")
 			return
+		} else if expectEOF {
+			r.client.Logger.Warn().Msg("Didn't get EOF after stream end marker")
 		}
 		chunk := buf[:n]
 		if len(accumulatedData) == 0 {
 			if len(chunk) == 2 && string(chunk) == "]]" {
 				r.client.Logger.Debug().Msg("Got stream end marker")
+				expectEOF = true
+				continue
 			}
 			chunk = bytes.TrimPrefix(chunk, []byte{','})
 		}
@@ -137,15 +146,10 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 			r.client.Logger.Debug().Str("data", string(chunk)).Msg("Invalid JSON")
 			continue
 		}
-		var msgArr []any
-		err = json.Unmarshal(accumulatedData, &msgArr)
-		if err != nil {
-			r.client.Logger.Err(err).Msg("Error unmarshalling json")
-			continue
-		}
+		currentBlock := accumulatedData
 		accumulatedData = accumulatedData[:0]
 		msg := &binary.InternalMessage{}
-		err = pblite.Deserialize(msgArr, msg.ProtoReflect())
+		err = pblite.Unmarshal(currentBlock, msg)
 		if err != nil {
 			r.client.Logger.Err(err).Msg("Error deserializing pblite message")
 			continue
@@ -161,7 +165,9 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		case msg.GetHeartbeat() != nil:
 			r.client.Logger.Trace().Msg("Got heartbeat message")
 		default:
-			r.client.Logger.Warn().Interface("data", msgArr).Msg("Got unknown message")
+			r.client.Logger.Warn().
+				Str("data", base64.StdEncoding.EncodeToString(currentBlock)).
+				Msg("Got unknown message")
 		}
 	}
 }
