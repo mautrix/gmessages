@@ -6,30 +6,21 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
-type Conversations struct {
-	client *Client
-
-	synced bool
-}
-
-// default is 25 count
-func (c *Conversations) List(count int64) (*binary.Conversations, error) {
+func (c *Client) ListConversations(count int64) (*binary.Conversations, error) {
 	payload := &binary.ListCoversationsPayload{Count: count, Field4: 1}
-	var actionType binary.ActionType
+	//var actionType binary.ActionType
+	//if !c.synced {
+	//	actionType = binary.ActionType_LIST_CONVERSATIONS_SYNC
+	//	c.synced = true
+	//} else {
+	actionType := binary.ActionType_LIST_CONVERSATIONS
 
-	if !c.synced {
-		actionType = binary.ActionType_LIST_CONVERSATIONS_SYNC
-		c.synced = true
-	} else {
-		actionType = binary.ActionType_LIST_CONVERSATIONS
-	}
-
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return nil, sendErr
 	}
 
-	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
@@ -42,16 +33,16 @@ func (c *Conversations) List(count int64) (*binary.Conversations, error) {
 	return res, nil
 }
 
-func (c *Conversations) GetType(conversationId string) (*binary.GetConversationTypeResponse, error) {
-	payload := &binary.ConversationTypePayload{ConversationID: conversationId}
+func (c *Client) GetConversationType(conversationID string) (*binary.GetConversationTypeResponse, error) {
+	payload := &binary.ConversationTypePayload{ConversationID: conversationID}
 	actionType := binary.ActionType_GET_CONVERSATION_TYPE
 
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return nil, sendErr
 	}
 
-	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
@@ -64,20 +55,20 @@ func (c *Conversations) GetType(conversationId string) (*binary.GetConversationT
 	return res, nil
 }
 
-func (c *Conversations) FetchMessages(conversationId string, count int64, cursor *binary.Cursor) (*binary.FetchMessagesResponse, error) {
-	payload := &binary.FetchConversationMessagesPayload{ConversationID: conversationId, Count: count}
+func (c *Client) FetchMessages(conversationID string, count int64, cursor *binary.Cursor) (*binary.FetchMessagesResponse, error) {
+	payload := &binary.FetchConversationMessagesPayload{ConversationID: conversationID, Count: count}
 	if cursor != nil {
 		payload.Cursor = cursor
 	}
 
 	actionType := binary.ActionType_LIST_MESSAGES
 
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return nil, sendErr
 	}
 
-	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
@@ -90,15 +81,15 @@ func (c *Conversations) FetchMessages(conversationId string, count int64, cursor
 	return res, nil
 }
 
-func (c *Conversations) SendMessage(payload *binary.SendMessagePayload) (*binary.SendMessageResponse, error) {
+func (c *Client) SendMessage(payload *binary.SendMessagePayload) (*binary.SendMessageResponse, error) {
 	actionType := binary.ActionType_SEND_MESSAGE
 
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return nil, sendErr
 	}
 
-	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
@@ -108,20 +99,19 @@ func (c *Conversations) SendMessage(payload *binary.SendMessagePayload) (*binary
 		return nil, fmt.Errorf("unexpected response type %T, expected *binary.SendMessageResponse", response.Data.Decrypted)
 	}
 
-	c.client.Logger.Debug().Any("res", res).Msg("sent message!")
 	return res, nil
 }
 
-func (c *Conversations) GetParticipantThumbnail(convID string) (*binary.ParticipantThumbnail, error) {
+func (c *Client) GetParticipantThumbnail(convID string) (*binary.ParticipantThumbnail, error) {
 	payload := &binary.GetParticipantThumbnailPayload{ConversationID: convID}
 	actionType := binary.ActionType_GET_PARTICIPANTS_THUMBNAIL
 
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return nil, sendErr
 	}
 
-	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +124,7 @@ func (c *Conversations) GetParticipantThumbnail(convID string) (*binary.Particip
 	return res, nil
 }
 
-func (c *Conversations) Update(convBuilder *ConversationBuilder) (*binary.UpdateConversationResponse, error) {
+func (c *Client) UpdateConversation(convBuilder *ConversationBuilder) (*binary.UpdateConversationResponse, error) {
 	data := &binary.UpdateConversationPayload{}
 
 	payload, buildErr := convBuilder.Build(data)
@@ -144,12 +134,12 @@ func (c *Conversations) Update(convBuilder *ConversationBuilder) (*binary.Update
 
 	actionType := binary.ActionType_UPDATE_CONVERSATION
 
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return nil, sendErr
 	}
 
-	response, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	response, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return nil, err
 	}
@@ -162,16 +152,16 @@ func (c *Conversations) Update(convBuilder *ConversationBuilder) (*binary.Update
 	return res, nil
 }
 
-func (c *Conversations) SetTyping(convID string) error {
+func (c *Client) SetTyping(convID string) error {
 	payload := &binary.TypingUpdatePayload{Data: &binary.SetTypingIn{ConversationID: convID, Typing: true}}
 	actionType := binary.ActionType_TYPING_UPDATES
 
-	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	sentRequestId, sendErr := c.sessionHandler.completeSendMessage(actionType, true, payload)
 	if sendErr != nil {
 		return sendErr
 	}
 
-	_, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	_, err := c.sessionHandler.WaitForResponse(sentRequestId, actionType)
 	if err != nil {
 		return err
 	}

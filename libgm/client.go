@@ -34,9 +34,6 @@ type Proxy func(*http.Request) (*url.URL, error)
 type EventHandler func(evt interface{})
 type Client struct {
 	Logger         zerolog.Logger
-	Conversations  *Conversations
-	Session        *Session
-	Messages       *Messages
 	rpc            *RPC
 	pairer         *Pairer
 	evHandler      EventHandler
@@ -70,8 +67,6 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler.client = cli
 	rpc := &RPC{client: cli, http: &http.Client{Transport: &http.Transport{Proxy: cli.proxy}}}
 	cli.rpc = rpc
-	cli.Logger.Debug().Any("data", cli.authData.Cryptor).Msg("Cryptor")
-	cli.setApiMethods()
 	cli.FetchConfigVersion()
 	return cli
 }
@@ -122,12 +117,12 @@ func (c *Client) Connect() error {
 		go c.rpc.ListenReceiveMessages(rpcPayload)
 		c.sessionHandler.startAckInterval()
 
-		bugleRes, bugleErr := c.Session.IsBugleDefault()
+		bugleRes, bugleErr := c.IsBugleDefault()
 		if bugleErr != nil {
 			panic(bugleErr)
 		}
 		c.Logger.Info().Any("isBugle", bugleRes.Success).Msg("IsBugleDefault")
-		sessionErr := c.Session.SetActiveSession()
+		sessionErr := c.SetActiveSession()
 		if sessionErr != nil {
 			panic(sessionErr)
 		}
@@ -199,12 +194,6 @@ func (c *Client) triggerEvent(evt interface{}) {
 	if c.evHandler != nil {
 		c.evHandler(evt)
 	}
-}
-
-func (c *Client) setApiMethods() {
-	c.Conversations = &Conversations{client: c}
-	c.Session = &Session{client: c}
-	c.Messages = &Messages{client: c}
 }
 
 func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {

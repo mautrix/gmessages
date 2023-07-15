@@ -1274,7 +1274,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 
 	if req, err := portal.convertMatrixMessage(ctx, sender, content, txnID); err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error converting", true)
-	} else if _, err = sender.Client.Conversations.SendMessage(req); err != nil {
+	} else if _, err = sender.Client.SendMessage(req); err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error sending", true)
 	} else {
 		go ms.sendMessageMetrics(evt, nil, "", true)
@@ -1308,7 +1308,7 @@ func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.Eve
 		targetMessage = lastMessage
 	}
 	log = log.With().Str("message_id", targetMessage.ID).Logger()
-	err = user.Client.Messages.MarkRead(portal.ID, targetMessage.ID)
+	err = user.Client.MarkRead(portal.ID, targetMessage.ID)
 	if err != nil {
 		log.Err(err).Msg("Failed to mark message as read")
 	} else {
@@ -1353,7 +1353,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 	if existingReaction != nil {
 		action = binary.Reaction_SWITCH
 	}
-	resp, err := sender.Client.Messages.React(&binary.SendReactionPayload{
+	resp, err := sender.Client.SendReaction(&binary.SendReactionPayload{
 		MessageID:    msg.ID,
 		ReactionData: binary.MakeReactionData(emoji),
 		Action:       action,
@@ -1402,7 +1402,7 @@ func (portal *Portal) handleMatrixMessageRedaction(ctx context.Context, sender *
 	} else if msg == nil {
 		return errTargetNotFound
 	}
-	resp, err := sender.Client.Messages.Delete(msg.ID)
+	resp, err := sender.Client.DeleteMessage(msg.ID)
 	if err != nil {
 		return fmt.Errorf("failed to send message removal: %w", err)
 	} else if !resp.Success {
@@ -1425,7 +1425,7 @@ func (portal *Portal) handleMatrixReactionRedaction(ctx context.Context, sender 
 		return errTargetNotFound
 	}
 
-	resp, err := sender.Client.Messages.React(&binary.SendReactionPayload{
+	resp, err := sender.Client.SendReaction(&binary.SendReactionPayload{
 		MessageID:    existingReaction.MessageID,
 		ReactionData: binary.MakeReactionData(existingReaction.Reaction),
 		Action:       binary.Reaction_REMOVE,

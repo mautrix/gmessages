@@ -9,12 +9,12 @@ import (
 
 func (c *Client) handleClientReady(newSessionId string) {
 	c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
-	conversations, convErr := c.Conversations.List(25)
+	conversations, convErr := c.ListConversations(25)
 	if convErr != nil {
 		panic(convErr)
 	}
 	c.Logger.Debug().Any("conversations", conversations).Msg("got conversations")
-	notifyErr := c.Session.NotifyDittoActivity()
+	notifyErr := c.NotifyDittoActivity()
 	if notifyErr != nil {
 		panic(notifyErr)
 	}

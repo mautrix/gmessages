@@ -87,7 +87,7 @@ func (portal *Portal) deterministicEventID(messageID string, part int) id.EventI
 
 func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int64, markRead bool) {
 	log := zerolog.Ctx(ctx)
-	resp, err := user.Client.Conversations.FetchMessages(portal.ID, limit, nil)
+	resp, err := user.Client.FetchMessages(portal.ID, limit, nil)
 	if err != nil {
 		portal.zlog.Error().Err(err).Msg("Failed to fetch messages")
 		return

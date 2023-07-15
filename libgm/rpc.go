@@ -82,7 +82,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 		r.conn = resp.Body
 		if r.client.authData.DevicePair != nil {
 			go func() {
-				err := r.client.Session.NotifyDittoActivity()
+				err := r.client.NotifyDittoActivity()
 				if err != nil {
 					r.client.Logger.Err(err).Msg("Error notifying ditto activity")
 				}
