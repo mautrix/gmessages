@@ -60,12 +60,6 @@ func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
 	//r.client.Logger.Debug().Any("waiting", waitingForResponse).Msg("got request! waiting?")
 	r.client.sessionHandler.addResponseAck(response.ResponseId)
 	if waitingForResponse {
-		if response.Data.Decrypted != nil && r.client.Logger.Trace().Enabled() {
-			r.client.Logger.Trace().
-				Str("proto_name", string(response.Data.Decrypted.ProtoReflect().Descriptor().FullName())).
-				Str("data", base64.StdEncoding.EncodeToString(response.Data.RawDecrypted)).
-				Msg("Got response")
-		}
 		r.client.sessionHandler.respondToRequestChannel(response)
 	} else {
 		switch response.BugleRoute {
