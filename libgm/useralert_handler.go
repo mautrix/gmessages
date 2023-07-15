@@ -9,7 +9,7 @@ import (
 
 func (c *Client) handleClientReady(newSessionId string) {
 	c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
-	conversations, convErr := c.ListConversations(25)
+	conversations, convErr := c.ListConversations(25, binary.ListConversationsPayload_INBOX)
 	if convErr != nil {
 		panic(convErr)
 	}

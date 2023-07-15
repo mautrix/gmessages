@@ -6,8 +6,8 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
-func (c *Client) ListConversations(count int64) (*binary.Conversations, error) {
-	payload := &binary.ListCoversationsPayload{Count: count, Field4: 1}
+func (c *Client) ListConversations(count int64, folder binary.ListConversationsPayload_Folder) (*binary.Conversations, error) {
+	payload := &binary.ListConversationsPayload{Count: count, Folder: folder}
 	//var actionType binary.ActionType
 	//if !c.synced {
 	//	actionType = binary.ActionType_LIST_CONVERSATIONS_SYNC

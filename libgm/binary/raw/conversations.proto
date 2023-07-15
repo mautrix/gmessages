@@ -89,9 +89,16 @@ message FetchConversationMessagesPayload {
     Cursor cursor = 5;
 }
 
-message ListCoversationsPayload {
-    int64 count = 2; // no idea if this is actually amount to list
-    int64 field4 = 4; // no idea what this is , but only value ive seen is 1
+message ListConversationsPayload {
+    enum Folder {
+        UNKNOWN = 0;
+        INBOX = 1;
+        ARCHIVE = 2;
+        SPAM_BLOCKED = 5;
+    }
+
+    int64 count = 2;
+    Folder folder = 4;
 }
 
 message Cursor {
