@@ -166,3 +166,19 @@ func (c *Conversations) Update(convBuilder *ConversationBuilder) (*binary.Update
 
 	return res, nil
 }
+
+func (c *Conversations) SetTyping(convID string) error {
+	payload := &binary.TypingUpdatePayload{Data: &binary.SetTypingIn{ConversationID: convID, Typing: true}}
+	actionType := binary.ActionType_TYPING_UPDATES
+
+	sentRequestId, sendErr := c.client.sessionHandler.completeSendMessage(actionType, true, payload)
+	if sendErr != nil {
+		return sendErr
+	}
+
+	_, err := c.client.sessionHandler.WaitForResponse(sentRequestId, actionType)
+	if err != nil {
+		return err
+	}
+	return nil
+}

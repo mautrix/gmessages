@@ -17,6 +17,15 @@ message ConversationTypePayload {
     string conversationID = 2;
 }
 
+message TypingUpdatePayload {
+    SetTypingIn data = 2;
+}
+
+message SetTypingIn {
+    string conversationID = 1;
+    bool typing = 3;
+}
+
 message UpdateConversationPayload {
     UpdateConversationData data = 1;
     ConversationActionStatus action = 2;

@@ -46,3 +46,12 @@ var UPDATE_CONVERSATION = Route{
 	UseSessionID:   false,
 	UseTTL:         true,
 }
+
+var TYPING_UPDATES = Route{
+	Action:         binary.ActionType_TYPING_UPDATES,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: nil,
+	UseSessionID:   false,
+	UseTTL:         true,
+}

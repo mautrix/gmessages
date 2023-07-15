@@ -27,5 +27,6 @@ var Routes = map[binary.ActionType]Route{
 	binary.ActionType_SEND_MESSAGE:               SEND_MESSAGE,
 	binary.ActionType_SEND_REACTION:              SEND_REACTION,
 	binary.ActionType_DELETE_MESSAGE:             DELETE_MESSAGE,
+	binary.ActionType_TYPING_UPDATES:             TYPING_UPDATES,
 	binary.ActionType_GET_PARTICIPANTS_THUMBNAIL: GET_PARTICIPANT_THUMBNAIL,
 }
