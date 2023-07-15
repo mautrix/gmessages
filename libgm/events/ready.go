@@ -8,13 +8,13 @@ import (
 )
 
 type ClientReady struct {
-	SessionId     string
+	SessionID     string
 	Conversations []*binary.Conversation
 }
 
-func NewClientReady(sessionId string, conversationList *binary.Conversations) *ClientReady {
+func NewClientReady(sessionID string, conversationList *binary.Conversations) *ClientReady {
 	return &ClientReady{
-		SessionId:     sessionId,
+		SessionID:     sessionID,
 		Conversations: conversationList.Conversations,
 	}
 }

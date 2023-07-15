@@ -1,6 +1,7 @@
 package libgm
 
 import (
+	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -22,7 +23,7 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 
 		case *binary.UpdateEvents_SettingsEvent:
 			c.rpc.logContent(res)
-			c.handleSettingsEvent(res, evt.SettingsEvent)
+			c.triggerEvent(evt.SettingsEvent)
 
 		case *binary.UpdateEvents_ConversationEvent:
 			if c.rpc.deduplicateUpdate(res) {
@@ -38,12 +39,44 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 
 		case *binary.UpdateEvents_TypingEvent:
 			c.rpc.logContent(res)
-			c.handleTypingEvent(res, evt.TypingEvent.GetData())
+			c.triggerEvent(evt.TypingEvent.GetData())
 		default:
 			c.Logger.Debug().Any("evt", evt).Any("res", res).Msg("Got unknown event type")
 		}
 
 	default:
 		c.Logger.Error().Any("response", res).Msg("ignoring response.")
+	}
+}
+
+func (c *Client) handleClientReady(newSessionId string) {
+	c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
+	conversations, convErr := c.ListConversations(25, binary.ListConversationsPayload_INBOX)
+	if convErr != nil {
+		panic(convErr)
+	}
+	c.Logger.Debug().Any("conversations", conversations).Msg("got conversations")
+	notifyErr := c.NotifyDittoActivity()
+	if notifyErr != nil {
+		panic(notifyErr)
+	}
+	readyEvt := events.NewClientReady(newSessionId, conversations)
+	c.triggerEvent(readyEvt)
+}
+
+func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAlertEvent) {
+	alertType := data.AlertType
+	switch alertType {
+	case binary.AlertType_BROWSER_ACTIVE:
+		newSessionId := res.Data.RequestID
+		c.Logger.Info().Any("sessionId", newSessionId).Msg("[NEW_BROWSER_ACTIVE] Opened new browser connection")
+		if newSessionId != c.sessionHandler.sessionID {
+			evt := events.NewBrowserActive(newSessionId)
+			c.triggerEvent(evt)
+		} else {
+			go c.handleClientReady(newSessionId)
+		}
+	default:
+		c.triggerEvent(data)
 	}
 }

@@ -1,11 +1,11 @@
 package events
 
 type BrowserActive struct {
-	SessionId string
+	SessionID string
 }
 
-func NewBrowserActive(sessionId string) *BrowserActive {
+func NewBrowserActive(sessionID string) *BrowserActive {
 	return &BrowserActive{
-		SessionId: sessionId,
+		SessionID: sessionID,
 	}
 }
