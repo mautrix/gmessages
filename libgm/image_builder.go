@@ -130,7 +130,7 @@ func (mb *MessageBuilder) AddImage(imgBytes []byte, mime string) *MessageBuilder
 func (mb *MessageBuilder) newImageData(imgBytes []byte, mime string) (*Image, error) {
 	// TODO explode on unsupported types
 	imgType := ImageTypes[mime]
-	imageId := util.GenerateImageId()
+	imageId := util.GenerateImageID()
 	imageName := util.RandStr(8) + "." + imgType.Extension
 	decryptionKey, err := crypto.GenerateKey(32)
 	if err != nil {

@@ -293,7 +293,7 @@ func (c *Client) updateJWK(jwk *crypto.JWK) {
 }
 
 func (c *Client) updateTachyonAuthToken(t []byte) {
-	authenticatedAt := util.TimestampNow()
+	authenticatedAt := time.Now().UTC()
 	c.authData.TachyonAuthToken = t
 	c.authData.AuthenticatedAt = &authenticatedAt
 	c.Logger.Debug().Any("authenticatedAt", authenticatedAt).Any("tachyonAuthToken", t).Msg("Updated TachyonAuthToken")

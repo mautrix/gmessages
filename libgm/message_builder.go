@@ -95,7 +95,7 @@ func (mb *MessageBuilder) Build() (*binary.SendMessagePayload, error) {
 	}
 
 	if mb.tmpID == "" {
-		mb.tmpID = util.GenerateTmpId()
+		mb.tmpID = util.GenerateTmpID()
 	}
 
 	return mb.newSendConversationMessage(), nil
@@ -106,7 +106,7 @@ func (c *Client) NewMessageBuilder() *MessageBuilder {
 		client: c,
 	}
 
-	tmpId := util.GenerateTmpId()
+	tmpId := util.GenerateTmpID()
 	mb.SetTmpID(tmpId)
 
 	return mb

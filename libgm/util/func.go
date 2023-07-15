@@ -1,8 +1,6 @@
 package util
 
 import (
-	crand "crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -17,10 +15,6 @@ import (
 
 var Charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 
-func TimestampNow() time.Time {
-	return time.Now().UTC()
-}
-
 func RandStr(length int) string {
 	b := make([]rune, length)
 	for i := range b {
@@ -29,43 +23,21 @@ func RandStr(length int) string {
 	return string(b)
 }
 
-func GenerateImageId() string {
+func GenerateImageID() string {
 	part1 := RandomUUIDv4()
 	part2 := RandStr(25)
 	return part1 + "/" + part2
 }
 
-func GenerateTmpId() string {
+func GenerateTmpID() string {
 	src := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(src)
 	randNum := r.Int63n(1e12)
 	return fmt.Sprintf("tmp_%012d", randNum)
 }
 
-func ParseTimestamp(unixTs int64) time.Time {
-	seconds := unixTs / int64(time.Second/time.Microsecond)
-	nanoseconds := (unixTs % int64(time.Second/time.Microsecond)) * int64(time.Microsecond/time.Nanosecond)
-	return time.Unix(seconds, nanoseconds).UTC()
-}
-
-func RandomHex(n int) string {
-	bytes := make([]byte, n)
-	crand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
-
 func RandomUUIDv4() string {
 	return uuid.New().String()
-}
-
-func RemoveFromSlice(s []string, v string) []string {
-	newS := []string{}
-	for _, i := range s {
-		if i != v {
-			newS = append(newS, i)
-		}
-	}
-	return newS
 }
 
 func BuildRelayHeaders(req *http.Request, contentType string, accept string) {

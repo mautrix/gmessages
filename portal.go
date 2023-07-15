@@ -1220,7 +1220,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		}
 	}
 
-	txnID := util.GenerateTmpId()
+	txnID := util.GenerateTmpID()
 	portal.outgoingMessagesLock.Lock()
 	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
 	portal.outgoingMessagesLock.Unlock()
