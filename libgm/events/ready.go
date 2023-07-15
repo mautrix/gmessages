@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"net/http"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -28,8 +29,17 @@ func NewAuthTokenRefreshed(token []byte) *AuthTokenRefreshed {
 	}
 }
 
+type HTTPError struct {
+	Action string
+	Resp   *http.Response
+}
+
+func (he HTTPError) Error() string {
+	return fmt.Sprintf("http %d while %s", he.Resp.StatusCode, he.Action)
+}
+
 type ListenFatalError struct {
-	Resp *http.Response
+	Error error
 }
 
 type ListenTemporaryError struct {

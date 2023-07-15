@@ -41,6 +41,7 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 			err := r.client.refreshAuthToken()
 			if err != nil {
 				r.client.Logger.Err(err).Msg("Error refreshing auth token")
+				r.client.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
 				return
 			}
 		}
@@ -59,12 +60,12 @@ func (r *RPC) ListenReceiveMessages(payload []byte) {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		if resp.StatusCode >= 400 && resp.StatusCode < 501 {
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			r.client.Logger.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
-			r.client.triggerEvent(&events.ListenFatalError{Resp: resp})
+			r.client.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp}})
 			return
 		} else if resp.StatusCode >= 500 {
-			r.client.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("http %d while polling", resp.StatusCode)})
+			r.client.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp}})
 			errored = true
 			r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("5xx error in long polling, retrying in 5 seconds")
 			time.Sleep(5 * time.Second)

@@ -34,27 +34,7 @@ func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAle
 		} else {
 			go c.handleClientReady(newSessionId)
 		}
-	case binary.AlertType_MOBILE_BATTERY_LOW:
-		c.Logger.Info().Msg("[MOBILE_BATTERY_LOW] Mobile device is on low battery")
-		evt := events.NewMobileBatteryLow()
-		c.triggerEvent(evt)
-
-	case binary.AlertType_MOBILE_BATTERY_RESTORED:
-		c.Logger.Info().Msg("[MOBILE_BATTERY_RESTORED] Mobile device has restored enough battery!")
-		evt := events.NewMobileBatteryRestored()
-		c.triggerEvent(evt)
-
-	case binary.AlertType_MOBILE_DATA_CONNECTION:
-		c.Logger.Info().Msg("[MOBILE_DATA_CONNECTION] Mobile device is now using data connection")
-		evt := events.NewMobileDataConnection()
-		c.triggerEvent(evt)
-
-	case binary.AlertType_MOBILE_WIFI_CONNECTION:
-		c.Logger.Info().Msg("[MOBILE_WIFI_CONNECTION] Mobile device is now using wifi connection")
-		evt := events.NewMobileWifiConnection()
-		c.triggerEvent(evt)
-
 	default:
-		c.Logger.Info().Any("data", data).Any("res", res).Msg("Got unknown alert type")
+		c.triggerEvent(data)
 	}
 }

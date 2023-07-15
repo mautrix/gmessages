@@ -26,10 +26,20 @@ const (
 	GMNotConnected     status.BridgeStateErrorCode = "gm-not-connected"
 	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed status.BridgeStateErrorCode = "gm-connection-failed"
+
+	GMBrowserInactive           status.BridgeStateErrorCode = "gm-browser-inactive"
+	GMBrowserInactiveTimeout    status.BridgeStateErrorCode = "gm-browser-inactive-timeout"
+	GMBrowserInactiveInactivity status.BridgeStateErrorCode = "gm-browser-inactive-inactivity"
 )
 
 func init() {
-	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{})
+	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{
+		GMListenError:               "Error polling messages from Google Messages server, the bridge will try to reconnect",
+		GMFatalError:                "Google Messages login was invalidated, please re-link the bridge",
+		GMBrowserInactive:           "Google Messages opened in another browser",
+		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
+		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
+	})
 }
 
 func (user *User) GetRemoteID() string {

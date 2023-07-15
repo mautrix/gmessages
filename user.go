@@ -67,6 +67,11 @@ type User struct {
 
 	spaceMembershipChecked bool
 
+	longPollingError    error
+	browserInactiveType status.BridgeStateErrorCode
+	batteryLow          bool
+	mobileData          bool
+
 	DoublePuppetIntent *appservice.IntentAPI
 
 	hackyLoginCommand          *WrappedCommandEvent
@@ -514,21 +519,21 @@ func (user *User) HandleEvent(event interface{}) {
 			user.hackyLoginCommandPrevEvent = user.sendQR(user.hackyLoginCommand, v.URL, user.hackyLoginCommandPrevEvent)
 		}
 	case *events.ListenFatalError:
-		user.BridgeState.Send(status.BridgeState{
-			StateEvent: status.StateUnknownError,
+		user.Logout(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
 			Error:      GMFatalError,
-			Message:    fmt.Sprintf("HTTP %d in long polling loop", v.Resp.StatusCode),
+			Info:       map[string]any{"go_error": v.Error.Error()},
 		})
 	case *events.ListenTemporaryError:
+		user.longPollingError = v.Error
 		user.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateTransientDisconnect,
 			Error:      GMListenError,
-			Message:    v.Error.Error(),
+			Info:       map[string]any{"go_error": v.Error.Error()},
 		})
 	case *events.ListenRecovered:
-		user.BridgeState.Send(status.BridgeState{
-			StateEvent: status.StateConnected,
-		})
+		user.longPollingError = nil
+		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PairSuccessful:
 		user.hackyLoginCommand = nil
 		user.hackyLoginCommandPrevEvent = ""
@@ -550,7 +555,8 @@ func (user *User) HandleEvent(event interface{}) {
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v, source: user}
 	case *events.ClientReady:
-		user.zlog.Trace().Any("data", v).Msg("Client is ready!")
+		user.browserInactiveType = ""
+		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		go func() {
 			for _, conv := range v.Conversations {
 				user.syncConversation(conv)
@@ -558,9 +564,64 @@ func (user *User) HandleEvent(event interface{}) {
 		}()
 	case *events.BrowserActive:
 		user.zlog.Trace().Any("data", v).Msg("Browser active")
+		user.browserInactiveType = ""
+	case *binary.UserAlertEvent:
+		user.handleUserAlert(v)
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
+}
+
+func (user *User) handleUserAlert(v *binary.UserAlertEvent) {
+	user.zlog.Debug().Any("data", v).Msg("Got user alert event")
+	switch v.GetAlertType() {
+	case binary.AlertType_BROWSER_INACTIVE:
+		// TODO aggressively reactivate if configured to do so
+		user.browserInactiveType = GMBrowserInactive
+	case binary.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
+		user.browserInactiveType = GMBrowserInactiveTimeout
+	case binary.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
+		user.browserInactiveType = GMBrowserInactiveInactivity
+	case binary.AlertType_MOBILE_DATA_CONNECTION:
+		user.mobileData = true
+	case binary.AlertType_MOBILE_WIFI_CONNECTION:
+		user.mobileData = false
+	case binary.AlertType_MOBILE_BATTERY_LOW:
+		user.batteryLow = true
+	case binary.AlertType_MOBILE_BATTERY_RESTORED:
+		user.batteryLow = false
+	default:
+		return
+	}
+	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+}
+
+func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
+	if state.Info == nil {
+		state.Info = make(map[string]any)
+	}
+	state.Info["battery_low"] = user.batteryLow
+	state.Info["mobile_data"] = user.mobileData
+	state.Info["browser_active"] = user.browserInactiveType == ""
+	if state.StateEvent == status.StateConnected {
+		if user.longPollingError != nil {
+			state.StateEvent = status.StateTransientDisconnect
+			state.Error = GMListenError
+			state.Info["go_error"] = user.longPollingError.Error()
+		}
+		if user.browserInactiveType != "" {
+			state.StateEvent = status.StateTransientDisconnect
+			state.Error = user.browserInactiveType
+		}
+	}
+	return state
+}
+
+func (user *User) Logout(state status.BridgeState) {
+	user.removeFromPhoneMap(state)
+	// TODO invalidate token
+	user.DeleteConnection()
+	user.DeleteSession()
 }
 
 func (user *User) syncConversation(v *binary.Conversation) {

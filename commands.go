@@ -148,9 +148,7 @@ func fnDeleteSession(ce *WrappedCommandEvent) {
 		ce.Reply("Nothing to purge: no session information stored and no active connection.")
 		return
 	}
-	ce.User.removeFromPhoneMap(status.BridgeState{StateEvent: status.StateLoggedOut})
-	ce.User.DeleteConnection()
-	ce.User.DeleteSession()
+	ce.User.Logout(status.BridgeState{StateEvent: status.StateLoggedOut})
 	ce.Reply("Session information purged")
 }
 
