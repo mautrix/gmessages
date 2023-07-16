@@ -22,9 +22,6 @@ type Pairer struct {
 	pairingKey []byte
 }
 
-/*
-refreshQrCodeTime is the interval to refresh the qr code in seconds, this is usually 20 seconds.
-*/
 func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer, error) {
 	if keyData == nil {
 		var err error

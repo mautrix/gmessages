@@ -1,6 +1,8 @@
 package payload
 
 import (
+	"crypto/x509"
+
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
@@ -9,7 +11,7 @@ import (
 )
 
 func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContainer, error) {
-	key, err := jwk.MarshalX509PublicKey()
+	key, err := x509.MarshalPKIXPublicKey(jwk.GetPublicKey())
 	if err != nil {
 		return nil, nil, err
 	}

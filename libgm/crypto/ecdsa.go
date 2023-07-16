@@ -4,84 +4,51 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"math/big"
 )
 
+type RawURLBytes []byte
+
+func (rub RawURLBytes) MarshalJSON() ([]byte, error) {
+	out := make([]byte, 2+base64.RawURLEncoding.EncodedLen(len(rub)))
+	out[0] = '"'
+	base64.RawURLEncoding.Encode(out[1:], rub)
+	out[len(out)-1] = '"'
+	return out, nil
+}
+
+func (rub *RawURLBytes) UnmarshalJSON(in []byte) error {
+	if len(in) < 2 || in[0] != '"' || in[len(in)-1] != '"' {
+		return fmt.Errorf("invalid value for RawURLBytes: not a JSON string")
+	}
+	*rub = make([]byte, base64.RawURLEncoding.DecodedLen(len(in)-2))
+	_, err := base64.RawURLEncoding.Decode(*rub, in[1:len(in)-1])
+	return err
+}
+
 type JWK struct {
-	KeyType string `json:"kty"`
-	Curve   string `json:"crv"`
-	D       string `json:"d"`
-	X       string `json:"x"`
-	Y       string `json:"y"`
+	KeyType string      `json:"kty"`
+	Curve   string      `json:"crv"`
+	D       RawURLBytes `json:"d"`
+	X       RawURLBytes `json:"x"`
+	Y       RawURLBytes `json:"y"`
 }
 
-func (t *JWK) GetPrivateKey() (*ecdsa.PrivateKey, error) {
-	curve := elliptic.P256()
-	xBytes, err := base64.RawURLEncoding.DecodeString(t.X)
-	if err != nil {
-		return nil, err
+func (t *JWK) GetPrivateKey() *ecdsa.PrivateKey {
+	return &ecdsa.PrivateKey{
+		PublicKey: *t.GetPublicKey(),
+		D:         new(big.Int).SetBytes(t.D),
 	}
-	yBytes, err := base64.RawURLEncoding.DecodeString(t.Y)
-	if err != nil {
-		return nil, err
-	}
-	dBytes, err := base64.RawURLEncoding.DecodeString(t.D)
-	if err != nil {
-		return nil, err
-	}
-
-	priv := &ecdsa.PrivateKey{
-		PublicKey: ecdsa.PublicKey{
-			Curve: curve,
-			X:     new(big.Int).SetBytes(xBytes),
-			Y:     new(big.Int).SetBytes(yBytes),
-		},
-		D: new(big.Int).SetBytes(dBytes),
-	}
-	return priv, nil
 }
 
-func (t *JWK) GetPublicKey() (*ecdsa.PublicKey, error) {
-	xBytes, err := base64.RawURLEncoding.DecodeString(t.X)
-	if err != nil {
-		return nil, err
-	}
-	yBytes, err := base64.RawURLEncoding.DecodeString(t.Y)
-	if err != nil {
-		return nil, err
-	}
-
-	x := new(big.Int).SetBytes(xBytes)
-	y := new(big.Int).SetBytes(yBytes)
-	pubKey := &ecdsa.PublicKey{
+func (t *JWK) GetPublicKey() *ecdsa.PublicKey {
+	return &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
-		X:     x,
-		Y:     y,
+		X:     new(big.Int).SetBytes(t.X),
+		Y:     new(big.Int).SetBytes(t.Y),
 	}
-	return pubKey, nil
-}
-
-func (t *JWK) MarshalX509PublicKey() ([]byte, error) {
-	pubKey, err := t.GetPublicKey()
-	if err != nil {
-		return nil, err
-	}
-	return x509.MarshalPKIXPublicKey(pubKey)
-}
-
-func (t *JWK) SignRequest(requestID string, timestamp int64) ([]byte, error) {
-	signBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", requestID, timestamp)))
-
-	privKey, privErr := t.GetPrivateKey()
-	if privErr != nil {
-		return nil, privErr
-	}
-
-	return ecdsa.SignASN1(rand.Reader, privKey, signBytes[:])
 }
 
 // GenerateECDSAKey generates a new ECDSA private key with P-256 curve
@@ -93,8 +60,8 @@ func GenerateECDSAKey() (*JWK, error) {
 	return &JWK{
 		KeyType: "EC",
 		Curve:   "P-256",
-		D:       base64.RawURLEncoding.EncodeToString(privKey.D.Bytes()),
-		X:       base64.RawURLEncoding.EncodeToString(privKey.X.Bytes()),
-		Y:       base64.RawURLEncoding.EncodeToString(privKey.Y.Bytes()),
+		D:       privKey.D.Bytes(),
+		X:       privKey.X.Bytes(),
+		Y:       privKey.Y.Bytes(),
 	}, nil
 }

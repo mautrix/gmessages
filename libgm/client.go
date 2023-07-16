@@ -1,6 +1,9 @@
 package libgm
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -333,9 +336,10 @@ func (c *Client) refreshAuthToken() error {
 	requestID := uuid.NewString()
 	timestamp := time.Now().UnixMilli() * 1000
 
-	sig, sigErr := jwk.SignRequest(requestID, int64(timestamp))
-	if sigErr != nil {
-		return sigErr
+	signBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", requestID, timestamp)))
+	sig, err := ecdsa.SignASN1(rand.Reader, jwk.GetPrivateKey(), signBytes[:])
+	if err != nil {
+		return err
 	}
 
 	payloadMessage, messageErr := payload.RegisterRefresh(sig, requestID, int64(timestamp), c.authData.DevicePair.Browser, c.authData.TachyonAuthToken)
