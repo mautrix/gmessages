@@ -112,6 +112,8 @@ func fnLogin(ce *WrappedCommandEvent) {
 				MsgType: event.MsgNotice,
 				Body:    "Successfully logged in",
 			}, prevEvent)
+		default:
+			ce.ZLog.Error().Any("item_data", item).Msg("Unknown item in QR channel")
 		}
 	}
 	ce.ZLog.Trace().Msg("Login command finished")

@@ -45,9 +45,9 @@ var ExampleConfig string
 
 type GMBridge struct {
 	bridge.Bridge
-	Config *config.Config
-	DB     *database.Database
-	//Provisioning *ProvisioningAPI
+	Config       *config.Config
+	DB           *database.Database
+	Provisioning *ProvisioningAPI
 
 	usersByMXID         map[id.UserID]*User
 	usersByPhone        map[string]*User
@@ -89,15 +89,15 @@ func (br *GMBridge) Init() {
 
 	ss := br.Config.Bridge.Provisioning.SharedSecret
 	if len(ss) > 0 && ss != "disable" {
-		//br.Provisioning = &ProvisioningAPI{bridge: br}
+		br.Provisioning = &ProvisioningAPI{bridge: br}
 	}
 }
 
 func (br *GMBridge) Start() {
-	//if br.Provisioning != nil {
-	//	br.ZLog.Debug().Msg("Initializing provisioning API")
-	//	br.Provisioning.Init()
-	//}
+	if br.Provisioning != nil {
+		br.ZLog.Debug().Msg("Initializing provisioning API")
+		br.Provisioning.Init()
+	}
 	br.WaitWebsocketConnected()
 	go br.StartUsers()
 }

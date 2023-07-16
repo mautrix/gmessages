@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -71,7 +72,10 @@ type User struct {
 	batteryLow          bool
 	mobileData          bool
 
-	pairSuccessChan chan struct{}
+	loginInProgress   atomic.Bool
+	pairSuccessChan   chan struct{}
+	ongoingLoginChan  <-chan qrChannelItem
+	loginChanReadLock sync.Mutex
 
 	DoublePuppetIntent *appservice.IntentAPI
 }
@@ -406,15 +410,20 @@ type qrChannelItem struct {
 	err     error
 }
 
+func (qci qrChannelItem) IsEmpty() bool {
+	return !qci.success && qci.qr == "" && qci.err == nil
+}
+
 func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelItem, error) {
 	user.connLock.Lock()
 	defer user.connLock.Unlock()
 	if user.Session != nil {
 		return nil, ErrAlreadyLoggedIn
-	} else if user.Client != nil {
+	} else if !user.loginInProgress.CompareAndSwap(false, true) {
+		return user.ongoingLoginChan, ErrLoginInProgress
+	}
+	if user.Client != nil {
 		user.unlockedDeleteConnection()
-	} else if user.pairSuccessChan != nil {
-		return nil, ErrLoginInProgress
 	}
 	pairSuccessChan := make(chan struct{})
 	user.pairSuccessChan = pairSuccessChan
@@ -423,9 +432,12 @@ func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelI
 	if err != nil {
 		user.DeleteConnection()
 		user.pairSuccessChan = nil
+		user.loginInProgress.Store(false)
 		return nil, fmt.Errorf("failed to connect to Google Messages: %w", err)
 	}
+	Segment.Track(user.MXID, "$login_start")
 	ch := make(chan qrChannelItem, maxAttempts+2)
+	user.ongoingLoginChan = ch
 	ch <- qrChannelItem{qr: qr}
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
@@ -437,14 +449,21 @@ func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelI
 				user.DeleteConnection()
 			}
 			user.pairSuccessChan = nil
+			user.ongoingLoginChan = nil
 			close(ch)
+			user.loginInProgress.Store(false)
 		}()
-		for ; maxAttempts > 0; maxAttempts-- {
+		for {
+			maxAttempts--
 			select {
 			case <-ctx.Done():
 				user.zlog.Debug().Err(ctx.Err()).Msg("Login context cancelled")
 				return
 			case <-ticker.C:
+				if maxAttempts <= 0 {
+					ch <- qrChannelItem{err: ErrLoginTimeout}
+					return
+				}
 				qr, err := user.Client.RefreshPhoneRelay()
 				if err != nil {
 					ch <- qrChannelItem{err: fmt.Errorf("failed to refresh QR code: %w", err)}
@@ -457,7 +476,6 @@ func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelI
 				return
 			}
 		}
-		ch <- qrChannelItem{err: ErrLoginTimeout}
 	}()
 	return ch, nil
 }

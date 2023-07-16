@@ -17,7 +17,10 @@
 package main
 
 import (
+	"net/http"
+
 	"maunium.net/go/mautrix/bridge/status"
+	"maunium.net/go/mautrix/id"
 )
 
 const (
@@ -55,7 +58,7 @@ func (user *User) GetRemoteName() string {
 	return ""
 }
 
-/*func (prov *ProvisioningAPI) BridgeStatePing(w http.ResponseWriter, r *http.Request) {
+func (prov *ProvisioningAPI) BridgeStatePing(w http.ResponseWriter, r *http.Request) {
 	if !prov.bridge.AS.CheckServerToken(w, r) {
 		return
 	}
@@ -69,11 +72,11 @@ func (user *User) GetRemoteName() string {
 			remote.StateEvent = status.StateConnected
 		} else if user.Session != nil {
 			remote.StateEvent = status.StateConnecting
-			remote.Error = WAConnecting
+			//remote.Error = WAConnecting
 		} // else: unconfigured
 	} else if user.Session != nil {
 		remote.StateEvent = status.StateBadCredentials
-		remote.Error = WANotConnected
+		//remote.Error = WANotConnected
 	} // else: unconfigured
 	global = global.Fill(nil)
 	resp := status.GlobalBridgeState{
@@ -89,4 +92,4 @@ func (user *User) GetRemoteName() string {
 	if len(resp.RemoteStates) > 0 {
 		user.BridgeState.SetPrev(remote)
 	}
-}*/
+}
