@@ -1,6 +1,7 @@
 package libgm
 
 import (
+	"crypto/x509"
 	"io"
 	"time"
 
@@ -23,15 +24,6 @@ type Pairer struct {
 }
 
 func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer, error) {
-	if keyData == nil {
-		var err error
-		keyData, err = crypto.GenerateECDSAKey()
-		c.updateJWK(keyData)
-		if err != nil {
-			c.Logger.Error().Any("data", keyData).Msg(err.Error())
-			return nil, err
-		}
-	}
 	p := &Pairer{
 		client:     c,
 		KeyData:    keyData,
@@ -42,7 +34,27 @@ func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer,
 }
 
 func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error) {
-	body, _, err := payload.RegisterPhoneRelay(p.KeyData)
+	key, err := x509.MarshalPKIXPublicKey(p.KeyData.GetPublicKey())
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := proto.Marshal(&binary.AuthenticationContainer{
+		AuthMessage: &binary.AuthMessage{
+			RequestID:     uuid.NewString(),
+			Network:       &payload.Network,
+			ConfigVersion: payload.ConfigMessage,
+		},
+		BrowserDetails: payload.BrowserDetailsMessage,
+		Data: &binary.AuthenticationContainer_KeyData{
+			KeyData: &binary.KeyData{
+				EcdsaKeys: &binary.ECDSAKeys{
+					Field1:        2,
+					EncryptedKeys: key,
+				},
+			},
+		},
+	})
 	if err != nil {
 		p.client.Logger.Err(err)
 		return &binary.RegisterPhoneRelayResponse{}, err

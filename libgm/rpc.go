@@ -11,9 +11,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm/events"
+	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -21,12 +23,11 @@ import (
 )
 
 type RPC struct {
-	client       *Client
-	http         *http.Client
-	conn         io.ReadCloser
-	stopping     bool
-	rpcSessionId string
-	listenID     int
+	client   *Client
+	http     *http.Client
+	conn     io.ReadCloser
+	stopping bool
+	listenID int
 
 	skipCount int
 
@@ -34,22 +35,33 @@ type RPC struct {
 	recentUpdatesPtr int
 }
 
-func (r *RPC) ListenReceiveMessages(payload []byte) {
+func (r *RPC) ListenReceiveMessages() {
 	r.listenID++
 	listenID := r.listenID
 	errored := true
+	listenReqID := uuid.NewString()
 	for r.listenID == listenID {
-		if r.client.authData.DevicePair != nil && r.client.authData.AuthenticatedAt.Add(20*time.Hour).Before(time.Now()) {
-			r.client.Logger.Debug().Msg("Refreshing auth token before starting new long-polling request")
-			err := r.client.refreshAuthToken()
-			if err != nil {
-				r.client.Logger.Err(err).Msg("Error refreshing auth token")
-				r.client.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
-				return
-			}
+		err := r.client.refreshAuthToken()
+		if err != nil {
+			r.client.Logger.Err(err).Msg("Error refreshing auth token")
+			r.client.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
+			return
 		}
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
-		req, err := http.NewRequest("POST", util.ReceiveMessagesURL, bytes.NewReader(payload))
+		receivePayload, err := pblite.Marshal(&binary.ReceiveMessagesRequest{
+			Auth: &binary.AuthMessage{
+				RequestID:        listenReqID,
+				TachyonAuthToken: r.client.authData.TachyonAuthToken,
+				ConfigVersion:    payload.ConfigMessage,
+			},
+			Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject2{
+				Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject1{},
+			},
+		})
+		if err != nil {
+			panic(fmt.Errorf("Error marshaling request: %v", err))
+		}
+		req, err := http.NewRequest(http.MethodPost, util.ReceiveMessagesURL, bytes.NewReader(receivePayload))
 		if err != nil {
 			panic(fmt.Errorf("Error creating request: %v", err))
 		}

@@ -10,26 +10,19 @@ import (
 	"io"
 )
 
-type Cryptor struct {
+type AESCTRHelper struct {
 	AESKey  []byte `json:"aes_key"`
 	HMACKey []byte `json:"hmac_key"`
 }
 
-func NewCryptor(aesKey []byte, hmacKey []byte) *Cryptor {
-	if aesKey != nil && hmacKey != nil {
-		return &Cryptor{
-			AESKey:  aesKey,
-			HMACKey: hmacKey,
-		}
-	}
-	aesKey, hmacKey = GenerateKeys()
-	return &Cryptor{
-		AESKey:  aesKey,
-		HMACKey: hmacKey,
+func NewAESCTRHelper() *AESCTRHelper {
+	return &AESCTRHelper{
+		AESKey:  GenerateKey(32),
+		HMACKey: GenerateKey(32),
 	}
 }
 
-func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
+func (c *AESCTRHelper) Encrypt(plaintext []byte) ([]byte, error) {
 	iv := make([]byte, aes.BlockSize)
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, err
@@ -40,7 +33,7 @@ func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	ciphertext := make([]byte, len(plaintext))
+	ciphertext := make([]byte, len(plaintext), len(plaintext)+len(iv)+32)
 	stream := cipher.NewCTR(block, iv)
 	stream.XORKeyStream(ciphertext, plaintext)
 
@@ -48,14 +41,12 @@ func (c *Cryptor) Encrypt(plaintext []byte) ([]byte, error) {
 
 	mac := hmac.New(sha256.New, c.HMACKey)
 	mac.Write(ciphertext)
-	hmac := mac.Sum(nil)
-
-	ciphertext = append(ciphertext, hmac...)
+	ciphertext = append(ciphertext, mac.Sum(nil)...)
 
 	return ciphertext, nil
 }
 
-func (c *Cryptor) Decrypt(encryptedData []byte) ([]byte, error) {
+func (c *AESCTRHelper) Decrypt(encryptedData []byte) ([]byte, error) {
 	if len(encryptedData) < 48 {
 		return nil, errors.New("input data is too short")
 	}

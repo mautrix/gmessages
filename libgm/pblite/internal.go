@@ -39,7 +39,7 @@ type Response struct {
 	Timestamp         string             `json:"timestamp"`
 }
 
-func DecryptInternalMessage(internalMessage *binary.InternalMessage, cryptor *crypto.Cryptor) (*Response, error) {
+func DecryptInternalMessage(internalMessage *binary.InternalMessage, cryptor *crypto.AESCTRHelper) (*Response, error) {
 	var resp *Response
 	switch internalMessage.Data.BugleRoute {
 	case binary.BugleRoute_PairEvent:

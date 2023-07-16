@@ -15,7 +15,6 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 )
 
@@ -44,14 +43,12 @@ func main() {
 		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
+		sess = *libgm.NewAuthData()
 	} else {
 		must(json.NewDecoder(file).Decode(&sess))
 		log.Info().Msg("Loaded session?")
 	}
 	_ = file.Close()
-	if sess.Cryptor == nil {
-		sess.Cryptor = crypto.NewCryptor(nil, nil)
-	}
 	cli = libgm.NewClient(&sess, log)
 	cli.SetEventHandler(evtHandler)
 	must(cli.Connect())

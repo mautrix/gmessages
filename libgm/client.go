@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,16 +27,25 @@ import (
 )
 
 type AuthData struct {
-	TachyonAuthToken []byte             `json:"tachyon_token,omitempty"`
-	TTL              int64              `json:"ttl,omitempty"`
-	AuthenticatedAt  *time.Time         `json:"authenticated_at,omitempty"`
-	DevicePair       *pblite.DevicePair `json:"device_pair,omitempty"`
-	Cryptor          *crypto.Cryptor    `json:"crypto,omitempty"`
-	WebEncryptionKey []byte             `json:"web_encryption_key,omitempty"`
-	JWK              *crypto.JWK        `json:"jwk,omitempty"`
+	// Keys used to encrypt communication with the phone
+	RequestCrypto *crypto.AESCTRHelper `json:"request_crypto,omitempty"`
+	// Key used to sign requests to refresh the tachyon auth token from the server
+	RefreshKey *crypto.JWK `json:"refresh_key,omitempty"`
+	// Identity of the paired phone and browser
+	DevicePair *pblite.DevicePair `json:"device_pair,omitempty"`
+	// Key used to authenticate with the server
+	TachyonAuthToken []byte    `json:"tachyon_token,omitempty"`
+	TachyonExpiry    time.Time `json:"tachyon_expiry,omitempty"`
+	TachyonTTL       int64     `json:"tachyon_ttl,omitempty"`
+	// Unknown encryption key, not used for anything
+	WebEncryptionKey []byte `json:"web_encryption_key,omitempty"`
 }
+
+const RefreshTachyonBuffer = 1 * time.Hour
+
 type Proxy func(*http.Request) (*url.URL, error)
 type EventHandler func(evt any)
+
 type Client struct {
 	Logger         zerolog.Logger
 	rpc            *RPC
@@ -49,16 +59,17 @@ type Client struct {
 	http  *http.Client
 }
 
+func NewAuthData() *AuthData {
+	return &AuthData{
+		RequestCrypto: crypto.NewAESCTRHelper(),
+		RefreshKey:    crypto.GenerateECDSAKey(),
+	}
+}
+
 func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
 		responseWaiters: make(map[string]chan<- *pblite.Response),
 		responseTimeout: time.Duration(5000) * time.Millisecond,
-	}
-	if authData == nil {
-		authData = &AuthData{}
-	}
-	if authData.Cryptor == nil {
-		authData.Cryptor = crypto.NewCryptor(nil, nil)
 	}
 	cli := &Client{
 		authData:       authData,
@@ -90,19 +101,12 @@ func (c *Client) SetProxy(proxy string) error {
 	c.Logger.Debug().Any("proxy", proxyParsed.Host).Msg("SetProxy")
 	return nil
 }
-
 func (c *Client) Connect() error {
 	if c.authData.TachyonAuthToken != nil {
-
-		hasExpired, authenticatedAtSeconds := c.hasTachyonTokenExpired()
-		if hasExpired {
-			c.Logger.Error().Any("expired", hasExpired).Any("secondsSince", authenticatedAtSeconds).Msg("TachyonToken has expired! attempting to refresh")
-			refreshErr := c.refreshAuthToken()
-			if refreshErr != nil {
-				panic(refreshErr)
-			}
+		refreshErr := c.refreshAuthToken()
+		if refreshErr != nil {
+			panic(refreshErr)
 		}
-		c.Logger.Info().Any("secondsSince", authenticatedAtSeconds).Any("token", c.authData.TachyonAuthToken).Msg("TachyonToken has not expired, attempting to connect...")
 
 		webEncryptionKeyResponse, webEncryptionKeyErr := c.GetWebEncryptionKey()
 		if webEncryptionKeyErr != nil {
@@ -110,13 +114,7 @@ func (c *Client) Connect() error {
 			return webEncryptionKeyErr
 		}
 		c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-		rpcPayload, receiveMessageSessionId, err := payload.ReceiveMessages(c.authData.TachyonAuthToken)
-		if err != nil {
-			panic(err)
-			return err
-		}
-		c.rpc.rpcSessionId = receiveMessageSessionId
-		go c.rpc.ListenReceiveMessages(rpcPayload)
+		go c.rpc.ListenReceiveMessages()
 		c.sessionHandler.startAckInterval()
 
 		bugleRes, bugleErr := c.IsBugleDefault()
@@ -128,10 +126,9 @@ func (c *Client) Connect() error {
 		if sessionErr != nil {
 			panic(sessionErr)
 		}
-		//c.Logger.Debug().Any("tachyonAuthToken", c.authData.TachyonAuthToken).Msg("Successfully connected to server")
 		return nil
 	} else {
-		pairer, err := c.NewPairer(nil, 20)
+		pairer, err := c.NewPairer(c.authData.RefreshKey, 20)
 		if err != nil {
 			panic(err)
 		}
@@ -141,13 +138,7 @@ func (c *Client) Connect() error {
 			return err2
 		}
 		c.authData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
-		rpcPayload, receiveMessageSessionId, err := payload.ReceiveMessages(c.authData.TachyonAuthToken)
-		if err != nil {
-			panic(err)
-			return err
-		}
-		c.rpc.rpcSessionId = receiveMessageSessionId
-		go c.rpc.ListenReceiveMessages(rpcPayload)
+		go c.rpc.ListenReceiveMessages()
 		return nil
 	}
 }
@@ -163,19 +154,6 @@ func (c *Client) IsConnected() bool {
 
 func (c *Client) IsLoggedIn() bool {
 	return c.authData != nil && c.authData.DevicePair != nil
-}
-
-func (c *Client) hasTachyonTokenExpired() (bool, string) {
-	if c.authData.TachyonAuthToken == nil || c.authData.AuthenticatedAt == nil {
-		return true, ""
-	} else {
-		duration := time.Since(*c.authData.AuthenticatedAt)
-		seconds := fmt.Sprintf("%.3f", duration.Seconds())
-		if duration.Microseconds() > 86400000000 {
-			return true, seconds
-		}
-		return false, seconds
-	}
 }
 
 func (c *Client) Reconnect() error {
@@ -281,21 +259,15 @@ func (c *Client) updateWebEncryptionKey(key []byte) {
 	c.authData.WebEncryptionKey = key
 }
 
-func (c *Client) updateJWK(jwk *crypto.JWK) {
-	c.Logger.Debug().Any("jwk", jwk).Msg("Updated JWK")
-	c.authData.JWK = jwk
-}
-
-func (c *Client) updateTachyonAuthToken(t []byte) {
-	authenticatedAt := time.Now().UTC()
+func (c *Client) updateTachyonAuthToken(t []byte, validFor int64) {
 	c.authData.TachyonAuthToken = t
-	c.authData.AuthenticatedAt = &authenticatedAt
-	c.Logger.Debug().Any("authenticatedAt", authenticatedAt).Any("tachyonAuthToken", t).Msg("Updated TachyonAuthToken")
-}
-
-func (c *Client) updateTTL(ttl int64) {
-	c.authData.TTL = ttl
-	c.Logger.Debug().Any("ttl", ttl).Msg("Updated TTL")
+	validForDuration := time.Duration(validFor) * time.Microsecond
+	if validForDuration == 0 {
+		validForDuration = 24 * time.Hour
+	}
+	c.authData.TachyonExpiry = time.Now().UTC().Add(time.Microsecond * time.Duration(validFor))
+	c.authData.TachyonTTL = validForDuration.Microseconds()
+	c.Logger.Debug().Time("tachyon_expiry", c.authData.TachyonExpiry).Int64("valid_for", validFor).Msg("Updated tachyon token")
 }
 
 func (c *Client) updateDevicePair(devicePair *pblite.DevicePair) {
@@ -327,12 +299,12 @@ func LoadAuthSession(path string) (*AuthData, error) {
 	return sessionData, nil
 }
 
-func (c *Client) RefreshAuthToken() error {
-	return c.refreshAuthToken()
-}
-
 func (c *Client) refreshAuthToken() error {
-	jwk := c.authData.JWK
+	if c.authData.DevicePair == nil || time.Until(c.authData.TachyonExpiry) > RefreshTachyonBuffer {
+		return nil
+	}
+	c.Logger.Debug().Time("tachyon_expiry", c.authData.TachyonExpiry).Msg("Refreshing auth token")
+	jwk := c.authData.RefreshKey
 	requestID := uuid.NewString()
 	timestamp := time.Now().UnixMilli() * 1000
 
@@ -342,14 +314,23 @@ func (c *Client) refreshAuthToken() error {
 		return err
 	}
 
-	payloadMessage, messageErr := payload.RegisterRefresh(sig, requestID, int64(timestamp), c.authData.DevicePair.Browser, c.authData.TachyonAuthToken)
-	if messageErr != nil {
-		return messageErr
+	payload, err := pblite.Marshal(&binary.RegisterRefreshPayload{
+		MessageAuth: &binary.AuthMessage{
+			RequestID:        requestID,
+			TachyonAuthToken: c.authData.TachyonAuthToken,
+			ConfigVersion:    payload.ConfigMessage,
+		},
+		CurrBrowserDevice: c.authData.DevicePair.Browser,
+		UnixTimestamp:     timestamp,
+		Signature:         sig,
+		EmptyRefreshArr:   &binary.EmptyRefreshArr{EmptyArr: &binary.EmptyArr{}},
+		MessageType:       2, // hmm
+	})
+	if err != nil {
+		return err
 	}
 
-	c.Logger.Info().Any("payload", string(payloadMessage)).Msg("Attempting to refresh auth token")
-
-	refreshResponse, requestErr := c.rpc.sendMessageRequest(util.RegisterRefreshURL, payloadMessage)
+	refreshResponse, requestErr := c.rpc.sendMessageRequest(util.RegisterRefreshURL, payload)
 	if requestErr != nil {
 		return requestErr
 	}
@@ -377,7 +358,9 @@ func (c *Client) refreshAuthToken() error {
 		return fmt.Errorf("failed to refresh auth token: something happened")
 	}
 
-	c.updateTachyonAuthToken(token)
+	validFor, _ := strconv.ParseInt(resp.GetTokenData().GetValidFor(), 10, 64)
+
+	c.updateTachyonAuthToken(token, validFor)
 	c.triggerEvent(events.NewAuthTokenRefreshed(token))
 	return nil
 }

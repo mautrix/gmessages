@@ -91,11 +91,11 @@ func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedDat
 	tmpMessage := payload.NewSendMessageBuilder(token, pairedDevice, requestID, sessionId).SetRoute(routeInfo.Action).SetSessionId(s.sessionID)
 
 	if encryptedData != nil {
-		tmpMessage.SetEncryptedProtoMessage(encryptedData, s.client.authData.Cryptor)
+		tmpMessage.SetEncryptedProtoMessage(encryptedData, s.client.authData.RequestCrypto)
 	}
 
 	if routeInfo.UseTTL {
-		tmpMessage.SetTTL(s.client.authData.TTL)
+		tmpMessage.SetTTL(s.client.authData.TachyonTTL)
 	}
 
 	message, buildErr := tmpMessage.Build()

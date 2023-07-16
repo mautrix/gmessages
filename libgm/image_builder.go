@@ -82,10 +82,7 @@ func (c *Client) UploadMedia(data []byte, fileName, mime string) (*binary.MediaC
 	if mediaType.Type == 0 {
 		mediaType = MimeToMediaType[strings.Split(mime, "/")[0]]
 	}
-	decryptionKey, err := crypto.GenerateKey(32)
-	if err != nil {
-		return nil, err
-	}
+	decryptionKey := crypto.GenerateKey(32)
 	cryptor, err := crypto.NewImageCryptor(decryptionKey)
 	if err != nil {
 		return nil, err

@@ -52,10 +52,10 @@ func (t *JWK) GetPublicKey() *ecdsa.PublicKey {
 }
 
 // GenerateECDSAKey generates a new ECDSA private key with P-256 curve
-func GenerateECDSAKey() (*JWK, error) {
+func GenerateECDSAKey() *JWK {
 	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("failed to generate ecdsa key: %w", err))
 	}
 	return &JWK{
 		KeyType: "EC",
@@ -63,5 +63,5 @@ func GenerateECDSAKey() (*JWK, error) {
 		D:       privKey.D.Bytes(),
 		X:       privKey.X.Bytes(),
 		Y:       privKey.Y.Bytes(),
-	}, nil
+	}
 }

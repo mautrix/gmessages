@@ -2,25 +2,14 @@ package crypto
 
 import (
 	"crypto/rand"
+	"fmt"
 )
 
-func GenerateKey(length int) ([]byte, error) {
+func GenerateKey(length int) []byte {
 	key := make([]byte, length)
 	_, err := rand.Read(key)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("failed to read random bytes: %w", err))
 	}
-	return key, nil
-}
-
-func GenerateKeys() ([]byte, []byte) {
-	key, err := GenerateKey(32)
-	if err != nil {
-		panic(err)
-	}
-	key2, err2 := GenerateKey(32)
-	if err2 != nil {
-		panic(err2)
-	}
-	return key, key2
+	return key
 }

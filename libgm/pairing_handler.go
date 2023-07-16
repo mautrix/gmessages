@@ -39,8 +39,7 @@ func (c *Client) NewDevicePair(mobile, browser *binary.Device) *pblite.DevicePai
 func (c *Client) pairCallback(data *binary.PairedData) error {
 
 	tokenData := data.GetTokenData()
-	c.updateTachyonAuthToken(tokenData.GetTachyonAuthToken())
-	c.updateTTL(tokenData.GetTTL())
+	c.updateTachyonAuthToken(tokenData.GetTachyonAuthToken(), tokenData.GetTTL())
 
 	devicePair := c.NewDevicePair(data.Mobile, data.Browser)
 	c.updateDevicePair(devicePair)

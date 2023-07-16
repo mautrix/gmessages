@@ -55,7 +55,6 @@ func (c *Client) handleClientReady(newSessionId string) {
 	if convErr != nil {
 		panic(convErr)
 	}
-	c.Logger.Debug().Any("conversations", conversations).Msg("got conversations")
 	notifyErr := c.NotifyDittoActivity()
 	if notifyErr != nil {
 		panic(notifyErr)

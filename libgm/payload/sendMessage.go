@@ -91,7 +91,7 @@ func (sm *SendMessageBuilder) SetTTL(ttl int64) *SendMessageBuilder {
 	return sm
 }
 
-func (sm *SendMessageBuilder) SetEncryptedProtoMessage(message proto.Message, cryptor *crypto.Cryptor) *SendMessageBuilder {
+func (sm *SendMessageBuilder) SetEncryptedProtoMessage(message proto.Message, cryptor *crypto.AESCTRHelper) *SendMessageBuilder {
 	plaintextBytes, err := proto.Marshal(message)
 	if err != nil {
 		sm.err = err

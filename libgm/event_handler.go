@@ -43,7 +43,7 @@ func (r *RPC) deduplicateUpdate(response *pblite.Response) bool {
 }
 
 func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
-	response, decodeErr := pblite.DecryptInternalMessage(msg, r.client.authData.Cryptor)
+	response, decodeErr := pblite.DecryptInternalMessage(msg, r.client.authData.RequestCrypto)
 	if decodeErr != nil {
 		r.client.Logger.Error().Err(decodeErr).Msg("rpc decrypt msg err")
 		return

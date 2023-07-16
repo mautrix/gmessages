@@ -42,7 +42,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/database"
 	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 )
 
@@ -393,9 +392,7 @@ var ErrAlreadyLoggedIn = errors.New("already logged in")
 
 func (user *User) createClient() {
 	if user.Session == nil {
-		user.Session = &libgm.AuthData{
-			Cryptor: crypto.NewCryptor(nil, nil),
-		}
+		user.Session = libgm.NewAuthData()
 	}
 	user.Client = libgm.NewClient(user.Session, user.zlog.With().Str("component", "libgm").Logger())
 	user.Client.SetEventHandler(user.syncHandleEvent)
