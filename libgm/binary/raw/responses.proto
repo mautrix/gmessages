@@ -51,9 +51,13 @@ message ListTopContactsResponse {
 }
 
 message GetOrCreateConversationResponse {
+    enum Status {
+        UNKNOWN = 0;
+        SUCCESS = 1;
+        CREATE_RCS = 3;
+    }
     conversations.Conversation conversation = 2;
-    // uncertain, never seen any other value than 1
-    bool success = 3;
+    Status status = 3;
 }
 
 message DeleteMessageResponse {

@@ -42,6 +42,8 @@ message ContactNumber {
 
 message GetOrCreateConversationPayload {
     repeated ContactNumber numbers = 2;
+    optional string RCSGroupName = 3;
+    optional bool createRCSGroup = 4;
 }
 
 message ResendMessagePayload {

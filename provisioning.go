@@ -25,11 +25,14 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/proto"
 
 	log "maunium.net/go/maulogger/v2"
 
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/id"
+
+	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
 
 type ProvisioningAPI struct {
@@ -169,14 +172,80 @@ func (prov *ProvisioningAPI) ListContacts(w http.ResponseWriter, r *http.Request
 	}
 }
 
+type StartChatRequest struct {
+	Numbers []string `json:"numbers"`
+}
+
+type StartChatResponse struct {
+	RoomID id.RoomID `json:"room_id"`
+}
+
 func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
-	if user := r.Context().Value("user").(*User); user.Client == nil {
+	user := r.Context().Value("user").(*User)
+	if user.Client == nil {
 		jsonResponse(w, http.StatusBadRequest, Error{
 			Error:   "User is not connected to Google Messages",
 			ErrCode: "no session",
 		})
 	}
-
+	var req StartChatRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonResponse(w, http.StatusBadRequest, Error{
+			Error:   "Failed to parse request JSON",
+			ErrCode: "bad json",
+		})
+	}
+	var reqData binary.GetOrCreateConversationPayload
+	reqData.Numbers = make([]*binary.ContactNumber, 0, len(req.Numbers))
+	for _, number := range req.Numbers {
+		reqData.Numbers = append(reqData.Numbers, &binary.ContactNumber{
+			// This should maybe sometimes be 7
+			MysteriousInt: 2,
+			Number:        number,
+			Number2:       number,
+		})
+	}
+	resp, err := user.Client.GetOrCreateConversation(&reqData)
+	if err != nil {
+		prov.zlog.Err(err).Msg("Failed to start chat")
+		jsonResponse(w, http.StatusInternalServerError, Error{
+			Error:   "Failed to start chat",
+			ErrCode: "unknown error",
+		})
+		return
+	} else if resp.GetStatus() == binary.GetOrCreateConversationResponse_CREATE_RCS {
+		prov.zlog.Debug().Msg("Creating RCS group")
+		// TODO this will always create a new group and won't deduplicate
+		reqData.CreateRCSGroup = proto.Bool(true)
+		resp, err = user.Client.GetOrCreateConversation(&reqData)
+		if err != nil {
+			prov.zlog.Err(err).Msg("Failed to start RCS chat")
+			jsonResponse(w, http.StatusInternalServerError, Error{
+				Error:   "Failed to start chat",
+				ErrCode: "unknown error",
+			})
+			return
+		}
+	}
+	if resp.GetConversation() == nil {
+		prov.zlog.Warn().Str("status", resp.GetStatus().String()).Msg("No conversation in chat create response")
+		jsonResponse(w, http.StatusInternalServerError, Error{
+			Error:   "Failed to start chat",
+			ErrCode: "unknown error",
+		})
+		return
+	}
+	portal := user.GetPortalByID(resp.Conversation.ConversationID)
+	err = portal.CreateMatrixRoom(user, resp.Conversation)
+	if err != nil {
+		prov.zlog.Err(err).Msg("Failed to create matrix room")
+		jsonResponse(w, http.StatusInternalServerError, Error{
+			Error:   "Failed to create matrix room",
+			ErrCode: "unknown error",
+		})
+		return
+	}
+	jsonResponse(w, http.StatusOK, StartChatResponse{portal.MXID})
 }
 
 func (prov *ProvisioningAPI) Ping(w http.ResponseWriter, r *http.Request) {

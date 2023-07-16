@@ -68,21 +68,10 @@ func (c *Client) ListTopContacts() (*binary.ListTopContactsResponse, error) {
 	return res, nil
 }
 
-func (c *Client) GetOrCreateConversation(numbers []string) (*binary.GetOrCreateConversationResponse, error) {
-	contacts := make([]*binary.ContactNumber, len(numbers))
-	for i, number := range numbers {
-		contacts[i] = &binary.ContactNumber{
-			MysteriousInt: 7,
-			Number:        number,
-			Number2:       number,
-		}
-	}
-	payload := &binary.GetOrCreateConversationPayload{
-		Numbers: contacts,
-	}
+func (c *Client) GetOrCreateConversation(req *binary.GetOrCreateConversationPayload) (*binary.GetOrCreateConversationResponse, error) {
 	actionType := binary.ActionType_GET_OR_CREATE_CONVERSATION
 
-	response, err := c.sessionHandler.sendMessage(actionType, payload)
+	response, err := c.sessionHandler.sendMessage(actionType, req)
 	if err != nil {
 		return nil, err
 	}
