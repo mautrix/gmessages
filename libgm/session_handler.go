@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 
@@ -32,7 +33,7 @@ type SessionHandler struct {
 }
 
 func (s *SessionHandler) ResetSessionID() {
-	s.sessionID = util.RandomUUIDv4()
+	s.sessionID = uuid.NewString()
 }
 
 func (s *SessionHandler) sendMessageNoResponse(actionType binary.ActionType, encryptedData proto.Message) error {
@@ -84,7 +85,7 @@ func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedDat
 	if routeInfo.UseSessionID {
 		requestID = s.sessionID
 	} else {
-		requestID = util.RandomUUIDv4()
+		requestID = uuid.NewString()
 	}
 
 	tmpMessage := payload.NewSendMessageBuilder(token, pairedDevice, requestID, sessionId).SetRoute(routeInfo.Action).SetSessionId(s.sessionID)
@@ -146,7 +147,7 @@ func (s *SessionHandler) sendAckRequest() {
 	}
 	ackMessagePayload := &binary.AckMessagePayload{
 		AuthData: &binary.AuthMessage{
-			RequestID:        util.RandomUUIDv4(),
+			RequestID:        uuid.NewString(),
 			TachyonAuthToken: s.client.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},

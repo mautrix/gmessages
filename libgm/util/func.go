@@ -8,36 +8,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
-
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 )
-
-var Charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
-
-func RandStr(length int) string {
-	b := make([]rune, length)
-	for i := range b {
-		b[i] = Charset[rand.Intn(len(Charset))]
-	}
-	return string(b)
-}
-
-func GenerateImageID() string {
-	part1 := RandomUUIDv4()
-	part2 := RandStr(25)
-	return part1 + "/" + part2
-}
 
 func GenerateTmpID() string {
 	src := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(src)
 	randNum := r.Int63n(1e12)
 	return fmt.Sprintf("tmp_%012d", randNum)
-}
-
-func RandomUUIDv4() string {
-	return uuid.New().String()
 }
 
 func BuildRelayHeaders(req *http.Request, contentType string, accept string) {

@@ -1,16 +1,14 @@
 package payload
 
 import (
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
-	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContainer, error) {
-	id := util.RandomUUIDv4()
-
 	key, err := jwk.MarshalX509PublicKey()
 	if err != nil {
 		return nil, nil, err
@@ -18,7 +16,7 @@ func RegisterPhoneRelay(jwk *crypto.JWK) ([]byte, *binary.AuthenticationContaine
 
 	payloadData := &binary.AuthenticationContainer{
 		AuthMessage: &binary.AuthMessage{
-			RequestID:     id,
+			RequestID:     uuid.NewString(),
 			Network:       &Network,
 			ConfigVersion: ConfigMessage,
 		},

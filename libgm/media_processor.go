@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -126,11 +127,10 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 }
 
 func (c *Client) buildStartUploadPayload() (string, error) {
-	requestID := util.RandomUUIDv4()
 	protoData := &binary.StartMediaUploadPayload{
 		ImageType: 1,
 		AuthData: &binary.AuthMessage{
-			RequestID:        requestID,
+			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},

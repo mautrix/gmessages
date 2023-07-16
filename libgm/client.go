@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 
@@ -195,14 +196,13 @@ func (c *Client) triggerEvent(evt interface{}) {
 }
 
 func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
-	reqId := util.RandomUUIDv4()
 	downloadMetadata := &binary.UploadImagePayload{
 		MetaData: &binary.ImageMetaData{
 			ImageID:   mediaID,
 			Encrypted: true,
 		},
 		AuthData: &binary.AuthMessage{
-			RequestID:        reqId,
+			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},
@@ -330,15 +330,15 @@ func (c *Client) RefreshAuthToken() error {
 
 func (c *Client) refreshAuthToken() error {
 	jwk := c.authData.JWK
-	requestId := util.RandomUUIDv4()
+	requestID := uuid.NewString()
 	timestamp := time.Now().UnixMilli() * 1000
 
-	sig, sigErr := jwk.SignRequest(requestId, int64(timestamp))
+	sig, sigErr := jwk.SignRequest(requestID, int64(timestamp))
 	if sigErr != nil {
 		return sigErr
 	}
 
-	payloadMessage, messageErr := payload.RegisterRefresh(sig, requestId, int64(timestamp), c.authData.DevicePair.Browser, c.authData.TachyonAuthToken)
+	payloadMessage, messageErr := payload.RegisterRefresh(sig, requestID, int64(timestamp), c.authData.DevicePair.Browser, c.authData.TachyonAuthToken)
 	if messageErr != nil {
 		return messageErr
 	}

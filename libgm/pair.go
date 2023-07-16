@@ -92,7 +92,7 @@ func (p *Pairer) startRefreshRelayTask() {
 func (p *Pairer) RefreshPhoneRelay() {
 	body, err := proto.Marshal(&binary.AuthenticationContainer{
 		AuthMessage: &binary.AuthMessage{
-			RequestID:        util.RandomUUIDv4(),
+			RequestID:        uuid.NewString(),
 			Network:          &payload.Network,
 			TachyonAuthToken: p.client.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
