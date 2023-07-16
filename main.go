@@ -67,7 +67,7 @@ func (br *GMBridge) Init() {
 	br.CommandProcessor = commands.NewProcessor(&br.Bridge)
 	br.RegisterCommands()
 
-	util.BrowserDetailsMessage.Os = br.Config.GoogleMessages.OS
+	util.BrowserDetailsMessage.OS = br.Config.GoogleMessages.OS
 	browserVal, ok := binary.BrowserTypes_value[br.Config.GoogleMessages.Browser]
 	if !ok {
 		br.ZLog.Error().Str("browser_value", br.Config.GoogleMessages.Browser).Msg("Invalid browser value")

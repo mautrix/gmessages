@@ -15,6 +15,6 @@ var Network = "Bugle"
 var BrowserDetailsMessage = &binary.BrowserDetails{
 	UserAgent:   UserAgent,
 	BrowserType: binary.BrowserTypes_OTHER,
-	Os:          "libgm",
+	OS:          "libgm",
 	SomeBool:    true,
 }

@@ -9,7 +9,7 @@ import "client.proto";
 message BrowserDetails {
     string userAgent = 1;
     client.BrowserTypes browserType = 2;
-    string os = 3;
+    string OS = 3;
     bool someBool = 6;
 }
 
