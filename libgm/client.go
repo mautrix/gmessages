@@ -106,15 +106,14 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("not logged in")
 	}
 
-	refreshErr := c.refreshAuthToken()
-	if refreshErr != nil {
-		panic(refreshErr)
+	err := c.refreshAuthToken()
+	if err != nil {
+		return fmt.Errorf("failed to refresh auth token: %w", err)
 	}
 
-	webEncryptionKeyResponse, webEncryptionKeyErr := c.GetWebEncryptionKey()
-	if webEncryptionKeyErr != nil {
-		c.Logger.Err(webEncryptionKeyErr).Any("response", webEncryptionKeyResponse).Msg("GetWebEncryptionKey request failed")
-		return webEncryptionKeyErr
+	webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
+	if err != nil {
+		return fmt.Errorf("failed to get web encryption key: %w", err)
 	}
 	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
 	go c.rpc.ListenReceiveMessages()
@@ -122,12 +121,12 @@ func (c *Client) Connect() error {
 
 	bugleRes, bugleErr := c.IsBugleDefault()
 	if bugleErr != nil {
-		panic(bugleErr)
+		return fmt.Errorf("failed to check bugle default: %w", err)
 	}
-	c.Logger.Info().Any("isBugle", bugleRes.Success).Msg("IsBugleDefault")
+	c.Logger.Debug().Any("isBugle", bugleRes.Success).Msg("IsBugleDefault")
 	sessionErr := c.SetActiveSession()
 	if sessionErr != nil {
-		panic(sessionErr)
+		return fmt.Errorf("failed to set active session: %w", err)
 	}
 	return nil
 }

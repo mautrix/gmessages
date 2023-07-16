@@ -1,6 +1,8 @@
 package libgm
 
 import (
+	"fmt"
+
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
@@ -17,10 +19,7 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 
 	switch evt := pairEventData.Event.(type) {
 	case *binary.PairEvents_Paired:
-		callbackErr := c.completePairing(evt.Paired)
-		if callbackErr != nil {
-			panic(callbackErr)
-		}
+		c.completePairing(evt.Paired)
 	case *binary.PairEvents_Revoked:
 		c.Logger.Debug().Any("data", evt).Msg("Revoked Device")
 		c.triggerEvent(evt.Revoked)
@@ -29,16 +28,15 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 	}
 }
 
-func (c *Client) completePairing(data *binary.PairedData) error {
+func (c *Client) completePairing(data *binary.PairedData) {
 	c.updateTachyonAuthToken(data.GetTokenData().GetTachyonAuthToken(), data.GetTokenData().GetTTL())
 	c.AuthData.Mobile = data.Mobile
 	c.AuthData.Browser = data.Browser
 
 	c.triggerEvent(&events.PairSuccessful{PairedData: data})
 
-	reconnectErr := c.Reconnect()
-	if reconnectErr != nil {
-		return reconnectErr
+	err := c.Reconnect()
+	if err != nil {
+		c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
 	}
-	return nil
 }
