@@ -91,7 +91,7 @@ func (r *RPC) ListenReceiveMessages() {
 		}
 		r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		r.conn = resp.Body
-		if r.client.authData.DevicePair != nil {
+		if r.client.authData.Browser != nil {
 			go func() {
 				err := r.client.NotifyDittoActivity()
 				if err != nil {

@@ -73,7 +73,7 @@ func (s *SessionHandler) sendMessage(actionType binary.ActionType, encryptedData
 
 func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedData proto.Message) (string, []byte, binary.ActionType, error) {
 	var requestID string
-	pairedDevice := s.client.authData.DevicePair.Mobile
+	pairedDevice := s.client.authData.Mobile
 	sessionId := s.client.sessionHandler.sessionID
 	token := s.client.authData.TachyonAuthToken
 
@@ -142,7 +142,7 @@ func (s *SessionHandler) sendAckRequest() {
 	for i, reqID := range dataToAck {
 		ackMessages[i] = &binary.AckMessageData{
 			RequestID: reqID,
-			Device:    s.client.authData.DevicePair.Browser,
+			Device:    s.client.authData.Browser,
 		}
 	}
 	ackMessagePayload := &binary.AckMessagePayload{

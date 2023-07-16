@@ -169,7 +169,7 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 }
 
 func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
-	if c.authData.TachyonAuthToken == nil || c.authData.DevicePair == nil || c.authData.DevicePair.Browser == nil {
+	if c.authData.TachyonAuthToken == nil || c.authData.Browser == nil {
 		return nil, nil
 	}
 	payload, err := proto.Marshal(&binary.RevokeRelayPairing{
@@ -178,7 +178,7 @@ func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
 			TachyonAuthToken: c.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},
-		Browser: c.authData.DevicePair.Browser,
+		Browser: c.authData.Browser,
 	})
 	if err != nil {
 		return nil, err

@@ -32,7 +32,8 @@ type AuthData struct {
 	// Key used to sign requests to refresh the tachyon auth token from the server
 	RefreshKey *crypto.JWK `json:"refresh_key,omitempty"`
 	// Identity of the paired phone and browser
-	DevicePair *pblite.DevicePair `json:"device_pair,omitempty"`
+	Browser *binary.Device `json:"browser,omitempty"`
+	Mobile  *binary.Device `json:"mobile,omitempty"`
 	// Key used to authenticate with the server
 	TachyonAuthToken []byte    `json:"tachyon_token,omitempty"`
 	TachyonExpiry    time.Time `json:"tachyon_expiry,omitempty"`
@@ -153,7 +154,7 @@ func (c *Client) IsConnected() bool {
 }
 
 func (c *Client) IsLoggedIn() bool {
-	return c.authData != nil && c.authData.DevicePair != nil
+	return c.authData != nil && c.authData.Browser != nil
 }
 
 func (c *Client) Reconnect() error {
@@ -270,9 +271,10 @@ func (c *Client) updateTachyonAuthToken(t []byte, validFor int64) {
 	c.Logger.Debug().Time("tachyon_expiry", c.authData.TachyonExpiry).Int64("valid_for", validFor).Msg("Updated tachyon token")
 }
 
-func (c *Client) updateDevicePair(devicePair *pblite.DevicePair) {
-	c.authData.DevicePair = devicePair
-	c.Logger.Debug().Any("devicePair", devicePair).Msg("Updated DevicePair")
+func (c *Client) updateDevicePair(mobile, browser *binary.Device) {
+	c.authData.Mobile = mobile
+	c.authData.Browser = browser
+	c.Logger.Debug().Any("mobile", mobile).Any("browser", browser).Msg("Updated device pair")
 }
 
 func (c *Client) SaveAuthSession(path string) error {
@@ -300,7 +302,7 @@ func LoadAuthSession(path string) (*AuthData, error) {
 }
 
 func (c *Client) refreshAuthToken() error {
-	if c.authData.DevicePair == nil || time.Until(c.authData.TachyonExpiry) > RefreshTachyonBuffer {
+	if c.authData.Browser == nil || time.Until(c.authData.TachyonExpiry) > RefreshTachyonBuffer {
 		return nil
 	}
 	c.Logger.Debug().Time("tachyon_expiry", c.authData.TachyonExpiry).Msg("Refreshing auth token")
@@ -320,7 +322,7 @@ func (c *Client) refreshAuthToken() error {
 			TachyonAuthToken: c.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},
-		CurrBrowserDevice: c.authData.DevicePair.Browser,
+		CurrBrowserDevice: c.authData.Browser,
 		UnixTimestamp:     timestamp,
 		Signature:         sig,
 		EmptyRefreshArr:   &binary.EmptyRefreshArr{EmptyArr: &binary.EmptyArr{}},

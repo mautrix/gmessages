@@ -134,7 +134,7 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 			TachyonAuthToken: c.authData.TachyonAuthToken,
 			ConfigVersion:    payload.ConfigMessage,
 		},
-		Mobile: c.authData.DevicePair.Mobile,
+		Mobile: c.authData.Mobile,
 	}
 
 	protoDataBytes, err := proto.Marshal(protoData)

@@ -41,8 +41,7 @@ func (c *Client) pairCallback(data *binary.PairedData) error {
 	tokenData := data.GetTokenData()
 	c.updateTachyonAuthToken(tokenData.GetTachyonAuthToken(), tokenData.GetTTL())
 
-	devicePair := c.NewDevicePair(data.Mobile, data.Browser)
-	c.updateDevicePair(devicePair)
+	c.updateDevicePair(data.Mobile, data.Browser)
 
 	webEncryptionKeyResponse, webErr := c.GetWebEncryptionKey()
 	if webErr != nil {
