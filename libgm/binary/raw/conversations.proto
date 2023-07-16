@@ -9,6 +9,41 @@ message GetParticipantThumbnailPayload {
     string conversationID = 1;
 }
 
+message ListContactsPayload {
+    int32 i1 = 5; // = 1
+    int32 i2 = 6; // = 350
+    int32 i3 = 7; // = 50
+}
+
+message ListTopContactsPayload {
+    int32 count = 1;
+}
+
+message GetContactsThumbnailPayload {
+    repeated string avatarIDs = 1;
+}
+
+message Contact {
+    string ID = 1;
+    string name = 2;
+    ContactNumber number = 3;
+    string avatarHexColor = 7;
+    bool unknownBool = 10;
+    string avatarID = 11;
+}
+
+message ContactNumber {
+    // Might be 2 for contact and 7 for user input?
+    int32 mysteriousInt = 1;
+    string number = 2;
+    string number2 = 3;
+    optional string formattedNumber = 4;
+}
+
+message GetOrCreateConversationPayload {
+    repeated ContactNumber numbers = 2;
+}
+
 message ResendMessagePayload {
     string messageID = 2;
 }
@@ -99,11 +134,12 @@ message ListConversationsPayload {
 
     int64 count = 2;
     Folder folder = 4;
+    optional Cursor cursor = 5;
 }
 
 message Cursor {
-    string someStr = 1;
-    int64 nextCursor = 2;
+    string lastItemID = 1;
+    int64 lastItemTimestamp = 2;
 }
 
 message Message {
@@ -175,6 +211,8 @@ message MessageStatus {
 
 message Conversations {
     repeated Conversation conversations = 2;
+    optional bytes cursorBytes = 3;
+    optional Cursor cursor = 5;
 }
 
 message Conversation {
@@ -214,8 +252,14 @@ message Participant {
     int64 someInt2 = 20;
 }
 
+enum IdentifierType {
+    UNKNOWN = 0;
+    PHONE = 1;
+    EMAIL = 2;
+}
+
 message SmallInfo {
-    int64 type = 1;
+    IdentifierType type = 1;
     string number = 2;
     string participantID = 3;
 }

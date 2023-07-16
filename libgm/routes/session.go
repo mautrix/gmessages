@@ -28,3 +28,30 @@ var NOTIFY_DITTO_ACTIVITY = Route{
 	UseSessionID:   false,
 	UseTTL:         true,
 }
+
+var LIST_CONTACTS = Route{
+	Action:         binary.ActionType_LIST_CONTACTS,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: &binary.ListContactsResponse{},
+	UseSessionID:   false,
+	UseTTL:         true,
+}
+
+var LIST_TOP_CONTACTS = Route{
+	Action:         binary.ActionType_LIST_TOP_CONTACTS,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: &binary.ListTopContactsResponse{},
+	UseSessionID:   false,
+	UseTTL:         true,
+}
+
+var GET_OR_CREATE_CONVERSATION = Route{
+	Action:         binary.ActionType_GET_OR_CREATE_CONVERSATION,
+	MessageType:    binary.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     binary.BugleRoute_DataEvent,
+	ResponseStruct: &binary.GetOrCreateConversationResponse{},
+	UseSessionID:   false,
+	UseTTL:         true,
+}

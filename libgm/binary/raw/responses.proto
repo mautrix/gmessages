@@ -42,6 +42,20 @@ message FetchMessagesResponse {
     conversations.Cursor cursor = 5;
 }
 
+message ListContactsResponse {
+    repeated conversations.Contact contacts = 2;
+}
+
+message ListTopContactsResponse {
+    repeated conversations.Contact contacts = 1;
+}
+
+message GetOrCreateConversationResponse {
+    conversations.Conversation conversation = 2;
+    // uncertain, never seen any other value than 1
+    bool success = 3;
+}
+
 message DeleteMessageResponse {
     bool success = 2;
 }

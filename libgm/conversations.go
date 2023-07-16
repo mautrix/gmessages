@@ -28,6 +28,73 @@ func (c *Client) ListConversations(count int64, folder binary.ListConversationsP
 	return res, nil
 }
 
+func (c *Client) ListContacts() (*binary.ListContactsResponse, error) {
+	payload := &binary.ListContactsPayload{
+		I1: 1,
+		I2: 350,
+		I3: 50,
+	}
+	actionType := binary.ActionType_LIST_CONTACTS
+
+	response, err := c.sessionHandler.sendMessage(actionType, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	res, ok := response.Data.Decrypted.(*binary.ListContactsResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.ListContactsResponse", response.Data.Decrypted)
+	}
+
+	return res, nil
+}
+
+func (c *Client) ListTopContacts() (*binary.ListTopContactsResponse, error) {
+	payload := &binary.ListTopContactsPayload{
+		Count: 8,
+	}
+	actionType := binary.ActionType_LIST_TOP_CONTACTS
+
+	response, err := c.sessionHandler.sendMessage(actionType, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	res, ok := response.Data.Decrypted.(*binary.ListTopContactsResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.ListTopContactsResponse", response.Data.Decrypted)
+	}
+
+	return res, nil
+}
+
+func (c *Client) GetOrCreateConversation(numbers []string) (*binary.GetOrCreateConversationResponse, error) {
+	contacts := make([]*binary.ContactNumber, len(numbers))
+	for i, number := range numbers {
+		contacts[i] = &binary.ContactNumber{
+			MysteriousInt: 7,
+			Number:        number,
+			Number2:       number,
+		}
+	}
+	payload := &binary.GetOrCreateConversationPayload{
+		Numbers: contacts,
+	}
+	actionType := binary.ActionType_GET_OR_CREATE_CONVERSATION
+
+	response, err := c.sessionHandler.sendMessage(actionType, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	res, ok := response.Data.Decrypted.(*binary.GetOrCreateConversationResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T, expected *binary.GetOrCreateConversationResponse", response.Data.Decrypted)
+	}
+
+	return res, nil
+}
+
 func (c *Client) GetConversationType(conversationID string) (*binary.GetConversationTypeResponse, error) {
 	payload := &binary.ConversationTypePayload{ConversationID: conversationID}
 	actionType := binary.ActionType_GET_CONVERSATION_TYPE

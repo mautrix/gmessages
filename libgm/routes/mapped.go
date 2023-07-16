@@ -29,4 +29,7 @@ var Routes = map[binary.ActionType]Route{
 	binary.ActionType_DELETE_MESSAGE:             DELETE_MESSAGE,
 	binary.ActionType_TYPING_UPDATES:             TYPING_UPDATES,
 	binary.ActionType_GET_PARTICIPANTS_THUMBNAIL: GET_PARTICIPANT_THUMBNAIL,
+	binary.ActionType_LIST_CONTACTS:              LIST_CONTACTS,
+	binary.ActionType_LIST_TOP_CONTACTS:          LIST_TOP_CONTACTS,
+	binary.ActionType_GET_OR_CREATE_CONVERSATION: GET_OR_CREATE_CONVERSATION,
 }

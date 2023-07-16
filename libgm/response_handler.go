@@ -41,6 +41,8 @@ func (s *SessionHandler) receiveResponse(resp *pblite.Response) bool {
 	if evt.Enabled() && resp.Data.Decrypted != nil {
 		evt.Str("proto_name", string(resp.Data.Decrypted.ProtoReflect().Descriptor().FullName())).
 			Str("data", base64.StdEncoding.EncodeToString(resp.Data.RawDecrypted))
+	} else if resp.Data.RawDecrypted != nil {
+		evt.Str("unrecognized_data", base64.StdEncoding.EncodeToString(resp.Data.RawDecrypted))
 	}
 	evt.Msg("Received response")
 	ch <- resp

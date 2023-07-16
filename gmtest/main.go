@@ -98,6 +98,17 @@ func main() {
 			args := strings.Fields(cmd)
 			cmd = args[0]
 			args = args[1:]
+			switch cmd {
+			//case "getavatar":
+			//	_, err := cli.GetFullSizeImage(args)
+			//	fmt.Println(err)
+			case "listcontacts":
+				cli.ListContacts()
+			case "topcontacts":
+				cli.ListTopContacts()
+			case "getorcreate":
+				cli.GetOrCreateConversation(args)
+			}
 			//go handleCmd(strings.ToLower(cmd), args)
 		}
 	}
