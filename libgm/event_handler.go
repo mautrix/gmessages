@@ -43,7 +43,7 @@ func (r *RPC) deduplicateUpdate(response *pblite.Response) bool {
 }
 
 func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
-	response, decodeErr := pblite.DecryptInternalMessage(msg, r.client.authData.RequestCrypto)
+	response, decodeErr := pblite.DecryptInternalMessage(msg, r.client.AuthData.RequestCrypto)
 	if decodeErr != nil {
 		r.client.Logger.Error().Err(decodeErr).Msg("rpc decrypt msg err")
 		return
@@ -55,7 +55,6 @@ func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
 
 	r.client.sessionHandler.queueMessageAck(response.ResponseID)
 	if r.client.sessionHandler.receiveResponse(response) {
-		r.client.Logger.Debug().Str("request_id", response.Data.RequestID).Msg("Received response")
 		return
 	}
 	switch response.BugleRoute {

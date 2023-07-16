@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/skip2/go-qrcode"
 	"maunium.net/go/mautrix"
@@ -82,57 +83,82 @@ func fnLogin(ce *WrappedCommandEvent) {
 			ce.Reply("You're already logged in. Perhaps you wanted to `reconnect`?")
 		}
 		return
-	}
-
-	ce.User.hackyLoginCommand = ce
-	ce.User.hackyLoginCommandPrevEvent = ""
-	_, err := ce.User.Login(context.Background())
-	if err != nil {
-		ce.User.log.Errorf("Failed to log in:", err)
-		ce.Reply("Failed to log in: %v", err)
+	} else if ce.User.pairSuccessChan != nil {
+		ce.Reply("You already have a login in progress")
 		return
 	}
+
+	ch, err := ce.User.Login(context.Background(), 6)
+	if err != nil {
+		ce.ZLog.Err(err).Msg("Failed to start login")
+		ce.Reply("Failed to start login: %v", err)
+		return
+	}
+	var prevEvent id.EventID
+	for item := range ch {
+		switch {
+		case item.qr != "":
+			ce.ZLog.Debug().Msg("Got code in QR channel")
+			prevEvent = ce.User.sendQR(ce, item.qr, prevEvent)
+		case item.err != nil:
+			ce.ZLog.Err(err).Msg("Error in QR channel")
+			prevEvent = ce.User.sendQREdit(ce, &event.MessageEventContent{
+				MsgType: event.MsgNotice,
+				Body:    fmt.Sprintf("Failed to log in: %v", err),
+			}, prevEvent)
+		case item.success:
+			ce.ZLog.Debug().Msg("Got pair success in QR channel")
+			prevEvent = ce.User.sendQREdit(ce, &event.MessageEventContent{
+				MsgType: event.MsgNotice,
+				Body:    "Successfully logged in",
+			}, prevEvent)
+		}
+	}
+	ce.ZLog.Trace().Msg("Login command finished")
 }
 
-func (user *User) sendQR(ce *WrappedCommandEvent, code string, prevEvent id.EventID) id.EventID {
-	url, ok := user.uploadQR(ce, code)
-	if !ok {
-		return prevEvent
-	}
-	content := event.MessageEventContent{
-		MsgType: event.MsgImage,
-		Body:    code,
-		URL:     url.CUString(),
-	}
+func (user *User) sendQREdit(ce *WrappedCommandEvent, content *event.MessageEventContent, prevEvent id.EventID) id.EventID {
 	if len(prevEvent) != 0 {
 		content.SetEdit(prevEvent)
 	}
 	resp, err := ce.Bot.SendMessageEvent(ce.RoomID, event.EventMessage, &content)
 	if err != nil {
-		user.log.Errorln("Failed to send edited QR code to user:", err)
+		ce.ZLog.Err(err).Msg("Failed to send edited QR code")
 	} else if len(prevEvent) == 0 {
 		prevEvent = resp.EventID
 	}
 	return prevEvent
 }
 
-func (user *User) uploadQR(ce *WrappedCommandEvent, code string) (id.ContentURI, bool) {
+func (user *User) sendQR(ce *WrappedCommandEvent, code string, prevEvent id.EventID) id.EventID {
+	var content event.MessageEventContent
+	url, err := user.uploadQR(code)
+	if err != nil {
+		ce.ZLog.Err(err).Msg("Failed to upload QR code")
+		content = event.MessageEventContent{
+			MsgType: event.MsgNotice,
+			Body:    fmt.Sprintf("Failed to upload QR code: %v", err),
+		}
+	} else {
+		content = event.MessageEventContent{
+			MsgType: event.MsgImage,
+			Body:    code,
+			URL:     url.CUString(),
+		}
+	}
+	return user.sendQREdit(ce, &content, prevEvent)
+}
+
+func (user *User) uploadQR(code string) (id.ContentURI, error) {
 	qrCode, err := qrcode.Encode(code, qrcode.Low, 256)
 	if err != nil {
-		user.log.Errorln("Failed to encode QR code:", err)
-		ce.Reply("Failed to encode QR code: %v", err)
-		return id.ContentURI{}, false
+		return id.ContentURI{}, err
 	}
-
-	bot := user.bridge.AS.BotClient()
-
-	resp, err := bot.UploadBytes(qrCode, "image/png")
+	resp, err := user.bridge.Bot.UploadBytes(qrCode, "image/png")
 	if err != nil {
-		user.log.Errorln("Failed to upload QR code:", err)
-		ce.Reply("Failed to upload QR code: %v", err)
-		return id.ContentURI{}, false
+		return id.ContentURI{}, err
 	}
-	return resp.ContentURI, true
+	return resp.ContentURI, nil
 }
 
 var cmdLogout = &commands.FullHandler{
@@ -236,7 +262,7 @@ func fnPing(ce *WrappedCommandEvent) {
 			ce.Reply("You're not logged into Google Messages.")
 		}
 	} else if ce.User.Client == nil || !ce.User.Client.IsConnected() {
-		ce.Reply("You're logged in as %s (device #%d), but you don't have a Google Messages connection.", ce.User.Phone)
+		ce.Reply("You're logged in as %s, but you don't have a Google Messages connection.", ce.User.Phone)
 	} else {
 		ce.Reply("Logged in as %s, connection to Google Messages may be OK", ce.User.Phone)
 	}

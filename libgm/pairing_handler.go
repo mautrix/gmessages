@@ -17,7 +17,7 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 
 	switch evt := pairEventData.Event.(type) {
 	case *binary.PairEvents_Paired:
-		callbackErr := c.pairCallback(evt.Paired)
+		callbackErr := c.completePairing(evt.Paired)
 		if callbackErr != nil {
 			panic(callbackErr)
 		}
@@ -29,27 +29,12 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 	}
 }
 
-func (c *Client) NewDevicePair(mobile, browser *binary.Device) *pblite.DevicePair {
-	return &pblite.DevicePair{
-		Mobile:  mobile,
-		Browser: browser,
-	}
-}
+func (c *Client) completePairing(data *binary.PairedData) error {
+	c.updateTachyonAuthToken(data.GetTokenData().GetTachyonAuthToken(), data.GetTokenData().GetTTL())
+	c.AuthData.Mobile = data.Mobile
+	c.AuthData.Browser = data.Browser
 
-func (c *Client) pairCallback(data *binary.PairedData) error {
-
-	tokenData := data.GetTokenData()
-	c.updateTachyonAuthToken(tokenData.GetTachyonAuthToken(), tokenData.GetTTL())
-
-	c.updateDevicePair(data.Mobile, data.Browser)
-
-	webEncryptionKeyResponse, webErr := c.GetWebEncryptionKey()
-	if webErr != nil {
-		return webErr
-	}
-	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-
-	c.triggerEvent(&events.PairSuccessful{data})
+	c.triggerEvent(&events.PairSuccessful{PairedData: data})
 
 	reconnectErr := c.Reconnect()
 	if reconnectErr != nil {

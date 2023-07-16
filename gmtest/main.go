@@ -39,11 +39,13 @@ func main() {
 		w.TimeFormat = time.Stamp
 	})).With().Timestamp().Logger()
 	file, err := os.Open("session.json")
+	var doLogin bool
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
 		sess = *libgm.NewAuthData()
+		doLogin = true
 	} else {
 		must(json.NewDecoder(file).Decode(&sess))
 		log.Info().Msg("Loaded session?")
@@ -51,7 +53,23 @@ func main() {
 	_ = file.Close()
 	cli = libgm.NewClient(&sess, log)
 	cli.SetEventHandler(evtHandler)
-	must(cli.Connect())
+	if doLogin {
+		qr := mustReturn(cli.StartLogin())
+		qrterminal.GenerateHalfBlock(qr, qrterminal.L, os.Stdout)
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				if sess.Browser != nil {
+					return
+				}
+				qr := mustReturn(cli.RefreshPhoneRelay())
+				qrterminal.GenerateHalfBlock(qr, qrterminal.L, os.Stdout)
+			}
+		}()
+	} else {
+		must(cli.Connect())
+	}
 
 	c := make(chan os.Signal)
 	input := make(chan string)
@@ -97,20 +115,12 @@ func evtHandler(rawEvt any) {
 		log.Debug().Any("data", evt).Msg("Client is ready!")
 	case *events.PairSuccessful:
 		log.Debug().Any("data", evt).Msg("Pair successful")
-		//kd := evt.Data.(*binary.AuthenticationContainer_KeyData)
-		//sess.DevicePair = &pblite.DevicePair{
-		//	Mobile:  kd.KeyData.Mobile,
-		//	Browser: kd.KeyData.Browser,
-		//}
-		//sess.TachyonAuthToken = evt.AuthMessage.TachyonAuthToken
 		saveSession()
 		log.Debug().Msg("Wrote session")
 	case *binary.Message:
 		log.Debug().Any("data", evt).Msg("Message event")
 	case *binary.Conversation:
 		log.Debug().Any("data", evt).Msg("Conversation event")
-	case *events.QR:
-		qrterminal.GenerateHalfBlock(evt.URL, qrterminal.L, os.Stdout)
 	case *events.BrowserActive:
 		log.Debug().Any("data", evt).Msg("Browser active")
 	default:

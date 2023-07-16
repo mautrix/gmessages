@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm/events"
-	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
@@ -51,8 +50,8 @@ func (r *RPC) ListenReceiveMessages() {
 		receivePayload, err := pblite.Marshal(&binary.ReceiveMessagesRequest{
 			Auth: &binary.AuthMessage{
 				RequestID:        listenReqID,
-				TachyonAuthToken: r.client.authData.TachyonAuthToken,
-				ConfigVersion:    payload.ConfigMessage,
+				TachyonAuthToken: r.client.AuthData.TachyonAuthToken,
+				ConfigVersion:    util.ConfigMessage,
 			},
 			Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject2{
 				Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject1{},
@@ -91,7 +90,7 @@ func (r *RPC) ListenReceiveMessages() {
 		}
 		r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		r.conn = resp.Body
-		if r.client.authData.Browser != nil {
+		if r.client.AuthData.Browser != nil {
 			go func() {
 				err := r.client.NotifyDittoActivity()
 				if err != nil {

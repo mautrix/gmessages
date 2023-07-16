@@ -71,10 +71,9 @@ type User struct {
 	batteryLow          bool
 	mobileData          bool
 
-	DoublePuppetIntent *appservice.IntentAPI
+	pairSuccessChan chan struct{}
 
-	hackyLoginCommand          *WrappedCommandEvent
-	hackyLoginCommandPrevEvent id.EventID
+	DoublePuppetIntent *appservice.IntentAPI
 }
 
 func (br *GMBridge) getUserByMXID(userID id.UserID, onlyIfExists bool) *User {
@@ -389,12 +388,11 @@ func (user *User) SetManagementRoom(roomID id.RoomID) {
 }
 
 var ErrAlreadyLoggedIn = errors.New("already logged in")
+var ErrLoginInProgress = errors.New("login already in progress")
+var ErrLoginTimeout = errors.New("login timed out")
 
-func (user *User) createClient() {
-	if user.Session == nil {
-		user.Session = libgm.NewAuthData()
-	}
-	user.Client = libgm.NewClient(user.Session, user.zlog.With().Str("component", "libgm").Logger())
+func (user *User) createClient(sess *libgm.AuthData) {
+	user.Client = libgm.NewClient(sess, user.zlog.With().Str("component", "libgm").Logger())
 	user.Client.SetEventHandler(user.syncHandleEvent)
 }
 
@@ -402,20 +400,66 @@ func (user *User) syncHandleEvent(ev any) {
 	go user.HandleEvent(ev)
 }
 
-func (user *User) Login(ctx context.Context) (<-chan string, error) {
+type qrChannelItem struct {
+	success bool
+	qr      string
+	err     error
+}
+
+func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelItem, error) {
 	user.connLock.Lock()
 	defer user.connLock.Unlock()
 	if user.Session != nil {
 		return nil, ErrAlreadyLoggedIn
 	} else if user.Client != nil {
 		user.unlockedDeleteConnection()
+	} else if user.pairSuccessChan != nil {
+		return nil, ErrLoginInProgress
 	}
-	user.createClient()
-	err := user.Client.Connect()
+	pairSuccessChan := make(chan struct{})
+	user.pairSuccessChan = pairSuccessChan
+	user.createClient(libgm.NewAuthData())
+	qr, err := user.Client.StartLogin()
 	if err != nil {
+		user.DeleteConnection()
+		user.pairSuccessChan = nil
 		return nil, fmt.Errorf("failed to connect to Google Messages: %w", err)
 	}
-	return nil, nil
+	ch := make(chan qrChannelItem, maxAttempts+2)
+	ch <- qrChannelItem{qr: qr}
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		success := false
+		defer func() {
+			ticker.Stop()
+			if !success {
+				user.zlog.Debug().Msg("Deleting connection as login wasn't successful")
+				user.DeleteConnection()
+			}
+			user.pairSuccessChan = nil
+			close(ch)
+		}()
+		for ; maxAttempts > 0; maxAttempts-- {
+			select {
+			case <-ctx.Done():
+				user.zlog.Debug().Err(ctx.Err()).Msg("Login context cancelled")
+				return
+			case <-ticker.C:
+				qr, err := user.Client.RefreshPhoneRelay()
+				if err != nil {
+					ch <- qrChannelItem{err: fmt.Errorf("failed to refresh QR code: %w", err)}
+					return
+				}
+				ch <- qrChannelItem{qr: qr}
+			case <-pairSuccessChan:
+				ch <- qrChannelItem{success: true}
+				success = true
+				return
+			}
+		}
+		ch <- qrChannelItem{err: ErrLoginTimeout}
+	}()
+	return ch, nil
 }
 
 func (user *User) Connect() bool {
@@ -431,7 +475,7 @@ func (user *User) Connect() bool {
 	}
 	user.zlog.Debug().Msg("Connecting to Google Messages")
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting, Error: GMConnecting})
-	user.createClient()
+	user.createClient(user.Session)
 	err := user.Client.Connect()
 	if err != nil {
 		user.zlog.Err(err).Msg("Error connecting to Google Messages")
@@ -512,11 +556,6 @@ func (user *User) sendMarkdownBridgeAlert(formatString string, args ...interface
 
 func (user *User) HandleEvent(event interface{}) {
 	switch v := event.(type) {
-	case *events.QR:
-		// This shouldn't be here
-		if user.hackyLoginCommand != nil {
-			user.hackyLoginCommandPrevEvent = user.sendQR(user.hackyLoginCommand, v.URL, user.hackyLoginCommandPrevEvent)
-		}
 	case *events.ListenFatalError:
 		user.Logout(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
@@ -534,14 +573,16 @@ func (user *User) HandleEvent(event interface{}) {
 		user.longPollingError = nil
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PairSuccessful:
-		user.hackyLoginCommand = nil
-		user.hackyLoginCommandPrevEvent = ""
-		user.tryAutomaticDoublePuppeting()
+		user.Session = user.Client.AuthData
 		user.Phone = v.GetMobile().GetSourceID()
+		user.tryAutomaticDoublePuppeting()
 		user.addToPhoneMap()
 		err := user.Update(context.TODO())
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to update session in database")
+		}
+		if ch := user.pairSuccessChan; ch != nil {
+			close(ch)
 		}
 	case *binary.RevokePairData:
 		user.zlog.Info().Any("revoked_device", v.GetRevokedDevice()).Msg("Got pair revoked event")

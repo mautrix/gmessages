@@ -3,38 +3,16 @@ package libgm
 import (
 	"crypto/x509"
 	"io"
-	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
-	"go.mau.fi/mautrix-gmessages/libgm/events"
-	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-type Pairer struct {
-	client     *Client
-	KeyData    *crypto.JWK
-	ticker     *time.Ticker
-	tickerTime time.Duration
-	pairingKey []byte
-}
-
-func (c *Client) NewPairer(keyData *crypto.JWK, refreshQrCodeTime int) (*Pairer, error) {
-	p := &Pairer{
-		client:     c,
-		KeyData:    keyData,
-		tickerTime: time.Duration(refreshQrCodeTime) * time.Second,
-	}
-	c.pairer = p
-	return p, nil
-}
-
-func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error) {
-	key, err := x509.MarshalPKIXPublicKey(p.KeyData.GetPublicKey())
+func (c *Client) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error) {
+	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
 	if err != nil {
 		return nil, err
 	}
@@ -42,10 +20,10 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 	body, err := proto.Marshal(&binary.AuthenticationContainer{
 		AuthMessage: &binary.AuthMessage{
 			RequestID:     uuid.NewString(),
-			Network:       &payload.Network,
-			ConfigVersion: payload.ConfigMessage,
+			Network:       &util.Network,
+			ConfigVersion: util.ConfigMessage,
 		},
-		BrowserDetails: payload.BrowserDetailsMessage,
+		BrowserDetails: util.BrowserDetailsMessage,
 		Data: &binary.AuthenticationContainer_KeyData{
 			KeyData: &binary.KeyData{
 				EcdsaKeys: &binary.ECDSAKeys{
@@ -56,91 +34,66 @@ func (p *Pairer) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		},
 	})
 	if err != nil {
-		p.client.Logger.Err(err)
-		return &binary.RegisterPhoneRelayResponse{}, err
-	}
-	relayResponse, reqErr := p.client.MakeRelayRequest(util.RegisterPhoneRelayURL, body)
-	if reqErr != nil {
-		p.client.Logger.Err(reqErr)
+		c.Logger.Err(err)
 		return nil, err
 	}
-	responseBody, err2 := io.ReadAll(relayResponse.Body)
-	if err2 != nil {
-		return nil, err2
+	relayResponse, reqErr := c.MakeRelayRequest(util.RegisterPhoneRelayURL, body)
+	if reqErr != nil {
+		c.Logger.Err(reqErr)
+		return nil, err
+	}
+	responseBody, err := io.ReadAll(relayResponse.Body)
+	if err != nil {
+		return nil, err
 	}
 	relayResponse.Body.Close()
 	res := &binary.RegisterPhoneRelayResponse{}
-	err3 := proto.Unmarshal(responseBody, res)
-	if err3 != nil {
-		return nil, err3
+	err = proto.Unmarshal(responseBody, res)
+	if err != nil {
+		return nil, err
 	}
-	p.pairingKey = res.GetPairingKey()
-	p.client.Logger.Debug().Any("response", res).Msg("Registerphonerelay response")
-	url, qrErr := p.GenerateQRCodeData()
-	if qrErr != nil {
-		return nil, qrErr
-	}
-	p.client.triggerEvent(&events.QR{URL: url})
-	p.startRefreshRelayTask()
 	return res, err
 }
 
-func (p *Pairer) startRefreshRelayTask() {
-	if p.ticker != nil {
-		p.ticker.Stop()
-	}
-	ticker := time.NewTicker(30 * time.Second)
-	p.ticker = ticker
-	go func() {
-		for range ticker.C {
-			p.RefreshPhoneRelay()
-		}
-	}()
-}
-
-func (p *Pairer) RefreshPhoneRelay() {
+func (c *Client) RefreshPhoneRelay() (string, error) {
 	body, err := proto.Marshal(&binary.AuthenticationContainer{
 		AuthMessage: &binary.AuthMessage{
 			RequestID:        uuid.NewString(),
-			Network:          &payload.Network,
-			TachyonAuthToken: p.client.authData.TachyonAuthToken,
-			ConfigVersion:    payload.ConfigMessage,
+			Network:          &util.Network,
+			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			ConfigVersion:    util.ConfigMessage,
 		},
 	})
 	if err != nil {
-		p.client.Logger.Err(err).Msg("refresh phone relay err")
-		return
+		return "", err
 	}
-	relayResponse, reqErr := p.client.MakeRelayRequest(util.RefreshPhoneRelayURL, body)
-	if reqErr != nil {
-		p.client.Logger.Err(reqErr).Msg("refresh phone relay err")
+	relayResponse, err := c.MakeRelayRequest(util.RefreshPhoneRelayURL, body)
+	if err != nil {
+		return "", err
 	}
-	responseBody, err2 := io.ReadAll(relayResponse.Body)
+	responseBody, err := io.ReadAll(relayResponse.Body)
 	defer relayResponse.Body.Close()
-	if err2 != nil {
-		p.client.Logger.Err(err2).Msg("refresh phone relay err")
+	if err != nil {
+		return "", err
 	}
-	p.client.Logger.Debug().Any("responseLength", len(responseBody)).Msg("Response Body Length")
 	res := &binary.RefreshPhoneRelayResponse{}
-	err3 := proto.Unmarshal(responseBody, res)
-	if err3 != nil {
-		p.client.Logger.Err(err3)
+	err = proto.Unmarshal(responseBody, res)
+	if err != nil {
+		return "", err
 	}
-	p.pairingKey = res.GetPairKey()
-	p.client.Logger.Debug().Any("res", res).Msg("RefreshPhoneRelayResponse")
-	url, qrErr := p.GenerateQRCodeData()
-	if qrErr != nil {
-		panic(qrErr)
+	qr, err := c.GenerateQRCodeData(res.GetPairKey())
+	if err != nil {
+		return "", err
 	}
-	p.client.triggerEvent(&events.QR{URL: url})
+	return qr, nil
 }
 
 func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error) {
 	body, err := proto.Marshal(&binary.AuthenticationContainer{
 		AuthMessage: &binary.AuthMessage{
 			RequestID:        uuid.NewString(),
-			TachyonAuthToken: c.authData.TachyonAuthToken,
-			ConfigVersion:    payload.ConfigMessage,
+			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			ConfigVersion:    util.ConfigMessage,
 		},
 	})
 	if err != nil {
@@ -160,25 +113,20 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	if c.pairer != nil {
-		if c.pairer.ticker != nil {
-			c.pairer.ticker.Stop()
-		}
-	}
 	return parsedResponse, nil
 }
 
 func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
-	if c.authData.TachyonAuthToken == nil || c.authData.Browser == nil {
+	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
 	payload, err := proto.Marshal(&binary.RevokeRelayPairing{
 		AuthMessage: &binary.AuthMessage{
 			RequestID:        uuid.NewString(),
-			TachyonAuthToken: c.authData.TachyonAuthToken,
-			ConfigVersion:    payload.ConfigMessage,
+			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			ConfigVersion:    util.ConfigMessage,
 		},
-		Browser: c.authData.Browser,
+		Browser: c.AuthData.Browser,
 	})
 	if err != nil {
 		return nil, err

@@ -73,9 +73,9 @@ func (s *SessionHandler) sendMessage(actionType binary.ActionType, encryptedData
 
 func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedData proto.Message) (string, []byte, binary.ActionType, error) {
 	var requestID string
-	pairedDevice := s.client.authData.Mobile
+	pairedDevice := s.client.AuthData.Mobile
 	sessionId := s.client.sessionHandler.sessionID
-	token := s.client.authData.TachyonAuthToken
+	token := s.client.AuthData.TachyonAuthToken
 
 	routeInfo, ok := routes.Routes[actionType]
 	if !ok {
@@ -91,11 +91,11 @@ func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedDat
 	tmpMessage := payload.NewSendMessageBuilder(token, pairedDevice, requestID, sessionId).SetRoute(routeInfo.Action).SetSessionId(s.sessionID)
 
 	if encryptedData != nil {
-		tmpMessage.SetEncryptedProtoMessage(encryptedData, s.client.authData.RequestCrypto)
+		tmpMessage.SetEncryptedProtoMessage(encryptedData, s.client.AuthData.RequestCrypto)
 	}
 
 	if routeInfo.UseTTL {
-		tmpMessage.SetTTL(s.client.authData.TachyonTTL)
+		tmpMessage.SetTTL(s.client.AuthData.TachyonTTL)
 	}
 
 	message, buildErr := tmpMessage.Build()
@@ -142,14 +142,14 @@ func (s *SessionHandler) sendAckRequest() {
 	for i, reqID := range dataToAck {
 		ackMessages[i] = &binary.AckMessageData{
 			RequestID: reqID,
-			Device:    s.client.authData.Browser,
+			Device:    s.client.AuthData.Browser,
 		}
 	}
 	ackMessagePayload := &binary.AckMessagePayload{
 		AuthData: &binary.AuthMessage{
 			RequestID:        uuid.NewString(),
-			TachyonAuthToken: s.client.authData.TachyonAuthToken,
-			ConfigVersion:    payload.ConfigMessage,
+			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
+			ConfigVersion:    util.ConfigMessage,
 		},
 		EmptyArr: &binary.EmptyArr{},
 		Acks:     ackMessages,

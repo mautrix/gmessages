@@ -1,8 +1,7 @@
-package payload
+package util
 
 import (
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 var ConfigMessage = &binary.ConfigVersion{
@@ -14,7 +13,7 @@ var ConfigMessage = &binary.ConfigVersion{
 }
 var Network = "Bugle"
 var BrowserDetailsMessage = &binary.BrowserDetails{
-	UserAgent:   util.UserAgent,
+	UserAgent:   UserAgent,
 	BrowserType: binary.BrowserTypes_OTHER,
 	Os:          "libgm",
 	SomeBool:    true,

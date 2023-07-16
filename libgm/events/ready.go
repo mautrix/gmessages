@@ -19,15 +19,7 @@ func NewClientReady(sessionID string, conversationList *binary.Conversations) *C
 	}
 }
 
-type AuthTokenRefreshed struct {
-	Token []byte
-}
-
-func NewAuthTokenRefreshed(token []byte) *AuthTokenRefreshed {
-	return &AuthTokenRefreshed{
-		Token: token,
-	}
-}
+type AuthTokenRefreshed struct{}
 
 type HTTPError struct {
 	Action string

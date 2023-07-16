@@ -9,6 +9,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/routes"
+	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 type SendMessageBuilder struct {
@@ -32,7 +33,7 @@ func NewSendMessageBuilder(tachyonAuthToken []byte, pairedDevice *binary.Device,
 			MessageAuth: &binary.SendMessageAuth{
 				RequestID:        requestId,
 				TachyonAuthToken: tachyonAuthToken,
-				ConfigVersion:    ConfigMessage,
+				ConfigVersion:    util.ConfigMessage,
 			},
 			EmptyArr: &binary.EmptyArr{},
 		},

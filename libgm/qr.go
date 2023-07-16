@@ -9,11 +9,11 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-func (p *Pairer) GenerateQRCodeData() (string, error) {
+func (c *Client) GenerateQRCodeData(pairingKey []byte) (string, error) {
 	urlData := &binary.URLData{
-		PairingKey: p.pairingKey,
-		AESKey:     p.client.authData.RequestCrypto.AESKey,
-		HMACKey:    p.client.authData.RequestCrypto.HMACKey,
+		PairingKey: pairingKey,
+		AESKey:     c.AuthData.RequestCrypto.AESKey,
+		HMACKey:    c.AuthData.RequestCrypto.HMACKey,
 	}
 	encodedURLData, err := proto.Marshal(urlData)
 	if err != nil {

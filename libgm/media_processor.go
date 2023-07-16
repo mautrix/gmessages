@@ -12,7 +12,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/binary"
-	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -131,10 +130,10 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 		ImageType: 1,
 		AuthData: &binary.AuthMessage{
 			RequestID:        uuid.NewString(),
-			TachyonAuthToken: c.authData.TachyonAuthToken,
-			ConfigVersion:    payload.ConfigMessage,
+			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			ConfigVersion:    util.ConfigMessage,
 		},
-		Mobile: c.authData.Mobile,
+		Mobile: c.AuthData.Mobile,
 	}
 
 	protoDataBytes, err := proto.Marshal(protoData)
