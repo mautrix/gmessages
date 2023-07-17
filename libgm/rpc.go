@@ -160,7 +160,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		}
 		currentBlock := accumulatedData
 		accumulatedData = accumulatedData[:0]
-		msg := &gmproto.InternalMessage{}
+		msg := &gmproto.LongPollingPayload{}
 		err = pblite.Unmarshal(currentBlock, msg)
 		if err != nil {
 			r.client.Logger.Err(err).Msg("Error deserializing pblite message")
@@ -168,7 +168,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		}
 		switch {
 		case msg.GetData() != nil:
-			r.HandleRPCMsg(msg)
+			r.HandleRPCMsg(msg.GetData())
 		case msg.GetAck() != nil:
 			r.client.Logger.Debug().Int32("count", msg.GetAck().GetCount()).Msg("Got startup ack count message")
 			r.skipCount = int(msg.GetAck().GetCount())

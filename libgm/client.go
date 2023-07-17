@@ -65,7 +65,7 @@ func NewAuthData() *AuthData {
 
 func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
-		responseWaiters: make(map[string]chan<- *pblite.Response),
+		responseWaiters: make(map[string]chan<- *IncomingRPCMessage),
 		responseTimeout: time.Duration(5000) * time.Millisecond,
 	}
 	cli := &Client{

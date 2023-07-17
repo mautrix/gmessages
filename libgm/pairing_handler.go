@@ -4,22 +4,14 @@ import (
 	"fmt"
 
 	"go.mau.fi/mautrix-gmessages/libgm/events"
-	"go.mau.fi/mautrix-gmessages/libgm/pblite"
-
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
-func (c *Client) handlePairingEvent(response *pblite.Response) {
-	pairEventData, ok := response.Data.Decrypted.(*gmproto.PairEvents)
-	if !ok {
-		c.Logger.Error().Type("decrypted_type", response.Data.Decrypted).Msg("Unexpected data type in pair event")
-		return
-	}
-
-	switch evt := pairEventData.Event.(type) {
-	case *gmproto.PairEvents_Paired:
+func (c *Client) handlePairingEvent(msg *IncomingRPCMessage) {
+	switch evt := msg.Pair.Event.(type) {
+	case *gmproto.RPCPairData_Paired:
 		c.completePairing(evt.Paired)
-	case *gmproto.PairEvents_Revoked:
+	case *gmproto.RPCPairData_Revoked:
 		c.triggerEvent(evt.Revoked)
 	default:
 		c.Logger.Debug().Any("evt", evt).Msg("Unknown pair event type")

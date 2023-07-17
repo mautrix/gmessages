@@ -14,9 +14,9 @@ func (c *Client) SendReaction(payload *gmproto.SendReactionPayload) (*gmproto.Se
 		return nil, err
 	}
 
-	res, ok := response.Data.Decrypted.(*gmproto.SendReactionResponse)
+	res, ok := response.DecryptedMessage.(*gmproto.SendReactionResponse)
 	if !ok {
-		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.SendReactionResponse", response.Data.Decrypted)
+		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.SendReactionResponse", response.DecryptedMessage)
 	}
 
 	return res, nil
@@ -31,9 +31,9 @@ func (c *Client) DeleteMessage(messageID string) (*gmproto.DeleteMessageResponse
 		return nil, err
 	}
 
-	res, ok := response.Data.Decrypted.(*gmproto.DeleteMessageResponse)
+	res, ok := response.DecryptedMessage.(*gmproto.DeleteMessageResponse)
 	if !ok {
-		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.DeleteMessagesResponse", response.Data.Decrypted)
+		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.DeleteMessagesResponse", response.DecryptedMessage)
 	}
 
 	return res, nil

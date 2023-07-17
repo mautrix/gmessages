@@ -22,9 +22,9 @@ func (c *Client) IsBugleDefault() (*gmproto.IsBugleDefaultResponse, error) {
 		return nil, err
 	}
 
-	res, ok := response.Data.Decrypted.(*gmproto.IsBugleDefaultResponse)
+	res, ok := response.DecryptedMessage.(*gmproto.IsBugleDefaultResponse)
 	if !ok {
-		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.IsBugleDefaultResponse", response.Data.Decrypted)
+		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.IsBugleDefaultResponse", response.DecryptedMessage)
 	}
 
 	return res, nil

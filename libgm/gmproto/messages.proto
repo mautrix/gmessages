@@ -20,14 +20,14 @@ message StartAckMessage {
     optional int32 count = 1;
 }
 
-message InternalMessage {
-    optional InternalMessageData data = 2;
+message LongPollingPayload {
+    optional IncomingRPCMessage data = 2;
     optional EmptyArr heartbeat = 3;
     optional StartAckMessage ack = 4;
     optional EmptyArr startRead = 5;
 }
 
-message InternalMessageData {
+message IncomingRPCMessage {
     string responseID = 1;
     BugleRoute bugleRoute = 2;
     string startExecute = 3;
@@ -38,14 +38,15 @@ message InternalMessageData {
     Device mobile = 8;
     Device browser = 9;
 
-    bytes protobufData = 12;
+    // Either a RPCMessageData or a RPCPairData encoded as bytes
+    bytes messageData = 12;
 
     string signatureID = 17;
 
     string timestamp = 21;
 }
 
-message InternalRequestData {
+message RPCMessageData {
     string sessionID = 1;
     int64 timestamp = 3;
     ActionType action = 4;

@@ -61,7 +61,7 @@ message User {
     string number = 2;
 }
 
-message PairEvents {
+message RPCPairData {
     oneof event {
         authentication.PairedData paired = 4;
         authentication.RevokePairData revoked = 5;

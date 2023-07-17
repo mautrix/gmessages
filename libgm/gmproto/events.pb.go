@@ -682,20 +682,20 @@ func (x *User) GetNumber() string {
 	return ""
 }
 
-type PairEvents struct {
+type RPCPairData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Event:
 	//
-	//	*PairEvents_Paired
-	//	*PairEvents_Revoked
-	Event isPairEvents_Event `protobuf_oneof:"event"`
+	//	*RPCPairData_Paired
+	//	*RPCPairData_Revoked
+	Event isRPCPairData_Event `protobuf_oneof:"event"`
 }
 
-func (x *PairEvents) Reset() {
-	*x = PairEvents{}
+func (x *RPCPairData) Reset() {
+	*x = RPCPairData{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_events_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -703,13 +703,13 @@ func (x *PairEvents) Reset() {
 	}
 }
 
-func (x *PairEvents) String() string {
+func (x *RPCPairData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PairEvents) ProtoMessage() {}
+func (*RPCPairData) ProtoMessage() {}
 
-func (x *PairEvents) ProtoReflect() protoreflect.Message {
+func (x *RPCPairData) ProtoReflect() protoreflect.Message {
 	mi := &file_events_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -721,47 +721,47 @@ func (x *PairEvents) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PairEvents.ProtoReflect.Descriptor instead.
-func (*PairEvents) Descriptor() ([]byte, []int) {
+// Deprecated: Use RPCPairData.ProtoReflect.Descriptor instead.
+func (*RPCPairData) Descriptor() ([]byte, []int) {
 	return file_events_proto_rawDescGZIP(), []int{7}
 }
 
-func (m *PairEvents) GetEvent() isPairEvents_Event {
+func (m *RPCPairData) GetEvent() isRPCPairData_Event {
 	if m != nil {
 		return m.Event
 	}
 	return nil
 }
 
-func (x *PairEvents) GetPaired() *PairedData {
-	if x, ok := x.GetEvent().(*PairEvents_Paired); ok {
+func (x *RPCPairData) GetPaired() *PairedData {
+	if x, ok := x.GetEvent().(*RPCPairData_Paired); ok {
 		return x.Paired
 	}
 	return nil
 }
 
-func (x *PairEvents) GetRevoked() *RevokePairData {
-	if x, ok := x.GetEvent().(*PairEvents_Revoked); ok {
+func (x *RPCPairData) GetRevoked() *RevokePairData {
+	if x, ok := x.GetEvent().(*RPCPairData_Revoked); ok {
 		return x.Revoked
 	}
 	return nil
 }
 
-type isPairEvents_Event interface {
-	isPairEvents_Event()
+type isRPCPairData_Event interface {
+	isRPCPairData_Event()
 }
 
-type PairEvents_Paired struct {
+type RPCPairData_Paired struct {
 	Paired *PairedData `protobuf:"bytes,4,opt,name=paired,proto3,oneof"`
 }
 
-type PairEvents_Revoked struct {
+type RPCPairData_Revoked struct {
 	Revoked *RevokePairData `protobuf:"bytes,5,opt,name=revoked,proto3,oneof"`
 }
 
-func (*PairEvents_Paired) isPairEvents_Event() {}
+func (*RPCPairData_Paired) isRPCPairData_Event() {}
 
-func (*PairEvents_Revoked) isPairEvents_Event() {}
+func (*RPCPairData_Revoked) isRPCPairData_Event() {}
 
 var File_events_proto protoreflect.FileDescriptor
 
@@ -793,7 +793,7 @@ var file_events_proto_goTypes = []interface{}{
 	(*UserAlertEvent)(nil),    // 7: events.UserAlertEvent
 	(*TypingData)(nil),        // 8: events.TypingData
 	(*User)(nil),              // 9: events.User
-	(*PairEvents)(nil),        // 10: events.PairEvents
+	(*RPCPairData)(nil),       // 10: events.RPCPairData
 	(*Settings)(nil),          // 11: settings.Settings
 	(*Conversation)(nil),      // 12: conversations.Conversation
 	(*Message)(nil),           // 13: conversations.Message
@@ -812,8 +812,8 @@ var file_events_proto_depIdxs = []int32{
 	0,  // 8: events.UserAlertEvent.alertType:type_name -> events.AlertType
 	9,  // 9: events.TypingData.user:type_name -> events.User
 	2,  // 10: events.TypingData.type:type_name -> events.TypingTypes
-	14, // 11: events.PairEvents.paired:type_name -> authentication.PairedData
-	15, // 12: events.PairEvents.revoked:type_name -> authentication.RevokePairData
+	14, // 11: events.RPCPairData.paired:type_name -> authentication.PairedData
+	15, // 12: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
 	13, // [13:13] is the sub-list for method output_type
 	13, // [13:13] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
@@ -915,7 +915,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PairEvents); i {
+			switch v := v.(*RPCPairData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -935,8 +935,8 @@ func file_events_proto_init() {
 		(*UpdateEvents_UserAlertEvent)(nil),
 	}
 	file_events_proto_msgTypes[7].OneofWrappers = []interface{}{
-		(*PairEvents_Paired)(nil),
-		(*PairEvents_Revoked)(nil),
+		(*RPCPairData_Paired)(nil),
+		(*RPCPairData_Revoked)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

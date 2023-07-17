@@ -20,7 +20,7 @@ import (
 type SessionHandler struct {
 	client *Client
 
-	responseWaiters     map[string]chan<- *pblite.Response
+	responseWaiters     map[string]chan<- *IncomingRPCMessage
 	responseWaitersLock sync.Mutex
 
 	ackMapLock sync.Mutex
@@ -46,7 +46,7 @@ func (s *SessionHandler) sendMessageNoResponse(actionType gmproto.ActionType, en
 	return err
 }
 
-func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encryptedData proto.Message) (<-chan *pblite.Response, error) {
+func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encryptedData proto.Message) (<-chan *IncomingRPCMessage, error) {
 	requestID, payload, _, buildErr := s.buildMessage(actionType, encryptedData)
 	if buildErr != nil {
 		return nil, buildErr
@@ -61,7 +61,7 @@ func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encrypt
 	return ch, nil
 }
 
-func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*pblite.Response, error) {
+func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
 	ch, err := s.sendAsyncMessage(actionType, encryptedData)
 	if err != nil {
 		return nil, err

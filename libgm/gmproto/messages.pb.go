@@ -479,19 +479,19 @@ func (x *StartAckMessage) GetCount() int32 {
 	return 0
 }
 
-type InternalMessage struct {
+type LongPollingPayload struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data      *InternalMessageData `protobuf:"bytes,2,opt,name=data,proto3,oneof" json:"data,omitempty"`
-	Heartbeat *EmptyArr            `protobuf:"bytes,3,opt,name=heartbeat,proto3,oneof" json:"heartbeat,omitempty"`
-	Ack       *StartAckMessage     `protobuf:"bytes,4,opt,name=ack,proto3,oneof" json:"ack,omitempty"`
-	StartRead *EmptyArr            `protobuf:"bytes,5,opt,name=startRead,proto3,oneof" json:"startRead,omitempty"`
+	Data      *IncomingRPCMessage `protobuf:"bytes,2,opt,name=data,proto3,oneof" json:"data,omitempty"`
+	Heartbeat *EmptyArr           `protobuf:"bytes,3,opt,name=heartbeat,proto3,oneof" json:"heartbeat,omitempty"`
+	Ack       *StartAckMessage    `protobuf:"bytes,4,opt,name=ack,proto3,oneof" json:"ack,omitempty"`
+	StartRead *EmptyArr           `protobuf:"bytes,5,opt,name=startRead,proto3,oneof" json:"startRead,omitempty"`
 }
 
-func (x *InternalMessage) Reset() {
-	*x = InternalMessage{}
+func (x *LongPollingPayload) Reset() {
+	*x = LongPollingPayload{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_messages_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -499,13 +499,13 @@ func (x *InternalMessage) Reset() {
 	}
 }
 
-func (x *InternalMessage) String() string {
+func (x *LongPollingPayload) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InternalMessage) ProtoMessage() {}
+func (*LongPollingPayload) ProtoMessage() {}
 
-func (x *InternalMessage) ProtoReflect() protoreflect.Message {
+func (x *LongPollingPayload) ProtoReflect() protoreflect.Message {
 	mi := &file_messages_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -517,40 +517,40 @@ func (x *InternalMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InternalMessage.ProtoReflect.Descriptor instead.
-func (*InternalMessage) Descriptor() ([]byte, []int) {
+// Deprecated: Use LongPollingPayload.ProtoReflect.Descriptor instead.
+func (*LongPollingPayload) Descriptor() ([]byte, []int) {
 	return file_messages_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *InternalMessage) GetData() *InternalMessageData {
+func (x *LongPollingPayload) GetData() *IncomingRPCMessage {
 	if x != nil {
 		return x.Data
 	}
 	return nil
 }
 
-func (x *InternalMessage) GetHeartbeat() *EmptyArr {
+func (x *LongPollingPayload) GetHeartbeat() *EmptyArr {
 	if x != nil {
 		return x.Heartbeat
 	}
 	return nil
 }
 
-func (x *InternalMessage) GetAck() *StartAckMessage {
+func (x *LongPollingPayload) GetAck() *StartAckMessage {
 	if x != nil {
 		return x.Ack
 	}
 	return nil
 }
 
-func (x *InternalMessage) GetStartRead() *EmptyArr {
+func (x *LongPollingPayload) GetStartRead() *EmptyArr {
 	if x != nil {
 		return x.StartRead
 	}
 	return nil
 }
 
-type InternalMessageData struct {
+type IncomingRPCMessage struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -563,13 +563,14 @@ type InternalMessageData struct {
 	MillisecondsTaken string      `protobuf:"bytes,7,opt,name=millisecondsTaken,proto3" json:"millisecondsTaken,omitempty"`
 	Mobile            *Device     `protobuf:"bytes,8,opt,name=mobile,proto3" json:"mobile,omitempty"`
 	Browser           *Device     `protobuf:"bytes,9,opt,name=browser,proto3" json:"browser,omitempty"`
-	ProtobufData      []byte      `protobuf:"bytes,12,opt,name=protobufData,proto3" json:"protobufData,omitempty"`
-	SignatureID       string      `protobuf:"bytes,17,opt,name=signatureID,proto3" json:"signatureID,omitempty"`
-	Timestamp         string      `protobuf:"bytes,21,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Either a RPCMessageData or a RPCPairData encoded as bytes
+	MessageData []byte `protobuf:"bytes,12,opt,name=messageData,proto3" json:"messageData,omitempty"`
+	SignatureID string `protobuf:"bytes,17,opt,name=signatureID,proto3" json:"signatureID,omitempty"`
+	Timestamp   string `protobuf:"bytes,21,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 }
 
-func (x *InternalMessageData) Reset() {
-	*x = InternalMessageData{}
+func (x *IncomingRPCMessage) Reset() {
+	*x = IncomingRPCMessage{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_messages_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -577,13 +578,13 @@ func (x *InternalMessageData) Reset() {
 	}
 }
 
-func (x *InternalMessageData) String() string {
+func (x *IncomingRPCMessage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InternalMessageData) ProtoMessage() {}
+func (*IncomingRPCMessage) ProtoMessage() {}
 
-func (x *InternalMessageData) ProtoReflect() protoreflect.Message {
+func (x *IncomingRPCMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_messages_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -595,89 +596,89 @@ func (x *InternalMessageData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InternalMessageData.ProtoReflect.Descriptor instead.
-func (*InternalMessageData) Descriptor() ([]byte, []int) {
+// Deprecated: Use IncomingRPCMessage.ProtoReflect.Descriptor instead.
+func (*IncomingRPCMessage) Descriptor() ([]byte, []int) {
 	return file_messages_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *InternalMessageData) GetResponseID() string {
+func (x *IncomingRPCMessage) GetResponseID() string {
 	if x != nil {
 		return x.ResponseID
 	}
 	return ""
 }
 
-func (x *InternalMessageData) GetBugleRoute() BugleRoute {
+func (x *IncomingRPCMessage) GetBugleRoute() BugleRoute {
 	if x != nil {
 		return x.BugleRoute
 	}
 	return BugleRoute_UNKNOWN_BUGLE_ROUTE
 }
 
-func (x *InternalMessageData) GetStartExecute() string {
+func (x *IncomingRPCMessage) GetStartExecute() string {
 	if x != nil {
 		return x.StartExecute
 	}
 	return ""
 }
 
-func (x *InternalMessageData) GetMessageType() MessageType {
+func (x *IncomingRPCMessage) GetMessageType() MessageType {
 	if x != nil {
 		return x.MessageType
 	}
 	return MessageType_UNKNOWN_MESSAGE_TYPE
 }
 
-func (x *InternalMessageData) GetFinishExecute() string {
+func (x *IncomingRPCMessage) GetFinishExecute() string {
 	if x != nil {
 		return x.FinishExecute
 	}
 	return ""
 }
 
-func (x *InternalMessageData) GetMillisecondsTaken() string {
+func (x *IncomingRPCMessage) GetMillisecondsTaken() string {
 	if x != nil {
 		return x.MillisecondsTaken
 	}
 	return ""
 }
 
-func (x *InternalMessageData) GetMobile() *Device {
+func (x *IncomingRPCMessage) GetMobile() *Device {
 	if x != nil {
 		return x.Mobile
 	}
 	return nil
 }
 
-func (x *InternalMessageData) GetBrowser() *Device {
+func (x *IncomingRPCMessage) GetBrowser() *Device {
 	if x != nil {
 		return x.Browser
 	}
 	return nil
 }
 
-func (x *InternalMessageData) GetProtobufData() []byte {
+func (x *IncomingRPCMessage) GetMessageData() []byte {
 	if x != nil {
-		return x.ProtobufData
+		return x.MessageData
 	}
 	return nil
 }
 
-func (x *InternalMessageData) GetSignatureID() string {
+func (x *IncomingRPCMessage) GetSignatureID() string {
 	if x != nil {
 		return x.SignatureID
 	}
 	return ""
 }
 
-func (x *InternalMessageData) GetTimestamp() string {
+func (x *IncomingRPCMessage) GetTimestamp() string {
 	if x != nil {
 		return x.Timestamp
 	}
 	return ""
 }
 
-type InternalRequestData struct {
+type RPCMessageData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -691,8 +692,8 @@ type InternalRequestData struct {
 	Bool3         bool       `protobuf:"varint,9,opt,name=bool3,proto3" json:"bool3,omitempty"`
 }
 
-func (x *InternalRequestData) Reset() {
-	*x = InternalRequestData{}
+func (x *RPCMessageData) Reset() {
+	*x = RPCMessageData{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_messages_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -700,13 +701,13 @@ func (x *InternalRequestData) Reset() {
 	}
 }
 
-func (x *InternalRequestData) String() string {
+func (x *RPCMessageData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InternalRequestData) ProtoMessage() {}
+func (*RPCMessageData) ProtoMessage() {}
 
-func (x *InternalRequestData) ProtoReflect() protoreflect.Message {
+func (x *RPCMessageData) ProtoReflect() protoreflect.Message {
 	mi := &file_messages_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -718,54 +719,54 @@ func (x *InternalRequestData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InternalRequestData.ProtoReflect.Descriptor instead.
-func (*InternalRequestData) Descriptor() ([]byte, []int) {
+// Deprecated: Use RPCMessageData.ProtoReflect.Descriptor instead.
+func (*RPCMessageData) Descriptor() ([]byte, []int) {
 	return file_messages_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *InternalRequestData) GetSessionID() string {
+func (x *RPCMessageData) GetSessionID() string {
 	if x != nil {
 		return x.SessionID
 	}
 	return ""
 }
 
-func (x *InternalRequestData) GetTimestamp() int64 {
+func (x *RPCMessageData) GetTimestamp() int64 {
 	if x != nil {
 		return x.Timestamp
 	}
 	return 0
 }
 
-func (x *InternalRequestData) GetAction() ActionType {
+func (x *RPCMessageData) GetAction() ActionType {
 	if x != nil {
 		return x.Action
 	}
 	return ActionType_UNSPECIFIED
 }
 
-func (x *InternalRequestData) GetBool1() bool {
+func (x *RPCMessageData) GetBool1() bool {
 	if x != nil {
 		return x.Bool1
 	}
 	return false
 }
 
-func (x *InternalRequestData) GetBool2() bool {
+func (x *RPCMessageData) GetBool2() bool {
 	if x != nil {
 		return x.Bool2
 	}
 	return false
 }
 
-func (x *InternalRequestData) GetEncryptedData() []byte {
+func (x *RPCMessageData) GetEncryptedData() []byte {
 	if x != nil {
 		return x.EncryptedData
 	}
 	return nil
 }
 
-func (x *InternalRequestData) GetBool3() bool {
+func (x *RPCMessageData) GetBool3() bool {
 	if x != nil {
 		return x.Bool3
 	}
@@ -1645,9 +1646,9 @@ var file_messages_proto_goTypes = []interface{}{
 	(*RegisterRefreshPayload)(nil),                     // 3: messages.RegisterRefreshPayload
 	(*EmptyRefreshArr)(nil),                            // 4: messages.EmptyRefreshArr
 	(*StartAckMessage)(nil),                            // 5: messages.StartAckMessage
-	(*InternalMessage)(nil),                            // 6: messages.InternalMessage
-	(*InternalMessageData)(nil),                        // 7: messages.InternalMessageData
-	(*InternalRequestData)(nil),                        // 8: messages.InternalRequestData
+	(*LongPollingPayload)(nil),                         // 6: messages.LongPollingPayload
+	(*IncomingRPCMessage)(nil),                         // 7: messages.IncomingRPCMessage
+	(*RPCMessageData)(nil),                             // 8: messages.RPCMessageData
 	(*RevokeRelayPairing)(nil),                         // 9: messages.RevokeRelayPairing
 	(*SendMessage)(nil),                                // 10: messages.SendMessage
 	(*SendMessageAuth)(nil),                            // 11: messages.SendMessageAuth
@@ -1668,15 +1669,15 @@ var file_messages_proto_depIdxs = []int32{
 	19, // 1: messages.RegisterRefreshPayload.currBrowserDevice:type_name -> messages.Device
 	4,  // 2: messages.RegisterRefreshPayload.emptyRefreshArr:type_name -> messages.EmptyRefreshArr
 	15, // 3: messages.EmptyRefreshArr.emptyArr:type_name -> messages.EmptyArr
-	7,  // 4: messages.InternalMessage.data:type_name -> messages.InternalMessageData
-	15, // 5: messages.InternalMessage.heartbeat:type_name -> messages.EmptyArr
-	5,  // 6: messages.InternalMessage.ack:type_name -> messages.StartAckMessage
-	15, // 7: messages.InternalMessage.startRead:type_name -> messages.EmptyArr
-	0,  // 8: messages.InternalMessageData.bugleRoute:type_name -> messages.BugleRoute
-	2,  // 9: messages.InternalMessageData.messageType:type_name -> messages.MessageType
-	19, // 10: messages.InternalMessageData.mobile:type_name -> messages.Device
-	19, // 11: messages.InternalMessageData.browser:type_name -> messages.Device
-	1,  // 12: messages.InternalRequestData.action:type_name -> messages.ActionType
+	7,  // 4: messages.LongPollingPayload.data:type_name -> messages.IncomingRPCMessage
+	15, // 5: messages.LongPollingPayload.heartbeat:type_name -> messages.EmptyArr
+	5,  // 6: messages.LongPollingPayload.ack:type_name -> messages.StartAckMessage
+	15, // 7: messages.LongPollingPayload.startRead:type_name -> messages.EmptyArr
+	0,  // 8: messages.IncomingRPCMessage.bugleRoute:type_name -> messages.BugleRoute
+	2,  // 9: messages.IncomingRPCMessage.messageType:type_name -> messages.MessageType
+	19, // 10: messages.IncomingRPCMessage.mobile:type_name -> messages.Device
+	19, // 11: messages.IncomingRPCMessage.browser:type_name -> messages.Device
+	1,  // 12: messages.RPCMessageData.action:type_name -> messages.ActionType
 	16, // 13: messages.RevokeRelayPairing.authMessage:type_name -> messages.AuthMessage
 	19, // 14: messages.RevokeRelayPairing.browser:type_name -> messages.Device
 	19, // 15: messages.SendMessage.mobile:type_name -> messages.Device
@@ -1744,7 +1745,7 @@ func file_messages_proto_init() {
 			}
 		}
 		file_messages_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InternalMessage); i {
+			switch v := v.(*LongPollingPayload); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1756,7 +1757,7 @@ func file_messages_proto_init() {
 			}
 		}
 		file_messages_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InternalMessageData); i {
+			switch v := v.(*IncomingRPCMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1768,7 +1769,7 @@ func file_messages_proto_init() {
 			}
 		}
 		file_messages_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InternalRequestData); i {
+			switch v := v.(*RPCMessageData); i {
 			case 0:
 				return &v.state
 			case 1:
