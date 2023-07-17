@@ -32,7 +32,7 @@ import (
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/id"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type ProvisioningAPI struct {
@@ -195,10 +195,10 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 			ErrCode: "bad json",
 		})
 	}
-	var reqData binary.GetOrCreateConversationPayload
-	reqData.Numbers = make([]*binary.ContactNumber, 0, len(req.Numbers))
+	var reqData gmproto.GetOrCreateConversationPayload
+	reqData.Numbers = make([]*gmproto.ContactNumber, 0, len(req.Numbers))
 	for _, number := range req.Numbers {
-		reqData.Numbers = append(reqData.Numbers, &binary.ContactNumber{
+		reqData.Numbers = append(reqData.Numbers, &gmproto.ContactNumber{
 			// This should maybe sometimes be 7
 			MysteriousInt: 2,
 			Number:        number,
@@ -213,7 +213,7 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 			ErrCode: "unknown error",
 		})
 		return
-	} else if resp.GetStatus() == binary.GetOrCreateConversationResponse_CREATE_RCS {
+	} else if resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
 		prov.zlog.Debug().Msg("Creating RCS group")
 		// TODO this will always create a new group and won't deduplicate
 		reqData.CreateRCSGroup = proto.Bool(true)

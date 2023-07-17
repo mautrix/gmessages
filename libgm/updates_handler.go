@@ -4,40 +4,40 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 	switch res.Data.Action {
-	case binary.ActionType_GET_UPDATES:
-		data, ok := res.Data.Decrypted.(*binary.UpdateEvents)
+	case gmproto.ActionType_GET_UPDATES:
+		data, ok := res.Data.Decrypted.(*gmproto.UpdateEvents)
 		if !ok {
 			c.Logger.Error().Type("data_type", res.Data.Decrypted).Msg("Unexpected data type in GET_UPDATES event")
 			return
 		}
 
 		switch evt := data.Event.(type) {
-		case *binary.UpdateEvents_UserAlertEvent:
+		case *gmproto.UpdateEvents_UserAlertEvent:
 			c.rpc.logContent(res)
 			c.handleUserAlertEvent(res, evt.UserAlertEvent)
 
-		case *binary.UpdateEvents_SettingsEvent:
+		case *gmproto.UpdateEvents_SettingsEvent:
 			c.rpc.logContent(res)
 			c.triggerEvent(evt.SettingsEvent)
 
-		case *binary.UpdateEvents_ConversationEvent:
+		case *gmproto.UpdateEvents_ConversationEvent:
 			if c.rpc.deduplicateUpdate(res) {
 				return
 			}
 			c.triggerEvent(evt.ConversationEvent.GetData())
 
-		case *binary.UpdateEvents_MessageEvent:
+		case *gmproto.UpdateEvents_MessageEvent:
 			if c.rpc.deduplicateUpdate(res) {
 				return
 			}
 			c.triggerEvent(evt.MessageEvent.GetData())
 
-		case *binary.UpdateEvents_TypingEvent:
+		case *gmproto.UpdateEvents_TypingEvent:
 			c.rpc.logContent(res)
 			c.triggerEvent(evt.TypingEvent.GetData())
 
@@ -50,7 +50,7 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 }
 
 func (c *Client) handleClientReady(newSessionId string) {
-	conversations, convErr := c.ListConversations(25, binary.ListConversationsPayload_INBOX)
+	conversations, convErr := c.ListConversations(25, gmproto.ListConversationsPayload_INBOX)
 	if convErr != nil {
 		panic(convErr)
 	}
@@ -62,10 +62,10 @@ func (c *Client) handleClientReady(newSessionId string) {
 	c.triggerEvent(readyEvt)
 }
 
-func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAlertEvent) {
+func (c *Client) handleUserAlertEvent(res *pblite.Response, data *gmproto.UserAlertEvent) {
 	alertType := data.AlertType
 	switch alertType {
-	case binary.AlertType_BROWSER_ACTIVE:
+	case gmproto.AlertType_BROWSER_ACTIVE:
 		newSessionID := res.Data.RequestID
 		c.Logger.Debug().Any("session_id", newSessionID).Msg("Got browser active notification")
 		if newSessionID != c.sessionHandler.sessionID {

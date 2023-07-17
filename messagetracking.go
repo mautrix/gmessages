@@ -31,7 +31,7 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 var (
@@ -48,10 +48,10 @@ var (
 	errMessageTakingLong = errors.New("bridging the message is taking longer than usual")
 )
 
-type OutgoingStatusError binary.MessageStatusType
+type OutgoingStatusError gmproto.MessageStatusType
 
 func (ose OutgoingStatusError) Error() string {
-	return strings.TrimPrefix(string((binary.MessageStatusType)(ose).Descriptor().Name()), "OUTGOING_")
+	return strings.TrimPrefix(string((gmproto.MessageStatusType)(ose).Descriptor().Name()), "OUTGOING_")
 }
 
 func (ose OutgoingStatusError) HumanError() string {

@@ -11,7 +11,7 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/routes"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
@@ -36,7 +36,7 @@ func (s *SessionHandler) ResetSessionID() {
 	s.sessionID = uuid.NewString()
 }
 
-func (s *SessionHandler) sendMessageNoResponse(actionType binary.ActionType, encryptedData proto.Message) error {
+func (s *SessionHandler) sendMessageNoResponse(actionType gmproto.ActionType, encryptedData proto.Message) error {
 	_, payload, _, err := s.buildMessage(actionType, encryptedData)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (s *SessionHandler) sendMessageNoResponse(actionType binary.ActionType, enc
 	return err
 }
 
-func (s *SessionHandler) sendAsyncMessage(actionType binary.ActionType, encryptedData proto.Message) (<-chan *pblite.Response, error) {
+func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encryptedData proto.Message) (<-chan *pblite.Response, error) {
 	requestID, payload, _, buildErr := s.buildMessage(actionType, encryptedData)
 	if buildErr != nil {
 		return nil, buildErr
@@ -61,7 +61,7 @@ func (s *SessionHandler) sendAsyncMessage(actionType binary.ActionType, encrypte
 	return ch, nil
 }
 
-func (s *SessionHandler) sendMessage(actionType binary.ActionType, encryptedData proto.Message) (*pblite.Response, error) {
+func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*pblite.Response, error) {
 	ch, err := s.sendAsyncMessage(actionType, encryptedData)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (s *SessionHandler) sendMessage(actionType binary.ActionType, encryptedData
 	return <-ch, nil
 }
 
-func (s *SessionHandler) buildMessage(actionType binary.ActionType, encryptedData proto.Message) (string, []byte, binary.ActionType, error) {
+func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, encryptedData proto.Message) (string, []byte, gmproto.ActionType, error) {
 	var requestID string
 	pairedDevice := s.client.AuthData.Mobile
 	sessionId := s.client.sessionHandler.sessionID
@@ -138,20 +138,20 @@ func (s *SessionHandler) sendAckRequest() {
 	if len(dataToAck) == 0 {
 		return
 	}
-	ackMessages := make([]*binary.AckMessageData, len(dataToAck))
+	ackMessages := make([]*gmproto.AckMessageData, len(dataToAck))
 	for i, reqID := range dataToAck {
-		ackMessages[i] = &binary.AckMessageData{
+		ackMessages[i] = &gmproto.AckMessageData{
 			RequestID: reqID,
 			Device:    s.client.AuthData.Browser,
 		}
 	}
-	ackMessagePayload := &binary.AckMessagePayload{
-		AuthData: &binary.AuthMessage{
+	ackMessagePayload := &gmproto.AckMessagePayload{
+		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
-		EmptyArr: &binary.EmptyArr{},
+		EmptyArr: &gmproto.EmptyArr{},
 		Acks:     ackMessages,
 	}
 	jsonData, err := pblite.Marshal(ackMessagePayload)

@@ -1,10 +1,10 @@
 package util
 
 import (
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
-var ConfigMessage = &binary.ConfigVersion{
+var ConfigMessage = &gmproto.ConfigVersion{
 	Year:  2023,
 	Month: 7,
 	Day:   10,
@@ -12,9 +12,9 @@ var ConfigMessage = &binary.ConfigVersion{
 	V2:    6,
 }
 var Network = "Bugle"
-var BrowserDetailsMessage = &binary.BrowserDetails{
+var BrowserDetailsMessage = &gmproto.BrowserDetails{
 	UserAgent:   UserAgent,
-	BrowserType: binary.BrowserTypes_OTHER,
+	BrowserType: gmproto.BrowserTypes_OTHER,
 	OS:          "libgm",
 	SomeBool:    true,
 }

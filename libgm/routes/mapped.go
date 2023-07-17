@@ -3,33 +3,33 @@ package routes
 import (
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type Route struct {
-	Action         binary.ActionType
-	MessageType    binary.MessageType
-	BugleRoute     binary.BugleRoute
+	Action         gmproto.ActionType
+	MessageType    gmproto.MessageType
+	BugleRoute     gmproto.BugleRoute
 	ResponseStruct proto.Message
 	UseSessionID   bool
 	UseTTL         bool
 }
 
-var Routes = map[binary.ActionType]Route{
-	binary.ActionType_IS_BUGLE_DEFAULT:           IS_BUGLE_DEFAULT,
-	binary.ActionType_GET_UPDATES:                GET_UPDATES,
-	binary.ActionType_LIST_CONVERSATIONS:         LIST_CONVERSATIONS,
-	binary.ActionType_LIST_CONVERSATIONS_SYNC:    LIST_CONVERSATIONS_WITH_UPDATES,
-	binary.ActionType_MESSAGE_READ:               MESSAGE_READ,
-	binary.ActionType_NOTIFY_DITTO_ACTIVITY:      NOTIFY_DITTO_ACTIVITY,
-	binary.ActionType_GET_CONVERSATION_TYPE:      GET_CONVERSATION_TYPE,
-	binary.ActionType_LIST_MESSAGES:              LIST_MESSAGES,
-	binary.ActionType_SEND_MESSAGE:               SEND_MESSAGE,
-	binary.ActionType_SEND_REACTION:              SEND_REACTION,
-	binary.ActionType_DELETE_MESSAGE:             DELETE_MESSAGE,
-	binary.ActionType_TYPING_UPDATES:             TYPING_UPDATES,
-	binary.ActionType_GET_PARTICIPANTS_THUMBNAIL: GET_PARTICIPANT_THUMBNAIL,
-	binary.ActionType_LIST_CONTACTS:              LIST_CONTACTS,
-	binary.ActionType_LIST_TOP_CONTACTS:          LIST_TOP_CONTACTS,
-	binary.ActionType_GET_OR_CREATE_CONVERSATION: GET_OR_CREATE_CONVERSATION,
+var Routes = map[gmproto.ActionType]Route{
+	gmproto.ActionType_IS_BUGLE_DEFAULT:           IS_BUGLE_DEFAULT,
+	gmproto.ActionType_GET_UPDATES:                GET_UPDATES,
+	gmproto.ActionType_LIST_CONVERSATIONS:         LIST_CONVERSATIONS,
+	gmproto.ActionType_LIST_CONVERSATIONS_SYNC:    LIST_CONVERSATIONS_WITH_UPDATES,
+	gmproto.ActionType_MESSAGE_READ:               MESSAGE_READ,
+	gmproto.ActionType_NOTIFY_DITTO_ACTIVITY:      NOTIFY_DITTO_ACTIVITY,
+	gmproto.ActionType_GET_CONVERSATION_TYPE:      GET_CONVERSATION_TYPE,
+	gmproto.ActionType_LIST_MESSAGES:              LIST_MESSAGES,
+	gmproto.ActionType_SEND_MESSAGE:               SEND_MESSAGE,
+	gmproto.ActionType_SEND_REACTION:              SEND_REACTION,
+	gmproto.ActionType_DELETE_MESSAGE:             DELETE_MESSAGE,
+	gmproto.ActionType_TYPING_UPDATES:             TYPING_UPDATES,
+	gmproto.ActionType_GET_PARTICIPANTS_THUMBNAIL: GET_PARTICIPANT_THUMBNAIL,
+	gmproto.ActionType_LIST_CONTACTS:              LIST_CONTACTS,
+	gmproto.ActionType_LIST_TOP_CONTACTS:          LIST_TOP_CONTACTS,
+	gmproto.ActionType_GET_OR_CREATE_CONVERSATION: GET_OR_CREATE_CONVERSATION,
 }

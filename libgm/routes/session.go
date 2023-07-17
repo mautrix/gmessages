@@ -1,57 +1,57 @@
 package routes
 
-import "go.mau.fi/mautrix-gmessages/libgm/binary"
+import "go.mau.fi/mautrix-gmessages/libgm/gmproto"
 
 var IS_BUGLE_DEFAULT = Route{
-	Action:         binary.ActionType_IS_BUGLE_DEFAULT,
-	MessageType:    binary.MessageType_BUGLE_MESSAGE,
-	BugleRoute:     binary.BugleRoute_DataEvent,
-	ResponseStruct: &binary.IsBugleDefaultResponse{},
+	Action:         gmproto.ActionType_IS_BUGLE_DEFAULT,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
+	ResponseStruct: &gmproto.IsBugleDefaultResponse{},
 	UseSessionID:   false,
 	UseTTL:         true,
 }
 
 var GET_UPDATES = Route{
-	Action:         binary.ActionType_GET_UPDATES,
-	MessageType:    binary.MessageType_BUGLE_MESSAGE,
-	BugleRoute:     binary.BugleRoute_DataEvent,
-	ResponseStruct: &binary.UpdateEvents{},
+	Action:         gmproto.ActionType_GET_UPDATES,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
+	ResponseStruct: &gmproto.UpdateEvents{},
 	UseSessionID:   true,
 	UseTTL:         false,
 }
 
 var NOTIFY_DITTO_ACTIVITY = Route{
-	Action:         binary.ActionType_NOTIFY_DITTO_ACTIVITY,
-	MessageType:    binary.MessageType_BUGLE_MESSAGE,
-	BugleRoute:     binary.BugleRoute_DataEvent,
+	Action:         gmproto.ActionType_NOTIFY_DITTO_ACTIVITY,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
 	ResponseStruct: nil,
 	UseSessionID:   false,
 	UseTTL:         true,
 }
 
 var LIST_CONTACTS = Route{
-	Action:         binary.ActionType_LIST_CONTACTS,
-	MessageType:    binary.MessageType_BUGLE_MESSAGE,
-	BugleRoute:     binary.BugleRoute_DataEvent,
-	ResponseStruct: &binary.ListContactsResponse{},
+	Action:         gmproto.ActionType_LIST_CONTACTS,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
+	ResponseStruct: &gmproto.ListContactsResponse{},
 	UseSessionID:   false,
 	UseTTL:         true,
 }
 
 var LIST_TOP_CONTACTS = Route{
-	Action:         binary.ActionType_LIST_TOP_CONTACTS,
-	MessageType:    binary.MessageType_BUGLE_MESSAGE,
-	BugleRoute:     binary.BugleRoute_DataEvent,
-	ResponseStruct: &binary.ListTopContactsResponse{},
+	Action:         gmproto.ActionType_LIST_TOP_CONTACTS,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
+	ResponseStruct: &gmproto.ListTopContactsResponse{},
 	UseSessionID:   false,
 	UseTTL:         true,
 }
 
 var GET_OR_CREATE_CONVERSATION = Route{
-	Action:         binary.ActionType_GET_OR_CREATE_CONVERSATION,
-	MessageType:    binary.MessageType_BUGLE_MESSAGE,
-	BugleRoute:     binary.BugleRoute_DataEvent,
-	ResponseStruct: &binary.GetOrCreateConversationResponse{},
+	Action:         gmproto.ActionType_GET_OR_CREATE_CONVERSATION,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
+	ResponseStruct: &gmproto.GetOrCreateConversationResponse{},
 	UseSessionID:   false,
 	UseTTL:         true,
 }

@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type ClientReady struct {
 	SessionID     string
-	Conversations []*binary.Conversation
+	Conversations []*gmproto.Conversation
 }
 
-func NewClientReady(sessionID string, conversationList *binary.Conversations) *ClientReady {
+func NewClientReady(sessionID string, conversationList *gmproto.Conversations) *ClientReady {
 	return &ClientReady{
 		SessionID:     sessionID,
 		Conversations: conversationList.Conversations,

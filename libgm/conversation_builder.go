@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type ConversationBuilderError struct {
@@ -19,9 +19,9 @@ func (cbe *ConversationBuilderError) Error() string {
 type ConversationBuilder struct {
 	conversationId string
 
-	actionStatus binary.ConversationActionStatus
-	status       binary.ConversationStatus
-	muteStatus   *binary.ConversationMuteStatus
+	actionStatus gmproto.ConversationActionStatus
+	status       gmproto.ConversationStatus
+	muteStatus   *gmproto.ConversationMuteStatus
 }
 
 func (cb *ConversationBuilder) SetConversationId(conversationId string) *ConversationBuilder {
@@ -30,18 +30,18 @@ func (cb *ConversationBuilder) SetConversationId(conversationId string) *Convers
 }
 
 // For block, unblock, block & report
-func (cb *ConversationBuilder) SetConversationActionStatus(actionStatus binary.ConversationActionStatus) *ConversationBuilder {
+func (cb *ConversationBuilder) SetConversationActionStatus(actionStatus gmproto.ConversationActionStatus) *ConversationBuilder {
 	cb.actionStatus = actionStatus
 	return cb
 }
 
 // For archive, unarchive, delete
-func (cb *ConversationBuilder) SetConversationStatus(status binary.ConversationStatus) *ConversationBuilder {
+func (cb *ConversationBuilder) SetConversationStatus(status gmproto.ConversationStatus) *ConversationBuilder {
 	cb.status = status
 	return cb
 }
 
-func (cb *ConversationBuilder) SetMuteStatus(muteStatus *binary.ConversationMuteStatus) *ConversationBuilder {
+func (cb *ConversationBuilder) SetMuteStatus(muteStatus *gmproto.ConversationMuteStatus) *ConversationBuilder {
 	cb.muteStatus = muteStatus
 	return cb
 }
@@ -52,7 +52,7 @@ func (cb *ConversationBuilder) Build(protoMessage proto.Message) (proto.Message,
 	}
 
 	switch protoMessage.(type) {
-	case *binary.UpdateConversationPayload:
+	case *gmproto.UpdateConversationPayload:
 		payload, failedBuild := cb.buildUpdateConversationPayload()
 		if failedBuild != nil {
 			return nil, failedBuild
@@ -64,25 +64,25 @@ func (cb *ConversationBuilder) Build(protoMessage proto.Message) (proto.Message,
 	return nil, &ConversationBuilderError{errMsg: "failed to build for unknown reasons"}
 }
 
-func (cb *ConversationBuilder) buildUpdateConversationPayload() (*binary.UpdateConversationPayload, error) {
+func (cb *ConversationBuilder) buildUpdateConversationPayload() (*gmproto.UpdateConversationPayload, error) {
 	if cb.actionStatus == 0 && cb.status == 0 && cb.muteStatus == nil {
 		return nil, &ConversationBuilderError{errMsg: "actionStatus, status & muteStatus can not be empty when updating conversation, set atleast 1"}
 	}
 
-	payload := &binary.UpdateConversationPayload{}
+	payload := &gmproto.UpdateConversationPayload{}
 
 	if cb.actionStatus != 0 {
 		payload.Action = cb.actionStatus
-		payload.Action5 = &binary.ConversationAction5{
+		payload.Action5 = &gmproto.ConversationAction5{
 			Field2: true,
 		}
 		payload.ConversationID = cb.conversationId
 	} else if cb.status != 0 || cb.muteStatus != nil {
-		payload.Data = &binary.UpdateConversationData{ConversationID: cb.conversationId}
+		payload.Data = &gmproto.UpdateConversationData{ConversationID: cb.conversationId}
 		if cb.muteStatus != nil {
-			payload.Data.Data = &binary.UpdateConversationData_Mute{Mute: *cb.muteStatus}
+			payload.Data.Data = &gmproto.UpdateConversationData_Mute{Mute: *cb.muteStatus}
 		} else if cb.status != 0 {
-			payload.Data.Data = &binary.UpdateConversationData_Status{Status: cb.status}
+			payload.Data.Data = &gmproto.UpdateConversationData_Status{Status: cb.status}
 		}
 	}
 

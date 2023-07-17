@@ -6,27 +6,27 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func (c *Client) handlePairingEvent(response *pblite.Response) {
-	pairEventData, ok := response.Data.Decrypted.(*binary.PairEvents)
+	pairEventData, ok := response.Data.Decrypted.(*gmproto.PairEvents)
 	if !ok {
 		c.Logger.Error().Type("decrypted_type", response.Data.Decrypted).Msg("Unexpected data type in pair event")
 		return
 	}
 
 	switch evt := pairEventData.Event.(type) {
-	case *binary.PairEvents_Paired:
+	case *gmproto.PairEvents_Paired:
 		c.completePairing(evt.Paired)
-	case *binary.PairEvents_Revoked:
+	case *gmproto.PairEvents_Revoked:
 		c.triggerEvent(evt.Revoked)
 	default:
 		c.Logger.Debug().Any("evt", evt).Msg("Unknown pair event type")
 	}
 }
 
-func (c *Client) completePairing(data *binary.PairedData) {
+func (c *Client) completePairing(data *gmproto.PairedData) {
 	c.updateTachyonAuthToken(data.GetTokenData().GetTachyonAuthToken(), data.GetTokenData().GetTTL())
 	c.AuthData.Mobile = data.Mobile
 	c.AuthData.Browser = data.Browser

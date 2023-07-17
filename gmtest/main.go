@@ -14,8 +14,8 @@ import (
 	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func must(err error) {
@@ -128,9 +128,9 @@ func evtHandler(rawEvt any) {
 		log.Debug().Any("data", evt).Msg("Pair successful")
 		saveSession()
 		log.Debug().Msg("Wrote session")
-	case *binary.Message:
+	case *gmproto.Message:
 		log.Debug().Any("data", evt).Msg("Message event")
-	case *binary.Conversation:
+	case *gmproto.Conversation:
 		log.Debug().Any("data", evt).Msg("Conversation event")
 	case *events.BrowserActive:
 		log.Debug().Any("data", evt).Msg("Browser active")

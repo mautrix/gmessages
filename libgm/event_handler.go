@@ -6,7 +6,7 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func (r *RPC) deduplicateHash(hash [32]byte) bool {
@@ -42,7 +42,7 @@ func (r *RPC) deduplicateUpdate(response *pblite.Response) bool {
 	return false
 }
 
-func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
+func (r *RPC) HandleRPCMsg(msg *gmproto.InternalMessage) {
 	response, decodeErr := pblite.DecryptInternalMessage(msg, r.client.AuthData.RequestCrypto)
 	if decodeErr != nil {
 		r.client.Logger.Error().Err(decodeErr).Msg("rpc decrypt msg err")
@@ -58,9 +58,9 @@ func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
 		return
 	}
 	switch response.BugleRoute {
-	case binary.BugleRoute_PairEvent:
+	case gmproto.BugleRoute_PairEvent:
 		go r.client.handlePairingEvent(response)
-	case binary.BugleRoute_DataEvent:
+	case gmproto.BugleRoute_DataEvent:
 		if r.skipCount > 0 {
 			r.skipCount--
 			r.client.Logger.Debug().

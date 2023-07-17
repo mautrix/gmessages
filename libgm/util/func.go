@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func GenerateTmpID() string {
@@ -91,7 +91,7 @@ func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string
 	return headers
 }
 
-func ParseConfigVersion(res []byte) (*binary.ConfigVersion, error) {
+func ParseConfigVersion(res []byte) (*gmproto.ConfigVersion, error) {
 	var data []interface{}
 
 	marshalErr := json.Unmarshal(res, &data)
@@ -126,7 +126,7 @@ func ParseConfigVersion(res []byte) (*binary.ConfigVersion, error) {
 		return nil, e2
 	}
 
-	configMessage := &binary.ConfigVersion{
+	configMessage := &gmproto.ConfigVersion{
 		Year:  int32(first),
 		Month: int32(second),
 		Day:   int32(third),

@@ -1,7 +1,7 @@
 package events
 
 import (
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type QR struct {
@@ -9,5 +9,5 @@ type QR struct {
 }
 
 type PairSuccessful struct {
-	*binary.PairedData
+	*gmproto.PairedData
 }

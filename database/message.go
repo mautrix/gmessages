@@ -27,7 +27,7 @@ import (
 	"maunium.net/go/mautrix/id"
 	"maunium.net/go/mautrix/util/dbutil"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type MessageQuery struct {
@@ -73,7 +73,7 @@ func (mq *MessageQuery) GetLastInChat(ctx context.Context, chat Key) (*Message, 
 }
 
 type MessageStatus struct {
-	Type binary.MessageStatusType
+	Type gmproto.MessageStatusType
 }
 
 type Message struct {

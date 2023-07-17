@@ -42,8 +42,8 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/database"
 	"go.mau.fi/mautrix-gmessages/libgm"
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type User struct {
@@ -602,7 +602,7 @@ func (user *User) HandleEvent(event interface{}) {
 		if ch := user.pairSuccessChan; ch != nil {
 			close(ch)
 		}
-	case *binary.RevokePairData:
+	case *gmproto.RevokePairData:
 		user.zlog.Info().Any("revoked_device", v.GetRevokedDevice()).Msg("Got pair revoked event")
 		user.Logout(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
@@ -613,9 +613,9 @@ func (user *User) HandleEvent(event interface{}) {
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to update session in database")
 		}
-	case *binary.Conversation:
+	case *gmproto.Conversation:
 		user.syncConversation(v)
-	case *binary.Message:
+	case *gmproto.Message:
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v, source: user}
 	case *events.ClientReady:
@@ -629,30 +629,30 @@ func (user *User) HandleEvent(event interface{}) {
 	case *events.BrowserActive:
 		user.zlog.Trace().Any("data", v).Msg("Browser active")
 		user.browserInactiveType = ""
-	case *binary.UserAlertEvent:
+	case *gmproto.UserAlertEvent:
 		user.handleUserAlert(v)
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
 }
 
-func (user *User) handleUserAlert(v *binary.UserAlertEvent) {
+func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	user.zlog.Debug().Any("data", v).Msg("Got user alert event")
 	switch v.GetAlertType() {
-	case binary.AlertType_BROWSER_INACTIVE:
+	case gmproto.AlertType_BROWSER_INACTIVE:
 		// TODO aggressively reactivate if configured to do so
 		user.browserInactiveType = GMBrowserInactive
-	case binary.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
+	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		user.browserInactiveType = GMBrowserInactiveTimeout
-	case binary.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
+	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
 		user.browserInactiveType = GMBrowserInactiveInactivity
-	case binary.AlertType_MOBILE_DATA_CONNECTION:
+	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
 		user.mobileData = true
-	case binary.AlertType_MOBILE_WIFI_CONNECTION:
+	case gmproto.AlertType_MOBILE_WIFI_CONNECTION:
 		user.mobileData = false
-	case binary.AlertType_MOBILE_BATTERY_LOW:
+	case gmproto.AlertType_MOBILE_BATTERY_LOW:
 		user.batteryLow = true
-	case binary.AlertType_MOBILE_BATTERY_RESTORED:
+	case gmproto.AlertType_MOBILE_BATTERY_RESTORED:
 		user.batteryLow = false
 	default:
 		return
@@ -696,13 +696,13 @@ func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) 
 	return
 }
 
-func (user *User) syncConversation(v *binary.Conversation) {
+func (user *User) syncConversation(v *gmproto.Conversation) {
 	updateType := v.GetStatus()
 	portal := user.GetPortalByID(v.GetConversationID())
 	if portal.MXID != "" {
 		switch updateType {
 		// TODO also delete if blocked?
-		case binary.ConvUpdateTypes_DELETED:
+		case gmproto.ConvUpdateTypes_DELETED:
 			user.zlog.Info().Str("conversation_id", portal.ID).Msg("Got delete event, cleaning up portal")
 			portal.Delete()
 			portal.Cleanup(false)
@@ -711,7 +711,7 @@ func (user *User) syncConversation(v *binary.Conversation) {
 			portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
 			// TODO sync read status if there was nothing backfilled
 		}
-	} else if updateType == binary.ConvUpdateTypes_UNARCHIVED || updateType == binary.ConvUpdateTypes_ARCHIVED {
+	} else if updateType == gmproto.ConvUpdateTypes_UNARCHIVED || updateType == gmproto.ConvUpdateTypes_ARCHIVED {
 		err := portal.CreateMatrixRoom(user, v)
 		if err != nil {
 			user.zlog.Err(err).Msg("Error creating Matrix room from conversation event")
@@ -787,7 +787,7 @@ type CustomReadMarkers struct {
 	FullyReadExtra CustomReadReceipt `json:"com.beeper.fully_read.extra"`
 }
 
-func (user *User) syncChatDoublePuppetDetails(portal *Portal, conv *binary.Conversation, justCreated bool) {
+func (user *User) syncChatDoublePuppetDetails(portal *Portal, conv *gmproto.Conversation, justCreated bool) {
 	if user.DoublePuppetIntent == nil || len(portal.MXID) == 0 {
 		return
 	}

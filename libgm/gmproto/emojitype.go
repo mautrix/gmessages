@@ -1,4 +1,4 @@
-package binary
+package gmproto
 
 func (et EmojiType) Unicode() string {
 	switch et {

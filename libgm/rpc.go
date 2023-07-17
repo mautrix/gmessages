@@ -17,7 +17,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -47,14 +47,14 @@ func (r *RPC) ListenReceiveMessages() {
 			return
 		}
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
-		receivePayload, err := pblite.Marshal(&binary.ReceiveMessagesRequest{
-			Auth: &binary.AuthMessage{
+		receivePayload, err := pblite.Marshal(&gmproto.ReceiveMessagesRequest{
+			Auth: &gmproto.AuthMessage{
 				RequestID:        listenReqID,
 				TachyonAuthToken: r.client.AuthData.TachyonAuthToken,
 				ConfigVersion:    util.ConfigMessage,
 			},
-			Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject2{
-				Unknown: &binary.ReceiveMessagesRequest_UnknownEmptyObject1{},
+			Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject2{
+				Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject1{},
 			},
 		})
 		if err != nil {
@@ -160,7 +160,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		}
 		currentBlock := accumulatedData
 		accumulatedData = accumulatedData[:0]
-		msg := &binary.InternalMessage{}
+		msg := &gmproto.InternalMessage{}
 		err = pblite.Unmarshal(currentBlock, msg)
 		if err != nil {
 			r.client.Logger.Err(err).Msg("Error deserializing pblite message")

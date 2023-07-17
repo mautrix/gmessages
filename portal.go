@@ -42,7 +42,7 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/database"
 	"go.mau.fi/mautrix-gmessages/libgm"
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -208,7 +208,7 @@ func (br *GMBridge) NewPortal(dbPortal *database.Portal) *Portal {
 const recentlyHandledLength = 100
 
 type PortalMessage struct {
-	evt    *binary.Message
+	evt    *gmproto.Message
 	source *User
 }
 
@@ -313,7 +313,7 @@ func (portal *Portal) handleMessageLoop() {
 	}
 }
 
-func (portal *Portal) isOutgoingMessage(msg *binary.Message) id.EventID {
+func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) id.EventID {
 	portal.outgoingMessagesLock.Lock()
 	defer portal.outgoingMessagesLock.Unlock()
 	out, ok := portal.outgoingMessages[msg.TmpID]
@@ -327,18 +327,18 @@ func (portal *Portal) isOutgoingMessage(msg *binary.Message) id.EventID {
 			out.Saved = true
 		}
 		switch msg.GetMessageStatus().GetStatus() {
-		case binary.MessageStatusType_OUTGOING_DELIVERED, binary.MessageStatusType_OUTGOING_COMPLETE, binary.MessageStatusType_OUTGOING_DISPLAYED:
+		case gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_COMPLETE, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
 			delete(portal.outgoingMessages, msg.TmpID)
 			go portal.sendStatusEvent(out.ID, "", nil)
-		case binary.MessageStatusType_OUTGOING_FAILED_GENERIC,
-			binary.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER,
-			binary.MessageStatusType_OUTGOING_CANCELED,
-			binary.MessageStatusType_OUTGOING_FAILED_TOO_LARGE,
-			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS,
-			binary.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK,
-			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
-			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION,
-			binary.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
+		case gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC,
+			gmproto.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER,
+			gmproto.MessageStatusType_OUTGOING_CANCELED,
+			gmproto.MessageStatusType_OUTGOING_FAILED_TOO_LARGE,
+			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS,
+			gmproto.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK,
+			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
+			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION,
+			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
 			err := OutgoingStatusError(msg.GetMessageStatus().GetStatus())
 			go portal.sendStatusEvent(out.ID, "", err)
 			// TODO error notice
@@ -347,9 +347,9 @@ func (portal *Portal) isOutgoingMessage(msg *binary.Message) id.EventID {
 	}
 	return ""
 }
-func hasInProgressMedia(msg *binary.Message) bool {
+func hasInProgressMedia(msg *gmproto.Message) bool {
 	for _, part := range msg.MessageInfo {
-		media, ok := part.GetData().(*binary.MessageInfo_MediaContent)
+		media, ok := part.GetData().(*gmproto.MessageInfo_MediaContent)
 		if ok && media.MediaContent.GetMediaID() == "" {
 			return true
 		}
@@ -357,7 +357,7 @@ func hasInProgressMedia(msg *binary.Message) bool {
 	return false
 }
 
-func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
+func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 	if len(portal.MXID) == 0 {
 		portal.zlog.Warn().Msg("handleMessage called even though portal.MXID is empty")
 		return
@@ -374,10 +374,10 @@ func (portal *Portal) handleMessage(source *User, evt *binary.Message) {
 		Logger()
 	ctx := log.WithContext(context.TODO())
 	switch evt.GetMessageStatus().GetStatus() {
-	case binary.MessageStatusType_INCOMING_AUTO_DOWNLOADING, binary.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
+	case gmproto.MessageStatusType_INCOMING_AUTO_DOWNLOADING, gmproto.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
 		log.Debug().Msg("Not handling incoming message that is auto downloading")
 		return
-	case binary.MessageStatusType_MESSAGE_DELETED:
+	case gmproto.MessageStatusType_MESSAGE_DELETED:
 		portal.handleGoogleDeletion(ctx, evt.MessageID)
 		return
 	}
@@ -435,7 +435,7 @@ func (portal *Portal) handleGoogleDeletion(ctx context.Context, messageID string
 	}
 }
 
-func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*binary.ReactionResponse) {
+func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*gmproto.ReactionResponse) {
 	log := zerolog.Ctx(ctx)
 	existing, err := portal.bridge.DB.Reaction.GetAllByMessage(ctx, portal.Key, message.ID)
 	if err != nil {
@@ -535,7 +535,7 @@ func (portal *Portal) getIntent(ctx context.Context, source *User, participant s
 	}
 }
 
-func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *binary.Message, backfill bool) *ConvertedMessage {
+func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *gmproto.Message, backfill bool) *ConvertedMessage {
 	log := zerolog.Ctx(ctx)
 
 	var cm ConvertedMessage
@@ -568,7 +568,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	for _, part := range evt.MessageInfo {
 		var content event.MessageEventContent
 		switch data := part.GetData().(type) {
-		case *binary.MessageInfo_MessageContent:
+		case *gmproto.MessageInfo_MessageContent:
 			content = event.MessageEventContent{
 				MsgType: event.MsgText,
 				Body:    data.MessageContent.GetContent(),
@@ -579,7 +579,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 				content.Body = fmt.Sprintf("**%s**\n%s", subject, content.Body)
 				subject = ""
 			}
-		case *binary.MessageInfo_MediaContent:
+		case *gmproto.MessageInfo_MediaContent:
 			contentPtr, err := portal.convertGoogleMedia(source, cm.Intent, data.MediaContent)
 			if err != nil {
 				log.Err(err).Msg("Failed to copy attachment")
@@ -642,7 +642,7 @@ func (msg *ConvertedMessage) MergeCaption() {
 	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
-func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.IntentAPI, msg *binary.MediaContent) (*event.MessageEventContent, error) {
+func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, error) {
 	var data []byte
 	var err error
 	data, err = source.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
@@ -707,8 +707,8 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, rece
 	return msg
 }
 
-func (portal *Portal) SyncParticipants(source *User, metadata *binary.Conversation) (userIDs []id.UserID, changed bool) {
-	var firstParticipant *binary.Participant
+func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversation) (userIDs []id.UserID, changed bool) {
+	var firstParticipant *gmproto.Participant
 	var manyParticipants bool
 	for _, participant := range metadata.Participants {
 		if participant.IsMe {
@@ -782,7 +782,7 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 	return false
 }
 
-func (portal *Portal) UpdateMetadata(user *User, info *binary.Conversation) []id.UserID {
+func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []id.UserID {
 	participants, update := portal.SyncParticipants(user, info)
 	if portal.SelfUserID != info.SelfParticipantID {
 		portal.SelfUserID = info.SelfParticipantID
@@ -811,7 +811,7 @@ func (portal *Portal) ensureUserInvited(user *User) bool {
 	return user.ensureInvited(portal.MainIntent(), portal.MXID, portal.IsPrivateChat())
 }
 
-func (portal *Portal) UpdateMatrixRoom(user *User, groupInfo *binary.Conversation) bool {
+func (portal *Portal) UpdateMatrixRoom(user *User, groupInfo *gmproto.Conversation) bool {
 	if len(portal.MXID) == 0 {
 		return false
 	}
@@ -899,7 +899,7 @@ func (portal *Portal) GetEncryptionEventContent() (evt *event.EncryptionEventCon
 	return
 }
 
-func (portal *Portal) CreateMatrixRoom(user *User, conv *binary.Conversation) error {
+func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) error {
 	portal.roomCreateLock.Lock()
 	defer portal.roomCreateLock.Unlock()
 	if len(portal.MXID) > 0 {
@@ -1172,12 +1172,12 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 	return nil
 }
 
-func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*binary.SendMessagePayload, error) {
+func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*gmproto.SendMessagePayload, error) {
 	log := zerolog.Ctx(ctx)
-	req := &binary.SendMessagePayload{
+	req := &gmproto.SendMessagePayload{
 		ConversationID: portal.ID,
 		TmpID:          txnID,
-		MessagePayload: &binary.MessagePayload{
+		MessagePayload: &gmproto.MessagePayload{
 			ConversationID:    portal.ID,
 			TmpID:             txnID,
 			TmpID2:            txnID,
@@ -1194,7 +1194,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 			log.Warn().Str("reply_to_mxid", replyToMXID.String()).Msg("Reply target message not found")
 		} else {
 			req.IsReply = true
-			req.Reply = &binary.ReplyPayload{MessageID: replyToMsg.ID}
+			req.Reply = &gmproto.ReplyPayload{MessageID: replyToMsg.ID}
 		}
 	}
 
@@ -1204,8 +1204,8 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		if content.MsgType == event.MsgEmote {
 			text = "/me " + text
 		}
-		req.MessagePayload.MessageInfo = []*binary.MessageInfo{{
-			Data: &binary.MessageInfo_MessageContent{MessageContent: &binary.MessageContent{
+		req.MessagePayload.MessageInfo = []*gmproto.MessageInfo{{
+			Data: &gmproto.MessageInfo_MessageContent{MessageContent: &gmproto.MessageContent{
 				Content: text,
 			}},
 		}}
@@ -1240,8 +1240,8 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		if err != nil {
 			return nil, mutil.NewDualError(errMediaReuploadFailed, err)
 		}
-		req.MessagePayload.MessageInfo = []*binary.MessageInfo{{
-			Data: &binary.MessageInfo_MediaContent{MediaContent: resp},
+		req.MessagePayload.MessageInfo = []*gmproto.MessageInfo{{
+			Data: &gmproto.MessageInfo_MediaContent{MediaContent: resp},
 		}}
 	default:
 		return nil, fmt.Errorf("%w %s", errUnknownMsgType, content.MsgType)
@@ -1349,13 +1349,13 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 	}
 
 	emoji := variationselector.Remove(content.RelatesTo.Key)
-	action := binary.Reaction_ADD
+	action := gmproto.Reaction_ADD
 	if existingReaction != nil {
-		action = binary.Reaction_SWITCH
+		action = gmproto.Reaction_SWITCH
 	}
-	resp, err := sender.Client.SendReaction(&binary.SendReactionPayload{
+	resp, err := sender.Client.SendReaction(&gmproto.SendReactionPayload{
 		MessageID:    msg.ID,
-		ReactionData: binary.MakeReactionData(emoji),
+		ReactionData: gmproto.MakeReactionData(emoji),
 		Action:       action,
 	})
 	if err != nil {
@@ -1425,10 +1425,10 @@ func (portal *Portal) handleMatrixReactionRedaction(ctx context.Context, sender 
 		return errTargetNotFound
 	}
 
-	resp, err := sender.Client.SendReaction(&binary.SendReactionPayload{
+	resp, err := sender.Client.SendReaction(&gmproto.SendReactionPayload{
 		MessageID:    existingReaction.MessageID,
-		ReactionData: binary.MakeReactionData(existingReaction.Reaction),
-		Action:       binary.Reaction_REMOVE,
+		ReactionData: gmproto.MakeReactionData(existingReaction.Reaction),
+		Action:       gmproto.Reaction_REMOVE,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send reaction removal: %w", err)

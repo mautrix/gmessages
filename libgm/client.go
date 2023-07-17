@@ -16,9 +16,9 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -29,8 +29,8 @@ type AuthData struct {
 	// Key used to sign requests to refresh the tachyon auth token from the server
 	RefreshKey *crypto.JWK `json:"refresh_key,omitempty"`
 	// Identity of the paired phone and browser
-	Browser *binary.Device `json:"browser,omitempty"`
-	Mobile  *binary.Device `json:"mobile,omitempty"`
+	Browser *gmproto.Device `json:"browser,omitempty"`
+	Mobile  *gmproto.Device `json:"mobile,omitempty"`
 	// Key used to authenticate with the server
 	TachyonAuthToken []byte    `json:"tachyon_token,omitempty"`
 	TachyonExpiry    time.Time `json:"tachyon_expiry,omitempty"`
@@ -146,7 +146,7 @@ func (c *Client) StartLogin() (string, error) {
 }
 
 func (c *Client) GenerateQRCodeData(pairingKey []byte) (string, error) {
-	urlData := &binary.URLData{
+	urlData := &gmproto.URLData{
 		PairingKey: pairingKey,
 		AESKey:     c.AuthData.RequestCrypto.AESKey,
 		HMACKey:    c.AuthData.RequestCrypto.HMACKey,
@@ -193,12 +193,12 @@ func (c *Client) triggerEvent(evt interface{}) {
 }
 
 func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
-	downloadMetadata := &binary.UploadImagePayload{
-		MetaData: &binary.ImageMetaData{
+	downloadMetadata := &gmproto.UploadImagePayload{
+		MetaData: &gmproto.ImageMetaData{
 			ImageID:   mediaID,
 			Encrypted: true,
 		},
-		AuthData: &binary.AuthMessage{
+		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
@@ -264,7 +264,7 @@ func (c *Client) FetchConfigVersion() {
 	}
 }
 
-func (c *Client) diffVersionFormat(curr *binary.ConfigVersion, latest *binary.ConfigVersion) string {
+func (c *Client) diffVersionFormat(curr *gmproto.ConfigVersion, latest *gmproto.ConfigVersion) string {
 	return fmt.Sprintf("%d.%d.%d -> %d.%d.%d", curr.Year, curr.Month, curr.Day, latest.Year, latest.Month, latest.Day)
 }
 
@@ -304,8 +304,8 @@ func (c *Client) refreshAuthToken() error {
 		return err
 	}
 
-	payload, err := pblite.Marshal(&binary.RegisterRefreshPayload{
-		MessageAuth: &binary.AuthMessage{
+	payload, err := pblite.Marshal(&gmproto.RegisterRefreshPayload{
+		MessageAuth: &gmproto.AuthMessage{
 			RequestID:        requestID,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
@@ -313,7 +313,7 @@ func (c *Client) refreshAuthToken() error {
 		CurrBrowserDevice: c.AuthData.Browser,
 		UnixTimestamp:     timestamp,
 		Signature:         sig,
-		EmptyRefreshArr:   &binary.EmptyRefreshArr{EmptyArr: &binary.EmptyArr{}},
+		EmptyRefreshArr:   &gmproto.EmptyRefreshArr{EmptyArr: &gmproto.EmptyArr{}},
 		MessageType:       2, // hmm
 	})
 	if err != nil {
@@ -337,7 +337,7 @@ func (c *Client) refreshAuthToken() error {
 		return readErr
 	}
 
-	resp := &binary.RegisterRefreshResponse{}
+	resp := &gmproto.RegisterRefreshResponse{}
 	deserializeErr := pblite.Unmarshal(responseBody, resp)
 	if deserializeErr != nil {
 		return deserializeErr

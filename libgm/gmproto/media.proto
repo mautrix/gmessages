@@ -1,7 +1,7 @@
 syntax = "proto3";
 package media;
 
-option go_package = "../binary";
+option go_package = "../gmproto";
 
 import "messages.proto";
 

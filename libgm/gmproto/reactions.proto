@@ -1,7 +1,7 @@
 syntax = "proto3";
 package reactions;
 
-option go_package = "../binary";
+option go_package = "../gmproto";
 
 enum Reaction {
     UNSPECIFIED = 0;

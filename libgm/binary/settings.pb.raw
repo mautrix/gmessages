@@ -1,64 +1,0 @@
-
-settings.protosettings"ï
-Settings"
-data (2.settings.DataRdata2
-
-opCodeData (2.settings.SomeDataR
-opCodeData7
-rcsSettings (2.settings.RCSSettingsRrcsSettings"
-bugleVersion (	RbugleVersion
-bool1 (Rbool1:
-boolFields2 (2.settings.BooleanFields2RboolFields2 
-emptyString	 (	RemptyString:
-boolFields3
- (2.settings.BooleanFields3RboolFields3"£
-Data.
-rcsChats (2.settings.RCSChatsRrcsChats+
-simData (2.settings.SimDataRsimData
-bool1 (Rbool1(
-noClue (2.settings.NoClueRnoClue"$
-RCSChats
-enabled (Renabled"
-BoolMsg
-bool1 (Rbool1"±
-SimData@
-unknownMessage (2.settings.UnknownMessageRunknownMessage
-bool1 (Rbool1 
-carrierName (	RcarrierName
-hexHash (	RhexHash
-int1 (Rint1"8
-UnknownMessage
-int1 (Rint1
-int2 (Rint2"
-NoClue
-count (	Rcount"˜
-SomeData
-field7 (Rfield7
-field12 (Rfield12
-
-someEmojis (R
-someEmojis
-jsonData (	RjsonData
-
-someString (	R
-someString"¡
-RCSSettings
-	isEnabled (R	isEnabled*
-sendReadReceipts (RsendReadReceipts2
-showTypingIndicators (RshowTypingIndicators
-bool4 (Rbool4"°
-BooleanFields2
-bool1 (Rbool1
-bool2 (Rbool2-
-boolMsg1 (2.settings.BoolMsgRboolMsg1-
-boolMsg2 (2.settings.BoolMsgRboolMsg2
-bool3 (Rbool3"À
-BooleanFields3
-bool1 (Rbool1
-bool3 (Rbool3
-bool4 (Rbool4
-bool5 (Rbool5
-bool6 (Rbool6
-bool7 (Rbool7
-bool8 (Rbool8
-bool9	 (Rbool9BZ	../binarybproto3

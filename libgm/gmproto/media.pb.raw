@@ -1,0 +1,13 @@
+
+media.protomediamessages.proto"”
+StartMediaUploadPayload
+	imageType (R	imageType1
+authData (2.messages.AuthMessageRauthData(
+mobile (2.messages.DeviceRmobile"S
+UploadMediaResponse"
+media (2.media.MediaRmedia
+message (	Rmessage"C
+Media
+mediaID (	RmediaID 
+mediaNumber (RmediaNumberBZ
+../gmprotobproto3

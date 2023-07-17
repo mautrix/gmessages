@@ -28,7 +28,7 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/config"
 	"go.mau.fi/mautrix-gmessages/database"
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -68,11 +68,11 @@ func (br *GMBridge) Init() {
 	br.RegisterCommands()
 
 	util.BrowserDetailsMessage.OS = br.Config.GoogleMessages.OS
-	browserVal, ok := binary.BrowserTypes_value[br.Config.GoogleMessages.Browser]
+	browserVal, ok := gmproto.BrowserTypes_value[br.Config.GoogleMessages.Browser]
 	if !ok {
 		br.ZLog.Error().Str("browser_value", br.Config.GoogleMessages.Browser).Msg("Invalid browser value")
 	} else {
-		util.BrowserDetailsMessage.BrowserType = binary.BrowserTypes(browserVal)
+		util.BrowserDetailsMessage.BrowserType = gmproto.BrowserTypes(browserVal)
 	}
 
 	Segment.log = br.ZLog.With().Str("component", "segment").Logger()

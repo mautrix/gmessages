@@ -29,7 +29,7 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/database"
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 var userIDRegex *regexp.Regexp
@@ -253,7 +253,7 @@ func (puppet *Puppet) updatePortalName() {
 	// TODO implement
 }
 
-func (puppet *Puppet) Sync(source *User, contact *binary.Participant) {
+func (puppet *Puppet) Sync(source *User, contact *gmproto.Participant) {
 	err := puppet.DefaultIntent().EnsureRegistered()
 	if err != nil {
 		puppet.log.Err(err).Msg("Failed to ensure registered")

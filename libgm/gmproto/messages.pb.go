@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: messages.proto
 
-package binary
+package gmproto
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

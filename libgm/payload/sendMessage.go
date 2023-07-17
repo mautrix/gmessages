@@ -5,16 +5,16 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/routes"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 type SendMessageBuilder struct {
-	message    *binary.SendMessage
-	b64Message *binary.SendMessageInternal
+	message    *gmproto.SendMessage
+	b64Message *gmproto.SendMessageInternal
 
 	err error
 }
@@ -23,33 +23,33 @@ func (sm *SendMessageBuilder) Err() error {
 	return sm.err
 }
 
-func NewSendMessageBuilder(tachyonAuthToken []byte, pairedDevice *binary.Device, requestId string, sessionId string) *SendMessageBuilder {
+func NewSendMessageBuilder(tachyonAuthToken []byte, pairedDevice *gmproto.Device, requestId string, sessionId string) *SendMessageBuilder {
 	return &SendMessageBuilder{
-		message: &binary.SendMessage{
+		message: &gmproto.SendMessage{
 			Mobile: pairedDevice,
-			MessageData: &binary.SendMessageData{
+			MessageData: &gmproto.SendMessageData{
 				RequestID: requestId,
 			},
-			MessageAuth: &binary.SendMessageAuth{
+			MessageAuth: &gmproto.SendMessageAuth{
 				RequestID:        requestId,
 				TachyonAuthToken: tachyonAuthToken,
 				ConfigVersion:    util.ConfigMessage,
 			},
-			EmptyArr: &binary.EmptyArr{},
+			EmptyArr: &gmproto.EmptyArr{},
 		},
-		b64Message: &binary.SendMessageInternal{
+		b64Message: &gmproto.SendMessageInternal{
 			RequestID: requestId,
 			SessionID: sessionId,
 		},
 	}
 }
 
-func (sm *SendMessageBuilder) SetPairedDevice(device *binary.Device) *SendMessageBuilder {
+func (sm *SendMessageBuilder) SetPairedDevice(device *gmproto.Device) *SendMessageBuilder {
 	sm.message.Mobile = device
 	return sm
 }
 
-func (sm *SendMessageBuilder) setBugleRoute(bugleRoute binary.BugleRoute) *SendMessageBuilder {
+func (sm *SendMessageBuilder) setBugleRoute(bugleRoute gmproto.BugleRoute) *SendMessageBuilder {
 	sm.message.MessageData.BugleRoute = bugleRoute
 	return sm
 }
@@ -66,7 +66,7 @@ func (sm *SendMessageBuilder) SetSessionId(sessionId string) *SendMessageBuilder
 	return sm
 }
 
-func (sm *SendMessageBuilder) SetRoute(actionType binary.ActionType) *SendMessageBuilder {
+func (sm *SendMessageBuilder) SetRoute(actionType gmproto.ActionType) *SendMessageBuilder {
 	action, ok := routes.Routes[actionType]
 	if !ok {
 		sm.err = fmt.Errorf("invalid action type")
@@ -79,9 +79,9 @@ func (sm *SendMessageBuilder) SetRoute(actionType binary.ActionType) *SendMessag
 	return sm
 }
 
-func (sm *SendMessageBuilder) setMessageType(eventType binary.MessageType) *SendMessageBuilder {
-	sm.message.MessageData.MessageTypeData = &binary.MessageTypeData{
-		EmptyArr:    &binary.EmptyArr{},
+func (sm *SendMessageBuilder) setMessageType(eventType gmproto.MessageType) *SendMessageBuilder {
+	sm.message.MessageData.MessageTypeData = &gmproto.MessageTypeData{
+		EmptyArr:    &gmproto.EmptyArr{},
 		MessageType: eventType,
 	}
 	return sm

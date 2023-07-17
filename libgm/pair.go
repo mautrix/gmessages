@@ -7,26 +7,26 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/binary"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-func (c *Client) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error) {
+func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {
 	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := proto.Marshal(&binary.AuthenticationContainer{
-		AuthMessage: &binary.AuthMessage{
+	body, err := proto.Marshal(&gmproto.AuthenticationContainer{
+		AuthMessage: &gmproto.AuthMessage{
 			RequestID:     uuid.NewString(),
 			Network:       &util.Network,
 			ConfigVersion: util.ConfigMessage,
 		},
 		BrowserDetails: util.BrowserDetailsMessage,
-		Data: &binary.AuthenticationContainer_KeyData{
-			KeyData: &binary.KeyData{
-				EcdsaKeys: &binary.ECDSAKeys{
+		Data: &gmproto.AuthenticationContainer_KeyData{
+			KeyData: &gmproto.KeyData{
+				EcdsaKeys: &gmproto.ECDSAKeys{
 					Field1:        2,
 					EncryptedKeys: key,
 				},
@@ -45,7 +45,7 @@ func (c *Client) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		return nil, err
 	}
 	relayResponse.Body.Close()
-	res := &binary.RegisterPhoneRelayResponse{}
+	res := &gmproto.RegisterPhoneRelayResponse{}
 	err = proto.Unmarshal(responseBody, res)
 	if err != nil {
 		return nil, err
@@ -54,8 +54,8 @@ func (c *Client) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 }
 
 func (c *Client) RefreshPhoneRelay() (string, error) {
-	body, err := proto.Marshal(&binary.AuthenticationContainer{
-		AuthMessage: &binary.AuthMessage{
+	body, err := proto.Marshal(&gmproto.AuthenticationContainer{
+		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			Network:          &util.Network,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
@@ -74,7 +74,7 @@ func (c *Client) RefreshPhoneRelay() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	res := &binary.RefreshPhoneRelayResponse{}
+	res := &gmproto.RefreshPhoneRelayResponse{}
 	err = proto.Unmarshal(responseBody, res)
 	if err != nil {
 		return "", err
@@ -86,9 +86,9 @@ func (c *Client) RefreshPhoneRelay() (string, error) {
 	return qr, nil
 }
 
-func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error) {
-	body, err := proto.Marshal(&binary.AuthenticationContainer{
-		AuthMessage: &binary.AuthMessage{
+func (c *Client) GetWebEncryptionKey() (*gmproto.WebEncryptionKeyResponse, error) {
+	body, err := proto.Marshal(&gmproto.AuthenticationContainer{
+		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
@@ -106,7 +106,7 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	parsedResponse := &binary.WebEncryptionKeyResponse{}
+	parsedResponse := &gmproto.WebEncryptionKeyResponse{}
 	err = proto.Unmarshal(responseBody, parsedResponse)
 	if err != nil {
 		return nil, err
@@ -114,12 +114,12 @@ func (c *Client) GetWebEncryptionKey() (*binary.WebEncryptionKeyResponse, error)
 	return parsedResponse, nil
 }
 
-func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
+func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
 	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
-	payload, err := proto.Marshal(&binary.RevokeRelayPairing{
-		AuthMessage: &binary.AuthMessage{
+	payload, err := proto.Marshal(&gmproto.RevokeRelayPairing{
+		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
@@ -138,7 +138,7 @@ func (c *Client) Unpair() (*binary.RevokeRelayPairingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	parsedResponse := &binary.RevokeRelayPairingResponse{}
+	parsedResponse := &gmproto.RevokeRelayPairingResponse{}
 	err = proto.Unmarshal(responseBody, parsedResponse)
 	if err != nil {
 		return nil, err
