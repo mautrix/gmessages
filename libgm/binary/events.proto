@@ -1,7 +1,7 @@
 syntax = "proto3";
 package events;
 
-option go_package = "../../binary";
+option go_package = "../binary";
 
 import "conversations.proto";
 import "authentication.proto";
