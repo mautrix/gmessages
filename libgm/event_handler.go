@@ -77,11 +77,6 @@ func (r *RPC) HandleRPCMsg(msg *binary.InternalMessage) {
 		}
 		r.client.handleUpdatesEvent(response)
 	default:
-		r.client.Logger.Debug().Any("res", response).Msg("Got unknown bugleroute")
+		r.client.Logger.Debug().Any("res", response).Msg("Got unknown bugle route")
 	}
-
-}
-
-func (r *RPC) HandleByLength(data []byte) {
-	r.client.Logger.Debug().Any("byteLength", len(data)).Any("corrupt raw", string(data)).Msg("RPC Corrupt json")
 }

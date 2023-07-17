@@ -34,12 +34,10 @@ func (c *Client) RegisterPhoneRelay() (*binary.RegisterPhoneRelayResponse, error
 		},
 	})
 	if err != nil {
-		c.Logger.Err(err)
 		return nil, err
 	}
 	relayResponse, reqErr := c.MakeRelayRequest(util.RegisterPhoneRelayURL, body)
 	if reqErr != nil {
-		c.Logger.Err(reqErr)
 		return nil, err
 	}
 	responseBody, err := io.ReadAll(relayResponse.Body)

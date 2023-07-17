@@ -12,7 +12,7 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 	case binary.ActionType_GET_UPDATES:
 		data, ok := res.Data.Decrypted.(*binary.UpdateEvents)
 		if !ok {
-			c.Logger.Error().Any("res", res).Msg("failed to assert ActionType_GET_UPDATES event into UpdateEvents")
+			c.Logger.Error().Type("data_type", res.Data.Decrypted).Msg("Unexpected data type in GET_UPDATES event")
 			return
 		}
 
@@ -40,17 +40,16 @@ func (c *Client) handleUpdatesEvent(res *pblite.Response) {
 		case *binary.UpdateEvents_TypingEvent:
 			c.rpc.logContent(res)
 			c.triggerEvent(evt.TypingEvent.GetData())
-		default:
-			c.Logger.Debug().Any("evt", evt).Any("res", res).Msg("Got unknown event type")
-		}
 
+		default:
+			c.Logger.Trace().Any("evt", evt).Msg("Got unknown event type")
+		}
 	default:
-		c.Logger.Error().Any("response", res).Msg("ignoring response.")
+		c.Logger.Trace().Any("response", res).Msg("Got unexpected response")
 	}
 }
 
 func (c *Client) handleClientReady(newSessionId string) {
-	c.Logger.Info().Any("sessionId", newSessionId).Msg("Client is ready!")
 	conversations, convErr := c.ListConversations(25, binary.ListConversationsPayload_INBOX)
 	if convErr != nil {
 		panic(convErr)
@@ -67,13 +66,13 @@ func (c *Client) handleUserAlertEvent(res *pblite.Response, data *binary.UserAle
 	alertType := data.AlertType
 	switch alertType {
 	case binary.AlertType_BROWSER_ACTIVE:
-		newSessionId := res.Data.RequestID
-		c.Logger.Info().Any("sessionId", newSessionId).Msg("[NEW_BROWSER_ACTIVE] Opened new browser connection")
-		if newSessionId != c.sessionHandler.sessionID {
-			evt := events.NewBrowserActive(newSessionId)
+		newSessionID := res.Data.RequestID
+		c.Logger.Debug().Any("session_id", newSessionID).Msg("Got browser active notification")
+		if newSessionID != c.sessionHandler.sessionID {
+			evt := events.NewBrowserActive(newSessionID)
 			c.triggerEvent(evt)
 		} else {
-			go c.handleClientReady(newSessionId)
+			go c.handleClientReady(newSessionID)
 		}
 	default:
 		c.triggerEvent(data)

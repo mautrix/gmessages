@@ -11,9 +11,8 @@ import (
 
 func (c *Client) handlePairingEvent(response *pblite.Response) {
 	pairEventData, ok := response.Data.Decrypted.(*binary.PairEvents)
-
 	if !ok {
-		c.Logger.Error().Any("pairEventData", pairEventData).Msg("failed to assert response into PairEvents")
+		c.Logger.Error().Type("decrypted_type", response.Data.Decrypted).Msg("Unexpected data type in pair event")
 		return
 	}
 
@@ -21,10 +20,9 @@ func (c *Client) handlePairingEvent(response *pblite.Response) {
 	case *binary.PairEvents_Paired:
 		c.completePairing(evt.Paired)
 	case *binary.PairEvents_Revoked:
-		c.Logger.Debug().Any("data", evt).Msg("Revoked Device")
 		c.triggerEvent(evt.Revoked)
 	default:
-		c.Logger.Debug().Any("response", response).Any("evt", evt).Msg("Invalid PairEvents type")
+		c.Logger.Debug().Any("evt", evt).Msg("Unknown pair event type")
 	}
 }
 

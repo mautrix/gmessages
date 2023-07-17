@@ -123,7 +123,7 @@ func (c *Client) Connect() error {
 	if bugleErr != nil {
 		return fmt.Errorf("failed to check bugle default: %w", err)
 	}
-	c.Logger.Debug().Any("isBugle", bugleRes.Success).Msg("IsBugleDefault")
+	c.Logger.Debug().Bool("bugle_default", bugleRes.Success).Msg("Got is bugle default response on connect")
 	sessionErr := c.SetActiveSession()
 	if sessionErr != nil {
 		return fmt.Errorf("failed to set active session: %w", err)
@@ -143,6 +143,20 @@ func (c *Client) StartLogin() (string, error) {
 		return "", fmt.Errorf("failed to generate QR code: %w", err)
 	}
 	return qr, nil
+}
+
+func (c *Client) GenerateQRCodeData(pairingKey []byte) (string, error) {
+	urlData := &binary.URLData{
+		PairingKey: pairingKey,
+		AESKey:     c.AuthData.RequestCrypto.AESKey,
+		HMACKey:    c.AuthData.RequestCrypto.HMACKey,
+	}
+	encodedURLData, err := proto.Marshal(urlData)
+	if err != nil {
+		return "", err
+	}
+	cData := base64.StdEncoding.EncodeToString(encodedURLData)
+	return util.QRCodeURLBase + cData, nil
 }
 
 func (c *Client) Disconnect() {
@@ -165,10 +179,10 @@ func (c *Client) Reconnect() error {
 	}
 	err := c.Connect()
 	if err != nil {
-		c.Logger.Err(err).Any("tachyonAuthToken", c.AuthData.TachyonAuthToken).Msg("Failed to reconnect")
+		c.Logger.Err(err).Msg("Failed to reconnect")
 		return err
 	}
-	c.Logger.Debug().Any("tachyonAuthToken", c.AuthData.TachyonAuthToken).Msg("Successfully reconnected to server")
+	c.Logger.Debug().Msg("Successfully reconnected to server")
 	return nil
 }
 
@@ -190,9 +204,9 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 			ConfigVersion:    util.ConfigMessage,
 		},
 	}
-	downloadMetadataBytes, err2 := proto.Marshal(downloadMetadata)
-	if err2 != nil {
-		return nil, err2
+	downloadMetadataBytes, err := proto.Marshal(downloadMetadata)
+	if err != nil {
+		return nil, err
 	}
 	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
 	req, err := http.NewRequest("GET", util.UploadMediaURL, nil)
@@ -204,13 +218,11 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	if reqErr != nil {
 		return nil, reqErr
 	}
-	c.Logger.Info().Any("url", util.UploadMediaURL).Any("headers", res.Request.Header).Msg("Decrypt Image Headers")
 	defer res.Body.Close()
-	encryptedBuffImg, err3 := io.ReadAll(res.Body)
-	if err3 != nil {
-		return nil, err3
+	encryptedBuffImg, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
 	}
-	c.Logger.Debug().Any("key", key).Any("encryptedLength", len(encryptedBuffImg)).Msg("Attempting to decrypt image")
 	cryptor, err := crypto.NewImageCryptor(key)
 	if err != nil {
 		return nil, err
@@ -257,7 +269,7 @@ func (c *Client) diffVersionFormat(curr *binary.ConfigVersion, latest *binary.Co
 }
 
 func (c *Client) updateWebEncryptionKey(key []byte) {
-	c.Logger.Debug().Any("key", key).Msg("Updated WebEncryptionKey")
+	c.Logger.Debug().Msg("Updated WebEncryptionKey")
 	c.AuthData.WebEncryptionKey = key
 }
 
@@ -269,14 +281,19 @@ func (c *Client) updateTachyonAuthToken(t []byte, validFor int64) {
 	}
 	c.AuthData.TachyonExpiry = time.Now().UTC().Add(time.Microsecond * time.Duration(validFor))
 	c.AuthData.TachyonTTL = validForDuration.Microseconds()
-	c.Logger.Debug().Time("tachyon_expiry", c.AuthData.TachyonExpiry).Int64("valid_for", validFor).Msg("Updated tachyon token")
+	c.Logger.Debug().
+		Time("tachyon_expiry", c.AuthData.TachyonExpiry).
+		Int64("valid_for", validFor).
+		Msg("Updated tachyon token")
 }
 
 func (c *Client) refreshAuthToken() error {
 	if c.AuthData.Browser == nil || time.Until(c.AuthData.TachyonExpiry) > RefreshTachyonBuffer {
 		return nil
 	}
-	c.Logger.Debug().Time("tachyon_expiry", c.AuthData.TachyonExpiry).Msg("Refreshing auth token")
+	c.Logger.Debug().
+		Time("tachyon_expiry", c.AuthData.TachyonExpiry).
+		Msg("Refreshing auth token")
 	jwk := c.AuthData.RefreshKey
 	requestID := uuid.NewString()
 	timestamp := time.Now().UnixMilli() * 1000

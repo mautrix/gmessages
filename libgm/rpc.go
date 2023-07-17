@@ -155,7 +155,7 @@ func (r *RPC) startReadingData(rc io.ReadCloser) {
 		}
 		accumulatedData = append(accumulatedData, chunk...)
 		if !json.Valid(accumulatedData) {
-			r.client.Logger.Debug().Str("data", string(chunk)).Msg("Invalid JSON")
+			r.client.Logger.Trace().Bytes("data", chunk).Msg("Invalid JSON, reading next chunk")
 			continue
 		}
 		currentBlock := accumulatedData
