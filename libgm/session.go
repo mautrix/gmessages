@@ -1,8 +1,6 @@
 package libgm
 
 import (
-	"fmt"
-
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
@@ -14,20 +12,8 @@ func (c *Client) SetActiveSession() error {
 
 func (c *Client) IsBugleDefault() (*gmproto.IsBugleDefaultResponse, error) {
 	c.sessionHandler.ResetSessionID()
-
 	actionType := gmproto.ActionType_IS_BUGLE_DEFAULT
-
-	response, err := c.sessionHandler.sendMessage(actionType, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, ok := response.DecryptedMessage.(*gmproto.IsBugleDefaultResponse)
-	if !ok {
-		return nil, fmt.Errorf("unexpected response type %T, expected *gmproto.IsBugleDefaultResponse", response.DecryptedMessage)
-	}
-
-	return res, nil
+	return typedResponse[*gmproto.IsBugleDefaultResponse](c.sessionHandler.sendMessage(actionType, nil))
 }
 
 func (c *Client) NotifyDittoActivity() error {

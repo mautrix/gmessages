@@ -61,6 +61,19 @@ func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encrypt
 	return ch, nil
 }
 
+func typedResponse[T proto.Message](resp *IncomingRPCMessage, err error) (casted T, retErr error) {
+	if err != nil {
+		retErr = err
+		return
+	}
+	var ok bool
+	casted, ok = resp.DecryptedMessage.(T)
+	if !ok {
+		retErr = fmt.Errorf("unexpected response type %T, expected %T", resp.DecryptedMessage, casted)
+	}
+	return
+}
+
 func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
 	ch, err := s.sendAsyncMessage(actionType, encryptedData)
 	if err != nil {
