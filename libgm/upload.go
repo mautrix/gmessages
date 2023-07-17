@@ -229,8 +229,8 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 }
 
 func (c *Client) buildStartUploadPayload() (string, error) {
-	protoData := &gmproto.StartMediaUploadPayload{
-		ImageType: 1,
+	protoData := &gmproto.StartMediaUploadRequest{
+		AttachmentType: 1,
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,

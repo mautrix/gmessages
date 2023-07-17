@@ -4,8 +4,8 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
-func (c *Client) ListConversations(count int64, folder gmproto.ListConversationsPayload_Folder) (*gmproto.Conversations, error) {
-	payload := &gmproto.ListConversationsPayload{Count: count, Folder: folder}
+func (c *Client) ListConversations(count int64, folder gmproto.ListConversationsRequest_Folder) (*gmproto.ListConversationsResponse, error) {
+	payload := &gmproto.ListConversationsRequest{Count: count, Folder: folder}
 	//var actionType gmproto.ActionType
 	//if !c.synced {
 	//	actionType = gmproto.ActionType_LIST_CONVERSATIONS_SYNC
@@ -13,11 +13,11 @@ func (c *Client) ListConversations(count int64, folder gmproto.ListConversations
 	//} else {
 	actionType := gmproto.ActionType_LIST_CONVERSATIONS
 
-	return typedResponse[*gmproto.Conversations](c.sessionHandler.sendMessage(actionType, payload))
+	return typedResponse[*gmproto.ListConversationsResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
 func (c *Client) ListContacts() (*gmproto.ListContactsResponse, error) {
-	payload := &gmproto.ListContactsPayload{
+	payload := &gmproto.ListContactsRequest{
 		I1: 1,
 		I2: 350,
 		I3: 50,
@@ -27,26 +27,26 @@ func (c *Client) ListContacts() (*gmproto.ListContactsResponse, error) {
 }
 
 func (c *Client) ListTopContacts() (*gmproto.ListTopContactsResponse, error) {
-	payload := &gmproto.ListTopContactsPayload{
+	payload := &gmproto.ListTopContactsRequest{
 		Count: 8,
 	}
 	actionType := gmproto.ActionType_LIST_TOP_CONTACTS
 	return typedResponse[*gmproto.ListTopContactsResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
-func (c *Client) GetOrCreateConversation(req *gmproto.GetOrCreateConversationPayload) (*gmproto.GetOrCreateConversationResponse, error) {
+func (c *Client) GetOrCreateConversation(req *gmproto.GetOrCreateConversationRequest) (*gmproto.GetOrCreateConversationResponse, error) {
 	actionType := gmproto.ActionType_GET_OR_CREATE_CONVERSATION
 	return typedResponse[*gmproto.GetOrCreateConversationResponse](c.sessionHandler.sendMessage(actionType, req))
 }
 
 func (c *Client) GetConversationType(conversationID string) (*gmproto.GetConversationTypeResponse, error) {
-	payload := &gmproto.ConversationTypePayload{ConversationID: conversationID}
+	payload := &gmproto.ConversationTypeRequest{ConversationID: conversationID}
 	actionType := gmproto.ActionType_GET_CONVERSATION_TYPE
 	return typedResponse[*gmproto.GetConversationTypeResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
 func (c *Client) GetConversation(conversationID string) (*gmproto.Conversation, error) {
-	payload := &gmproto.GetConversationPayload{ConversationID: conversationID}
+	payload := &gmproto.GetConversationRequest{ConversationID: conversationID}
 	actionType := gmproto.ActionType_GET_CONVERSATION
 	resp, err := typedResponse[*gmproto.GetConversationResponse](c.sessionHandler.sendMessage(actionType, payload))
 	if err != nil {
@@ -56,7 +56,7 @@ func (c *Client) GetConversation(conversationID string) (*gmproto.Conversation, 
 }
 
 func (c *Client) FetchMessages(conversationID string, count int64, cursor *gmproto.Cursor) (*gmproto.FetchMessagesResponse, error) {
-	payload := &gmproto.FetchConversationMessagesPayload{ConversationID: conversationID, Count: count}
+	payload := &gmproto.FetchMessagesRequest{ConversationID: conversationID, Count: count}
 	if cursor != nil {
 		payload.Cursor = cursor
 	}
@@ -64,19 +64,19 @@ func (c *Client) FetchMessages(conversationID string, count int64, cursor *gmpro
 	return typedResponse[*gmproto.FetchMessagesResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
-func (c *Client) SendMessage(payload *gmproto.SendMessagePayload) (*gmproto.SendMessageResponse, error) {
+func (c *Client) SendMessage(payload *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
 	actionType := gmproto.ActionType_SEND_MESSAGE
 	return typedResponse[*gmproto.SendMessageResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
-func (c *Client) GetParticipantThumbnail(convID string) (*gmproto.ParticipantThumbnail, error) {
-	payload := &gmproto.GetParticipantThumbnailPayload{ConversationID: convID}
+func (c *Client) GetParticipantThumbnail(convID string) (*gmproto.GetParticipantThumbnailResponse, error) {
+	payload := &gmproto.GetParticipantThumbnailRequest{ConversationID: convID}
 	actionType := gmproto.ActionType_GET_PARTICIPANTS_THUMBNAIL
-	return typedResponse[*gmproto.ParticipantThumbnail](c.sessionHandler.sendMessage(actionType, payload))
+	return typedResponse[*gmproto.GetParticipantThumbnailResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
 func (c *Client) UpdateConversation(convBuilder *ConversationBuilder) (*gmproto.UpdateConversationResponse, error) {
-	data := &gmproto.UpdateConversationPayload{}
+	data := &gmproto.UpdateConversationRequest{}
 
 	payload, buildErr := convBuilder.Build(data)
 	if buildErr != nil {
@@ -89,7 +89,9 @@ func (c *Client) UpdateConversation(convBuilder *ConversationBuilder) (*gmproto.
 }
 
 func (c *Client) SetTyping(convID string) error {
-	payload := &gmproto.TypingUpdatePayload{Data: &gmproto.SetTypingIn{ConversationID: convID, Typing: true}}
+	payload := &gmproto.TypingUpdateRequest{
+		Data: &gmproto.TypingUpdateRequest_Data{ConversationID: convID, Typing: true},
+	}
 	actionType := gmproto.ActionType_TYPING_UPDATES
 
 	_, err := c.sessionHandler.sendMessage(actionType, payload)

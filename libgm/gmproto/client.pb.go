@@ -22,156 +22,310 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type BugleMessageType int32
+type ConversationStatus int32
 
 const (
-	BugleMessageType_UNKNOWN_BUGLE_MESSAGE_TYPE BugleMessageType = 0
-	BugleMessageType_SMS                        BugleMessageType = 1
-	BugleMessageType_MMS                        BugleMessageType = 2
-	BugleMessageType_RCS                        BugleMessageType = 3
-	BugleMessageType_CLOUD_SYNC                 BugleMessageType = 4
-	BugleMessageType_IMDN_DELIVERED             BugleMessageType = 5
-	BugleMessageType_IMDN_DISPLAYED             BugleMessageType = 6
-	BugleMessageType_IMDN_FALLBACK              BugleMessageType = 7
-	BugleMessageType_RCS_GENERIC                BugleMessageType = 8
-	BugleMessageType_FTD                        BugleMessageType = 9
-	BugleMessageType_FT_E2EE_LEGACY             BugleMessageType = 10
-	BugleMessageType_FT_E2EE_XML                BugleMessageType = 11
-	BugleMessageType_LIGHTER_MESSAGE            BugleMessageType = 12
-	BugleMessageType_RBM_SPAM_REPORT            BugleMessageType = 13
-	BugleMessageType_SATELLITE                  BugleMessageType = 14
+	ConversationStatus_UNKNOWN_STATUS ConversationStatus = 0
+	ConversationStatus_UNARCHIVE      ConversationStatus = 1
+	ConversationStatus_ARCHIVE        ConversationStatus = 2
+	ConversationStatus_DELETE         ConversationStatus = 3
 )
 
-// Enum value maps for BugleMessageType.
+// Enum value maps for ConversationStatus.
 var (
-	BugleMessageType_name = map[int32]string{
-		0:  "UNKNOWN_BUGLE_MESSAGE_TYPE",
-		1:  "SMS",
-		2:  "MMS",
-		3:  "RCS",
-		4:  "CLOUD_SYNC",
-		5:  "IMDN_DELIVERED",
-		6:  "IMDN_DISPLAYED",
-		7:  "IMDN_FALLBACK",
-		8:  "RCS_GENERIC",
-		9:  "FTD",
-		10: "FT_E2EE_LEGACY",
-		11: "FT_E2EE_XML",
-		12: "LIGHTER_MESSAGE",
-		13: "RBM_SPAM_REPORT",
-		14: "SATELLITE",
+	ConversationStatus_name = map[int32]string{
+		0: "UNKNOWN_STATUS",
+		1: "UNARCHIVE",
+		2: "ARCHIVE",
+		3: "DELETE",
 	}
-	BugleMessageType_value = map[string]int32{
-		"UNKNOWN_BUGLE_MESSAGE_TYPE": 0,
-		"SMS":                        1,
-		"MMS":                        2,
-		"RCS":                        3,
-		"CLOUD_SYNC":                 4,
-		"IMDN_DELIVERED":             5,
-		"IMDN_DISPLAYED":             6,
-		"IMDN_FALLBACK":              7,
-		"RCS_GENERIC":                8,
-		"FTD":                        9,
-		"FT_E2EE_LEGACY":             10,
-		"FT_E2EE_XML":                11,
-		"LIGHTER_MESSAGE":            12,
-		"RBM_SPAM_REPORT":            13,
-		"SATELLITE":                  14,
+	ConversationStatus_value = map[string]int32{
+		"UNKNOWN_STATUS": 0,
+		"UNARCHIVE":      1,
+		"ARCHIVE":        2,
+		"DELETE":         3,
 	}
 )
 
-func (x BugleMessageType) Enum() *BugleMessageType {
-	p := new(BugleMessageType)
+func (x ConversationStatus) Enum() *ConversationStatus {
+	p := new(ConversationStatus)
 	*p = x
 	return p
 }
 
-func (x BugleMessageType) String() string {
+func (x ConversationStatus) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (BugleMessageType) Descriptor() protoreflect.EnumDescriptor {
+func (ConversationStatus) Descriptor() protoreflect.EnumDescriptor {
 	return file_client_proto_enumTypes[0].Descriptor()
 }
 
-func (BugleMessageType) Type() protoreflect.EnumType {
+func (ConversationStatus) Type() protoreflect.EnumType {
 	return &file_client_proto_enumTypes[0]
 }
 
-func (x BugleMessageType) Number() protoreflect.EnumNumber {
+func (x ConversationStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use BugleMessageType.Descriptor instead.
-func (BugleMessageType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ConversationStatus.Descriptor instead.
+func (ConversationStatus) EnumDescriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{0}
 }
 
-type BrowserTypes int32
+type ConversationActionStatus int32
 
 const (
-	BrowserTypes_UNKNOWN_BROWSER_TYPE BrowserTypes = 0
-	BrowserTypes_OTHER                BrowserTypes = 1
-	BrowserTypes_CHROME               BrowserTypes = 2
-	BrowserTypes_FIREFOX              BrowserTypes = 3
-	BrowserTypes_SAFARI               BrowserTypes = 4
-	BrowserTypes_OPERA                BrowserTypes = 5
-	BrowserTypes_IE                   BrowserTypes = 6
-	BrowserTypes_EDGE                 BrowserTypes = 7
+	ConversationActionStatus_UNKNOWN_ACTION_STATUS ConversationActionStatus = 0
+	ConversationActionStatus_UNBLOCK               ConversationActionStatus = 2
+	ConversationActionStatus_BLOCK                 ConversationActionStatus = 7
+	ConversationActionStatus_BLOCK_AND_REPORT      ConversationActionStatus = 8
 )
 
-// Enum value maps for BrowserTypes.
+// Enum value maps for ConversationActionStatus.
 var (
-	BrowserTypes_name = map[int32]string{
-		0: "UNKNOWN_BROWSER_TYPE",
-		1: "OTHER",
-		2: "CHROME",
-		3: "FIREFOX",
-		4: "SAFARI",
-		5: "OPERA",
-		6: "IE",
-		7: "EDGE",
+	ConversationActionStatus_name = map[int32]string{
+		0: "UNKNOWN_ACTION_STATUS",
+		2: "UNBLOCK",
+		7: "BLOCK",
+		8: "BLOCK_AND_REPORT",
 	}
-	BrowserTypes_value = map[string]int32{
-		"UNKNOWN_BROWSER_TYPE": 0,
-		"OTHER":                1,
-		"CHROME":               2,
-		"FIREFOX":              3,
-		"SAFARI":               4,
-		"OPERA":                5,
-		"IE":                   6,
-		"EDGE":                 7,
+	ConversationActionStatus_value = map[string]int32{
+		"UNKNOWN_ACTION_STATUS": 0,
+		"UNBLOCK":               2,
+		"BLOCK":                 7,
+		"BLOCK_AND_REPORT":      8,
 	}
 )
 
-func (x BrowserTypes) Enum() *BrowserTypes {
-	p := new(BrowserTypes)
+func (x ConversationActionStatus) Enum() *ConversationActionStatus {
+	p := new(ConversationActionStatus)
 	*p = x
 	return p
 }
 
-func (x BrowserTypes) String() string {
+func (x ConversationActionStatus) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (BrowserTypes) Descriptor() protoreflect.EnumDescriptor {
+func (ConversationActionStatus) Descriptor() protoreflect.EnumDescriptor {
 	return file_client_proto_enumTypes[1].Descriptor()
 }
 
-func (BrowserTypes) Type() protoreflect.EnumType {
+func (ConversationActionStatus) Type() protoreflect.EnumType {
 	return &file_client_proto_enumTypes[1]
 }
 
-func (x BrowserTypes) Number() protoreflect.EnumNumber {
+func (x ConversationActionStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use BrowserTypes.Descriptor instead.
-func (BrowserTypes) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ConversationActionStatus.Descriptor instead.
+func (ConversationActionStatus) EnumDescriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{1}
 }
 
-type NotifyDittoActivityPayload struct {
+type ConversationMuteStatus int32
+
+const (
+	ConversationMuteStatus_UNMUTE ConversationMuteStatus = 0
+	ConversationMuteStatus_MUTE   ConversationMuteStatus = 1
+)
+
+// Enum value maps for ConversationMuteStatus.
+var (
+	ConversationMuteStatus_name = map[int32]string{
+		0: "UNMUTE",
+		1: "MUTE",
+	}
+	ConversationMuteStatus_value = map[string]int32{
+		"UNMUTE": 0,
+		"MUTE":   1,
+	}
+)
+
+func (x ConversationMuteStatus) Enum() *ConversationMuteStatus {
+	p := new(ConversationMuteStatus)
+	*p = x
+	return p
+}
+
+func (x ConversationMuteStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConversationMuteStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_client_proto_enumTypes[2].Descriptor()
+}
+
+func (ConversationMuteStatus) Type() protoreflect.EnumType {
+	return &file_client_proto_enumTypes[2]
+}
+
+func (x ConversationMuteStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConversationMuteStatus.Descriptor instead.
+func (ConversationMuteStatus) EnumDescriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{2}
+}
+
+type ListConversationsRequest_Folder int32
+
+const (
+	ListConversationsRequest_UNKNOWN      ListConversationsRequest_Folder = 0
+	ListConversationsRequest_INBOX        ListConversationsRequest_Folder = 1
+	ListConversationsRequest_ARCHIVE      ListConversationsRequest_Folder = 2
+	ListConversationsRequest_SPAM_BLOCKED ListConversationsRequest_Folder = 5
+)
+
+// Enum value maps for ListConversationsRequest_Folder.
+var (
+	ListConversationsRequest_Folder_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "INBOX",
+		2: "ARCHIVE",
+		5: "SPAM_BLOCKED",
+	}
+	ListConversationsRequest_Folder_value = map[string]int32{
+		"UNKNOWN":      0,
+		"INBOX":        1,
+		"ARCHIVE":      2,
+		"SPAM_BLOCKED": 5,
+	}
+)
+
+func (x ListConversationsRequest_Folder) Enum() *ListConversationsRequest_Folder {
+	p := new(ListConversationsRequest_Folder)
+	*p = x
+	return p
+}
+
+func (x ListConversationsRequest_Folder) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ListConversationsRequest_Folder) Descriptor() protoreflect.EnumDescriptor {
+	return file_client_proto_enumTypes[3].Descriptor()
+}
+
+func (ListConversationsRequest_Folder) Type() protoreflect.EnumType {
+	return &file_client_proto_enumTypes[3]
+}
+
+func (x ListConversationsRequest_Folder) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ListConversationsRequest_Folder.Descriptor instead.
+func (ListConversationsRequest_Folder) EnumDescriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{22, 0}
+}
+
+type GetOrCreateConversationResponse_Status int32
+
+const (
+	GetOrCreateConversationResponse_UNKNOWN    GetOrCreateConversationResponse_Status = 0
+	GetOrCreateConversationResponse_SUCCESS    GetOrCreateConversationResponse_Status = 1
+	GetOrCreateConversationResponse_CREATE_RCS GetOrCreateConversationResponse_Status = 3
+)
+
+// Enum value maps for GetOrCreateConversationResponse_Status.
+var (
+	GetOrCreateConversationResponse_Status_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "SUCCESS",
+		3: "CREATE_RCS",
+	}
+	GetOrCreateConversationResponse_Status_value = map[string]int32{
+		"UNKNOWN":    0,
+		"SUCCESS":    1,
+		"CREATE_RCS": 3,
+	}
+)
+
+func (x GetOrCreateConversationResponse_Status) Enum() *GetOrCreateConversationResponse_Status {
+	p := new(GetOrCreateConversationResponse_Status)
+	*p = x
+	return p
+}
+
+func (x GetOrCreateConversationResponse_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GetOrCreateConversationResponse_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_client_proto_enumTypes[4].Descriptor()
+}
+
+func (GetOrCreateConversationResponse_Status) Type() protoreflect.EnumType {
+	return &file_client_proto_enumTypes[4]
+}
+
+func (x GetOrCreateConversationResponse_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GetOrCreateConversationResponse_Status.Descriptor instead.
+func (GetOrCreateConversationResponse_Status) EnumDescriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{25, 0}
+}
+
+type SendReactionRequest_Action int32
+
+const (
+	SendReactionRequest_UNSPECIFIED SendReactionRequest_Action = 0
+	SendReactionRequest_ADD         SendReactionRequest_Action = 1
+	SendReactionRequest_REMOVE      SendReactionRequest_Action = 2
+	SendReactionRequest_SWITCH      SendReactionRequest_Action = 3
+)
+
+// Enum value maps for SendReactionRequest_Action.
+var (
+	SendReactionRequest_Action_name = map[int32]string{
+		0: "UNSPECIFIED",
+		1: "ADD",
+		2: "REMOVE",
+		3: "SWITCH",
+	}
+	SendReactionRequest_Action_value = map[string]int32{
+		"UNSPECIFIED": 0,
+		"ADD":         1,
+		"REMOVE":      2,
+		"SWITCH":      3,
+	}
+)
+
+func (x SendReactionRequest_Action) Enum() *SendReactionRequest_Action {
+	p := new(SendReactionRequest_Action)
+	*p = x
+	return p
+}
+
+func (x SendReactionRequest_Action) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SendReactionRequest_Action) Descriptor() protoreflect.EnumDescriptor {
+	return file_client_proto_enumTypes[5].Descriptor()
+}
+
+func (SendReactionRequest_Action) Type() protoreflect.EnumType {
+	return &file_client_proto_enumTypes[5]
+}
+
+func (x SendReactionRequest_Action) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SendReactionRequest_Action.Descriptor instead.
+func (SendReactionRequest_Action) EnumDescriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{44, 0}
+}
+
+type NotifyDittoActivityRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -180,8 +334,8 @@ type NotifyDittoActivityPayload struct {
 	Success bool `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
 }
 
-func (x *NotifyDittoActivityPayload) Reset() {
-	*x = NotifyDittoActivityPayload{}
+func (x *NotifyDittoActivityRequest) Reset() {
+	*x = NotifyDittoActivityRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -189,13 +343,13 @@ func (x *NotifyDittoActivityPayload) Reset() {
 	}
 }
 
-func (x *NotifyDittoActivityPayload) String() string {
+func (x *NotifyDittoActivityRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*NotifyDittoActivityPayload) ProtoMessage() {}
+func (*NotifyDittoActivityRequest) ProtoMessage() {}
 
-func (x *NotifyDittoActivityPayload) ProtoReflect() protoreflect.Message {
+func (x *NotifyDittoActivityRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -207,29 +361,26 @@ func (x *NotifyDittoActivityPayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NotifyDittoActivityPayload.ProtoReflect.Descriptor instead.
-func (*NotifyDittoActivityPayload) Descriptor() ([]byte, []int) {
+// Deprecated: Use NotifyDittoActivityRequest.ProtoReflect.Descriptor instead.
+func (*NotifyDittoActivityRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *NotifyDittoActivityPayload) GetSuccess() bool {
+func (x *NotifyDittoActivityRequest) GetSuccess() bool {
 	if x != nil {
 		return x.Success
 	}
 	return false
 }
 
-type MessageReadPayload struct {
+type NotifyDittoActivityResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-
-	ConversationID string `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	MessageID      string `protobuf:"bytes,3,opt,name=messageID,proto3" json:"messageID,omitempty"`
 }
 
-func (x *MessageReadPayload) Reset() {
-	*x = MessageReadPayload{}
+func (x *NotifyDittoActivityResponse) Reset() {
+	*x = NotifyDittoActivityResponse{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -237,13 +388,13 @@ func (x *MessageReadPayload) Reset() {
 	}
 }
 
-func (x *MessageReadPayload) String() string {
+func (x *NotifyDittoActivityResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MessageReadPayload) ProtoMessage() {}
+func (*NotifyDittoActivityResponse) ProtoMessage() {}
 
-func (x *MessageReadPayload) ProtoReflect() protoreflect.Message {
+func (x *NotifyDittoActivityResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -255,37 +406,22 @@ func (x *MessageReadPayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MessageReadPayload.ProtoReflect.Descriptor instead.
-func (*MessageReadPayload) Descriptor() ([]byte, []int) {
+// Deprecated: Use NotifyDittoActivityResponse.ProtoReflect.Descriptor instead.
+func (*NotifyDittoActivityResponse) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *MessageReadPayload) GetConversationID() string {
-	if x != nil {
-		return x.ConversationID
-	}
-	return ""
-}
-
-func (x *MessageReadPayload) GetMessageID() string {
-	if x != nil {
-		return x.MessageID
-	}
-	return ""
-}
-
-type AckMessagePayload struct {
+type ReceiveMessagesRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	AuthData *AuthMessage      `protobuf:"bytes,1,opt,name=authData,proto3" json:"authData,omitempty"`
-	EmptyArr *EmptyArr         `protobuf:"bytes,2,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
-	Acks     []*AckMessageData `protobuf:"bytes,4,rep,name=acks,proto3" json:"acks,omitempty"`
+	Auth    *AuthMessage                                `protobuf:"bytes,1,opt,name=auth,proto3" json:"auth,omitempty"`
+	Unknown *ReceiveMessagesRequest_UnknownEmptyObject2 `protobuf:"bytes,4,opt,name=unknown,proto3,oneof" json:"unknown,omitempty"`
 }
 
-func (x *AckMessagePayload) Reset() {
-	*x = AckMessagePayload{}
+func (x *ReceiveMessagesRequest) Reset() {
+	*x = ReceiveMessagesRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -293,13 +429,13 @@ func (x *AckMessagePayload) Reset() {
 	}
 }
 
-func (x *AckMessagePayload) String() string {
+func (x *ReceiveMessagesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AckMessagePayload) ProtoMessage() {}
+func (*ReceiveMessagesRequest) ProtoMessage() {}
 
-func (x *AckMessagePayload) ProtoReflect() protoreflect.Message {
+func (x *ReceiveMessagesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -311,43 +447,36 @@ func (x *AckMessagePayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AckMessagePayload.ProtoReflect.Descriptor instead.
-func (*AckMessagePayload) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReceiveMessagesRequest.ProtoReflect.Descriptor instead.
+func (*ReceiveMessagesRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *AckMessagePayload) GetAuthData() *AuthMessage {
+func (x *ReceiveMessagesRequest) GetAuth() *AuthMessage {
 	if x != nil {
-		return x.AuthData
+		return x.Auth
 	}
 	return nil
 }
 
-func (x *AckMessagePayload) GetEmptyArr() *EmptyArr {
+func (x *ReceiveMessagesRequest) GetUnknown() *ReceiveMessagesRequest_UnknownEmptyObject2 {
 	if x != nil {
-		return x.EmptyArr
+		return x.Unknown
 	}
 	return nil
 }
 
-func (x *AckMessagePayload) GetAcks() []*AckMessageData {
-	if x != nil {
-		return x.Acks
-	}
-	return nil
-}
-
-type AckMessageData struct {
+type MessageReadRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	RequestID string  `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
-	Device    *Device `protobuf:"bytes,2,opt,name=device,proto3" json:"device,omitempty"`
+	ConversationID string `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	MessageID      string `protobuf:"bytes,3,opt,name=messageID,proto3" json:"messageID,omitempty"`
 }
 
-func (x *AckMessageData) Reset() {
-	*x = AckMessageData{}
+func (x *MessageReadRequest) Reset() {
+	*x = MessageReadRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -355,13 +484,13 @@ func (x *AckMessageData) Reset() {
 	}
 }
 
-func (x *AckMessageData) String() string {
+func (x *MessageReadRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AckMessageData) ProtoMessage() {}
+func (*MessageReadRequest) ProtoMessage() {}
 
-func (x *AckMessageData) ProtoReflect() protoreflect.Message {
+func (x *MessageReadRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -373,36 +502,37 @@ func (x *AckMessageData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AckMessageData.ProtoReflect.Descriptor instead.
-func (*AckMessageData) Descriptor() ([]byte, []int) {
+// Deprecated: Use MessageReadRequest.ProtoReflect.Descriptor instead.
+func (*MessageReadRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *AckMessageData) GetRequestID() string {
+func (x *MessageReadRequest) GetConversationID() string {
 	if x != nil {
-		return x.RequestID
+		return x.ConversationID
 	}
 	return ""
 }
 
-func (x *AckMessageData) GetDevice() *Device {
+func (x *MessageReadRequest) GetMessageID() string {
 	if x != nil {
-		return x.Device
+		return x.MessageID
 	}
-	return nil
+	return ""
 }
 
-type ImageMetaData struct {
+type AckMessageRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ImageID   string `protobuf:"bytes,1,opt,name=imageID,proto3" json:"imageID,omitempty"`
-	Encrypted bool   `protobuf:"varint,2,opt,name=encrypted,proto3" json:"encrypted,omitempty"`
+	AuthData *AuthMessage                 `protobuf:"bytes,1,opt,name=authData,proto3" json:"authData,omitempty"`
+	EmptyArr *EmptyArr                    `protobuf:"bytes,2,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
+	Acks     []*AckMessageRequest_Message `protobuf:"bytes,4,rep,name=acks,proto3" json:"acks,omitempty"`
 }
 
-func (x *ImageMetaData) Reset() {
-	*x = ImageMetaData{}
+func (x *AckMessageRequest) Reset() {
+	*x = AckMessageRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -410,13 +540,13 @@ func (x *ImageMetaData) Reset() {
 	}
 }
 
-func (x *ImageMetaData) String() string {
+func (x *AckMessageRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ImageMetaData) ProtoMessage() {}
+func (*AckMessageRequest) ProtoMessage() {}
 
-func (x *ImageMetaData) ProtoReflect() protoreflect.Message {
+func (x *AckMessageRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -428,36 +558,43 @@ func (x *ImageMetaData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ImageMetaData.ProtoReflect.Descriptor instead.
-func (*ImageMetaData) Descriptor() ([]byte, []int) {
+// Deprecated: Use AckMessageRequest.ProtoReflect.Descriptor instead.
+func (*AckMessageRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ImageMetaData) GetImageID() string {
+func (x *AckMessageRequest) GetAuthData() *AuthMessage {
 	if x != nil {
-		return x.ImageID
+		return x.AuthData
 	}
-	return ""
+	return nil
 }
 
-func (x *ImageMetaData) GetEncrypted() bool {
+func (x *AckMessageRequest) GetEmptyArr() *EmptyArr {
 	if x != nil {
-		return x.Encrypted
+		return x.EmptyArr
 	}
-	return false
+	return nil
 }
 
-type UploadImagePayload struct {
+func (x *AckMessageRequest) GetAcks() []*AckMessageRequest_Message {
+	if x != nil {
+		return x.Acks
+	}
+	return nil
+}
+
+type DownloadAttachmentRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	MetaData *ImageMetaData `protobuf:"bytes,1,opt,name=metaData,proto3" json:"metaData,omitempty"`
-	AuthData *AuthMessage   `protobuf:"bytes,2,opt,name=authData,proto3" json:"authData,omitempty"`
+	Info     *AttachmentInfo `protobuf:"bytes,1,opt,name=info,proto3" json:"info,omitempty"`
+	AuthData *AuthMessage    `protobuf:"bytes,2,opt,name=authData,proto3" json:"authData,omitempty"`
 }
 
-func (x *UploadImagePayload) Reset() {
-	*x = UploadImagePayload{}
+func (x *DownloadAttachmentRequest) Reset() {
+	*x = DownloadAttachmentRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -465,13 +602,13 @@ func (x *UploadImagePayload) Reset() {
 	}
 }
 
-func (x *UploadImagePayload) String() string {
+func (x *DownloadAttachmentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UploadImagePayload) ProtoMessage() {}
+func (*DownloadAttachmentRequest) ProtoMessage() {}
 
-func (x *UploadImagePayload) ProtoReflect() protoreflect.Message {
+func (x *DownloadAttachmentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -483,35 +620,36 @@ func (x *UploadImagePayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadImagePayload.ProtoReflect.Descriptor instead.
-func (*UploadImagePayload) Descriptor() ([]byte, []int) {
+// Deprecated: Use DownloadAttachmentRequest.ProtoReflect.Descriptor instead.
+func (*DownloadAttachmentRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UploadImagePayload) GetMetaData() *ImageMetaData {
+func (x *DownloadAttachmentRequest) GetInfo() *AttachmentInfo {
 	if x != nil {
-		return x.MetaData
+		return x.Info
 	}
 	return nil
 }
 
-func (x *UploadImagePayload) GetAuthData() *AuthMessage {
+func (x *DownloadAttachmentRequest) GetAuthData() *AuthMessage {
 	if x != nil {
 		return x.AuthData
 	}
 	return nil
 }
 
-type BugleBackendService struct {
+type AttachmentInfo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data *BugleCode `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`
+	AttachmentID string `protobuf:"bytes,1,opt,name=attachmentID,proto3" json:"attachmentID,omitempty"`
+	Encrypted    bool   `protobuf:"varint,2,opt,name=encrypted,proto3" json:"encrypted,omitempty"`
 }
 
-func (x *BugleBackendService) Reset() {
-	*x = BugleBackendService{}
+func (x *AttachmentInfo) Reset() {
+	*x = AttachmentInfo{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -519,13 +657,13 @@ func (x *BugleBackendService) Reset() {
 	}
 }
 
-func (x *BugleBackendService) String() string {
+func (x *AttachmentInfo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BugleBackendService) ProtoMessage() {}
+func (*AttachmentInfo) ProtoMessage() {}
 
-func (x *BugleBackendService) ProtoReflect() protoreflect.Message {
+func (x *AttachmentInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -537,28 +675,37 @@ func (x *BugleBackendService) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BugleBackendService.ProtoReflect.Descriptor instead.
-func (*BugleBackendService) Descriptor() ([]byte, []int) {
+// Deprecated: Use AttachmentInfo.ProtoReflect.Descriptor instead.
+func (*AttachmentInfo) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *BugleBackendService) GetData() *BugleCode {
+func (x *AttachmentInfo) GetAttachmentID() string {
 	if x != nil {
-		return x.Data
+		return x.AttachmentID
 	}
-	return nil
+	return ""
 }
 
-type BugleCode struct {
+func (x *AttachmentInfo) GetEncrypted() bool {
+	if x != nil {
+		return x.Encrypted
+	}
+	return false
+}
+
+type StartMediaUploadRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type int64 `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
+	AttachmentType int64        `protobuf:"varint,1,opt,name=attachmentType,proto3" json:"attachmentType,omitempty"`
+	AuthData       *AuthMessage `protobuf:"bytes,2,opt,name=authData,proto3" json:"authData,omitempty"`
+	Mobile         *Device      `protobuf:"bytes,3,opt,name=mobile,proto3" json:"mobile,omitempty"`
 }
 
-func (x *BugleCode) Reset() {
-	*x = BugleCode{}
+func (x *StartMediaUploadRequest) Reset() {
+	*x = StartMediaUploadRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -566,13 +713,13 @@ func (x *BugleCode) Reset() {
 	}
 }
 
-func (x *BugleCode) String() string {
+func (x *StartMediaUploadRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BugleCode) ProtoMessage() {}
+func (*StartMediaUploadRequest) ProtoMessage() {}
 
-func (x *BugleCode) ProtoReflect() protoreflect.Message {
+func (x *StartMediaUploadRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -584,16 +731,2443 @@ func (x *BugleCode) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BugleCode.ProtoReflect.Descriptor instead.
-func (*BugleCode) Descriptor() ([]byte, []int) {
+// Deprecated: Use StartMediaUploadRequest.ProtoReflect.Descriptor instead.
+func (*StartMediaUploadRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *BugleCode) GetType() int64 {
+func (x *StartMediaUploadRequest) GetAttachmentType() int64 {
+	if x != nil {
+		return x.AttachmentType
+	}
+	return 0
+}
+
+func (x *StartMediaUploadRequest) GetAuthData() *AuthMessage {
+	if x != nil {
+		return x.AuthData
+	}
+	return nil
+}
+
+func (x *StartMediaUploadRequest) GetMobile() *Device {
+	if x != nil {
+		return x.Mobile
+	}
+	return nil
+}
+
+type UploadMediaResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Media   *UploadedMedia `protobuf:"bytes,1,opt,name=media,proto3" json:"media,omitempty"`
+	Message string         `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (x *UploadMediaResponse) Reset() {
+	*x = UploadMediaResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UploadMediaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadMediaResponse) ProtoMessage() {}
+
+func (x *UploadMediaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadMediaResponse.ProtoReflect.Descriptor instead.
+func (*UploadMediaResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UploadMediaResponse) GetMedia() *UploadedMedia {
+	if x != nil {
+		return x.Media
+	}
+	return nil
+}
+
+func (x *UploadMediaResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type UploadedMedia struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MediaID     string `protobuf:"bytes,1,opt,name=mediaID,proto3" json:"mediaID,omitempty"`
+	MediaNumber int64  `protobuf:"varint,2,opt,name=mediaNumber,proto3" json:"mediaNumber,omitempty"`
+}
+
+func (x *UploadedMedia) Reset() {
+	*x = UploadedMedia{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UploadedMedia) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadedMedia) ProtoMessage() {}
+
+func (x *UploadedMedia) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadedMedia.ProtoReflect.Descriptor instead.
+func (*UploadedMedia) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UploadedMedia) GetMediaID() string {
+	if x != nil {
+		return x.MediaID
+	}
+	return ""
+}
+
+func (x *UploadedMedia) GetMediaNumber() int64 {
+	if x != nil {
+		return x.MediaNumber
+	}
+	return 0
+}
+
+type GetParticipantThumbnailRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+}
+
+func (x *GetParticipantThumbnailRequest) Reset() {
+	*x = GetParticipantThumbnailRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetParticipantThumbnailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetParticipantThumbnailRequest) ProtoMessage() {}
+
+func (x *GetParticipantThumbnailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetParticipantThumbnailRequest.ProtoReflect.Descriptor instead.
+func (*GetParticipantThumbnailRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetParticipantThumbnailRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+type GetParticipantThumbnailResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Thumbnail []*ParticipantThumbnail `protobuf:"bytes,1,rep,name=thumbnail,proto3" json:"thumbnail,omitempty"`
+}
+
+func (x *GetParticipantThumbnailResponse) Reset() {
+	*x = GetParticipantThumbnailResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetParticipantThumbnailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetParticipantThumbnailResponse) ProtoMessage() {}
+
+func (x *GetParticipantThumbnailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetParticipantThumbnailResponse.ProtoReflect.Descriptor instead.
+func (*GetParticipantThumbnailResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetParticipantThumbnailResponse) GetThumbnail() []*ParticipantThumbnail {
+	if x != nil {
+		return x.Thumbnail
+	}
+	return nil
+}
+
+type ParticipantThumbnail struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ParticipantID string         `protobuf:"bytes,1,opt,name=participantID,proto3" json:"participantID,omitempty"`
+	Data          *ThumbnailData `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *ParticipantThumbnail) Reset() {
+	*x = ParticipantThumbnail{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ParticipantThumbnail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ParticipantThumbnail) ProtoMessage() {}
+
+func (x *ParticipantThumbnail) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ParticipantThumbnail.ProtoReflect.Descriptor instead.
+func (*ParticipantThumbnail) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ParticipantThumbnail) GetParticipantID() string {
+	if x != nil {
+		return x.ParticipantID
+	}
+	return ""
+}
+
+func (x *ParticipantThumbnail) GetData() *ThumbnailData {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type GetContactsThumbnailRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AvatarIDs []string `protobuf:"bytes,1,rep,name=avatarIDs,proto3" json:"avatarIDs,omitempty"`
+}
+
+func (x *GetContactsThumbnailRequest) Reset() {
+	*x = GetContactsThumbnailRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetContactsThumbnailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetContactsThumbnailRequest) ProtoMessage() {}
+
+func (x *GetContactsThumbnailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetContactsThumbnailRequest.ProtoReflect.Descriptor instead.
+func (*GetContactsThumbnailRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetContactsThumbnailRequest) GetAvatarIDs() []string {
+	if x != nil {
+		return x.AvatarIDs
+	}
+	return nil
+}
+
+type ThumbnailData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ImageBuffer []byte      `protobuf:"bytes,3,opt,name=imageBuffer,proto3" json:"imageBuffer,omitempty"`
+	SomeInt     int32       `protobuf:"varint,4,opt,name=someInt,proto3" json:"someInt,omitempty"`
+	Dimensions  *Dimensions `protobuf:"bytes,5,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
+}
+
+func (x *ThumbnailData) Reset() {
+	*x = ThumbnailData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ThumbnailData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ThumbnailData) ProtoMessage() {}
+
+func (x *ThumbnailData) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ThumbnailData.ProtoReflect.Descriptor instead.
+func (*ThumbnailData) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ThumbnailData) GetImageBuffer() []byte {
+	if x != nil {
+		return x.ImageBuffer
+	}
+	return nil
+}
+
+func (x *ThumbnailData) GetSomeInt() int32 {
+	if x != nil {
+		return x.SomeInt
+	}
+	return 0
+}
+
+func (x *ThumbnailData) GetDimensions() *Dimensions {
+	if x != nil {
+		return x.Dimensions
+	}
+	return nil
+}
+
+type Cursor struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	LastItemID        string `protobuf:"bytes,1,opt,name=lastItemID,proto3" json:"lastItemID,omitempty"`
+	LastItemTimestamp int64  `protobuf:"varint,2,opt,name=lastItemTimestamp,proto3" json:"lastItemTimestamp,omitempty"`
+}
+
+func (x *Cursor) Reset() {
+	*x = Cursor{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[15]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Cursor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Cursor) ProtoMessage() {}
+
+func (x *Cursor) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[15]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Cursor.ProtoReflect.Descriptor instead.
+func (*Cursor) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *Cursor) GetLastItemID() string {
+	if x != nil {
+		return x.LastItemID
+	}
+	return ""
+}
+
+func (x *Cursor) GetLastItemTimestamp() int64 {
+	if x != nil {
+		return x.LastItemTimestamp
+	}
+	return 0
+}
+
+type FetchMessagesRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string  `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Count          int64   `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	Cursor         *Cursor `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
+}
+
+func (x *FetchMessagesRequest) Reset() {
+	*x = FetchMessagesRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[16]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchMessagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchMessagesRequest) ProtoMessage() {}
+
+func (x *FetchMessagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[16]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchMessagesRequest.ProtoReflect.Descriptor instead.
+func (*FetchMessagesRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *FetchMessagesRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *FetchMessagesRequest) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *FetchMessagesRequest) GetCursor() *Cursor {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+type FetchMessagesResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Messages      []*Message `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
+	SomeBytes     []byte     `protobuf:"bytes,3,opt,name=someBytes,proto3" json:"someBytes,omitempty"`
+	TotalMessages int64      `protobuf:"varint,4,opt,name=totalMessages,proto3" json:"totalMessages,omitempty"`
+	Cursor        *Cursor    `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
+}
+
+func (x *FetchMessagesResponse) Reset() {
+	*x = FetchMessagesResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[17]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchMessagesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchMessagesResponse) ProtoMessage() {}
+
+func (x *FetchMessagesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[17]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchMessagesResponse.ProtoReflect.Descriptor instead.
+func (*FetchMessagesResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *FetchMessagesResponse) GetMessages() []*Message {
+	if x != nil {
+		return x.Messages
+	}
+	return nil
+}
+
+func (x *FetchMessagesResponse) GetSomeBytes() []byte {
+	if x != nil {
+		return x.SomeBytes
+	}
+	return nil
+}
+
+func (x *FetchMessagesResponse) GetTotalMessages() int64 {
+	if x != nil {
+		return x.TotalMessages
+	}
+	return 0
+}
+
+func (x *FetchMessagesResponse) GetCursor() *Cursor {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+type ListContactsRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	I1 int32 `protobuf:"varint,5,opt,name=i1,proto3" json:"i1,omitempty"` // = 1
+	I2 int32 `protobuf:"varint,6,opt,name=i2,proto3" json:"i2,omitempty"` // = 350
+	I3 int32 `protobuf:"varint,7,opt,name=i3,proto3" json:"i3,omitempty"` // = 50
+}
+
+func (x *ListContactsRequest) Reset() {
+	*x = ListContactsRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[18]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ListContactsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListContactsRequest) ProtoMessage() {}
+
+func (x *ListContactsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[18]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListContactsRequest.ProtoReflect.Descriptor instead.
+func (*ListContactsRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListContactsRequest) GetI1() int32 {
+	if x != nil {
+		return x.I1
+	}
+	return 0
+}
+
+func (x *ListContactsRequest) GetI2() int32 {
+	if x != nil {
+		return x.I2
+	}
+	return 0
+}
+
+func (x *ListContactsRequest) GetI3() int32 {
+	if x != nil {
+		return x.I3
+	}
+	return 0
+}
+
+type ListTopContactsRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Count int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *ListTopContactsRequest) Reset() {
+	*x = ListTopContactsRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[19]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ListTopContactsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTopContactsRequest) ProtoMessage() {}
+
+func (x *ListTopContactsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[19]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTopContactsRequest.ProtoReflect.Descriptor instead.
+func (*ListTopContactsRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListTopContactsRequest) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type ListContactsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Contacts []*Contact `protobuf:"bytes,2,rep,name=contacts,proto3" json:"contacts,omitempty"`
+}
+
+func (x *ListContactsResponse) Reset() {
+	*x = ListContactsResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[20]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ListContactsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListContactsResponse) ProtoMessage() {}
+
+func (x *ListContactsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[20]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListContactsResponse.ProtoReflect.Descriptor instead.
+func (*ListContactsResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListContactsResponse) GetContacts() []*Contact {
+	if x != nil {
+		return x.Contacts
+	}
+	return nil
+}
+
+type ListTopContactsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Contacts []*Contact `protobuf:"bytes,1,rep,name=contacts,proto3" json:"contacts,omitempty"`
+}
+
+func (x *ListTopContactsResponse) Reset() {
+	*x = ListTopContactsResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[21]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ListTopContactsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTopContactsResponse) ProtoMessage() {}
+
+func (x *ListTopContactsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[21]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTopContactsResponse.ProtoReflect.Descriptor instead.
+func (*ListTopContactsResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ListTopContactsResponse) GetContacts() []*Contact {
+	if x != nil {
+		return x.Contacts
+	}
+	return nil
+}
+
+type ListConversationsRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Count  int64                           `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	Folder ListConversationsRequest_Folder `protobuf:"varint,4,opt,name=folder,proto3,enum=client.ListConversationsRequest_Folder" json:"folder,omitempty"`
+	Cursor *Cursor                         `protobuf:"bytes,5,opt,name=cursor,proto3,oneof" json:"cursor,omitempty"`
+}
+
+func (x *ListConversationsRequest) Reset() {
+	*x = ListConversationsRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ListConversationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConversationsRequest) ProtoMessage() {}
+
+func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConversationsRequest.ProtoReflect.Descriptor instead.
+func (*ListConversationsRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListConversationsRequest) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *ListConversationsRequest) GetFolder() ListConversationsRequest_Folder {
+	if x != nil {
+		return x.Folder
+	}
+	return ListConversationsRequest_UNKNOWN
+}
+
+func (x *ListConversationsRequest) GetCursor() *Cursor {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+type ListConversationsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Conversations []*Conversation `protobuf:"bytes,2,rep,name=conversations,proto3" json:"conversations,omitempty"`
+	CursorBytes   []byte          `protobuf:"bytes,3,opt,name=cursorBytes,proto3,oneof" json:"cursorBytes,omitempty"`
+	Cursor        *Cursor         `protobuf:"bytes,5,opt,name=cursor,proto3,oneof" json:"cursor,omitempty"`
+}
+
+func (x *ListConversationsResponse) Reset() {
+	*x = ListConversationsResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ListConversationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConversationsResponse) ProtoMessage() {}
+
+func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConversationsResponse.ProtoReflect.Descriptor instead.
+func (*ListConversationsResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ListConversationsResponse) GetConversations() []*Conversation {
+	if x != nil {
+		return x.Conversations
+	}
+	return nil
+}
+
+func (x *ListConversationsResponse) GetCursorBytes() []byte {
+	if x != nil {
+		return x.CursorBytes
+	}
+	return nil
+}
+
+func (x *ListConversationsResponse) GetCursor() *Cursor {
+	if x != nil {
+		return x.Cursor
+	}
+	return nil
+}
+
+type GetOrCreateConversationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Numbers        []*ContactNumber `protobuf:"bytes,2,rep,name=numbers,proto3" json:"numbers,omitempty"`
+	RCSGroupName   *string          `protobuf:"bytes,3,opt,name=RCSGroupName,proto3,oneof" json:"RCSGroupName,omitempty"`
+	CreateRCSGroup *bool            `protobuf:"varint,4,opt,name=createRCSGroup,proto3,oneof" json:"createRCSGroup,omitempty"`
+}
+
+func (x *GetOrCreateConversationRequest) Reset() {
+	*x = GetOrCreateConversationRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[24]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetOrCreateConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrCreateConversationRequest) ProtoMessage() {}
+
+func (x *GetOrCreateConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[24]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrCreateConversationRequest.ProtoReflect.Descriptor instead.
+func (*GetOrCreateConversationRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GetOrCreateConversationRequest) GetNumbers() []*ContactNumber {
+	if x != nil {
+		return x.Numbers
+	}
+	return nil
+}
+
+func (x *GetOrCreateConversationRequest) GetRCSGroupName() string {
+	if x != nil && x.RCSGroupName != nil {
+		return *x.RCSGroupName
+	}
+	return ""
+}
+
+func (x *GetOrCreateConversationRequest) GetCreateRCSGroup() bool {
+	if x != nil && x.CreateRCSGroup != nil {
+		return *x.CreateRCSGroup
+	}
+	return false
+}
+
+type GetOrCreateConversationResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Conversation *Conversation                          `protobuf:"bytes,2,opt,name=conversation,proto3" json:"conversation,omitempty"`
+	Status       GetOrCreateConversationResponse_Status `protobuf:"varint,3,opt,name=status,proto3,enum=client.GetOrCreateConversationResponse_Status" json:"status,omitempty"`
+}
+
+func (x *GetOrCreateConversationResponse) Reset() {
+	*x = GetOrCreateConversationResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[25]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetOrCreateConversationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrCreateConversationResponse) ProtoMessage() {}
+
+func (x *GetOrCreateConversationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[25]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrCreateConversationResponse.ProtoReflect.Descriptor instead.
+func (*GetOrCreateConversationResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *GetOrCreateConversationResponse) GetConversation() *Conversation {
+	if x != nil {
+		return x.Conversation
+	}
+	return nil
+}
+
+func (x *GetOrCreateConversationResponse) GetStatus() GetOrCreateConversationResponse_Status {
+	if x != nil {
+		return x.Status
+	}
+	return GetOrCreateConversationResponse_UNKNOWN
+}
+
+type DeleteMessageRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageID string `protobuf:"bytes,2,opt,name=messageID,proto3" json:"messageID,omitempty"`
+}
+
+func (x *DeleteMessageRequest) Reset() {
+	*x = DeleteMessageRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[26]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DeleteMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteMessageRequest) ProtoMessage() {}
+
+func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[26]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteMessageRequest.ProtoReflect.Descriptor instead.
+func (*DeleteMessageRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *DeleteMessageRequest) GetMessageID() string {
+	if x != nil {
+		return x.MessageID
+	}
+	return ""
+}
+
+type DeleteMessageResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Success bool `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+}
+
+func (x *DeleteMessageResponse) Reset() {
+	*x = DeleteMessageResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[27]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DeleteMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteMessageResponse) ProtoMessage() {}
+
+func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[27]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteMessageResponse.ProtoReflect.Descriptor instead.
+func (*DeleteMessageResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *DeleteMessageResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type UpdateConversationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Data           *UpdateConversationData  `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Action         ConversationActionStatus `protobuf:"varint,2,opt,name=action,proto3,enum=client.ConversationActionStatus" json:"action,omitempty"`
+	ConversationID string                   `protobuf:"bytes,3,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Action5        *ConversationAction5     `protobuf:"bytes,5,opt,name=action5,proto3" json:"action5,omitempty"`
+}
+
+func (x *UpdateConversationRequest) Reset() {
+	*x = UpdateConversationRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[28]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UpdateConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateConversationRequest) ProtoMessage() {}
+
+func (x *UpdateConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[28]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateConversationRequest.ProtoReflect.Descriptor instead.
+func (*UpdateConversationRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *UpdateConversationRequest) GetData() *UpdateConversationData {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *UpdateConversationRequest) GetAction() ConversationActionStatus {
+	if x != nil {
+		return x.Action
+	}
+	return ConversationActionStatus_UNKNOWN_ACTION_STATUS
+}
+
+func (x *UpdateConversationRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *UpdateConversationRequest) GetAction5() *ConversationAction5 {
+	if x != nil {
+		return x.Action5
+	}
+	return nil
+}
+
+type ConversationAction5 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Field2 bool `protobuf:"varint,2,opt,name=field2,proto3" json:"field2,omitempty"`
+}
+
+func (x *ConversationAction5) Reset() {
+	*x = ConversationAction5{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[29]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ConversationAction5) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConversationAction5) ProtoMessage() {}
+
+func (x *ConversationAction5) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[29]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConversationAction5.ProtoReflect.Descriptor instead.
+func (*ConversationAction5) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ConversationAction5) GetField2() bool {
+	if x != nil {
+		return x.Field2
+	}
+	return false
+}
+
+type UpdateConversationData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	// Types that are assignable to Data:
+	//
+	//	*UpdateConversationData_Status
+	//	*UpdateConversationData_Mute
+	Data isUpdateConversationData_Data `protobuf_oneof:"data"`
+}
+
+func (x *UpdateConversationData) Reset() {
+	*x = UpdateConversationData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[30]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UpdateConversationData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateConversationData) ProtoMessage() {}
+
+func (x *UpdateConversationData) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[30]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateConversationData.ProtoReflect.Descriptor instead.
+func (*UpdateConversationData) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *UpdateConversationData) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (m *UpdateConversationData) GetData() isUpdateConversationData_Data {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+func (x *UpdateConversationData) GetStatus() ConversationStatus {
+	if x, ok := x.GetData().(*UpdateConversationData_Status); ok {
+		return x.Status
+	}
+	return ConversationStatus_UNKNOWN_STATUS
+}
+
+func (x *UpdateConversationData) GetMute() ConversationMuteStatus {
+	if x, ok := x.GetData().(*UpdateConversationData_Mute); ok {
+		return x.Mute
+	}
+	return ConversationMuteStatus_UNMUTE
+}
+
+type isUpdateConversationData_Data interface {
+	isUpdateConversationData_Data()
+}
+
+type UpdateConversationData_Status struct {
+	Status ConversationStatus `protobuf:"varint,12,opt,name=status,proto3,enum=client.ConversationStatus,oneof"`
+}
+
+type UpdateConversationData_Mute struct {
+	Mute ConversationMuteStatus `protobuf:"varint,7,opt,name=mute,proto3,enum=client.ConversationMuteStatus,oneof"`
+}
+
+func (*UpdateConversationData_Status) isUpdateConversationData_Data() {}
+
+func (*UpdateConversationData_Mute) isUpdateConversationData_Data() {}
+
+type UpdateConversationResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+}
+
+func (x *UpdateConversationResponse) Reset() {
+	*x = UpdateConversationResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[31]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UpdateConversationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateConversationResponse) ProtoMessage() {}
+
+func (x *UpdateConversationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[31]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateConversationResponse.ProtoReflect.Descriptor instead.
+func (*UpdateConversationResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *UpdateConversationResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ConversationTypeRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+}
+
+func (x *ConversationTypeRequest) Reset() {
+	*x = ConversationTypeRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[32]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ConversationTypeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConversationTypeRequest) ProtoMessage() {}
+
+func (x *ConversationTypeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[32]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConversationTypeRequest.ProtoReflect.Descriptor instead.
+func (*ConversationTypeRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *ConversationTypeRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+type GetConversationTypeResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Type           int32  `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"`
+	Bool1          bool   `protobuf:"varint,5,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	Number2        int32  `protobuf:"varint,6,opt,name=number2,proto3" json:"number2,omitempty"`
+}
+
+func (x *GetConversationTypeResponse) Reset() {
+	*x = GetConversationTypeResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[33]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetConversationTypeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConversationTypeResponse) ProtoMessage() {}
+
+func (x *GetConversationTypeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[33]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConversationTypeResponse.ProtoReflect.Descriptor instead.
+func (*GetConversationTypeResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *GetConversationTypeResponse) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *GetConversationTypeResponse) GetType() int32 {
 	if x != nil {
 		return x.Type
 	}
 	return 0
+}
+
+func (x *GetConversationTypeResponse) GetBool1() bool {
+	if x != nil {
+		return x.Bool1
+	}
+	return false
+}
+
+func (x *GetConversationTypeResponse) GetNumber2() int32 {
+	if x != nil {
+		return x.Number2
+	}
+	return 0
+}
+
+type GetConversationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+}
+
+func (x *GetConversationRequest) Reset() {
+	*x = GetConversationRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[34]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConversationRequest) ProtoMessage() {}
+
+func (x *GetConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[34]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConversationRequest.ProtoReflect.Descriptor instead.
+func (*GetConversationRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *GetConversationRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+type GetConversationResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Conversation *Conversation `protobuf:"bytes,1,opt,name=conversation,proto3" json:"conversation,omitempty"`
+}
+
+func (x *GetConversationResponse) Reset() {
+	*x = GetConversationResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[35]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetConversationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConversationResponse) ProtoMessage() {}
+
+func (x *GetConversationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[35]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConversationResponse.ProtoReflect.Descriptor instead.
+func (*GetConversationResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *GetConversationResponse) GetConversation() *Conversation {
+	if x != nil {
+		return x.Conversation
+	}
+	return nil
+}
+
+type OpenConversationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+}
+
+func (x *OpenConversationRequest) Reset() {
+	*x = OpenConversationRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[36]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OpenConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenConversationRequest) ProtoMessage() {}
+
+func (x *OpenConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[36]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenConversationRequest.ProtoReflect.Descriptor instead.
+func (*OpenConversationRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *OpenConversationRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+type PrepareOpenConversationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Field2 int64 `protobuf:"varint,2,opt,name=field2,proto3" json:"field2,omitempty"` // only seen value 1
+}
+
+func (x *PrepareOpenConversationRequest) Reset() {
+	*x = PrepareOpenConversationRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[37]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PrepareOpenConversationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrepareOpenConversationRequest) ProtoMessage() {}
+
+func (x *PrepareOpenConversationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[37]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrepareOpenConversationRequest.ProtoReflect.Descriptor instead.
+func (*PrepareOpenConversationRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *PrepareOpenConversationRequest) GetField2() int64 {
+	if x != nil {
+		return x.Field2
+	}
+	return 0
+}
+
+type IsBugleDefaultResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+}
+
+func (x *IsBugleDefaultResponse) Reset() {
+	*x = IsBugleDefaultResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[38]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *IsBugleDefaultResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsBugleDefaultResponse) ProtoMessage() {}
+
+func (x *IsBugleDefaultResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[38]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsBugleDefaultResponse.ProtoReflect.Descriptor instead.
+func (*IsBugleDefaultResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *IsBugleDefaultResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type SendMessageRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string          `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	MessagePayload *MessagePayload `protobuf:"bytes,3,opt,name=messagePayload,proto3" json:"messagePayload,omitempty"`
+	TmpID          string          `protobuf:"bytes,5,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
+	IsReply        bool            `protobuf:"varint,6,opt,name=isReply,proto3" json:"isReply,omitempty"` // not sure
+	Reply          *ReplyPayload   `protobuf:"bytes,8,opt,name=reply,proto3" json:"reply,omitempty"`
+}
+
+func (x *SendMessageRequest) Reset() {
+	*x = SendMessageRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[39]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendMessageRequest) ProtoMessage() {}
+
+func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[39]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendMessageRequest.ProtoReflect.Descriptor instead.
+func (*SendMessageRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *SendMessageRequest) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *SendMessageRequest) GetMessagePayload() *MessagePayload {
+	if x != nil {
+		return x.MessagePayload
+	}
+	return nil
+}
+
+func (x *SendMessageRequest) GetTmpID() string {
+	if x != nil {
+		return x.TmpID
+	}
+	return ""
+}
+
+func (x *SendMessageRequest) GetIsReply() bool {
+	if x != nil {
+		return x.IsReply
+	}
+	return false
+}
+
+func (x *SendMessageRequest) GetReply() *ReplyPayload {
+	if x != nil {
+		return x.Reply
+	}
+	return nil
+}
+
+type ReplyPayload struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageID string `protobuf:"bytes,1,opt,name=messageID,proto3" json:"messageID,omitempty"`
+}
+
+func (x *ReplyPayload) Reset() {
+	*x = ReplyPayload{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[40]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReplyPayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplyPayload) ProtoMessage() {}
+
+func (x *ReplyPayload) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[40]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplyPayload.ProtoReflect.Descriptor instead.
+func (*ReplyPayload) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *ReplyPayload) GetMessageID() string {
+	if x != nil {
+		return x.MessageID
+	}
+	return ""
+}
+
+type MessagePayload struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	TmpID                 string                 `protobuf:"bytes,1,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
+	MessagePayloadContent *MessagePayloadContent `protobuf:"bytes,6,opt,name=messagePayloadContent,proto3" json:"messagePayloadContent,omitempty"`
+	ConversationID        string                 `protobuf:"bytes,7,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	SelfParticipantID     string                 `protobuf:"bytes,9,opt,name=selfParticipantID,proto3" json:"selfParticipantID,omitempty"` // might be participantID
+	MessageInfo           []*MessageInfo         `protobuf:"bytes,10,rep,name=messageInfo,proto3" json:"messageInfo,omitempty"`
+	TmpID2                string                 `protobuf:"bytes,12,opt,name=tmpID2,proto3" json:"tmpID2,omitempty"`
+}
+
+func (x *MessagePayload) Reset() {
+	*x = MessagePayload{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[41]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MessagePayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessagePayload) ProtoMessage() {}
+
+func (x *MessagePayload) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[41]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessagePayload.ProtoReflect.Descriptor instead.
+func (*MessagePayload) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *MessagePayload) GetTmpID() string {
+	if x != nil {
+		return x.TmpID
+	}
+	return ""
+}
+
+func (x *MessagePayload) GetMessagePayloadContent() *MessagePayloadContent {
+	if x != nil {
+		return x.MessagePayloadContent
+	}
+	return nil
+}
+
+func (x *MessagePayload) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *MessagePayload) GetSelfParticipantID() string {
+	if x != nil {
+		return x.SelfParticipantID
+	}
+	return ""
+}
+
+func (x *MessagePayload) GetMessageInfo() []*MessageInfo {
+	if x != nil {
+		return x.MessageInfo
+	}
+	return nil
+}
+
+func (x *MessagePayload) GetTmpID2() string {
+	if x != nil {
+		return x.TmpID2
+	}
+	return ""
+}
+
+type MessagePayloadContent struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageContent *MessageContent `protobuf:"bytes,1,opt,name=messageContent,proto3" json:"messageContent,omitempty"`
+}
+
+func (x *MessagePayloadContent) Reset() {
+	*x = MessagePayloadContent{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[42]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MessagePayloadContent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessagePayloadContent) ProtoMessage() {}
+
+func (x *MessagePayloadContent) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[42]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessagePayloadContent.ProtoReflect.Descriptor instead.
+func (*MessagePayloadContent) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *MessagePayloadContent) GetMessageContent() *MessageContent {
+	if x != nil {
+		return x.MessageContent
+	}
+	return nil
+}
+
+type SendMessageResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Type int64 `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"`
+}
+
+func (x *SendMessageResponse) Reset() {
+	*x = SendMessageResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[43]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendMessageResponse) ProtoMessage() {}
+
+func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[43]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendMessageResponse.ProtoReflect.Descriptor instead.
+func (*SendMessageResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *SendMessageResponse) GetType() int64 {
+	if x != nil {
+		return x.Type
+	}
+	return 0
+}
+
+type SendReactionRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageID    string                     `protobuf:"bytes,1,opt,name=messageID,proto3" json:"messageID,omitempty"`
+	ReactionData *ReactionData              `protobuf:"bytes,2,opt,name=reactionData,proto3" json:"reactionData,omitempty"`
+	Action       SendReactionRequest_Action `protobuf:"varint,3,opt,name=action,proto3,enum=client.SendReactionRequest_Action" json:"action,omitempty"`
+}
+
+func (x *SendReactionRequest) Reset() {
+	*x = SendReactionRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[44]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendReactionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendReactionRequest) ProtoMessage() {}
+
+func (x *SendReactionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[44]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendReactionRequest.ProtoReflect.Descriptor instead.
+func (*SendReactionRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *SendReactionRequest) GetMessageID() string {
+	if x != nil {
+		return x.MessageID
+	}
+	return ""
+}
+
+func (x *SendReactionRequest) GetReactionData() *ReactionData {
+	if x != nil {
+		return x.ReactionData
+	}
+	return nil
+}
+
+func (x *SendReactionRequest) GetAction() SendReactionRequest_Action {
+	if x != nil {
+		return x.Action
+	}
+	return SendReactionRequest_UNSPECIFIED
+}
+
+type SendReactionResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+}
+
+func (x *SendReactionResponse) Reset() {
+	*x = SendReactionResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[45]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SendReactionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendReactionResponse) ProtoMessage() {}
+
+func (x *SendReactionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[45]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendReactionResponse.ProtoReflect.Descriptor instead.
+func (*SendReactionResponse) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *SendReactionResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ResendMessageRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageID string `protobuf:"bytes,2,opt,name=messageID,proto3" json:"messageID,omitempty"`
+}
+
+func (x *ResendMessageRequest) Reset() {
+	*x = ResendMessageRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[46]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ResendMessageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResendMessageRequest) ProtoMessage() {}
+
+func (x *ResendMessageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[46]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResendMessageRequest.ProtoReflect.Descriptor instead.
+func (*ResendMessageRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *ResendMessageRequest) GetMessageID() string {
+	if x != nil {
+		return x.MessageID
+	}
+	return ""
+}
+
+type TypingUpdateRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Data *TypingUpdateRequest_Data `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *TypingUpdateRequest) Reset() {
+	*x = TypingUpdateRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[47]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TypingUpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TypingUpdateRequest) ProtoMessage() {}
+
+func (x *TypingUpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[47]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TypingUpdateRequest.ProtoReflect.Descriptor instead.
+func (*TypingUpdateRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *TypingUpdateRequest) GetData() *TypingUpdateRequest_Data {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type ReceiveMessagesRequest_UnknownEmptyObject1 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject1) Reset() {
+	*x = ReceiveMessagesRequest_UnknownEmptyObject1{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[48]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReceiveMessagesRequest_UnknownEmptyObject1) ProtoMessage() {}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject1) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[48]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReceiveMessagesRequest_UnknownEmptyObject1.ProtoReflect.Descriptor instead.
+func (*ReceiveMessagesRequest_UnknownEmptyObject1) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{2, 0}
+}
+
+type ReceiveMessagesRequest_UnknownEmptyObject2 struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Unknown *ReceiveMessagesRequest_UnknownEmptyObject1 `protobuf:"bytes,2,opt,name=unknown,proto3" json:"unknown,omitempty"`
+}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject2) Reset() {
+	*x = ReceiveMessagesRequest_UnknownEmptyObject2{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[49]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject2) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReceiveMessagesRequest_UnknownEmptyObject2) ProtoMessage() {}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject2) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[49]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReceiveMessagesRequest_UnknownEmptyObject2.ProtoReflect.Descriptor instead.
+func (*ReceiveMessagesRequest_UnknownEmptyObject2) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{2, 1}
+}
+
+func (x *ReceiveMessagesRequest_UnknownEmptyObject2) GetUnknown() *ReceiveMessagesRequest_UnknownEmptyObject1 {
+	if x != nil {
+		return x.Unknown
+	}
+	return nil
+}
+
+type AckMessageRequest_Message struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	RequestID string  `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
+	Device    *Device `protobuf:"bytes,2,opt,name=device,proto3" json:"device,omitempty"`
+}
+
+func (x *AckMessageRequest_Message) Reset() {
+	*x = AckMessageRequest_Message{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[50]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AckMessageRequest_Message) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AckMessageRequest_Message) ProtoMessage() {}
+
+func (x *AckMessageRequest_Message) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[50]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AckMessageRequest_Message.ProtoReflect.Descriptor instead.
+func (*AckMessageRequest_Message) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *AckMessageRequest_Message) GetRequestID() string {
+	if x != nil {
+		return x.RequestID
+	}
+	return ""
+}
+
+func (x *AckMessageRequest_Message) GetDevice() *Device {
+	if x != nil {
+		return x.Device
+	}
+	return nil
+}
+
+type TypingUpdateRequest_Data struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConversationID string `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Typing         bool   `protobuf:"varint,3,opt,name=typing,proto3" json:"typing,omitempty"`
+}
+
+func (x *TypingUpdateRequest_Data) Reset() {
+	*x = TypingUpdateRequest_Data{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_client_proto_msgTypes[51]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TypingUpdateRequest_Data) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TypingUpdateRequest_Data) ProtoMessage() {}
+
+func (x *TypingUpdateRequest_Data) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[51]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TypingUpdateRequest_Data.ProtoReflect.Descriptor instead.
+func (*TypingUpdateRequest_Data) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{47, 0}
+}
+
+func (x *TypingUpdateRequest_Data) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *TypingUpdateRequest_Data) GetTyping() bool {
+	if x != nil {
+		return x.Typing
+	}
+	return false
 }
 
 var File_client_proto protoreflect.FileDescriptor
@@ -613,36 +3187,126 @@ func file_client_proto_rawDescGZIP() []byte {
 	return file_client_proto_rawDescData
 }
 
-var file_client_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_client_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_client_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_client_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_client_proto_goTypes = []interface{}{
-	(BugleMessageType)(0),              // 0: client.BugleMessageType
-	(BrowserTypes)(0),                  // 1: client.BrowserTypes
-	(*NotifyDittoActivityPayload)(nil), // 2: client.NotifyDittoActivityPayload
-	(*MessageReadPayload)(nil),         // 3: client.MessageReadPayload
-	(*AckMessagePayload)(nil),          // 4: client.AckMessagePayload
-	(*AckMessageData)(nil),             // 5: client.AckMessageData
-	(*ImageMetaData)(nil),              // 6: client.ImageMetaData
-	(*UploadImagePayload)(nil),         // 7: client.UploadImagePayload
-	(*BugleBackendService)(nil),        // 8: client.BugleBackendService
-	(*BugleCode)(nil),                  // 9: client.BugleCode
-	(*AuthMessage)(nil),                // 10: messages.AuthMessage
-	(*EmptyArr)(nil),                   // 11: messages.EmptyArr
-	(*Device)(nil),                     // 12: messages.Device
+	(ConversationStatus)(0),                            // 0: client.ConversationStatus
+	(ConversationActionStatus)(0),                      // 1: client.ConversationActionStatus
+	(ConversationMuteStatus)(0),                        // 2: client.ConversationMuteStatus
+	(ListConversationsRequest_Folder)(0),               // 3: client.ListConversationsRequest.Folder
+	(GetOrCreateConversationResponse_Status)(0),        // 4: client.GetOrCreateConversationResponse.Status
+	(SendReactionRequest_Action)(0),                    // 5: client.SendReactionRequest.Action
+	(*NotifyDittoActivityRequest)(nil),                 // 6: client.NotifyDittoActivityRequest
+	(*NotifyDittoActivityResponse)(nil),                // 7: client.NotifyDittoActivityResponse
+	(*ReceiveMessagesRequest)(nil),                     // 8: client.ReceiveMessagesRequest
+	(*MessageReadRequest)(nil),                         // 9: client.MessageReadRequest
+	(*AckMessageRequest)(nil),                          // 10: client.AckMessageRequest
+	(*DownloadAttachmentRequest)(nil),                  // 11: client.DownloadAttachmentRequest
+	(*AttachmentInfo)(nil),                             // 12: client.AttachmentInfo
+	(*StartMediaUploadRequest)(nil),                    // 13: client.StartMediaUploadRequest
+	(*UploadMediaResponse)(nil),                        // 14: client.UploadMediaResponse
+	(*UploadedMedia)(nil),                              // 15: client.UploadedMedia
+	(*GetParticipantThumbnailRequest)(nil),             // 16: client.GetParticipantThumbnailRequest
+	(*GetParticipantThumbnailResponse)(nil),            // 17: client.GetParticipantThumbnailResponse
+	(*ParticipantThumbnail)(nil),                       // 18: client.ParticipantThumbnail
+	(*GetContactsThumbnailRequest)(nil),                // 19: client.GetContactsThumbnailRequest
+	(*ThumbnailData)(nil),                              // 20: client.ThumbnailData
+	(*Cursor)(nil),                                     // 21: client.Cursor
+	(*FetchMessagesRequest)(nil),                       // 22: client.FetchMessagesRequest
+	(*FetchMessagesResponse)(nil),                      // 23: client.FetchMessagesResponse
+	(*ListContactsRequest)(nil),                        // 24: client.ListContactsRequest
+	(*ListTopContactsRequest)(nil),                     // 25: client.ListTopContactsRequest
+	(*ListContactsResponse)(nil),                       // 26: client.ListContactsResponse
+	(*ListTopContactsResponse)(nil),                    // 27: client.ListTopContactsResponse
+	(*ListConversationsRequest)(nil),                   // 28: client.ListConversationsRequest
+	(*ListConversationsResponse)(nil),                  // 29: client.ListConversationsResponse
+	(*GetOrCreateConversationRequest)(nil),             // 30: client.GetOrCreateConversationRequest
+	(*GetOrCreateConversationResponse)(nil),            // 31: client.GetOrCreateConversationResponse
+	(*DeleteMessageRequest)(nil),                       // 32: client.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),                      // 33: client.DeleteMessageResponse
+	(*UpdateConversationRequest)(nil),                  // 34: client.UpdateConversationRequest
+	(*ConversationAction5)(nil),                        // 35: client.ConversationAction5
+	(*UpdateConversationData)(nil),                     // 36: client.UpdateConversationData
+	(*UpdateConversationResponse)(nil),                 // 37: client.UpdateConversationResponse
+	(*ConversationTypeRequest)(nil),                    // 38: client.ConversationTypeRequest
+	(*GetConversationTypeResponse)(nil),                // 39: client.GetConversationTypeResponse
+	(*GetConversationRequest)(nil),                     // 40: client.GetConversationRequest
+	(*GetConversationResponse)(nil),                    // 41: client.GetConversationResponse
+	(*OpenConversationRequest)(nil),                    // 42: client.OpenConversationRequest
+	(*PrepareOpenConversationRequest)(nil),             // 43: client.PrepareOpenConversationRequest
+	(*IsBugleDefaultResponse)(nil),                     // 44: client.IsBugleDefaultResponse
+	(*SendMessageRequest)(nil),                         // 45: client.SendMessageRequest
+	(*ReplyPayload)(nil),                               // 46: client.ReplyPayload
+	(*MessagePayload)(nil),                             // 47: client.MessagePayload
+	(*MessagePayloadContent)(nil),                      // 48: client.MessagePayloadContent
+	(*SendMessageResponse)(nil),                        // 49: client.SendMessageResponse
+	(*SendReactionRequest)(nil),                        // 50: client.SendReactionRequest
+	(*SendReactionResponse)(nil),                       // 51: client.SendReactionResponse
+	(*ResendMessageRequest)(nil),                       // 52: client.ResendMessageRequest
+	(*TypingUpdateRequest)(nil),                        // 53: client.TypingUpdateRequest
+	(*ReceiveMessagesRequest_UnknownEmptyObject1)(nil), // 54: client.ReceiveMessagesRequest.UnknownEmptyObject1
+	(*ReceiveMessagesRequest_UnknownEmptyObject2)(nil), // 55: client.ReceiveMessagesRequest.UnknownEmptyObject2
+	(*AckMessageRequest_Message)(nil),                  // 56: client.AckMessageRequest.Message
+	(*TypingUpdateRequest_Data)(nil),                   // 57: client.TypingUpdateRequest.Data
+	(*AuthMessage)(nil),                                // 58: authentication.AuthMessage
+	(*EmptyArr)(nil),                                   // 59: util.EmptyArr
+	(*Device)(nil),                                     // 60: authentication.Device
+	(*Dimensions)(nil),                                 // 61: conversations.Dimensions
+	(*Message)(nil),                                    // 62: conversations.Message
+	(*Contact)(nil),                                    // 63: conversations.Contact
+	(*Conversation)(nil),                               // 64: conversations.Conversation
+	(*ContactNumber)(nil),                              // 65: conversations.ContactNumber
+	(*MessageInfo)(nil),                                // 66: conversations.MessageInfo
+	(*MessageContent)(nil),                             // 67: conversations.MessageContent
+	(*ReactionData)(nil),                               // 68: conversations.ReactionData
 }
 var file_client_proto_depIdxs = []int32{
-	10, // 0: client.AckMessagePayload.authData:type_name -> messages.AuthMessage
-	11, // 1: client.AckMessagePayload.emptyArr:type_name -> messages.EmptyArr
-	5,  // 2: client.AckMessagePayload.acks:type_name -> client.AckMessageData
-	12, // 3: client.AckMessageData.device:type_name -> messages.Device
-	6,  // 4: client.UploadImagePayload.metaData:type_name -> client.ImageMetaData
-	10, // 5: client.UploadImagePayload.authData:type_name -> messages.AuthMessage
-	9,  // 6: client.BugleBackendService.data:type_name -> client.BugleCode
-	7,  // [7:7] is the sub-list for method output_type
-	7,  // [7:7] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	58, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
+	55, // 1: client.ReceiveMessagesRequest.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject2
+	58, // 2: client.AckMessageRequest.authData:type_name -> authentication.AuthMessage
+	59, // 3: client.AckMessageRequest.emptyArr:type_name -> util.EmptyArr
+	56, // 4: client.AckMessageRequest.acks:type_name -> client.AckMessageRequest.Message
+	12, // 5: client.DownloadAttachmentRequest.info:type_name -> client.AttachmentInfo
+	58, // 6: client.DownloadAttachmentRequest.authData:type_name -> authentication.AuthMessage
+	58, // 7: client.StartMediaUploadRequest.authData:type_name -> authentication.AuthMessage
+	60, // 8: client.StartMediaUploadRequest.mobile:type_name -> authentication.Device
+	15, // 9: client.UploadMediaResponse.media:type_name -> client.UploadedMedia
+	18, // 10: client.GetParticipantThumbnailResponse.thumbnail:type_name -> client.ParticipantThumbnail
+	20, // 11: client.ParticipantThumbnail.data:type_name -> client.ThumbnailData
+	61, // 12: client.ThumbnailData.dimensions:type_name -> conversations.Dimensions
+	21, // 13: client.FetchMessagesRequest.cursor:type_name -> client.Cursor
+	62, // 14: client.FetchMessagesResponse.messages:type_name -> conversations.Message
+	21, // 15: client.FetchMessagesResponse.cursor:type_name -> client.Cursor
+	63, // 16: client.ListContactsResponse.contacts:type_name -> conversations.Contact
+	63, // 17: client.ListTopContactsResponse.contacts:type_name -> conversations.Contact
+	3,  // 18: client.ListConversationsRequest.folder:type_name -> client.ListConversationsRequest.Folder
+	21, // 19: client.ListConversationsRequest.cursor:type_name -> client.Cursor
+	64, // 20: client.ListConversationsResponse.conversations:type_name -> conversations.Conversation
+	21, // 21: client.ListConversationsResponse.cursor:type_name -> client.Cursor
+	65, // 22: client.GetOrCreateConversationRequest.numbers:type_name -> conversations.ContactNumber
+	64, // 23: client.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
+	4,  // 24: client.GetOrCreateConversationResponse.status:type_name -> client.GetOrCreateConversationResponse.Status
+	36, // 25: client.UpdateConversationRequest.data:type_name -> client.UpdateConversationData
+	1,  // 26: client.UpdateConversationRequest.action:type_name -> client.ConversationActionStatus
+	35, // 27: client.UpdateConversationRequest.action5:type_name -> client.ConversationAction5
+	0,  // 28: client.UpdateConversationData.status:type_name -> client.ConversationStatus
+	2,  // 29: client.UpdateConversationData.mute:type_name -> client.ConversationMuteStatus
+	64, // 30: client.GetConversationResponse.conversation:type_name -> conversations.Conversation
+	47, // 31: client.SendMessageRequest.messagePayload:type_name -> client.MessagePayload
+	46, // 32: client.SendMessageRequest.reply:type_name -> client.ReplyPayload
+	48, // 33: client.MessagePayload.messagePayloadContent:type_name -> client.MessagePayloadContent
+	66, // 34: client.MessagePayload.messageInfo:type_name -> conversations.MessageInfo
+	67, // 35: client.MessagePayloadContent.messageContent:type_name -> conversations.MessageContent
+	68, // 36: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
+	5,  // 37: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
+	57, // 38: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
+	54, // 39: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	60, // 40: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	41, // [41:41] is the sub-list for method output_type
+	41, // [41:41] is the sub-list for method input_type
+	41, // [41:41] is the sub-list for extension type_name
+	41, // [41:41] is the sub-list for extension extendee
+	0,  // [0:41] is the sub-list for field type_name
 }
 
 func init() { file_client_proto_init() }
@@ -650,10 +3314,12 @@ func file_client_proto_init() {
 	if File_client_proto != nil {
 		return
 	}
-	file_messages_proto_init()
+	file_conversations_proto_init()
+	file_authentication_proto_init()
+	file_util_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_client_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NotifyDittoActivityPayload); i {
+			switch v := v.(*NotifyDittoActivityRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -665,7 +3331,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageReadPayload); i {
+			switch v := v.(*NotifyDittoActivityResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -677,7 +3343,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AckMessagePayload); i {
+			switch v := v.(*ReceiveMessagesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -689,7 +3355,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AckMessageData); i {
+			switch v := v.(*MessageReadRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -701,7 +3367,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ImageMetaData); i {
+			switch v := v.(*AckMessageRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -713,7 +3379,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UploadImagePayload); i {
+			switch v := v.(*DownloadAttachmentRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -725,7 +3391,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BugleBackendService); i {
+			switch v := v.(*AttachmentInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -737,7 +3403,535 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BugleCode); i {
+			switch v := v.(*StartMediaUploadRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UploadMediaResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UploadedMedia); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetParticipantThumbnailRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetParticipantThumbnailResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ParticipantThumbnail); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetContactsThumbnailRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ThumbnailData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Cursor); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchMessagesRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchMessagesResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ListContactsRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ListTopContactsRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ListContactsResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ListTopContactsResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ListConversationsRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ListConversationsResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetOrCreateConversationRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetOrCreateConversationResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeleteMessageRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeleteMessageResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UpdateConversationRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ConversationAction5); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UpdateConversationData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UpdateConversationResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ConversationTypeRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetConversationTypeResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetConversationRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetConversationResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OpenConversationRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PrepareOpenConversationRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*IsBugleDefaultResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendMessageRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReplyPayload); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MessagePayload); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MessagePayloadContent); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendMessageResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendReactionRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SendReactionResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ResendMessageRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TypingUpdateRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReceiveMessagesRequest_UnknownEmptyObject1); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReceiveMessagesRequest_UnknownEmptyObject2); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AckMessageRequest_Message); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_client_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TypingUpdateRequest_Data); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -749,13 +3943,21 @@ func file_client_proto_init() {
 			}
 		}
 	}
+	file_client_proto_msgTypes[2].OneofWrappers = []interface{}{}
+	file_client_proto_msgTypes[22].OneofWrappers = []interface{}{}
+	file_client_proto_msgTypes[23].OneofWrappers = []interface{}{}
+	file_client_proto_msgTypes[24].OneofWrappers = []interface{}{}
+	file_client_proto_msgTypes[30].OneofWrappers = []interface{}{
+		(*UpdateConversationData_Status)(nil),
+		(*UpdateConversationData_Mute)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_client_proto_rawDesc,
-			NumEnums:      2,
-			NumMessages:   8,
+			NumEnums:      6,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

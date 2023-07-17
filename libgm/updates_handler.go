@@ -48,7 +48,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 }
 
 func (c *Client) handleClientReady(newSessionId string) {
-	conversations, convErr := c.ListConversations(25, gmproto.ListConversationsPayload_INBOX)
+	conversations, convErr := c.ListConversations(25, gmproto.ListConversationsRequest_INBOX)
 	if convErr != nil {
 		panic(convErr)
 	}

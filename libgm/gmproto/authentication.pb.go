@@ -22,15 +22,79 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type BrowserType int32
+
+const (
+	BrowserType_UNKNOWN_BROWSER_TYPE BrowserType = 0
+	BrowserType_OTHER                BrowserType = 1
+	BrowserType_CHROME               BrowserType = 2
+	BrowserType_FIREFOX              BrowserType = 3
+	BrowserType_SAFARI               BrowserType = 4
+	BrowserType_OPERA                BrowserType = 5
+	BrowserType_IE                   BrowserType = 6
+	BrowserType_EDGE                 BrowserType = 7
+)
+
+// Enum value maps for BrowserType.
+var (
+	BrowserType_name = map[int32]string{
+		0: "UNKNOWN_BROWSER_TYPE",
+		1: "OTHER",
+		2: "CHROME",
+		3: "FIREFOX",
+		4: "SAFARI",
+		5: "OPERA",
+		6: "IE",
+		7: "EDGE",
+	}
+	BrowserType_value = map[string]int32{
+		"UNKNOWN_BROWSER_TYPE": 0,
+		"OTHER":                1,
+		"CHROME":               2,
+		"FIREFOX":              3,
+		"SAFARI":               4,
+		"OPERA":                5,
+		"IE":                   6,
+		"EDGE":                 7,
+	}
+)
+
+func (x BrowserType) Enum() *BrowserType {
+	p := new(BrowserType)
+	*p = x
+	return p
+}
+
+func (x BrowserType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BrowserType) Descriptor() protoreflect.EnumDescriptor {
+	return file_authentication_proto_enumTypes[0].Descriptor()
+}
+
+func (BrowserType) Type() protoreflect.EnumType {
+	return &file_authentication_proto_enumTypes[0]
+}
+
+func (x BrowserType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BrowserType.Descriptor instead.
+func (BrowserType) EnumDescriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{0}
+}
+
 type BrowserDetails struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserAgent   string       `protobuf:"bytes,1,opt,name=userAgent,proto3" json:"userAgent,omitempty"`
-	BrowserType BrowserTypes `protobuf:"varint,2,opt,name=browserType,proto3,enum=client.BrowserTypes" json:"browserType,omitempty"`
-	OS          string       `protobuf:"bytes,3,opt,name=OS,proto3" json:"OS,omitempty"`
-	SomeBool    bool         `protobuf:"varint,6,opt,name=someBool,proto3" json:"someBool,omitempty"`
+	UserAgent   string      `protobuf:"bytes,1,opt,name=userAgent,proto3" json:"userAgent,omitempty"`
+	BrowserType BrowserType `protobuf:"varint,2,opt,name=browserType,proto3,enum=authentication.BrowserType" json:"browserType,omitempty"`
+	OS          string      `protobuf:"bytes,3,opt,name=OS,proto3" json:"OS,omitempty"`
+	SomeBool    bool        `protobuf:"varint,6,opt,name=someBool,proto3" json:"someBool,omitempty"`
 }
 
 func (x *BrowserDetails) Reset() {
@@ -72,11 +136,11 @@ func (x *BrowserDetails) GetUserAgent() string {
 	return ""
 }
 
-func (x *BrowserDetails) GetBrowserType() BrowserTypes {
+func (x *BrowserDetails) GetBrowserType() BrowserType {
 	if x != nil {
 		return x.BrowserType
 	}
-	return BrowserTypes_UNKNOWN_BROWSER_TYPE
+	return BrowserType_UNKNOWN_BROWSER_TYPE
 }
 
 func (x *BrowserDetails) GetOS() string {
@@ -91,6 +155,148 @@ func (x *BrowserDetails) GetSomeBool() bool {
 		return x.SomeBool
 	}
 	return false
+}
+
+type Device struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UserID   int64  `protobuf:"varint,1,opt,name=userID,proto3" json:"userID,omitempty"`
+	SourceID string `protobuf:"bytes,2,opt,name=sourceID,proto3" json:"sourceID,omitempty"`
+	Network  string `protobuf:"bytes,3,opt,name=network,proto3" json:"network,omitempty"`
+}
+
+func (x *Device) Reset() {
+	*x = Device{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Device) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Device) ProtoMessage() {}
+
+func (x *Device) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Device.ProtoReflect.Descriptor instead.
+func (*Device) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Device) GetUserID() int64 {
+	if x != nil {
+		return x.UserID
+	}
+	return 0
+}
+
+func (x *Device) GetSourceID() string {
+	if x != nil {
+		return x.SourceID
+	}
+	return ""
+}
+
+func (x *Device) GetNetwork() string {
+	if x != nil {
+		return x.Network
+	}
+	return ""
+}
+
+type ConfigVersion struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Year  int32 `protobuf:"varint,3,opt,name=Year,proto3" json:"Year,omitempty"`
+	Month int32 `protobuf:"varint,4,opt,name=Month,proto3" json:"Month,omitempty"`
+	Day   int32 `protobuf:"varint,5,opt,name=Day,proto3" json:"Day,omitempty"`
+	V1    int32 `protobuf:"varint,7,opt,name=V1,proto3" json:"V1,omitempty"`
+	V2    int32 `protobuf:"varint,9,opt,name=V2,proto3" json:"V2,omitempty"`
+}
+
+func (x *ConfigVersion) Reset() {
+	*x = ConfigVersion{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ConfigVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigVersion) ProtoMessage() {}
+
+func (x *ConfigVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigVersion.ProtoReflect.Descriptor instead.
+func (*ConfigVersion) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ConfigVersion) GetYear() int32 {
+	if x != nil {
+		return x.Year
+	}
+	return 0
+}
+
+func (x *ConfigVersion) GetMonth() int32 {
+	if x != nil {
+		return x.Month
+	}
+	return 0
+}
+
+func (x *ConfigVersion) GetDay() int32 {
+	if x != nil {
+		return x.Day
+	}
+	return 0
+}
+
+func (x *ConfigVersion) GetV1() int32 {
+	if x != nil {
+		return x.V1
+	}
+	return 0
+}
+
+func (x *ConfigVersion) GetV2() int32 {
+	if x != nil {
+		return x.V2
+	}
+	return 0
 }
 
 type AuthenticationContainer struct {
@@ -110,7 +316,7 @@ type AuthenticationContainer struct {
 func (x *AuthenticationContainer) Reset() {
 	*x = AuthenticationContainer{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[1]
+		mi := &file_authentication_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -123,7 +329,7 @@ func (x *AuthenticationContainer) String() string {
 func (*AuthenticationContainer) ProtoMessage() {}
 
 func (x *AuthenticationContainer) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[1]
+	mi := &file_authentication_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +342,7 @@ func (x *AuthenticationContainer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticationContainer.ProtoReflect.Descriptor instead.
 func (*AuthenticationContainer) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{1}
+	return file_authentication_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AuthenticationContainer) GetAuthMessage() *AuthMessage {
@@ -190,6 +396,556 @@ func (*AuthenticationContainer_KeyData) isAuthenticationContainer_Data() {}
 
 func (*AuthenticationContainer_DeviceData) isAuthenticationContainer_Data() {}
 
+type AuthMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	RequestID        string         `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
+	Network          *string        `protobuf:"bytes,3,opt,name=network,proto3,oneof" json:"network,omitempty"`
+	TachyonAuthToken []byte         `protobuf:"bytes,6,opt,name=tachyonAuthToken,proto3,oneof" json:"tachyonAuthToken,omitempty"`
+	ConfigVersion    *ConfigVersion `protobuf:"bytes,7,opt,name=configVersion,proto3" json:"configVersion,omitempty"`
+}
+
+func (x *AuthMessage) Reset() {
+	*x = AuthMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AuthMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthMessage) ProtoMessage() {}
+
+func (x *AuthMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthMessage.ProtoReflect.Descriptor instead.
+func (*AuthMessage) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AuthMessage) GetRequestID() string {
+	if x != nil {
+		return x.RequestID
+	}
+	return ""
+}
+
+func (x *AuthMessage) GetNetwork() string {
+	if x != nil && x.Network != nil {
+		return *x.Network
+	}
+	return ""
+}
+
+func (x *AuthMessage) GetTachyonAuthToken() []byte {
+	if x != nil {
+		return x.TachyonAuthToken
+	}
+	return nil
+}
+
+func (x *AuthMessage) GetConfigVersion() *ConfigVersion {
+	if x != nil {
+		return x.ConfigVersion
+	}
+	return nil
+}
+
+type RevokeRelayPairingRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AuthMessage *AuthMessage `protobuf:"bytes,1,opt,name=authMessage,proto3" json:"authMessage,omitempty"`
+	Browser     *Device      `protobuf:"bytes,2,opt,name=browser,proto3" json:"browser,omitempty"`
+}
+
+func (x *RevokeRelayPairingRequest) Reset() {
+	*x = RevokeRelayPairingRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RevokeRelayPairingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeRelayPairingRequest) ProtoMessage() {}
+
+func (x *RevokeRelayPairingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeRelayPairingRequest.ProtoReflect.Descriptor instead.
+func (*RevokeRelayPairingRequest) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RevokeRelayPairingRequest) GetAuthMessage() *AuthMessage {
+	if x != nil {
+		return x.AuthMessage
+	}
+	return nil
+}
+
+func (x *RevokeRelayPairingRequest) GetBrowser() *Device {
+	if x != nil {
+		return x.Browser
+	}
+	return nil
+}
+
+type RevokeRelayPairingResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *RevokeRelayPairingResponse) Reset() {
+	*x = RevokeRelayPairingResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RevokeRelayPairingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeRelayPairingResponse) ProtoMessage() {}
+
+func (x *RevokeRelayPairingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeRelayPairingResponse.ProtoReflect.Descriptor instead.
+func (*RevokeRelayPairingResponse) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{6}
+}
+
+type RegisterRefreshRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MessageAuth       *AuthMessage                           `protobuf:"bytes,1,opt,name=messageAuth,proto3" json:"messageAuth,omitempty"`
+	CurrBrowserDevice *Device                                `protobuf:"bytes,2,opt,name=currBrowserDevice,proto3" json:"currBrowserDevice,omitempty"`
+	UnixTimestamp     int64                                  `protobuf:"varint,3,opt,name=unixTimestamp,proto3" json:"unixTimestamp,omitempty"`
+	Signature         []byte                                 `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
+	EmptyRefreshArr   *RegisterRefreshRequest_NestedEmptyArr `protobuf:"bytes,13,opt,name=emptyRefreshArr,proto3" json:"emptyRefreshArr,omitempty"`
+	MessageType       int32                                  `protobuf:"varint,16,opt,name=messageType,proto3" json:"messageType,omitempty"`
+}
+
+func (x *RegisterRefreshRequest) Reset() {
+	*x = RegisterRefreshRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterRefreshRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRefreshRequest) ProtoMessage() {}
+
+func (x *RegisterRefreshRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRefreshRequest.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshRequest) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RegisterRefreshRequest) GetMessageAuth() *AuthMessage {
+	if x != nil {
+		return x.MessageAuth
+	}
+	return nil
+}
+
+func (x *RegisterRefreshRequest) GetCurrBrowserDevice() *Device {
+	if x != nil {
+		return x.CurrBrowserDevice
+	}
+	return nil
+}
+
+func (x *RegisterRefreshRequest) GetUnixTimestamp() int64 {
+	if x != nil {
+		return x.UnixTimestamp
+	}
+	return 0
+}
+
+func (x *RegisterRefreshRequest) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+func (x *RegisterRefreshRequest) GetEmptyRefreshArr() *RegisterRefreshRequest_NestedEmptyArr {
+	if x != nil {
+		return x.EmptyRefreshArr
+	}
+	return nil
+}
+
+func (x *RegisterRefreshRequest) GetMessageType() int32 {
+	if x != nil {
+		return x.MessageType
+	}
+	return 0
+}
+
+type RegisterRefreshResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	TokenData *RegisterRefreshResponse_AuthKeyData `protobuf:"bytes,2,opt,name=tokenData,proto3" json:"tokenData,omitempty"`
+}
+
+func (x *RegisterRefreshResponse) Reset() {
+	*x = RegisterRefreshResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterRefreshResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRefreshResponse) ProtoMessage() {}
+
+func (x *RegisterRefreshResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRefreshResponse.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshResponse) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RegisterRefreshResponse) GetTokenData() *RegisterRefreshResponse_AuthKeyData {
+	if x != nil {
+		return x.TokenData
+	}
+	return nil
+}
+
+type RegisterPhoneRelayResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Coordinates *CoordinateMessage                      `protobuf:"bytes,1,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	Browser     *Device                                 `protobuf:"bytes,2,opt,name=browser,proto3" json:"browser,omitempty"`
+	PairingKey  []byte                                  `protobuf:"bytes,3,opt,name=pairingKey,proto3" json:"pairingKey,omitempty"`
+	ValidFor    int64                                   `protobuf:"varint,4,opt,name=validFor,proto3" json:"validFor,omitempty"`
+	AuthKeyData *RegisterPhoneRelayResponse_AuthKeyData `protobuf:"bytes,5,opt,name=authKeyData,proto3" json:"authKeyData,omitempty"`
+	ResponseID  string                                  `protobuf:"bytes,6,opt,name=responseID,proto3" json:"responseID,omitempty"`
+}
+
+func (x *RegisterPhoneRelayResponse) Reset() {
+	*x = RegisterPhoneRelayResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterPhoneRelayResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterPhoneRelayResponse) ProtoMessage() {}
+
+func (x *RegisterPhoneRelayResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterPhoneRelayResponse.ProtoReflect.Descriptor instead.
+func (*RegisterPhoneRelayResponse) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RegisterPhoneRelayResponse) GetCoordinates() *CoordinateMessage {
+	if x != nil {
+		return x.Coordinates
+	}
+	return nil
+}
+
+func (x *RegisterPhoneRelayResponse) GetBrowser() *Device {
+	if x != nil {
+		return x.Browser
+	}
+	return nil
+}
+
+func (x *RegisterPhoneRelayResponse) GetPairingKey() []byte {
+	if x != nil {
+		return x.PairingKey
+	}
+	return nil
+}
+
+func (x *RegisterPhoneRelayResponse) GetValidFor() int64 {
+	if x != nil {
+		return x.ValidFor
+	}
+	return 0
+}
+
+func (x *RegisterPhoneRelayResponse) GetAuthKeyData() *RegisterPhoneRelayResponse_AuthKeyData {
+	if x != nil {
+		return x.AuthKeyData
+	}
+	return nil
+}
+
+func (x *RegisterPhoneRelayResponse) GetResponseID() string {
+	if x != nil {
+		return x.ResponseID
+	}
+	return ""
+}
+
+type CoordinateMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Coord1 int64 `protobuf:"varint,2,opt,name=coord1,proto3" json:"coord1,omitempty"`
+}
+
+func (x *CoordinateMessage) Reset() {
+	*x = CoordinateMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CoordinateMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CoordinateMessage) ProtoMessage() {}
+
+func (x *CoordinateMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CoordinateMessage.ProtoReflect.Descriptor instead.
+func (*CoordinateMessage) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CoordinateMessage) GetCoord1() int64 {
+	if x != nil {
+		return x.Coord1
+	}
+	return 0
+}
+
+type RefreshPhoneRelayResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Coordinates *CoordinateMessage `protobuf:"bytes,1,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	PairKey     []byte             `protobuf:"bytes,2,opt,name=pairKey,proto3" json:"pairKey,omitempty"`
+	ValidFor    int64              `protobuf:"varint,3,opt,name=validFor,proto3" json:"validFor,omitempty"`
+}
+
+func (x *RefreshPhoneRelayResponse) Reset() {
+	*x = RefreshPhoneRelayResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RefreshPhoneRelayResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshPhoneRelayResponse) ProtoMessage() {}
+
+func (x *RefreshPhoneRelayResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshPhoneRelayResponse.ProtoReflect.Descriptor instead.
+func (*RefreshPhoneRelayResponse) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RefreshPhoneRelayResponse) GetCoordinates() *CoordinateMessage {
+	if x != nil {
+		return x.Coordinates
+	}
+	return nil
+}
+
+func (x *RefreshPhoneRelayResponse) GetPairKey() []byte {
+	if x != nil {
+		return x.PairKey
+	}
+	return nil
+}
+
+func (x *RefreshPhoneRelayResponse) GetValidFor() int64 {
+	if x != nil {
+		return x.ValidFor
+	}
+	return 0
+}
+
+type WebEncryptionKeyResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Coordinates *CoordinateMessage `protobuf:"bytes,1,opt,name=coordinates,proto3" json:"coordinates,omitempty"`
+	Key         []byte             `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *WebEncryptionKeyResponse) Reset() {
+	*x = WebEncryptionKeyResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *WebEncryptionKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WebEncryptionKeyResponse) ProtoMessage() {}
+
+func (x *WebEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WebEncryptionKeyResponse.ProtoReflect.Descriptor instead.
+func (*WebEncryptionKeyResponse) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *WebEncryptionKeyResponse) GetCoordinates() *CoordinateMessage {
+	if x != nil {
+		return x.Coordinates
+	}
+	return nil
+}
+
+func (x *WebEncryptionKeyResponse) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
 type ECDSAKeys struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -202,7 +958,7 @@ type ECDSAKeys struct {
 func (x *ECDSAKeys) Reset() {
 	*x = ECDSAKeys{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[2]
+		mi := &file_authentication_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -215,7 +971,7 @@ func (x *ECDSAKeys) String() string {
 func (*ECDSAKeys) ProtoMessage() {}
 
 func (x *ECDSAKeys) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[2]
+	mi := &file_authentication_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -228,7 +984,7 @@ func (x *ECDSAKeys) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ECDSAKeys.ProtoReflect.Descriptor instead.
 func (*ECDSAKeys) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{2}
+	return file_authentication_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ECDSAKeys) GetField1() int64 {
@@ -241,6 +997,53 @@ func (x *ECDSAKeys) GetField1() int64 {
 func (x *ECDSAKeys) GetEncryptedKeys() []byte {
 	if x != nil {
 		return x.EncryptedKeys
+	}
+	return nil
+}
+
+type CurrentDeviceData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Browser *Device `protobuf:"bytes,1,opt,name=browser,proto3" json:"browser,omitempty"`
+}
+
+func (x *CurrentDeviceData) Reset() {
+	*x = CurrentDeviceData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CurrentDeviceData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CurrentDeviceData) ProtoMessage() {}
+
+func (x *CurrentDeviceData) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CurrentDeviceData.ProtoReflect.Descriptor instead.
+func (*CurrentDeviceData) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CurrentDeviceData) GetBrowser() *Device {
+	if x != nil {
+		return x.Browser
 	}
 	return nil
 }
@@ -259,7 +1062,7 @@ type KeyData struct {
 func (x *KeyData) Reset() {
 	*x = KeyData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[3]
+		mi := &file_authentication_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -272,7 +1075,7 @@ func (x *KeyData) String() string {
 func (*KeyData) ProtoMessage() {}
 
 func (x *KeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[3]
+	mi := &file_authentication_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,7 +1088,7 @@ func (x *KeyData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyData.ProtoReflect.Descriptor instead.
 func (*KeyData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{3}
+	return file_authentication_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *KeyData) GetMobile() *Device {
@@ -328,7 +1131,7 @@ type WebAuthKey struct {
 func (x *WebAuthKey) Reset() {
 	*x = WebAuthKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[4]
+		mi := &file_authentication_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -341,7 +1144,7 @@ func (x *WebAuthKey) String() string {
 func (*WebAuthKey) ProtoMessage() {}
 
 func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[4]
+	mi := &file_authentication_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -354,7 +1157,7 @@ func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebAuthKey.ProtoReflect.Descriptor instead.
 func (*WebAuthKey) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{4}
+	return file_authentication_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *WebAuthKey) GetWebAuthKey() []byte {
@@ -371,53 +1174,6 @@ func (x *WebAuthKey) GetValidFor() int64 {
 	return 0
 }
 
-type CurrentDeviceData struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Browser *Device `protobuf:"bytes,1,opt,name=browser,proto3" json:"browser,omitempty"`
-}
-
-func (x *CurrentDeviceData) Reset() {
-	*x = CurrentDeviceData{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *CurrentDeviceData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CurrentDeviceData) ProtoMessage() {}
-
-func (x *CurrentDeviceData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CurrentDeviceData.ProtoReflect.Descriptor instead.
-func (*CurrentDeviceData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *CurrentDeviceData) GetBrowser() *Device {
-	if x != nil {
-		return x.Browser
-	}
-	return nil
-}
-
 type URLData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -431,7 +1187,7 @@ type URLData struct {
 func (x *URLData) Reset() {
 	*x = URLData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[6]
+		mi := &file_authentication_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -444,7 +1200,7 @@ func (x *URLData) String() string {
 func (*URLData) ProtoMessage() {}
 
 func (x *URLData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[6]
+	mi := &file_authentication_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -457,7 +1213,7 @@ func (x *URLData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use URLData.ProtoReflect.Descriptor instead.
 func (*URLData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{6}
+	return file_authentication_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *URLData) GetPairingKey() []byte {
@@ -493,7 +1249,7 @@ type TokenData struct {
 func (x *TokenData) Reset() {
 	*x = TokenData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[7]
+		mi := &file_authentication_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -506,7 +1262,7 @@ func (x *TokenData) String() string {
 func (*TokenData) ProtoMessage() {}
 
 func (x *TokenData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[7]
+	mi := &file_authentication_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -519,7 +1275,7 @@ func (x *TokenData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenData.ProtoReflect.Descriptor instead.
 func (*TokenData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7}
+	return file_authentication_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TokenData) GetTachyonAuthToken() []byte {
@@ -549,7 +1305,7 @@ type PairedData struct {
 func (x *PairedData) Reset() {
 	*x = PairedData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[8]
+		mi := &file_authentication_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -562,7 +1318,7 @@ func (x *PairedData) String() string {
 func (*PairedData) ProtoMessage() {}
 
 func (x *PairedData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[8]
+	mi := &file_authentication_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -575,7 +1331,7 @@ func (x *PairedData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PairedData.ProtoReflect.Descriptor instead.
 func (*PairedData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{8}
+	return file_authentication_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PairedData) GetMobile() *Device {
@@ -610,7 +1366,7 @@ type RevokePairData struct {
 func (x *RevokePairData) Reset() {
 	*x = RevokePairData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[9]
+		mi := &file_authentication_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -623,7 +1379,7 @@ func (x *RevokePairData) String() string {
 func (*RevokePairData) ProtoMessage() {}
 
 func (x *RevokePairData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[9]
+	mi := &file_authentication_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -636,7 +1392,7 @@ func (x *RevokePairData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokePairData.ProtoReflect.Descriptor instead.
 func (*RevokePairData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{9}
+	return file_authentication_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RevokePairData) GetRevokedDevice() *Device {
@@ -644,6 +1400,163 @@ func (x *RevokePairData) GetRevokedDevice() *Device {
 		return x.RevokedDevice
 	}
 	return nil
+}
+
+type RegisterRefreshRequest_NestedEmptyArr struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	EmptyArr *EmptyArr `protobuf:"bytes,9,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
+}
+
+func (x *RegisterRefreshRequest_NestedEmptyArr) Reset() {
+	*x = RegisterRefreshRequest_NestedEmptyArr{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[21]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterRefreshRequest_NestedEmptyArr) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRefreshRequest_NestedEmptyArr) ProtoMessage() {}
+
+func (x *RegisterRefreshRequest_NestedEmptyArr) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[21]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRefreshRequest_NestedEmptyArr.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshRequest_NestedEmptyArr) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{7, 0}
+}
+
+func (x *RegisterRefreshRequest_NestedEmptyArr) GetEmptyArr() *EmptyArr {
+	if x != nil {
+		return x.EmptyArr
+	}
+	return nil
+}
+
+type RegisterRefreshResponse_AuthKeyData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	TachyonAuthToken []byte `protobuf:"bytes,1,opt,name=tachyonAuthToken,proto3" json:"tachyonAuthToken,omitempty"`
+	ValidFor         string `protobuf:"bytes,2,opt,name=validFor,proto3" json:"validFor,omitempty"`
+}
+
+func (x *RegisterRefreshResponse_AuthKeyData) Reset() {
+	*x = RegisterRefreshResponse_AuthKeyData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterRefreshResponse_AuthKeyData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRefreshResponse_AuthKeyData) ProtoMessage() {}
+
+func (x *RegisterRefreshResponse_AuthKeyData) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRefreshResponse_AuthKeyData.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshResponse_AuthKeyData) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{8, 0}
+}
+
+func (x *RegisterRefreshResponse_AuthKeyData) GetTachyonAuthToken() []byte {
+	if x != nil {
+		return x.TachyonAuthToken
+	}
+	return nil
+}
+
+func (x *RegisterRefreshResponse_AuthKeyData) GetValidFor() string {
+	if x != nil {
+		return x.ValidFor
+	}
+	return ""
+}
+
+type RegisterPhoneRelayResponse_AuthKeyData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	TachyonAuthToken []byte `protobuf:"bytes,1,opt,name=tachyonAuthToken,proto3" json:"tachyonAuthToken,omitempty"`
+	ValidFor         int64  `protobuf:"varint,2,opt,name=validFor,proto3" json:"validFor,omitempty"`
+}
+
+func (x *RegisterPhoneRelayResponse_AuthKeyData) Reset() {
+	*x = RegisterPhoneRelayResponse_AuthKeyData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterPhoneRelayResponse_AuthKeyData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterPhoneRelayResponse_AuthKeyData) ProtoMessage() {}
+
+func (x *RegisterPhoneRelayResponse_AuthKeyData) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterPhoneRelayResponse_AuthKeyData.ProtoReflect.Descriptor instead.
+func (*RegisterPhoneRelayResponse_AuthKeyData) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{9, 0}
+}
+
+func (x *RegisterPhoneRelayResponse_AuthKeyData) GetTachyonAuthToken() []byte {
+	if x != nil {
+		return x.TachyonAuthToken
+	}
+	return nil
+}
+
+func (x *RegisterPhoneRelayResponse_AuthKeyData) GetValidFor() int64 {
+	if x != nil {
+		return x.ValidFor
+	}
+	return 0
 }
 
 var File_authentication_proto protoreflect.FileDescriptor
@@ -663,42 +1576,69 @@ func file_authentication_proto_rawDescGZIP() []byte {
 	return file_authentication_proto_rawDescData
 }
 
-var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_authentication_proto_goTypes = []interface{}{
-	(*BrowserDetails)(nil),          // 0: authentication.BrowserDetails
-	(*AuthenticationContainer)(nil), // 1: authentication.AuthenticationContainer
-	(*ECDSAKeys)(nil),               // 2: authentication.ECDSAKeys
-	(*KeyData)(nil),                 // 3: authentication.KeyData
-	(*WebAuthKey)(nil),              // 4: authentication.WebAuthKey
-	(*CurrentDeviceData)(nil),       // 5: authentication.CurrentDeviceData
-	(*URLData)(nil),                 // 6: authentication.URLData
-	(*TokenData)(nil),               // 7: authentication.TokenData
-	(*PairedData)(nil),              // 8: authentication.PairedData
-	(*RevokePairData)(nil),          // 9: authentication.RevokePairData
-	(BrowserTypes)(0),               // 10: client.BrowserTypes
-	(*AuthMessage)(nil),             // 11: messages.AuthMessage
-	(*Device)(nil),                  // 12: messages.Device
+	(BrowserType)(0),                               // 0: authentication.BrowserType
+	(*BrowserDetails)(nil),                         // 1: authentication.BrowserDetails
+	(*Device)(nil),                                 // 2: authentication.Device
+	(*ConfigVersion)(nil),                          // 3: authentication.ConfigVersion
+	(*AuthenticationContainer)(nil),                // 4: authentication.AuthenticationContainer
+	(*AuthMessage)(nil),                            // 5: authentication.AuthMessage
+	(*RevokeRelayPairingRequest)(nil),              // 6: authentication.RevokeRelayPairingRequest
+	(*RevokeRelayPairingResponse)(nil),             // 7: authentication.RevokeRelayPairingResponse
+	(*RegisterRefreshRequest)(nil),                 // 8: authentication.RegisterRefreshRequest
+	(*RegisterRefreshResponse)(nil),                // 9: authentication.RegisterRefreshResponse
+	(*RegisterPhoneRelayResponse)(nil),             // 10: authentication.RegisterPhoneRelayResponse
+	(*CoordinateMessage)(nil),                      // 11: authentication.CoordinateMessage
+	(*RefreshPhoneRelayResponse)(nil),              // 12: authentication.RefreshPhoneRelayResponse
+	(*WebEncryptionKeyResponse)(nil),               // 13: authentication.WebEncryptionKeyResponse
+	(*ECDSAKeys)(nil),                              // 14: authentication.ECDSAKeys
+	(*CurrentDeviceData)(nil),                      // 15: authentication.CurrentDeviceData
+	(*KeyData)(nil),                                // 16: authentication.KeyData
+	(*WebAuthKey)(nil),                             // 17: authentication.WebAuthKey
+	(*URLData)(nil),                                // 18: authentication.URLData
+	(*TokenData)(nil),                              // 19: authentication.TokenData
+	(*PairedData)(nil),                             // 20: authentication.PairedData
+	(*RevokePairData)(nil),                         // 21: authentication.RevokePairData
+	(*RegisterRefreshRequest_NestedEmptyArr)(nil),  // 22: authentication.RegisterRefreshRequest.NestedEmptyArr
+	(*RegisterRefreshResponse_AuthKeyData)(nil),    // 23: authentication.RegisterRefreshResponse.AuthKeyData
+	(*RegisterPhoneRelayResponse_AuthKeyData)(nil), // 24: authentication.RegisterPhoneRelayResponse.AuthKeyData
+	(*EmptyArr)(nil),                               // 25: util.EmptyArr
 }
 var file_authentication_proto_depIdxs = []int32{
-	10, // 0: authentication.BrowserDetails.browserType:type_name -> client.BrowserTypes
-	11, // 1: authentication.AuthenticationContainer.authMessage:type_name -> messages.AuthMessage
-	0,  // 2: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
-	3,  // 3: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
-	5,  // 4: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
-	12, // 5: authentication.KeyData.mobile:type_name -> messages.Device
-	2,  // 6: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
-	4,  // 7: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
-	12, // 8: authentication.KeyData.browser:type_name -> messages.Device
-	12, // 9: authentication.CurrentDeviceData.browser:type_name -> messages.Device
-	12, // 10: authentication.PairedData.mobile:type_name -> messages.Device
-	7,  // 11: authentication.PairedData.tokenData:type_name -> authentication.TokenData
-	12, // 12: authentication.PairedData.browser:type_name -> messages.Device
-	12, // 13: authentication.RevokePairData.revokedDevice:type_name -> messages.Device
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	0,  // 0: authentication.BrowserDetails.browserType:type_name -> authentication.BrowserType
+	5,  // 1: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
+	1,  // 2: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
+	16, // 3: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
+	15, // 4: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
+	3,  // 5: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
+	5,  // 6: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
+	2,  // 7: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
+	5,  // 8: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
+	2,  // 9: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
+	22, // 10: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
+	23, // 11: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.RegisterRefreshResponse.AuthKeyData
+	11, // 12: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	2,  // 13: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
+	24, // 14: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.RegisterPhoneRelayResponse.AuthKeyData
+	11, // 15: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	11, // 16: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
+	2,  // 17: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
+	2,  // 18: authentication.KeyData.mobile:type_name -> authentication.Device
+	14, // 19: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
+	17, // 20: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
+	2,  // 21: authentication.KeyData.browser:type_name -> authentication.Device
+	2,  // 22: authentication.PairedData.mobile:type_name -> authentication.Device
+	19, // 23: authentication.PairedData.tokenData:type_name -> authentication.TokenData
+	2,  // 24: authentication.PairedData.browser:type_name -> authentication.Device
+	2,  // 25: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
+	25, // 26: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
+	27, // [27:27] is the sub-list for method output_type
+	27, // [27:27] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_authentication_proto_init() }
@@ -706,8 +1646,7 @@ func file_authentication_proto_init() {
 	if File_authentication_proto != nil {
 		return
 	}
-	file_messages_proto_init()
-	file_client_proto_init()
+	file_util_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_authentication_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*BrowserDetails); i {
@@ -722,7 +1661,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AuthenticationContainer); i {
+			switch v := v.(*Device); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -734,7 +1673,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ECDSAKeys); i {
+			switch v := v.(*ConfigVersion); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -746,7 +1685,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KeyData); i {
+			switch v := v.(*AuthenticationContainer); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -758,7 +1697,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebAuthKey); i {
+			switch v := v.(*AuthMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -770,7 +1709,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CurrentDeviceData); i {
+			switch v := v.(*RevokeRelayPairingRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -782,7 +1721,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*URLData); i {
+			switch v := v.(*RevokeRelayPairingResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -794,7 +1733,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TokenData); i {
+			switch v := v.(*RegisterRefreshRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -806,7 +1745,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PairedData); i {
+			switch v := v.(*RegisterRefreshResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -818,6 +1757,138 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterPhoneRelayResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CoordinateMessage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RefreshPhoneRelayResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*WebEncryptionKeyResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ECDSAKeys); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CurrentDeviceData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*KeyData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*WebAuthKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*URLData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TokenData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PairedData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RevokePairData); i {
 			case 0:
 				return &v.state
@@ -829,23 +1900,61 @@ func file_authentication_proto_init() {
 				return nil
 			}
 		}
+		file_authentication_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterRefreshRequest_NestedEmptyArr); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterRefreshResponse_AuthKeyData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterPhoneRelayResponse_AuthKeyData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
-	file_authentication_proto_msgTypes[1].OneofWrappers = []interface{}{
+	file_authentication_proto_msgTypes[3].OneofWrappers = []interface{}{
 		(*AuthenticationContainer_KeyData)(nil),
 		(*AuthenticationContainer_DeviceData)(nil),
 	}
+	file_authentication_proto_msgTypes[4].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_authentication_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   10,
+			NumEnums:      1,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_authentication_proto_goTypes,
 		DependencyIndexes: file_authentication_proto_depIdxs,
+		EnumInfos:         file_authentication_proto_enumTypes,
 		MessageInfos:      file_authentication_proto_msgTypes,
 	}.Build()
 	File_authentication_proto = out.File

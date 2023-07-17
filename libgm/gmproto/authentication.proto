@@ -3,18 +3,42 @@ package authentication;
 
 option go_package = "../gmproto";
 
-import "messages.proto";
-import "client.proto";
+import "util.proto";
+
+enum BrowserType {
+    UNKNOWN_BROWSER_TYPE = 0;
+    OTHER = 1;
+    CHROME = 2;
+    FIREFOX = 3;
+    SAFARI = 4;
+    OPERA = 5;
+    IE = 6;
+    EDGE = 7;
+}
 
 message BrowserDetails {
     string userAgent = 1;
-    client.BrowserTypes browserType = 2;
+    BrowserType browserType = 2;
     string OS = 3;
     bool someBool = 6;
 }
 
+message Device {
+    int64 userID = 1;
+    string sourceID = 2;
+    string network = 3;
+}
+
+message ConfigVersion {
+    int32 Year = 3;
+    int32 Month = 4;
+    int32 Day = 5;
+    int32 V1 = 7;
+    int32 V2 = 9;
+}
+
 message AuthenticationContainer {
-    messages.AuthMessage authMessage = 1;
+    AuthMessage authMessage = 1;
     BrowserDetails browserDetails = 3;
 
     oneof data {
@@ -23,25 +47,92 @@ message AuthenticationContainer {
     }
 }
 
+message AuthMessage {
+    string requestID = 1;
+    optional string network = 3;
+    optional bytes tachyonAuthToken = 6;
+    ConfigVersion configVersion = 7;
+}
+
+message RevokeRelayPairingRequest {
+    AuthMessage authMessage = 1;
+    Device browser = 2;
+}
+
+message RevokeRelayPairingResponse {
+    // field 1 is an object with an unknown int64 in field 2
+}
+
+message RegisterRefreshRequest {
+    message NestedEmptyArr {
+        util.EmptyArr emptyArr = 9;
+    }
+
+    AuthMessage messageAuth = 1;
+    Device currBrowserDevice = 2;
+    int64 unixTimestamp = 3;
+    bytes signature = 4;
+    NestedEmptyArr emptyRefreshArr = 13;
+    int32 messageType = 16;
+}
+
+message RegisterRefreshResponse {
+    message AuthKeyData {
+        bytes tachyonAuthToken = 1;
+        string validFor = 2;
+    }
+
+    AuthKeyData tokenData = 2;
+}
+
+message RegisterPhoneRelayResponse {
+    message AuthKeyData {
+        bytes tachyonAuthToken = 1;
+        int64 validFor = 2;
+    }
+
+    CoordinateMessage coordinates = 1;
+    Device browser = 2;
+    bytes pairingKey = 3;
+    int64 validFor = 4;
+    AuthKeyData authKeyData = 5;
+    string responseID = 6;
+}
+
+message CoordinateMessage {
+    int64 coord1 = 2;
+}
+
+message RefreshPhoneRelayResponse {
+    CoordinateMessage coordinates = 1;
+    bytes pairKey = 2;
+    int64 validFor = 3;
+}
+
+message WebEncryptionKeyResponse {
+    CoordinateMessage coordinates = 1;
+    bytes key = 2;
+}
+
 message ECDSAKeys {
     int64 field1 = 1; // idk?
     bytes encryptedKeys = 2;
 }
 
+message CurrentDeviceData {
+    authentication.Device browser = 1;
+}
+
 message KeyData {
-    messages.Device mobile = 1;
+    Device mobile = 1;
     ECDSAKeys ecdsaKeys = 6;
     WebAuthKey webAuthKeyData = 2;
-    messages.Device browser = 3;
+    Device browser = 3;
 }
 
 message WebAuthKey {
     bytes webAuthKey = 1;
     int64 validFor = 2;
-}
-
-message CurrentDeviceData {
-    messages.Device browser = 1;
 }
 
 message URLData {
@@ -56,11 +147,11 @@ message TokenData {
 }
 
 message PairedData {
-    messages.Device mobile = 1;
+    Device mobile = 1;
     TokenData tokenData = 2;
-    messages.Device browser = 3;
+    Device browser = 3;
 }
 
 message RevokePairData {
-    messages.Device revokedDevice = 1;
+    Device revokedDevice = 1;
 }

@@ -3,26 +3,6 @@ package conversations;
 
 option go_package = "../gmproto";
 
-import "reactions.proto";
-
-message GetParticipantThumbnailPayload {
-    string conversationID = 1;
-}
-
-message ListContactsPayload {
-    int32 i1 = 5; // = 1
-    int32 i2 = 6; // = 350
-    int32 i3 = 7; // = 50
-}
-
-message ListTopContactsPayload {
-    int32 count = 1;
-}
-
-message GetContactsThumbnailPayload {
-    repeated string avatarIDs = 1;
-}
-
 message Contact {
     string ID = 1;
     string name = 2;
@@ -40,114 +20,6 @@ message ContactNumber {
     optional string formattedNumber = 4;
 }
 
-message GetOrCreateConversationPayload {
-    repeated ContactNumber numbers = 2;
-    optional string RCSGroupName = 3;
-    optional bool createRCSGroup = 4;
-}
-
-message ResendMessagePayload {
-    string messageID = 2;
-}
-
-message GetConversationPayload {
-    string conversationID = 1;
-}
-
-message ConversationTypePayload {
-    string conversationID = 2;
-}
-
-message TypingUpdatePayload {
-    SetTypingIn data = 2;
-}
-
-message SetTypingIn {
-    string conversationID = 1;
-    bool typing = 3;
-}
-
-message UpdateConversationPayload {
-    UpdateConversationData data = 1;
-    ConversationActionStatus action = 2;
-    string conversationID = 3;
-    ConversationAction5 action5 = 5;
-}
-
-message ConversationAction5 {
-    bool field2 = 2;
-}
-
-message UpdateConversationData {
-    string conversationID = 1;
-    oneof data {
-        ConversationStatus status = 12;
-        ConversationMuteStatus mute = 7;
-    }
-}
-
-message DeleteMessagePayload {
-    string messageID = 2;
-}
-
-message SendMessagePayload {
-    string conversationID = 2;
-    MessagePayload messagePayload = 3;
-    string tmpID = 5;
-    bool isReply = 6; // not sure
-    ReplyPayload reply = 8;
-}
-
-message ReplyPayload {
-    string messageID = 1;
-}
-
-message MessagePayload {
-    string tmpID = 1;
-    MessagePayloadContent messagePayloadContent = 6;
-    string conversationID = 7;
-    string selfParticipantID = 9; // might be participantID
-    repeated MessageInfo messageInfo = 10;
-    string tmpID2 = 12;
-}
-
-message MessagePayloadContent {
-    MessageContent messageContent = 1;
-}
-
-message OpenConversationPayload {
-    string conversationID = 2;
-}
-
-message PrepareOpenConversationPayload {
-    int64 field2 = 2; // only seen value 1
-}
-
-message FetchConversationMessagesPayload {
-    string conversationID = 2;
-    int64 count = 3;
-
-    Cursor cursor = 5;
-}
-
-message ListConversationsPayload {
-    enum Folder {
-        UNKNOWN = 0;
-        INBOX = 1;
-        ARCHIVE = 2;
-        SPAM_BLOCKED = 5;
-    }
-
-    int64 count = 2;
-    Folder folder = 4;
-    optional Cursor cursor = 5;
-}
-
-message Cursor {
-    string lastItemID = 1;
-    int64 lastItemTimestamp = 2;
-}
-
 message Message {
     string messageID = 1;
     MsgType msgType = 3;
@@ -160,8 +32,43 @@ message Message {
     string tmpID = 12;
     optional string subject = 14;
     int64 someInt = 16;
-    repeated reactions.ReactionResponse reactions = 19;
+    repeated ReactionEntry reactions = 19;
     optional ReplyMessage replyMessage = 21;
+}
+
+message ReactionEntry {
+    ReactionData data = 1;
+    repeated string participantIDs = 2;
+}
+
+enum EmojiType {
+    REACTION_TYPE_UNSPECIFIED = 0;
+    LIKE = 1;
+    LOVE = 2;
+    LAUGH = 3;
+    SURPRISED = 4;
+    SAD = 5;
+    ANGRY = 6;
+    DISLIKE = 7;
+    CUSTOM = 8;
+    QUESTIONING = 9;
+    CRYING_FACE = 10;
+    POUTING_FACE = 11;
+    RED_HEART = 12;
+}
+
+message ReactionData {
+    string unicode = 1;
+    EmojiType type = 2;
+}
+
+message EmojiMeta {
+    repeated EmojiMetaData emojiMetaData = 1;
+}
+
+message EmojiMetaData {
+    string unicode = 1;
+    repeated string names = 2;
 }
 
 message ReplyMessage {
@@ -175,7 +82,7 @@ message ReplyMessageData {
 }
 
 message MessageInfo {
-    string actionMessageID = 1;
+    optional string actionMessageID = 1;
     oneof data {
         MessageContent messageContent = 2;
         MediaContent mediaContent = 3;
@@ -187,14 +94,14 @@ message MediaContent {
     string mediaID = 2;
     string mediaName = 4;
     int64 size = 5;
-    Pixels pixels = 6;
+    Dimensions dimensions = 6;
     bytes mediaData = 7;
     string mediaID2 = 9;
     bytes decryptionKey = 11;
-    bytes decryptionKey2 = 12; // same value as decryptionkey?
+    bytes decryptionKey2 = 12;
 }
 
-message Pixels {
+message Dimensions {
     int64 width = 1;
     int64 height = 2;
 }
@@ -213,12 +120,6 @@ message MessageStatus {
     string errMsg = 4;
     string statusText = 5;
     int64 thirdCode = 6;
-}
-
-message Conversations {
-    repeated Conversation conversations = 2;
-    optional bytes cursorBytes = 3;
-    optional Cursor cursor = 5;
 }
 
 message Conversation {
@@ -272,7 +173,7 @@ message SmallInfo {
 
 message LatestMessage {
     string displayContent = 1;
-    int64 fromMe = 2; // isMe?
+    int64 fromMe = 2;
 
     string displayName = 4;
     LatestMessageStatus latestMessageStatus = 5;
@@ -377,25 +278,6 @@ enum MessageStatusType {
     MESSAGE_STATUS_TOMBSTONE_SATELLITE_EDUCATION = 239;
 
     MESSAGE_DELETED = 300;
-}
-
-enum ConversationStatus {
-    UNKNOWN_STATUS = 0;
-    UNARCHIVE = 1;
-    ARCHIVE = 2;
-    DELETE = 3;
-}
-
-enum ConversationActionStatus {
-    UNKNOWN_ACTION_STATUS = 0;
-    UNBLOCK = 2;
-    BLOCK = 7;
-    BLOCK_AND_REPORT = 8;
-}
-
-enum ConversationMuteStatus {
-    UNMUTE = 0;
-    MUTE = 1;
 }
 
 enum ConvUpdateTypes {

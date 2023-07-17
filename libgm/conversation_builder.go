@@ -52,7 +52,7 @@ func (cb *ConversationBuilder) Build(protoMessage proto.Message) (proto.Message,
 	}
 
 	switch protoMessage.(type) {
-	case *gmproto.UpdateConversationPayload:
+	case *gmproto.UpdateConversationRequest:
 		payload, failedBuild := cb.buildUpdateConversationPayload()
 		if failedBuild != nil {
 			return nil, failedBuild
@@ -64,12 +64,12 @@ func (cb *ConversationBuilder) Build(protoMessage proto.Message) (proto.Message,
 	return nil, &ConversationBuilderError{errMsg: "failed to build for unknown reasons"}
 }
 
-func (cb *ConversationBuilder) buildUpdateConversationPayload() (*gmproto.UpdateConversationPayload, error) {
+func (cb *ConversationBuilder) buildUpdateConversationPayload() (*gmproto.UpdateConversationRequest, error) {
 	if cb.actionStatus == 0 && cb.status == 0 && cb.muteStatus == nil {
 		return nil, &ConversationBuilderError{errMsg: "actionStatus, status & muteStatus can not be empty when updating conversation, set atleast 1"}
 	}
 
-	payload := &gmproto.UpdateConversationPayload{}
+	payload := &gmproto.UpdateConversationRequest{}
 
 	if cb.actionStatus != 0 {
 		payload.Action = cb.actionStatus

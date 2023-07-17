@@ -12,7 +12,7 @@ type ClientReady struct {
 	Conversations []*gmproto.Conversation
 }
 
-func NewClientReady(sessionID string, conversationList *gmproto.Conversations) *ClientReady {
+func NewClientReady(sessionID string, conversationList *gmproto.ListConversationsResponse) *ClientReady {
 	return &ClientReady{
 		SessionID:     sessionID,
 		Conversations: conversationList.Conversations,

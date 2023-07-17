@@ -3,72 +3,311 @@ package client;
 
 option go_package = "../gmproto";
 
-import "messages.proto";
+import "conversations.proto";
+import "authentication.proto";
+import "util.proto";
 
-message NotifyDittoActivityPayload {
+message NotifyDittoActivityRequest {
     // This is not actually a boolean: after logging out, field 2 has value 2, and field 3 has value 1.
     bool success = 2;
 }
 
-message MessageReadPayload {
+message NotifyDittoActivityResponse {}
+
+message ReceiveMessagesRequest {
+    authentication.AuthMessage auth = 1;
+
+    message UnknownEmptyObject1 {}
+    message UnknownEmptyObject2 {
+        UnknownEmptyObject1 unknown = 2;
+    }
+    optional UnknownEmptyObject2 unknown = 4;
+}
+
+message MessageReadRequest {
     string conversationID = 2;
     string messageID = 3;
 }
 
-message AckMessagePayload {
-    messages.AuthMessage authData = 1;
-    messages.EmptyArr emptyArr = 2;
-    repeated AckMessageData acks = 4;
+message AckMessageRequest {
+    message Message {
+        string requestID = 1;
+        authentication.Device device = 2;
+    }
+
+    authentication.AuthMessage authData = 1;
+    util.EmptyArr emptyArr = 2;
+    repeated Message acks = 4;
 }
 
-message AckMessageData {
-    string requestID = 1;
-    messages.Device device = 2;
+message DownloadAttachmentRequest {
+    AttachmentInfo info = 1;
+    authentication.AuthMessage authData = 2;
 }
 
-message ImageMetaData {
-    string imageID = 1;
+message AttachmentInfo {
+    string attachmentID = 1;
     bool encrypted = 2;
 }
 
-message UploadImagePayload {
-    ImageMetaData metaData = 1;
-    messages.AuthMessage authData = 2;
+message StartMediaUploadRequest {
+    int64 attachmentType = 1;
+    authentication.AuthMessage authData = 2;
+    authentication.Device mobile = 3;
 }
 
-message BugleBackendService {
-    BugleCode data = 6;
+message UploadMediaResponse {
+    UploadedMedia media = 1;
+    string message = 2;
 }
 
-message BugleCode {
-    int64 type = 2;
+message UploadedMedia {
+    string mediaID = 1;
+    int64 mediaNumber = 2;
 }
 
-enum BugleMessageType {
-    UNKNOWN_BUGLE_MESSAGE_TYPE = 0;
-    SMS = 1;
-    MMS = 2;
-    RCS = 3;
-    CLOUD_SYNC = 4;
-    IMDN_DELIVERED = 5;
-    IMDN_DISPLAYED = 6;
-    IMDN_FALLBACK = 7;
-    RCS_GENERIC = 8;
-    FTD = 9;
-    FT_E2EE_LEGACY = 10;
-    FT_E2EE_XML = 11;
-    LIGHTER_MESSAGE = 12;
-    RBM_SPAM_REPORT = 13;
-    SATELLITE = 14;
+message GetParticipantThumbnailRequest {
+    string conversationID = 1;
 }
 
-enum BrowserTypes {
-    UNKNOWN_BROWSER_TYPE = 0;
-    OTHER = 1;
-    CHROME = 2;
-    FIREFOX = 3;
-    SAFARI = 4;
-    OPERA = 5;
-    IE = 6;
-    EDGE = 7;
+message GetParticipantThumbnailResponse {
+    repeated ParticipantThumbnail thumbnail = 1;
+}
+
+message ParticipantThumbnail {
+    string participantID = 1;
+    ThumbnailData data = 2;
+}
+
+message GetContactsThumbnailRequest {
+    repeated string avatarIDs = 1;
+}
+
+message ThumbnailData {
+    bytes imageBuffer = 3;
+    int32 someInt = 4;
+    conversations.Dimensions dimensions = 5;
+}
+
+message Cursor {
+    string lastItemID = 1;
+    int64 lastItemTimestamp = 2;
+}
+
+message FetchMessagesRequest {
+    string conversationID = 2;
+    int64 count = 3;
+
+    Cursor cursor = 5;
+}
+
+message FetchMessagesResponse {
+    repeated conversations.Message messages = 2;
+    bytes someBytes = 3;
+    int64 totalMessages = 4;
+    Cursor cursor = 5;
+}
+
+message ListContactsRequest {
+    int32 i1 = 5; // = 1
+    int32 i2 = 6; // = 350
+    int32 i3 = 7; // = 50
+}
+
+message ListTopContactsRequest {
+    int32 count = 1;
+}
+
+message ListContactsResponse {
+    repeated conversations.Contact contacts = 2;
+}
+
+message ListTopContactsResponse {
+    repeated conversations.Contact contacts = 1;
+}
+
+message ListConversationsRequest {
+    enum Folder {
+        UNKNOWN = 0;
+        INBOX = 1;
+        ARCHIVE = 2;
+        SPAM_BLOCKED = 5;
+    }
+
+    int64 count = 2;
+    Folder folder = 4;
+    optional Cursor cursor = 5;
+}
+
+message ListConversationsResponse {
+    repeated conversations.Conversation conversations = 2;
+    optional bytes cursorBytes = 3;
+    optional Cursor cursor = 5;
+}
+
+message GetOrCreateConversationRequest {
+    repeated conversations.ContactNumber numbers = 2;
+    optional string RCSGroupName = 3;
+    optional bool createRCSGroup = 4;
+}
+
+message GetOrCreateConversationResponse {
+    enum Status {
+        UNKNOWN = 0;
+        SUCCESS = 1;
+        CREATE_RCS = 3;
+    }
+    conversations.Conversation conversation = 2;
+    Status status = 3;
+}
+
+message DeleteMessageRequest {
+    string messageID = 2;
+}
+
+message DeleteMessageResponse {
+    bool success = 2;
+}
+
+message UpdateConversationRequest {
+    UpdateConversationData data = 1;
+    ConversationActionStatus action = 2;
+    string conversationID = 3;
+    ConversationAction5 action5 = 5;
+}
+
+message ConversationAction5 {
+    bool field2 = 2;
+}
+
+message UpdateConversationData {
+    string conversationID = 1;
+    oneof data {
+        ConversationStatus status = 12;
+        ConversationMuteStatus mute = 7;
+    }
+}
+
+enum ConversationStatus {
+    UNKNOWN_STATUS = 0;
+    UNARCHIVE = 1;
+    ARCHIVE = 2;
+    DELETE = 3;
+}
+
+enum ConversationActionStatus {
+    UNKNOWN_ACTION_STATUS = 0;
+    UNBLOCK = 2;
+    BLOCK = 7;
+    BLOCK_AND_REPORT = 8;
+}
+
+enum ConversationMuteStatus {
+    UNMUTE = 0;
+    MUTE = 1;
+}
+
+message UpdateConversationResponse {
+    bool success = 1;
+    /*
+    3 {
+    1 {
+        1 {
+        3: "11"
+        }
+        13: 2
+    }
+    3: 1
+    }
+    */
+}
+
+message ConversationTypeRequest {
+    string conversationID = 2;
+}
+
+message GetConversationTypeResponse {
+    string conversationID = 2;
+    int32 type = 3;
+    bool bool1 = 5;
+    int32 number2 = 6;
+}
+
+message GetConversationRequest {
+    string conversationID = 1;
+}
+
+message GetConversationResponse {
+    conversations.Conversation conversation = 1;
+}
+
+message OpenConversationRequest {
+    string conversationID = 2;
+}
+
+message PrepareOpenConversationRequest {
+    int64 field2 = 2; // only seen value 1
+}
+
+message IsBugleDefaultResponse {
+    bool success = 1;
+}
+
+message SendMessageRequest {
+    string conversationID = 2;
+    MessagePayload messagePayload = 3;
+    string tmpID = 5;
+    bool isReply = 6; // not sure
+    ReplyPayload reply = 8;
+}
+
+message ReplyPayload {
+    string messageID = 1;
+}
+
+message MessagePayload {
+    string tmpID = 1;
+    MessagePayloadContent messagePayloadContent = 6;
+    string conversationID = 7;
+    string selfParticipantID = 9; // might be participantID
+    repeated conversations.MessageInfo messageInfo = 10;
+    string tmpID2 = 12;
+}
+
+message MessagePayloadContent {
+    conversations.MessageContent messageContent = 1;
+}
+
+message SendMessageResponse {
+    int64 type = 3;
+}
+
+message SendReactionRequest {
+    enum Action {
+        UNSPECIFIED = 0;
+        ADD = 1;
+        REMOVE = 2;
+        SWITCH = 3;
+    }
+
+    string messageID = 1;
+    conversations.ReactionData reactionData = 2;
+    Action action = 3;
+}
+
+message SendReactionResponse {
+    bool success = 1;
+}
+
+message ResendMessageRequest {
+    string messageID = 2;
+}
+
+message TypingUpdateRequest {
+    message Data {
+        string conversationID = 1;
+        bool typing = 3;
+    }
+
+    Data data = 2;
 }

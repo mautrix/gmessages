@@ -151,14 +151,14 @@ func (s *SessionHandler) sendAckRequest() {
 	if len(dataToAck) == 0 {
 		return
 	}
-	ackMessages := make([]*gmproto.AckMessageData, len(dataToAck))
+	ackMessages := make([]*gmproto.AckMessageRequest_Message, len(dataToAck))
 	for i, reqID := range dataToAck {
-		ackMessages[i] = &gmproto.AckMessageData{
+		ackMessages[i] = &gmproto.AckMessageRequest_Message{
 			RequestID: reqID,
 			Device:    s.client.AuthData.Browser,
 		}
 	}
-	ackMessagePayload := &gmproto.AckMessagePayload{
+	ackMessagePayload := &gmproto.AckMessageRequest{
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,

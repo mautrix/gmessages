@@ -17,7 +17,7 @@ func (c *Client) IsBugleDefault() (*gmproto.IsBugleDefaultResponse, error) {
 }
 
 func (c *Client) NotifyDittoActivity() error {
-	payload := &gmproto.NotifyDittoActivityPayload{Success: true}
+	payload := &gmproto.NotifyDittoActivityRequest{Success: true}
 	actionType := gmproto.ActionType_NOTIFY_DITTO_ACTIVITY
 
 	_, err := c.sessionHandler.sendMessage(actionType, payload)

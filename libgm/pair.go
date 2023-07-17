@@ -118,7 +118,7 @@ func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
 	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
-	payload, err := proto.Marshal(&gmproto.RevokeRelayPairing{
+	payload, err := proto.Marshal(&gmproto.RevokeRelayPairingRequest{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,

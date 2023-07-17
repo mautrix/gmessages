@@ -193,10 +193,10 @@ func (c *Client) triggerEvent(evt interface{}) {
 }
 
 func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
-	downloadMetadata := &gmproto.UploadImagePayload{
-		MetaData: &gmproto.ImageMetaData{
-			ImageID:   mediaID,
-			Encrypted: true,
+	downloadMetadata := &gmproto.DownloadAttachmentRequest{
+		Info: &gmproto.AttachmentInfo{
+			AttachmentID: mediaID,
+			Encrypted:    true,
 		},
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
@@ -304,7 +304,7 @@ func (c *Client) refreshAuthToken() error {
 		return err
 	}
 
-	payload, err := pblite.Marshal(&gmproto.RegisterRefreshPayload{
+	payload, err := pblite.Marshal(&gmproto.RegisterRefreshRequest{
 		MessageAuth: &gmproto.AuthMessage{
 			RequestID:        requestID,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
@@ -313,7 +313,7 @@ func (c *Client) refreshAuthToken() error {
 		CurrBrowserDevice: c.AuthData.Browser,
 		UnixTimestamp:     timestamp,
 		Signature:         sig,
-		EmptyRefreshArr:   &gmproto.EmptyRefreshArr{EmptyArr: &gmproto.EmptyArr{}},
+		EmptyRefreshArr:   &gmproto.RegisterRefreshRequest_NestedEmptyArr{EmptyArr: &gmproto.EmptyArr{}},
 		MessageType:       2, // hmm
 	})
 	if err != nil {

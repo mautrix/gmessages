@@ -116,97 +116,6 @@ func (AlertType) EnumDescriptor() ([]byte, []int) {
 	return file_events_proto_rawDescGZIP(), []int{0}
 }
 
-type GRPCStatus int32
-
-const (
-	GRPCStatus_OK                  GRPCStatus = 0
-	GRPCStatus_CANCELLED           GRPCStatus = 1
-	GRPCStatus_UNKNOWN             GRPCStatus = 2
-	GRPCStatus_INVALID_ARGUMENT    GRPCStatus = 3
-	GRPCStatus_DEADLINE_EXCEEDED   GRPCStatus = 4
-	GRPCStatus_NOT_FOUND           GRPCStatus = 5
-	GRPCStatus_ALREADY_EXISTS      GRPCStatus = 6
-	GRPCStatus_PERMISSION_DENIED   GRPCStatus = 7
-	GRPCStatus_RESOURCE_EXHAUSTED  GRPCStatus = 8
-	GRPCStatus_FAILED_PRECONDITION GRPCStatus = 9
-	GRPCStatus_ABORTED             GRPCStatus = 10
-	GRPCStatus_OUT_OF_RANGE        GRPCStatus = 11
-	GRPCStatus_UNIMPLEMENTED       GRPCStatus = 12
-	GRPCStatus_INTERNAL            GRPCStatus = 13
-	GRPCStatus_UNAVAILABLE         GRPCStatus = 14
-	GRPCStatus_DATA_LOSS           GRPCStatus = 15
-	GRPCStatus_UNAUTHENTICATED     GRPCStatus = 16
-)
-
-// Enum value maps for GRPCStatus.
-var (
-	GRPCStatus_name = map[int32]string{
-		0:  "OK",
-		1:  "CANCELLED",
-		2:  "UNKNOWN",
-		3:  "INVALID_ARGUMENT",
-		4:  "DEADLINE_EXCEEDED",
-		5:  "NOT_FOUND",
-		6:  "ALREADY_EXISTS",
-		7:  "PERMISSION_DENIED",
-		8:  "RESOURCE_EXHAUSTED",
-		9:  "FAILED_PRECONDITION",
-		10: "ABORTED",
-		11: "OUT_OF_RANGE",
-		12: "UNIMPLEMENTED",
-		13: "INTERNAL",
-		14: "UNAVAILABLE",
-		15: "DATA_LOSS",
-		16: "UNAUTHENTICATED",
-	}
-	GRPCStatus_value = map[string]int32{
-		"OK":                  0,
-		"CANCELLED":           1,
-		"UNKNOWN":             2,
-		"INVALID_ARGUMENT":    3,
-		"DEADLINE_EXCEEDED":   4,
-		"NOT_FOUND":           5,
-		"ALREADY_EXISTS":      6,
-		"PERMISSION_DENIED":   7,
-		"RESOURCE_EXHAUSTED":  8,
-		"FAILED_PRECONDITION": 9,
-		"ABORTED":             10,
-		"OUT_OF_RANGE":        11,
-		"UNIMPLEMENTED":       12,
-		"INTERNAL":            13,
-		"UNAVAILABLE":         14,
-		"DATA_LOSS":           15,
-		"UNAUTHENTICATED":     16,
-	}
-)
-
-func (x GRPCStatus) Enum() *GRPCStatus {
-	p := new(GRPCStatus)
-	*p = x
-	return p
-}
-
-func (x GRPCStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (GRPCStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_events_proto_enumTypes[1].Descriptor()
-}
-
-func (GRPCStatus) Type() protoreflect.EnumType {
-	return &file_events_proto_enumTypes[1]
-}
-
-func (x GRPCStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use GRPCStatus.Descriptor instead.
-func (GRPCStatus) EnumDescriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{1}
-}
-
 type TypingTypes int32
 
 const (
@@ -237,11 +146,11 @@ func (x TypingTypes) String() string {
 }
 
 func (TypingTypes) Descriptor() protoreflect.EnumDescriptor {
-	return file_events_proto_enumTypes[2].Descriptor()
+	return file_events_proto_enumTypes[1].Descriptor()
 }
 
 func (TypingTypes) Type() protoreflect.EnumType {
-	return &file_events_proto_enumTypes[2]
+	return &file_events_proto_enumTypes[1]
 }
 
 func (x TypingTypes) Number() protoreflect.EnumNumber {
@@ -250,7 +159,7 @@ func (x TypingTypes) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TypingTypes.Descriptor instead.
 func (TypingTypes) EnumDescriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{2}
+	return file_events_proto_rawDescGZIP(), []int{1}
 }
 
 type UpdateEvents struct {
@@ -780,40 +689,39 @@ func file_events_proto_rawDescGZIP() []byte {
 	return file_events_proto_rawDescData
 }
 
-var file_events_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_events_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_events_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_events_proto_goTypes = []interface{}{
 	(AlertType)(0),            // 0: events.AlertType
-	(GRPCStatus)(0),           // 1: events.GRPCStatus
-	(TypingTypes)(0),          // 2: events.TypingTypes
-	(*UpdateEvents)(nil),      // 3: events.UpdateEvents
-	(*ConversationEvent)(nil), // 4: events.ConversationEvent
-	(*TypingEvent)(nil),       // 5: events.TypingEvent
-	(*MessageEvent)(nil),      // 6: events.MessageEvent
-	(*UserAlertEvent)(nil),    // 7: events.UserAlertEvent
-	(*TypingData)(nil),        // 8: events.TypingData
-	(*User)(nil),              // 9: events.User
-	(*RPCPairData)(nil),       // 10: events.RPCPairData
-	(*Settings)(nil),          // 11: settings.Settings
-	(*Conversation)(nil),      // 12: conversations.Conversation
-	(*Message)(nil),           // 13: conversations.Message
-	(*PairedData)(nil),        // 14: authentication.PairedData
-	(*RevokePairData)(nil),    // 15: authentication.RevokePairData
+	(TypingTypes)(0),          // 1: events.TypingTypes
+	(*UpdateEvents)(nil),      // 2: events.UpdateEvents
+	(*ConversationEvent)(nil), // 3: events.ConversationEvent
+	(*TypingEvent)(nil),       // 4: events.TypingEvent
+	(*MessageEvent)(nil),      // 5: events.MessageEvent
+	(*UserAlertEvent)(nil),    // 6: events.UserAlertEvent
+	(*TypingData)(nil),        // 7: events.TypingData
+	(*User)(nil),              // 8: events.User
+	(*RPCPairData)(nil),       // 9: events.RPCPairData
+	(*Settings)(nil),          // 10: settings.Settings
+	(*Conversation)(nil),      // 11: conversations.Conversation
+	(*Message)(nil),           // 12: conversations.Message
+	(*PairedData)(nil),        // 13: authentication.PairedData
+	(*RevokePairData)(nil),    // 14: authentication.RevokePairData
 }
 var file_events_proto_depIdxs = []int32{
-	4,  // 0: events.UpdateEvents.conversationEvent:type_name -> events.ConversationEvent
-	6,  // 1: events.UpdateEvents.messageEvent:type_name -> events.MessageEvent
-	5,  // 2: events.UpdateEvents.typingEvent:type_name -> events.TypingEvent
-	11, // 3: events.UpdateEvents.settingsEvent:type_name -> settings.Settings
-	7,  // 4: events.UpdateEvents.userAlertEvent:type_name -> events.UserAlertEvent
-	12, // 5: events.ConversationEvent.data:type_name -> conversations.Conversation
-	8,  // 6: events.TypingEvent.data:type_name -> events.TypingData
-	13, // 7: events.MessageEvent.data:type_name -> conversations.Message
+	3,  // 0: events.UpdateEvents.conversationEvent:type_name -> events.ConversationEvent
+	5,  // 1: events.UpdateEvents.messageEvent:type_name -> events.MessageEvent
+	4,  // 2: events.UpdateEvents.typingEvent:type_name -> events.TypingEvent
+	10, // 3: events.UpdateEvents.settingsEvent:type_name -> settings.Settings
+	6,  // 4: events.UpdateEvents.userAlertEvent:type_name -> events.UserAlertEvent
+	11, // 5: events.ConversationEvent.data:type_name -> conversations.Conversation
+	7,  // 6: events.TypingEvent.data:type_name -> events.TypingData
+	12, // 7: events.MessageEvent.data:type_name -> conversations.Message
 	0,  // 8: events.UserAlertEvent.alertType:type_name -> events.AlertType
-	9,  // 9: events.TypingData.user:type_name -> events.User
-	2,  // 10: events.TypingData.type:type_name -> events.TypingTypes
-	14, // 11: events.RPCPairData.paired:type_name -> authentication.PairedData
-	15, // 12: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
+	8,  // 9: events.TypingData.user:type_name -> events.User
+	1,  // 10: events.TypingData.type:type_name -> events.TypingTypes
+	13, // 11: events.RPCPairData.paired:type_name -> authentication.PairedData
+	14, // 12: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
 	13, // [13:13] is the sub-list for method output_type
 	13, // [13:13] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
@@ -943,7 +851,7 @@ func file_events_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_events_proto_rawDesc,
-			NumEnums:      3,
+			NumEnums:      2,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,

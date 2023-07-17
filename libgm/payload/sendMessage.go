@@ -13,8 +13,8 @@ import (
 )
 
 type SendMessageBuilder struct {
-	message    *gmproto.SendMessage
-	b64Message *gmproto.SendMessageInternal
+	message    *gmproto.OutgoingRPCMessage
+	b64Message *gmproto.OutgoingRPCData
 
 	err error
 }
@@ -25,19 +25,19 @@ func (sm *SendMessageBuilder) Err() error {
 
 func NewSendMessageBuilder(tachyonAuthToken []byte, pairedDevice *gmproto.Device, requestId string, sessionId string) *SendMessageBuilder {
 	return &SendMessageBuilder{
-		message: &gmproto.SendMessage{
+		message: &gmproto.OutgoingRPCMessage{
 			Mobile: pairedDevice,
-			MessageData: &gmproto.SendMessageData{
+			MessageData: &gmproto.OutgoingRPCMessage_Data{
 				RequestID: requestId,
 			},
-			MessageAuth: &gmproto.SendMessageAuth{
+			MessageAuth: &gmproto.OutgoingRPCMessage_Auth{
 				RequestID:        requestId,
 				TachyonAuthToken: tachyonAuthToken,
 				ConfigVersion:    util.ConfigMessage,
 			},
 			EmptyArr: &gmproto.EmptyArr{},
 		},
-		b64Message: &gmproto.SendMessageInternal{
+		b64Message: &gmproto.OutgoingRPCData{
 			RequestID: requestId,
 			SessionID: sessionId,
 		},
@@ -80,7 +80,7 @@ func (sm *SendMessageBuilder) SetRoute(actionType gmproto.ActionType) *SendMessa
 }
 
 func (sm *SendMessageBuilder) setMessageType(eventType gmproto.MessageType) *SendMessageBuilder {
-	sm.message.MessageData.MessageTypeData = &gmproto.MessageTypeData{
+	sm.message.MessageData.MessageTypeData = &gmproto.OutgoingRPCMessage_Data_Type{
 		EmptyArr:    &gmproto.EmptyArr{},
 		MessageType: eventType,
 	}
@@ -117,7 +117,7 @@ func (sm *SendMessageBuilder) Build() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sm.message.MessageData.ProtobufData = encodedMessage
+	sm.message.MessageData.MessageData = encodedMessage
 
 	protoJSONBytes, serializeErr := pblite.Marshal(sm.message)
 	if serializeErr != nil {

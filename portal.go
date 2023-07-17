@@ -435,7 +435,7 @@ func (portal *Portal) handleGoogleDeletion(ctx context.Context, messageID string
 	}
 }
 
-func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*gmproto.ReactionResponse) {
+func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*gmproto.ReactionEntry) {
 	log := zerolog.Ctx(ctx)
 	existing, err := portal.bridge.DB.Reaction.GetAllByMessage(ctx, portal.Key, message.ID)
 	if err != nil {
@@ -1172,9 +1172,9 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 	return nil
 }
 
-func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*gmproto.SendMessagePayload, error) {
+func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*gmproto.SendMessageRequest, error) {
 	log := zerolog.Ctx(ctx)
-	req := &gmproto.SendMessagePayload{
+	req := &gmproto.SendMessageRequest{
 		ConversationID: portal.ID,
 		TmpID:          txnID,
 		MessagePayload: &gmproto.MessagePayload{
@@ -1349,11 +1349,11 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 	}
 
 	emoji := variationselector.Remove(content.RelatesTo.Key)
-	action := gmproto.Reaction_ADD
+	action := gmproto.SendReactionRequest_ADD
 	if existingReaction != nil {
-		action = gmproto.Reaction_SWITCH
+		action = gmproto.SendReactionRequest_SWITCH
 	}
-	resp, err := sender.Client.SendReaction(&gmproto.SendReactionPayload{
+	resp, err := sender.Client.SendReaction(&gmproto.SendReactionRequest{
 		MessageID:    msg.ID,
 		ReactionData: gmproto.MakeReactionData(emoji),
 		Action:       action,
@@ -1425,10 +1425,10 @@ func (portal *Portal) handleMatrixReactionRedaction(ctx context.Context, sender 
 		return errTargetNotFound
 	}
 
-	resp, err := sender.Client.SendReaction(&gmproto.SendReactionPayload{
+	resp, err := sender.Client.SendReaction(&gmproto.SendReactionRequest{
 		MessageID:    existingReaction.MessageID,
 		ReactionData: gmproto.MakeReactionData(existingReaction.Reaction),
-		Action:       gmproto.Reaction_REMOVE,
+		Action:       gmproto.SendReactionRequest_REMOVE,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send reaction removal: %w", err)

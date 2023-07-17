@@ -14,7 +14,7 @@ var ConfigMessage = &gmproto.ConfigVersion{
 var Network = "Bugle"
 var BrowserDetailsMessage = &gmproto.BrowserDetails{
 	UserAgent:   UserAgent,
-	BrowserType: gmproto.BrowserTypes_OTHER,
+	BrowserType: gmproto.BrowserType_OTHER,
 	OS:          "libgm",
 	SomeBool:    true,
 }

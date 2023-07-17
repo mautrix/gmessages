@@ -1,20 +1,10 @@
 syntax = "proto3";
-package messages;
+package rpc;
 
 option go_package = "../gmproto";
 
-message RegisterRefreshPayload {
-    AuthMessage messageAuth = 1;
-    Device currBrowserDevice = 2;
-    int64 unixTimestamp = 3;
-    bytes signature = 4;
-    EmptyRefreshArr emptyRefreshArr = 13;
-    int32 messageType = 16;
-}
-
-message EmptyRefreshArr {
-    EmptyArr emptyArr = 9;
-}
+import "authentication.proto";
+import "util.proto";
 
 message StartAckMessage {
     optional int32 count = 1;
@@ -22,9 +12,9 @@ message StartAckMessage {
 
 message LongPollingPayload {
     optional IncomingRPCMessage data = 2;
-    optional EmptyArr heartbeat = 3;
+    optional util.EmptyArr heartbeat = 3;
     optional StartAckMessage ack = 4;
-    optional EmptyArr startRead = 5;
+    optional util.EmptyArr startRead = 5;
 }
 
 message IncomingRPCMessage {
@@ -35,8 +25,8 @@ message IncomingRPCMessage {
     MessageType messageType = 5;
     string finishExecute = 6;
     string millisecondsTaken = 7;
-    Device mobile = 8;
-    Device browser = 9;
+    authentication.Device mobile = 8;
+    authentication.Device browser = 9;
 
     // Either a RPCMessageData or a RPCPairData encoded as bytes
     bytes messageData = 12;
@@ -56,112 +46,49 @@ message RPCMessageData {
     bool bool3 = 9;
 }
 
-message RevokeRelayPairing {
-    AuthMessage authMessage = 1;
-    Device browser = 2;
+message OutgoingRPCMessage {
+    message Auth {
+        string requestID = 1;
+
+        bytes tachyonAuthToken = 6;
+        authentication.ConfigVersion configVersion = 7;
+    }
+
+    message Data {
+        string requestID = 1;
+        BugleRoute bugleRoute = 2;
+
+        // OutgoingRPCData encoded as bytes
+        bytes messageData = 12;
+
+        message Type {
+            util.EmptyArr emptyArr = 1;
+            MessageType messageType = 2;
+        }
+
+        Type messageTypeData = 23;
+    }
+
+    authentication.Device mobile = 1;
+    Data messageData = 2;
+    Auth messageAuth = 3;
+
+    int64 TTL = 5;
+
+    util.EmptyArr emptyArr = 9;
 }
 
-message SendMessage {
-    Device mobile = 1;
-    SendMessageData messageData = 2;
-    SendMessageAuth messageAuth = 3;
-
-    int64 TTL = 5; // might be something related to config
-
-    EmptyArr emptyArr = 9;
-}
-
-message SendMessageAuth {
-    string requestID = 1;
-
-    bytes tachyonAuthToken = 6;
-    ConfigVersion configVersion = 7;
-}
-
-message SendMessageInternal {
+message OutgoingRPCData {
     string requestID = 1;
     ActionType action = 2;
     bytes encryptedProtoData = 5;
     string sessionID = 6;
-}
-/*
-requestID = 1
-
-encodedData = {
-    requestID = 1 ^same
-
-    sessionID = 6
-}
-*/
-message SendMessageData {
-   string requestID = 1;
-   BugleRoute bugleRoute = 2;
-
-   bytes protobufData = 12;
-
-   MessageTypeData messageTypeData = 23;
-}
-
-message MessageTypeData {
-    EmptyArr emptyArr = 1;
-    MessageType messageType = 2;
-}
-
-message EmptyArr {
-
-}
-
-message AuthMessage {
-    string requestID = 1;
-    optional string network = 3;
-    optional bytes tachyonAuthToken = 6;
-    ConfigVersion configVersion = 7;
-}
-
-message ReceiveMessagesRequest {
-    AuthMessage auth = 1;
-
-    message UnknownEmptyObject1 {}
-    message UnknownEmptyObject2 {
-        UnknownEmptyObject1 unknown = 2;
-    }
-    optional UnknownEmptyObject2 unknown = 4;
-}
-
-message BaseData {
-    int64 TTL = 2;
-    EmptyArr emptyArr = 6;
-}
-
-message Device {
-    int64 userID = 1;
-    string sourceID = 2;
-    string network = 3;
 }
 
 enum BugleRoute {
     UNKNOWN_BUGLE_ROUTE = 0;
     DataEvent = 19;
     PairEvent = 14;
-}
-/*
-enum EventType {
-    UNKNOWN_EVENT_TYPE = 0;
-    ONE = 1;
-    TWO = 2;
-    THREE = 3;
-    FOUR = 4;
-    FIVE = 5;
-    SIXTEEN = 16;
-}
-*/
-
-message ConfigVersion {
-    int32 Year = 3;
-    int32 Month = 4;
-    int32 Day = 5;
-    int32 V1 = 7;
-    int32 V2 = 9;
 }
 
 enum ActionType {

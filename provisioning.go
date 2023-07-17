@@ -195,7 +195,7 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 			ErrCode: "bad json",
 		})
 	}
-	var reqData gmproto.GetOrCreateConversationPayload
+	var reqData gmproto.GetOrCreateConversationRequest
 	reqData.Numbers = make([]*gmproto.ContactNumber, 0, len(req.Numbers))
 	for _, number := range req.Numbers {
 		reqData.Numbers = append(reqData.Numbers, &gmproto.ContactNumber{

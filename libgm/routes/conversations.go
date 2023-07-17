@@ -6,7 +6,7 @@ var LIST_CONVERSATIONS_WITH_UPDATES = Route{
 	Action:         gmproto.ActionType_LIST_CONVERSATIONS,
 	MessageType:    gmproto.MessageType_BUGLE_ANNOTATION,
 	BugleRoute:     gmproto.BugleRoute_DataEvent,
-	ResponseStruct: &gmproto.Conversations{},
+	ResponseStruct: &gmproto.ListConversationsResponse{},
 	UseSessionID:   false,
 	UseTTL:         true,
 }
@@ -15,7 +15,7 @@ var LIST_CONVERSATIONS = Route{
 	Action:         gmproto.ActionType_LIST_CONVERSATIONS,
 	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
 	BugleRoute:     gmproto.BugleRoute_DataEvent,
-	ResponseStruct: &gmproto.Conversations{},
+	ResponseStruct: &gmproto.ListConversationsResponse{},
 	UseSessionID:   false,
 	UseTTL:         true,
 }
