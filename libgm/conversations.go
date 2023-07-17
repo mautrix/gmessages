@@ -45,6 +45,16 @@ func (c *Client) GetConversationType(conversationID string) (*gmproto.GetConvers
 	return typedResponse[*gmproto.GetConversationTypeResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
+func (c *Client) GetConversation(conversationID string) (*gmproto.Conversation, error) {
+	payload := &gmproto.GetConversationPayload{ConversationID: conversationID}
+	actionType := gmproto.ActionType_GET_CONVERSATION
+	resp, err := typedResponse[*gmproto.GetConversationResponse](c.sessionHandler.sendMessage(actionType, payload))
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetConversation(), nil
+}
+
 func (c *Client) FetchMessages(conversationID string, count int64, cursor *gmproto.Cursor) (*gmproto.FetchMessagesResponse, error) {
 	payload := &gmproto.FetchConversationMessagesPayload{ConversationID: conversationID, Count: count}
 	if cursor != nil {

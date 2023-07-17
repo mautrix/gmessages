@@ -106,8 +106,8 @@ func main() {
 				cli.ListContacts()
 			case "topcontacts":
 				cli.ListTopContacts()
-			case "getorcreate":
-				cli.GetOrCreateConversation(args)
+			case "getconversation":
+				cli.GetConversation(args[0])
 			}
 			//go handleCmd(strings.ToLower(cmd), args)
 		}

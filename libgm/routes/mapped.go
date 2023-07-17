@@ -23,6 +23,7 @@ var Routes = map[gmproto.ActionType]Route{
 	gmproto.ActionType_MESSAGE_READ:               MESSAGE_READ,
 	gmproto.ActionType_NOTIFY_DITTO_ACTIVITY:      NOTIFY_DITTO_ACTIVITY,
 	gmproto.ActionType_GET_CONVERSATION_TYPE:      GET_CONVERSATION_TYPE,
+	gmproto.ActionType_GET_CONVERSATION:           GET_CONVERSATION,
 	gmproto.ActionType_LIST_MESSAGES:              LIST_MESSAGES,
 	gmproto.ActionType_SEND_MESSAGE:               SEND_MESSAGE,
 	gmproto.ActionType_SEND_REACTION:              SEND_REACTION,

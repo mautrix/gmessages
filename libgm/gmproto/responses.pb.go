@@ -761,6 +761,53 @@ func (x *GetConversationTypeResponse) GetNumber2() int32 {
 	return 0
 }
 
+type GetConversationResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Conversation *Conversation `protobuf:"bytes,1,opt,name=conversation,proto3" json:"conversation,omitempty"`
+}
+
+func (x *GetConversationResponse) Reset() {
+	*x = GetConversationResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_responses_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetConversationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConversationResponse) ProtoMessage() {}
+
+func (x *GetConversationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_responses_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConversationResponse.ProtoReflect.Descriptor instead.
+func (*GetConversationResponse) Descriptor() ([]byte, []int) {
+	return file_responses_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetConversationResponse) GetConversation() *Conversation {
+	if x != nil {
+		return x.Conversation
+	}
+	return nil
+}
+
 type NotifyDittoActivityResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -770,7 +817,7 @@ type NotifyDittoActivityResponse struct {
 func (x *NotifyDittoActivityResponse) Reset() {
 	*x = NotifyDittoActivityResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[13]
+		mi := &file_responses_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -783,7 +830,7 @@ func (x *NotifyDittoActivityResponse) String() string {
 func (*NotifyDittoActivityResponse) ProtoMessage() {}
 
 func (x *NotifyDittoActivityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[13]
+	mi := &file_responses_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -796,7 +843,7 @@ func (x *NotifyDittoActivityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyDittoActivityResponse.ProtoReflect.Descriptor instead.
 func (*NotifyDittoActivityResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{13}
+	return file_responses_proto_rawDescGZIP(), []int{14}
 }
 
 type IsBugleDefaultResponse struct {
@@ -810,7 +857,7 @@ type IsBugleDefaultResponse struct {
 func (x *IsBugleDefaultResponse) Reset() {
 	*x = IsBugleDefaultResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[14]
+		mi := &file_responses_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -823,7 +870,7 @@ func (x *IsBugleDefaultResponse) String() string {
 func (*IsBugleDefaultResponse) ProtoMessage() {}
 
 func (x *IsBugleDefaultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[14]
+	mi := &file_responses_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -836,7 +883,7 @@ func (x *IsBugleDefaultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsBugleDefaultResponse.ProtoReflect.Descriptor instead.
 func (*IsBugleDefaultResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{14}
+	return file_responses_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *IsBugleDefaultResponse) GetSuccess() bool {
@@ -857,7 +904,7 @@ type GetUpdatesResponse struct {
 func (x *GetUpdatesResponse) Reset() {
 	*x = GetUpdatesResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[15]
+		mi := &file_responses_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -870,7 +917,7 @@ func (x *GetUpdatesResponse) String() string {
 func (*GetUpdatesResponse) ProtoMessage() {}
 
 func (x *GetUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[15]
+	mi := &file_responses_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -883,7 +930,7 @@ func (x *GetUpdatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*GetUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{15}
+	return file_responses_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetUpdatesResponse) GetData() *UserAlertEvent {
@@ -904,7 +951,7 @@ type SendMessageResponse struct {
 func (x *SendMessageResponse) Reset() {
 	*x = SendMessageResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[16]
+		mi := &file_responses_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -917,7 +964,7 @@ func (x *SendMessageResponse) String() string {
 func (*SendMessageResponse) ProtoMessage() {}
 
 func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[16]
+	mi := &file_responses_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +977,7 @@ func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendMessageResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{16}
+	return file_responses_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SendMessageResponse) GetType() int64 {
@@ -953,7 +1000,7 @@ type RefreshPhoneRelayResponse struct {
 func (x *RefreshPhoneRelayResponse) Reset() {
 	*x = RefreshPhoneRelayResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[17]
+		mi := &file_responses_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -966,7 +1013,7 @@ func (x *RefreshPhoneRelayResponse) String() string {
 func (*RefreshPhoneRelayResponse) ProtoMessage() {}
 
 func (x *RefreshPhoneRelayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[17]
+	mi := &file_responses_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -979,7 +1026,7 @@ func (x *RefreshPhoneRelayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshPhoneRelayResponse.ProtoReflect.Descriptor instead.
 func (*RefreshPhoneRelayResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{17}
+	return file_responses_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RefreshPhoneRelayResponse) GetCoordinates() *CoordinateMessage {
@@ -1015,7 +1062,7 @@ type WebEncryptionKeyResponse struct {
 func (x *WebEncryptionKeyResponse) Reset() {
 	*x = WebEncryptionKeyResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[18]
+		mi := &file_responses_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1028,7 +1075,7 @@ func (x *WebEncryptionKeyResponse) String() string {
 func (*WebEncryptionKeyResponse) ProtoMessage() {}
 
 func (x *WebEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[18]
+	mi := &file_responses_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1088,7 @@ func (x *WebEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebEncryptionKeyResponse.ProtoReflect.Descriptor instead.
 func (*WebEncryptionKeyResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{18}
+	return file_responses_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WebEncryptionKeyResponse) GetCoordinates() *CoordinateMessage {
@@ -1074,7 +1121,7 @@ type RegisterPhoneRelayResponse struct {
 func (x *RegisterPhoneRelayResponse) Reset() {
 	*x = RegisterPhoneRelayResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[19]
+		mi := &file_responses_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1087,7 +1134,7 @@ func (x *RegisterPhoneRelayResponse) String() string {
 func (*RegisterPhoneRelayResponse) ProtoMessage() {}
 
 func (x *RegisterPhoneRelayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[19]
+	mi := &file_responses_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1147,7 @@ func (x *RegisterPhoneRelayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterPhoneRelayResponse.ProtoReflect.Descriptor instead.
 func (*RegisterPhoneRelayResponse) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{19}
+	return file_responses_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RegisterPhoneRelayResponse) GetCoordinates() *CoordinateMessage {
@@ -1156,7 +1203,7 @@ type CoordinateMessage struct {
 func (x *CoordinateMessage) Reset() {
 	*x = CoordinateMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[20]
+		mi := &file_responses_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1169,7 +1216,7 @@ func (x *CoordinateMessage) String() string {
 func (*CoordinateMessage) ProtoMessage() {}
 
 func (x *CoordinateMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[20]
+	mi := &file_responses_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1182,7 +1229,7 @@ func (x *CoordinateMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoordinateMessage.ProtoReflect.Descriptor instead.
 func (*CoordinateMessage) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{20}
+	return file_responses_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CoordinateMessage) GetCoord1() int64 {
@@ -1204,7 +1251,7 @@ type AuthKeyData struct {
 func (x *AuthKeyData) Reset() {
 	*x = AuthKeyData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_responses_proto_msgTypes[21]
+		mi := &file_responses_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1217,7 +1264,7 @@ func (x *AuthKeyData) String() string {
 func (*AuthKeyData) ProtoMessage() {}
 
 func (x *AuthKeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_responses_proto_msgTypes[21]
+	mi := &file_responses_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1230,7 +1277,7 @@ func (x *AuthKeyData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthKeyData.ProtoReflect.Descriptor instead.
 func (*AuthKeyData) Descriptor() ([]byte, []int) {
-	return file_responses_proto_rawDescGZIP(), []int{21}
+	return file_responses_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AuthKeyData) GetTachyonAuthToken() []byte {
@@ -1265,7 +1312,7 @@ func file_responses_proto_rawDescGZIP() []byte {
 }
 
 var file_responses_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_responses_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_responses_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_responses_proto_goTypes = []interface{}{
 	(GetOrCreateConversationResponse_Status)(0), // 0: responses.GetOrCreateConversationResponse.Status
 	(*ParticipantThumbnail)(nil),                // 1: responses.ParticipantThumbnail
@@ -1281,45 +1328,47 @@ var file_responses_proto_goTypes = []interface{}{
 	(*DeleteMessageResponse)(nil),               // 11: responses.DeleteMessageResponse
 	(*UpdateConversationResponse)(nil),          // 12: responses.UpdateConversationResponse
 	(*GetConversationTypeResponse)(nil),         // 13: responses.GetConversationTypeResponse
-	(*NotifyDittoActivityResponse)(nil),         // 14: responses.NotifyDittoActivityResponse
-	(*IsBugleDefaultResponse)(nil),              // 15: responses.IsBugleDefaultResponse
-	(*GetUpdatesResponse)(nil),                  // 16: responses.GetUpdatesResponse
-	(*SendMessageResponse)(nil),                 // 17: responses.SendMessageResponse
-	(*RefreshPhoneRelayResponse)(nil),           // 18: responses.RefreshPhoneRelayResponse
-	(*WebEncryptionKeyResponse)(nil),            // 19: responses.WebEncryptionKeyResponse
-	(*RegisterPhoneRelayResponse)(nil),          // 20: responses.RegisterPhoneRelayResponse
-	(*CoordinateMessage)(nil),                   // 21: responses.CoordinateMessage
-	(*AuthKeyData)(nil),                         // 22: responses.AuthKeyData
-	(*Pixels)(nil),                              // 23: conversations.Pixels
-	(*Message)(nil),                             // 24: conversations.Message
-	(*Cursor)(nil),                              // 25: conversations.Cursor
-	(*Contact)(nil),                             // 26: conversations.Contact
-	(*Conversation)(nil),                        // 27: conversations.Conversation
-	(*UserAlertEvent)(nil),                      // 28: events.UserAlertEvent
-	(*Device)(nil),                              // 29: messages.Device
+	(*GetConversationResponse)(nil),             // 14: responses.GetConversationResponse
+	(*NotifyDittoActivityResponse)(nil),         // 15: responses.NotifyDittoActivityResponse
+	(*IsBugleDefaultResponse)(nil),              // 16: responses.IsBugleDefaultResponse
+	(*GetUpdatesResponse)(nil),                  // 17: responses.GetUpdatesResponse
+	(*SendMessageResponse)(nil),                 // 18: responses.SendMessageResponse
+	(*RefreshPhoneRelayResponse)(nil),           // 19: responses.RefreshPhoneRelayResponse
+	(*WebEncryptionKeyResponse)(nil),            // 20: responses.WebEncryptionKeyResponse
+	(*RegisterPhoneRelayResponse)(nil),          // 21: responses.RegisterPhoneRelayResponse
+	(*CoordinateMessage)(nil),                   // 22: responses.CoordinateMessage
+	(*AuthKeyData)(nil),                         // 23: responses.AuthKeyData
+	(*Pixels)(nil),                              // 24: conversations.Pixels
+	(*Message)(nil),                             // 25: conversations.Message
+	(*Cursor)(nil),                              // 26: conversations.Cursor
+	(*Contact)(nil),                             // 27: conversations.Contact
+	(*Conversation)(nil),                        // 28: conversations.Conversation
+	(*UserAlertEvent)(nil),                      // 29: events.UserAlertEvent
+	(*Device)(nil),                              // 30: messages.Device
 }
 var file_responses_proto_depIdxs = []int32{
 	2,  // 0: responses.ParticipantThumbnail.thumbnail:type_name -> responses.Thumbnail
 	3,  // 1: responses.Thumbnail.data:type_name -> responses.ThumbnailData
-	23, // 2: responses.ThumbnailData.pixels:type_name -> conversations.Pixels
+	24, // 2: responses.ThumbnailData.pixels:type_name -> conversations.Pixels
 	6,  // 3: responses.RegisterRefreshResponse.tokenData:type_name -> responses.RefreshAuthData
-	24, // 4: responses.FetchMessagesResponse.messages:type_name -> conversations.Message
-	25, // 5: responses.FetchMessagesResponse.cursor:type_name -> conversations.Cursor
-	26, // 6: responses.ListContactsResponse.contacts:type_name -> conversations.Contact
-	26, // 7: responses.ListTopContactsResponse.contacts:type_name -> conversations.Contact
-	27, // 8: responses.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
+	25, // 4: responses.FetchMessagesResponse.messages:type_name -> conversations.Message
+	26, // 5: responses.FetchMessagesResponse.cursor:type_name -> conversations.Cursor
+	27, // 6: responses.ListContactsResponse.contacts:type_name -> conversations.Contact
+	27, // 7: responses.ListTopContactsResponse.contacts:type_name -> conversations.Contact
+	28, // 8: responses.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
 	0,  // 9: responses.GetOrCreateConversationResponse.status:type_name -> responses.GetOrCreateConversationResponse.Status
-	28, // 10: responses.GetUpdatesResponse.data:type_name -> events.UserAlertEvent
-	21, // 11: responses.RefreshPhoneRelayResponse.coordinates:type_name -> responses.CoordinateMessage
-	21, // 12: responses.WebEncryptionKeyResponse.coordinates:type_name -> responses.CoordinateMessage
-	21, // 13: responses.RegisterPhoneRelayResponse.coordinates:type_name -> responses.CoordinateMessage
-	29, // 14: responses.RegisterPhoneRelayResponse.browser:type_name -> messages.Device
-	22, // 15: responses.RegisterPhoneRelayResponse.authKeyData:type_name -> responses.AuthKeyData
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	28, // 10: responses.GetConversationResponse.conversation:type_name -> conversations.Conversation
+	29, // 11: responses.GetUpdatesResponse.data:type_name -> events.UserAlertEvent
+	22, // 12: responses.RefreshPhoneRelayResponse.coordinates:type_name -> responses.CoordinateMessage
+	22, // 13: responses.WebEncryptionKeyResponse.coordinates:type_name -> responses.CoordinateMessage
+	22, // 14: responses.RegisterPhoneRelayResponse.coordinates:type_name -> responses.CoordinateMessage
+	30, // 15: responses.RegisterPhoneRelayResponse.browser:type_name -> messages.Device
+	23, // 16: responses.RegisterPhoneRelayResponse.authKeyData:type_name -> responses.AuthKeyData
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_responses_proto_init() }
@@ -1488,7 +1537,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NotifyDittoActivityResponse); i {
+			switch v := v.(*GetConversationResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1500,7 +1549,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IsBugleDefaultResponse); i {
+			switch v := v.(*NotifyDittoActivityResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1512,7 +1561,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUpdatesResponse); i {
+			switch v := v.(*IsBugleDefaultResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1524,7 +1573,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SendMessageResponse); i {
+			switch v := v.(*GetUpdatesResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1536,7 +1585,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RefreshPhoneRelayResponse); i {
+			switch v := v.(*SendMessageResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1548,7 +1597,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebEncryptionKeyResponse); i {
+			switch v := v.(*RefreshPhoneRelayResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1560,7 +1609,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterPhoneRelayResponse); i {
+			switch v := v.(*WebEncryptionKeyResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1572,7 +1621,7 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CoordinateMessage); i {
+			switch v := v.(*RegisterPhoneRelayResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1584,6 +1633,18 @@ func file_responses_proto_init() {
 			}
 		}
 		file_responses_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CoordinateMessage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_responses_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AuthKeyData); i {
 			case 0:
 				return &v.state
@@ -1602,7 +1663,7 @@ func file_responses_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_responses_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

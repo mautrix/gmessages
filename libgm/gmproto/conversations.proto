@@ -50,6 +50,10 @@ message ResendMessagePayload {
     string messageID = 2;
 }
 
+message GetConversationPayload {
+    string conversationID = 1;
+}
+
 message ConversationTypePayload {
     string conversationID = 2;
 }

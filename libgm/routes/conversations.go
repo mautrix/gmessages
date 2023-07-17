@@ -29,6 +29,15 @@ var GET_CONVERSATION_TYPE = Route{
 	UseTTL:         true,
 }
 
+var GET_CONVERSATION = Route{
+	Action:         gmproto.ActionType_GET_CONVERSATION,
+	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,
+	BugleRoute:     gmproto.BugleRoute_DataEvent,
+	ResponseStruct: &gmproto.GetConversationResponse{},
+	UseSessionID:   false,
+	UseTTL:         true,
+}
+
 var GET_PARTICIPANT_THUMBNAIL = Route{
 	Action:         gmproto.ActionType_GET_PARTICIPANTS_THUMBNAIL,
 	MessageType:    gmproto.MessageType_BUGLE_MESSAGE,

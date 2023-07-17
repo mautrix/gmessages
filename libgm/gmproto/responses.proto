@@ -86,6 +86,10 @@ message GetConversationTypeResponse {
     int32 number2 = 6;
 }
 
+message GetConversationResponse {
+    conversations.Conversation conversation = 1;
+}
+
 message NotifyDittoActivityResponse {}
 
 message IsBugleDefaultResponse {
