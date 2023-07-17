@@ -223,7 +223,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	cryptor, err := crypto.NewImageCryptor(key)
+	cryptor, err := crypto.NewAESGCMHelper(key)
 	if err != nil {
 		return nil, err
 	}

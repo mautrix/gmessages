@@ -93,7 +93,7 @@ func (c *Client) UploadMedia(data []byte, fileName, mime string) (*gmproto.Media
 		mediaType = MimeToMediaType[strings.Split(mime, "/")[0]]
 	}
 	decryptionKey := crypto.GenerateKey(32)
-	cryptor, err := crypto.NewImageCryptor(decryptionKey)
+	cryptor, err := crypto.NewAESGCMHelper(decryptionKey)
 	if err != nil {
 		return nil, err
 	}
