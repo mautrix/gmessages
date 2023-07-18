@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/skip2/go-qrcode"
@@ -88,7 +87,7 @@ func fnLogin(ce *WrappedCommandEvent) {
 		return
 	}
 
-	ch, err := ce.User.Login(context.Background(), 6)
+	ch, err := ce.User.Login(6)
 	if err != nil {
 		ce.ZLog.Err(err).Msg("Failed to start login")
 		ce.Reply("Failed to start login: %v", err)

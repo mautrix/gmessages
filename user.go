@@ -76,6 +76,8 @@ type User struct {
 	pairSuccessChan   chan struct{}
 	ongoingLoginChan  <-chan qrChannelItem
 	loginChanReadLock sync.Mutex
+	lastQRCode        string
+	cancelLogin       func()
 
 	DoublePuppetIntent *appservice.IntentAPI
 }
@@ -414,7 +416,7 @@ func (qci qrChannelItem) IsEmpty() bool {
 	return !qci.success && qci.qr == "" && qci.err == nil
 }
 
-func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelItem, error) {
+func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 	user.connLock.Lock()
 	defer user.connLock.Unlock()
 	if user.Session != nil {
@@ -437,8 +439,11 @@ func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelI
 	}
 	Segment.Track(user.MXID, "$login_start")
 	ch := make(chan qrChannelItem, maxAttempts+2)
+	ctx, cancel := context.WithCancel(context.Background())
+	user.cancelLogin = cancel
 	user.ongoingLoginChan = ch
 	ch <- qrChannelItem{qr: qr}
+	user.lastQRCode = qr
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		success := false
@@ -450,8 +455,11 @@ func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelI
 			}
 			user.pairSuccessChan = nil
 			user.ongoingLoginChan = nil
+			user.lastQRCode = ""
 			close(ch)
 			user.loginInProgress.Store(false)
+			cancel()
+			user.cancelLogin = nil
 		}()
 		for {
 			maxAttempts--
@@ -470,6 +478,7 @@ func (user *User) Login(ctx context.Context, maxAttempts int) (<-chan qrChannelI
 					return
 				}
 				ch <- qrChannelItem{qr: qr}
+				user.lastQRCode = qr
 			case <-pairSuccessChan:
 				ch <- qrChannelItem{success: true}
 				success = true

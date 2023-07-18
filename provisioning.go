@@ -313,7 +313,7 @@ func (prov *ProvisioningAPI) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch, err := user.Login(context.Background(), 5)
+	ch, err := user.Login(5)
 	if err != nil && !errors.Is(err, ErrLoginInProgress) {
 		log.Err(err).Msg("Failed to start login via provisioning API")
 		jsonResponse(w, http.StatusInternalServerError, Error{
@@ -335,7 +335,10 @@ Loop:
 			break Loop
 		}
 	}
-	if !hasItem {
+	if !hasItem && r.URL.Query().Get("return_immediately") == "true" && user.lastQRCode != "" {
+		log.Debug().Msg("Nothing in QR channel, returning last code immediately")
+		item.qr = user.lastQRCode
+	} else if !hasItem {
 		log.Debug().Msg("Nothing in QR channel, waiting for next item")
 		select {
 		case item = <-ch:
