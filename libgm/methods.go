@@ -76,17 +76,29 @@ func (c *Client) GetParticipantThumbnail(convID string) (*gmproto.GetParticipant
 	return typedResponse[*gmproto.GetParticipantThumbnailResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
-func (c *Client) UpdateConversation(convBuilder *ConversationBuilder) (*gmproto.UpdateConversationResponse, error) {
-	data := &gmproto.UpdateConversationRequest{}
-
-	payload, buildErr := convBuilder.Build(data)
-	if buildErr != nil {
-		panic(buildErr)
-	}
-
+func (c *Client) UpdateConversation(payload *gmproto.UpdateConversationRequest) (*gmproto.UpdateConversationResponse, error) {
 	actionType := gmproto.ActionType_UPDATE_CONVERSATION
-
 	return typedResponse[*gmproto.UpdateConversationResponse](c.sessionHandler.sendMessage(actionType, payload))
+}
+
+func (c *Client) SendReaction(payload *gmproto.SendReactionRequest) (*gmproto.SendReactionResponse, error) {
+	actionType := gmproto.ActionType_SEND_REACTION
+	return typedResponse[*gmproto.SendReactionResponse](c.sessionHandler.sendMessage(actionType, payload))
+}
+
+func (c *Client) DeleteMessage(messageID string) (*gmproto.DeleteMessageResponse, error) {
+	payload := &gmproto.DeleteMessageRequest{MessageID: messageID}
+	actionType := gmproto.ActionType_DELETE_MESSAGE
+
+	return typedResponse[*gmproto.DeleteMessageResponse](c.sessionHandler.sendMessage(actionType, payload))
+}
+
+func (c *Client) MarkRead(conversationID, messageID string) error {
+	payload := &gmproto.MessageReadRequest{ConversationID: conversationID, MessageID: messageID}
+	actionType := gmproto.ActionType_MESSAGE_READ
+
+	_, err := c.sessionHandler.sendMessage(actionType, payload)
+	return err
 }
 
 func (c *Client) SetTyping(convID string) error {
@@ -94,6 +106,29 @@ func (c *Client) SetTyping(convID string) error {
 		Data: &gmproto.TypingUpdateRequest_Data{ConversationID: convID, Typing: true},
 	}
 	actionType := gmproto.ActionType_TYPING_UPDATES
+
+	_, err := c.sessionHandler.sendMessage(actionType, payload)
+	return err
+}
+
+func (c *Client) SetActiveSession() error {
+	c.sessionHandler.ResetSessionID()
+	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action:       gmproto.ActionType_GET_UPDATES,
+		OmitTTL:      true,
+		UseSessionID: true,
+	})
+}
+
+func (c *Client) IsBugleDefault() (*gmproto.IsBugleDefaultResponse, error) {
+	c.sessionHandler.ResetSessionID()
+	actionType := gmproto.ActionType_IS_BUGLE_DEFAULT
+	return typedResponse[*gmproto.IsBugleDefaultResponse](c.sessionHandler.sendMessage(actionType, nil))
+}
+
+func (c *Client) NotifyDittoActivity() error {
+	payload := &gmproto.NotifyDittoActivityRequest{Success: true}
+	actionType := gmproto.ActionType_NOTIFY_DITTO_ACTIVITY
 
 	_, err := c.sessionHandler.sendMessage(actionType, payload)
 	return err
