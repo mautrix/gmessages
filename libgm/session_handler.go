@@ -12,7 +12,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/payload"
 	"go.mau.fi/mautrix-gmessages/libgm/routes"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -37,7 +36,7 @@ func (s *SessionHandler) ResetSessionID() {
 }
 
 func (s *SessionHandler) sendMessageNoResponse(actionType gmproto.ActionType, encryptedData proto.Message) error {
-	_, payload, _, err := s.buildMessage(actionType, encryptedData)
+	_, payload, err := s.buildMessage(actionType, encryptedData)
 	if err != nil {
 		return err
 	}
@@ -47,9 +46,9 @@ func (s *SessionHandler) sendMessageNoResponse(actionType gmproto.ActionType, en
 }
 
 func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encryptedData proto.Message) (<-chan *IncomingRPCMessage, error) {
-	requestID, payload, _, buildErr := s.buildMessage(actionType, encryptedData)
-	if buildErr != nil {
-		return nil, buildErr
+	requestID, payload, err := s.buildMessage(actionType, encryptedData)
+	if err != nil {
+		return nil, err
 	}
 
 	ch := s.waitResponse(requestID)
@@ -84,15 +83,14 @@ func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedDat
 	return <-ch, nil
 }
 
-func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, encryptedData proto.Message) (string, []byte, gmproto.ActionType, error) {
+func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, data proto.Message) (string, []byte, error) {
 	var requestID string
-	pairedDevice := s.client.AuthData.Mobile
-	sessionId := s.client.sessionHandler.sessionID
-	token := s.client.AuthData.TachyonAuthToken
+	var err error
+	sessionID := s.client.sessionHandler.sessionID
 
 	routeInfo, ok := routes.Routes[actionType]
 	if !ok {
-		return "", nil, 0, fmt.Errorf("failed to build message: could not find route %d", actionType)
+		return "", nil, fmt.Errorf("failed to build message: could not find route %d", actionType)
 	}
 
 	if routeInfo.UseSessionID {
@@ -101,22 +99,48 @@ func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, encryptedDa
 		requestID = uuid.NewString()
 	}
 
-	tmpMessage := payload.NewSendMessageBuilder(token, pairedDevice, requestID, sessionId).SetRoute(routeInfo.Action).SetSessionId(s.sessionID)
-
-	if encryptedData != nil {
-		tmpMessage.SetEncryptedProtoMessage(encryptedData, s.client.AuthData.RequestCrypto)
+	message := &gmproto.OutgoingRPCMessage{
+		Mobile: s.client.AuthData.Mobile,
+		Data: &gmproto.OutgoingRPCMessage_Data{
+			RequestID:  requestID,
+			BugleRoute: routeInfo.BugleRoute,
+			MessageTypeData: &gmproto.OutgoingRPCMessage_Data_Type{
+				EmptyArr:    &gmproto.EmptyArr{},
+				MessageType: routeInfo.MessageType,
+			},
+		},
+		Auth: &gmproto.OutgoingRPCMessage_Auth{
+			RequestID:        requestID,
+			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
+			ConfigVersion:    util.ConfigMessage,
+		},
+		EmptyArr: &gmproto.EmptyArr{},
+	}
+	var encryptedData []byte
+	if data != nil {
+		var serializedData []byte
+		serializedData, err = proto.Marshal(data)
+		if err != nil {
+			return "", nil, err
+		}
+		encryptedData, err = s.client.AuthData.RequestCrypto.Encrypt(serializedData)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	message.Data.MessageData, err = proto.Marshal(&gmproto.OutgoingRPCData{
+		RequestID:          requestID,
+		Action:             actionType,
+		EncryptedProtoData: encryptedData,
+		SessionID:          sessionID,
+	})
+	if err != nil {
+		return "", nil, err
 	}
 
-	if routeInfo.UseTTL {
-		tmpMessage.SetTTL(s.client.AuthData.TachyonTTL)
-	}
-
-	message, buildErr := tmpMessage.Build()
-	if buildErr != nil {
-		return "", nil, 0, buildErr
-	}
-
-	return requestID, message, routeInfo.Action, nil
+	var marshaledMessage []byte
+	marshaledMessage, err = pblite.Marshal(message)
+	return requestID, marshaledMessage, err
 }
 
 func (s *SessionHandler) queueMessageAck(messageID string) {

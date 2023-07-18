@@ -70,8 +70,8 @@ message OutgoingRPCMessage {
     }
 
     authentication.Device mobile = 1;
-    Data messageData = 2;
-    Auth messageAuth = 3;
+    Data data = 2;
+    Auth auth = 3;
 
     int64 TTL = 5;
 
@@ -86,7 +86,7 @@ message OutgoingRPCData {
 }
 
 enum BugleRoute {
-    UNKNOWN_BUGLE_ROUTE = 0;
+    Unknown = 0;
     DataEvent = 19;
     PairEvent = 14;
 }

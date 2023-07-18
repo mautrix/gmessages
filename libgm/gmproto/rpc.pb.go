@@ -644,11 +644,11 @@ type OutgoingRPCMessage struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Mobile      *Device                  `protobuf:"bytes,1,opt,name=mobile,proto3" json:"mobile,omitempty"`
-	MessageData *OutgoingRPCMessage_Data `protobuf:"bytes,2,opt,name=messageData,proto3" json:"messageData,omitempty"`
-	MessageAuth *OutgoingRPCMessage_Auth `protobuf:"bytes,3,opt,name=messageAuth,proto3" json:"messageAuth,omitempty"`
-	TTL         int64                    `protobuf:"varint,5,opt,name=TTL,proto3" json:"TTL,omitempty"`
-	EmptyArr    *EmptyArr                `protobuf:"bytes,9,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
+	Mobile   *Device                  `protobuf:"bytes,1,opt,name=mobile,proto3" json:"mobile,omitempty"`
+	Data     *OutgoingRPCMessage_Data `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Auth     *OutgoingRPCMessage_Auth `protobuf:"bytes,3,opt,name=auth,proto3" json:"auth,omitempty"`
+	TTL      int64                    `protobuf:"varint,5,opt,name=TTL,proto3" json:"TTL,omitempty"`
+	EmptyArr *EmptyArr                `protobuf:"bytes,9,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
 }
 
 func (x *OutgoingRPCMessage) Reset() {
@@ -690,16 +690,16 @@ func (x *OutgoingRPCMessage) GetMobile() *Device {
 	return nil
 }
 
-func (x *OutgoingRPCMessage) GetMessageData() *OutgoingRPCMessage_Data {
+func (x *OutgoingRPCMessage) GetData() *OutgoingRPCMessage_Data {
 	if x != nil {
-		return x.MessageData
+		return x.Data
 	}
 	return nil
 }
 
-func (x *OutgoingRPCMessage) GetMessageAuth() *OutgoingRPCMessage_Auth {
+func (x *OutgoingRPCMessage) GetAuth() *OutgoingRPCMessage_Auth {
 	if x != nil {
-		return x.MessageAuth
+		return x.Auth
 	}
 	return nil
 }
@@ -1026,8 +1026,8 @@ var file_rpc_proto_depIdxs = []int32{
 	13, // 7: rpc.IncomingRPCMessage.browser:type_name -> authentication.Device
 	1,  // 8: rpc.RPCMessageData.action:type_name -> rpc.ActionType
 	13, // 9: rpc.OutgoingRPCMessage.mobile:type_name -> authentication.Device
-	10, // 10: rpc.OutgoingRPCMessage.messageData:type_name -> rpc.OutgoingRPCMessage.Data
-	9,  // 11: rpc.OutgoingRPCMessage.messageAuth:type_name -> rpc.OutgoingRPCMessage.Auth
+	10, // 10: rpc.OutgoingRPCMessage.data:type_name -> rpc.OutgoingRPCMessage.Data
+	9,  // 11: rpc.OutgoingRPCMessage.auth:type_name -> rpc.OutgoingRPCMessage.Auth
 	12, // 12: rpc.OutgoingRPCMessage.emptyArr:type_name -> util.EmptyArr
 	1,  // 13: rpc.OutgoingRPCData.action:type_name -> rpc.ActionType
 	14, // 14: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
