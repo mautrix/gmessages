@@ -1181,7 +1181,7 @@ func (x *Cursor) GetLastItemTimestamp() int64 {
 	return 0
 }
 
-type FetchMessagesRequest struct {
+type ListMessagesRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -1191,8 +1191,8 @@ type FetchMessagesRequest struct {
 	Cursor         *Cursor `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
 }
 
-func (x *FetchMessagesRequest) Reset() {
-	*x = FetchMessagesRequest{}
+func (x *ListMessagesRequest) Reset() {
+	*x = ListMessagesRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1200,13 +1200,13 @@ func (x *FetchMessagesRequest) Reset() {
 	}
 }
 
-func (x *FetchMessagesRequest) String() string {
+func (x *ListMessagesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*FetchMessagesRequest) ProtoMessage() {}
+func (*ListMessagesRequest) ProtoMessage() {}
 
-func (x *FetchMessagesRequest) ProtoReflect() protoreflect.Message {
+func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1218,33 +1218,33 @@ func (x *FetchMessagesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FetchMessagesRequest.ProtoReflect.Descriptor instead.
-func (*FetchMessagesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListMessagesRequest.ProtoReflect.Descriptor instead.
+func (*ListMessagesRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *FetchMessagesRequest) GetConversationID() string {
+func (x *ListMessagesRequest) GetConversationID() string {
 	if x != nil {
 		return x.ConversationID
 	}
 	return ""
 }
 
-func (x *FetchMessagesRequest) GetCount() int64 {
+func (x *ListMessagesRequest) GetCount() int64 {
 	if x != nil {
 		return x.Count
 	}
 	return 0
 }
 
-func (x *FetchMessagesRequest) GetCursor() *Cursor {
+func (x *ListMessagesRequest) GetCursor() *Cursor {
 	if x != nil {
 		return x.Cursor
 	}
 	return nil
 }
 
-type FetchMessagesResponse struct {
+type ListMessagesResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -1255,8 +1255,8 @@ type FetchMessagesResponse struct {
 	Cursor        *Cursor    `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
 }
 
-func (x *FetchMessagesResponse) Reset() {
-	*x = FetchMessagesResponse{}
+func (x *ListMessagesResponse) Reset() {
+	*x = ListMessagesResponse{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1264,13 +1264,13 @@ func (x *FetchMessagesResponse) Reset() {
 	}
 }
 
-func (x *FetchMessagesResponse) String() string {
+func (x *ListMessagesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*FetchMessagesResponse) ProtoMessage() {}
+func (*ListMessagesResponse) ProtoMessage() {}
 
-func (x *FetchMessagesResponse) ProtoReflect() protoreflect.Message {
+func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1282,33 +1282,33 @@ func (x *FetchMessagesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FetchMessagesResponse.ProtoReflect.Descriptor instead.
-func (*FetchMessagesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListMessagesResponse.ProtoReflect.Descriptor instead.
+func (*ListMessagesResponse) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *FetchMessagesResponse) GetMessages() []*Message {
+func (x *ListMessagesResponse) GetMessages() []*Message {
 	if x != nil {
 		return x.Messages
 	}
 	return nil
 }
 
-func (x *FetchMessagesResponse) GetSomeBytes() []byte {
+func (x *ListMessagesResponse) GetSomeBytes() []byte {
 	if x != nil {
 		return x.SomeBytes
 	}
 	return nil
 }
 
-func (x *FetchMessagesResponse) GetTotalMessages() int64 {
+func (x *ListMessagesResponse) GetTotalMessages() int64 {
 	if x != nil {
 		return x.TotalMessages
 	}
 	return 0
 }
 
-func (x *FetchMessagesResponse) GetCursor() *Cursor {
+func (x *ListMessagesResponse) GetCursor() *Cursor {
 	if x != nil {
 		return x.Cursor
 	}
@@ -3212,8 +3212,8 @@ var file_client_proto_goTypes = []interface{}{
 	(*GetContactsThumbnailRequest)(nil),                // 19: client.GetContactsThumbnailRequest
 	(*ThumbnailData)(nil),                              // 20: client.ThumbnailData
 	(*Cursor)(nil),                                     // 21: client.Cursor
-	(*FetchMessagesRequest)(nil),                       // 22: client.FetchMessagesRequest
-	(*FetchMessagesResponse)(nil),                      // 23: client.FetchMessagesResponse
+	(*ListMessagesRequest)(nil),                        // 22: client.ListMessagesRequest
+	(*ListMessagesResponse)(nil),                       // 23: client.ListMessagesResponse
 	(*ListContactsRequest)(nil),                        // 24: client.ListContactsRequest
 	(*ListTopContactsRequest)(nil),                     // 25: client.ListTopContactsRequest
 	(*ListContactsResponse)(nil),                       // 26: client.ListContactsResponse
@@ -3274,9 +3274,9 @@ var file_client_proto_depIdxs = []int32{
 	18, // 10: client.GetParticipantThumbnailResponse.thumbnail:type_name -> client.ParticipantThumbnail
 	20, // 11: client.ParticipantThumbnail.data:type_name -> client.ThumbnailData
 	61, // 12: client.ThumbnailData.dimensions:type_name -> conversations.Dimensions
-	21, // 13: client.FetchMessagesRequest.cursor:type_name -> client.Cursor
-	62, // 14: client.FetchMessagesResponse.messages:type_name -> conversations.Message
-	21, // 15: client.FetchMessagesResponse.cursor:type_name -> client.Cursor
+	21, // 13: client.ListMessagesRequest.cursor:type_name -> client.Cursor
+	62, // 14: client.ListMessagesResponse.messages:type_name -> conversations.Message
+	21, // 15: client.ListMessagesResponse.cursor:type_name -> client.Cursor
 	63, // 16: client.ListContactsResponse.contacts:type_name -> conversations.Contact
 	63, // 17: client.ListTopContactsResponse.contacts:type_name -> conversations.Contact
 	3,  // 18: client.ListConversationsRequest.folder:type_name -> client.ListConversationsRequest.Folder
@@ -3511,7 +3511,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FetchMessagesRequest); i {
+			switch v := v.(*ListMessagesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3523,7 +3523,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FetchMessagesResponse); i {
+			switch v := v.(*ListMessagesResponse); i {
 			case 0:
 				return &v.state
 			case 1:

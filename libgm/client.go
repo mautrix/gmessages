@@ -50,6 +50,8 @@ type Client struct {
 	evHandler      EventHandler
 	sessionHandler *SessionHandler
 
+	conversationsFetchedOnce bool
+
 	AuthData *AuthData
 
 	proxy Proxy

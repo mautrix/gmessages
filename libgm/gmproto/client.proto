@@ -94,14 +94,14 @@ message Cursor {
     int64 lastItemTimestamp = 2;
 }
 
-message FetchMessagesRequest {
+message ListMessagesRequest {
     string conversationID = 2;
     int64 count = 3;
 
     Cursor cursor = 5;
 }
 
-message FetchMessagesResponse {
+message ListMessagesResponse {
     repeated conversations.Message messages = 2;
     bytes someBytes = 3;
     int64 totalMessages = 4;

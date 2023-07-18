@@ -25,22 +25,22 @@ const (
 type BugleRoute int32
 
 const (
-	BugleRoute_UNKNOWN_BUGLE_ROUTE BugleRoute = 0
-	BugleRoute_DataEvent           BugleRoute = 19
-	BugleRoute_PairEvent           BugleRoute = 14
+	BugleRoute_Unknown   BugleRoute = 0
+	BugleRoute_DataEvent BugleRoute = 19
+	BugleRoute_PairEvent BugleRoute = 14
 )
 
 // Enum value maps for BugleRoute.
 var (
 	BugleRoute_name = map[int32]string{
-		0:  "UNKNOWN_BUGLE_ROUTE",
+		0:  "Unknown",
 		19: "DataEvent",
 		14: "PairEvent",
 	}
 	BugleRoute_value = map[string]int32{
-		"UNKNOWN_BUGLE_ROUTE": 0,
-		"DataEvent":           19,
-		"PairEvent":           14,
+		"Unknown":   0,
+		"DataEvent": 19,
+		"PairEvent": 14,
 	}
 )
 
@@ -478,7 +478,7 @@ func (x *IncomingRPCMessage) GetBugleRoute() BugleRoute {
 	if x != nil {
 		return x.BugleRoute
 	}
-	return BugleRoute_UNKNOWN_BUGLE_ROUTE
+	return BugleRoute_Unknown
 }
 
 func (x *IncomingRPCMessage) GetStartExecute() string {
@@ -907,7 +907,7 @@ func (x *OutgoingRPCMessage_Data) GetBugleRoute() BugleRoute {
 	if x != nil {
 		return x.BugleRoute
 	}
-	return BugleRoute_UNKNOWN_BUGLE_ROUTE
+	return BugleRoute_Unknown
 }
 
 func (x *OutgoingRPCMessage_Data) GetMessageData() []byte {

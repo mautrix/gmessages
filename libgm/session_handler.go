@@ -12,7 +12,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/routes"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -35,8 +34,8 @@ func (s *SessionHandler) ResetSessionID() {
 	s.sessionID = uuid.NewString()
 }
 
-func (s *SessionHandler) sendMessageNoResponse(actionType gmproto.ActionType, encryptedData proto.Message) error {
-	_, payload, err := s.buildMessage(actionType, encryptedData)
+func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
+	_, payload, err := s.buildMessage(params)
 	if err != nil {
 		return err
 	}
@@ -45,8 +44,8 @@ func (s *SessionHandler) sendMessageNoResponse(actionType gmproto.ActionType, en
 	return err
 }
 
-func (s *SessionHandler) sendAsyncMessage(actionType gmproto.ActionType, encryptedData proto.Message) (<-chan *IncomingRPCMessage, error) {
-	requestID, payload, err := s.buildMessage(actionType, encryptedData)
+func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *IncomingRPCMessage, error) {
+	requestID, payload, err := s.buildMessage(params)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +72,8 @@ func typedResponse[T proto.Message](resp *IncomingRPCMessage, err error) (casted
 	return
 }
 
-func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
-	ch, err := s.sendAsyncMessage(actionType, encryptedData)
+func (s *SessionHandler) sendMessageWithParams(params SendMessageParams) (*IncomingRPCMessage, error) {
+	ch, err := s.sendAsyncMessage(params)
 	if err != nil {
 		return nil, err
 	}
@@ -83,30 +82,45 @@ func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedDat
 	return <-ch, nil
 }
 
-func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, data proto.Message) (string, []byte, error) {
+func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
+	return s.sendMessageWithParams(SendMessageParams{
+		Action: actionType,
+		Data:   encryptedData,
+	})
+}
+
+type SendMessageParams struct {
+	Action gmproto.ActionType
+	Data   proto.Message
+
+	UseSessionID bool
+	OmitTTL      bool
+	MessageType  gmproto.MessageType
+}
+
+func (s *SessionHandler) buildMessage(params SendMessageParams) (string, []byte, error) {
 	var requestID string
 	var err error
 	sessionID := s.client.sessionHandler.sessionID
 
-	routeInfo, ok := routes.Routes[actionType]
-	if !ok {
-		return "", nil, fmt.Errorf("failed to build message: could not find route %d", actionType)
-	}
-
-	if routeInfo.UseSessionID {
+	if params.UseSessionID {
 		requestID = s.sessionID
 	} else {
 		requestID = uuid.NewString()
+	}
+
+	if params.MessageType == 0 {
+		params.MessageType = gmproto.MessageType_BUGLE_MESSAGE
 	}
 
 	message := &gmproto.OutgoingRPCMessage{
 		Mobile: s.client.AuthData.Mobile,
 		Data: &gmproto.OutgoingRPCMessage_Data{
 			RequestID:  requestID,
-			BugleRoute: routeInfo.BugleRoute,
+			BugleRoute: gmproto.BugleRoute_DataEvent,
 			MessageTypeData: &gmproto.OutgoingRPCMessage_Data_Type{
 				EmptyArr:    &gmproto.EmptyArr{},
-				MessageType: routeInfo.MessageType,
+				MessageType: params.MessageType,
 			},
 		},
 		Auth: &gmproto.OutgoingRPCMessage_Auth{
@@ -116,10 +130,13 @@ func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, data proto.
 		},
 		EmptyArr: &gmproto.EmptyArr{},
 	}
+	if !params.OmitTTL {
+		message.TTL = s.client.AuthData.TachyonTTL
+	}
 	var encryptedData []byte
-	if data != nil {
+	if params.Data != nil {
 		var serializedData []byte
-		serializedData, err = proto.Marshal(data)
+		serializedData, err = proto.Marshal(params.Data)
 		if err != nil {
 			return "", nil, err
 		}
@@ -130,7 +147,7 @@ func (s *SessionHandler) buildMessage(actionType gmproto.ActionType, data proto.
 	}
 	message.Data.MessageData, err = proto.Marshal(&gmproto.OutgoingRPCData{
 		RequestID:          requestID,
-		Action:             actionType,
+		Action:             params.Action,
 		EncryptedProtoData: encryptedData,
 		SessionID:          sessionID,
 	})

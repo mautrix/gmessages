@@ -6,8 +6,11 @@ import (
 
 func (c *Client) SetActiveSession() error {
 	c.sessionHandler.ResetSessionID()
-	actionType := gmproto.ActionType_GET_UPDATES
-	return c.sessionHandler.sendMessageNoResponse(actionType, nil)
+	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action:       gmproto.ActionType_GET_UPDATES,
+		OmitTTL:      true,
+		UseSessionID: true,
+	})
 }
 
 func (c *Client) IsBugleDefault() (*gmproto.IsBugleDefaultResponse, error) {

@@ -5,15 +5,16 @@ import (
 )
 
 func (c *Client) ListConversations(count int64, folder gmproto.ListConversationsRequest_Folder) (*gmproto.ListConversationsResponse, error) {
-	payload := &gmproto.ListConversationsRequest{Count: count, Folder: folder}
-	//var actionType gmproto.ActionType
-	//if !c.synced {
-	//	actionType = gmproto.ActionType_LIST_CONVERSATIONS_SYNC
-	//	c.synced = true
-	//} else {
-	actionType := gmproto.ActionType_LIST_CONVERSATIONS
-
-	return typedResponse[*gmproto.ListConversationsResponse](c.sessionHandler.sendMessage(actionType, payload))
+	msgType := gmproto.MessageType_BUGLE_MESSAGE
+	if !c.conversationsFetchedOnce {
+		msgType = gmproto.MessageType_BUGLE_ANNOTATION
+		c.conversationsFetchedOnce = true
+	}
+	return typedResponse[*gmproto.ListConversationsResponse](c.sessionHandler.sendMessageWithParams(SendMessageParams{
+		Action:      gmproto.ActionType_LIST_CONVERSATIONS,
+		Data:        &gmproto.ListConversationsRequest{Count: count, Folder: folder},
+		MessageType: msgType,
+	}))
 }
 
 func (c *Client) ListContacts() (*gmproto.ListContactsResponse, error) {
@@ -55,13 +56,13 @@ func (c *Client) GetConversation(conversationID string) (*gmproto.Conversation, 
 	return resp.GetConversation(), nil
 }
 
-func (c *Client) FetchMessages(conversationID string, count int64, cursor *gmproto.Cursor) (*gmproto.FetchMessagesResponse, error) {
-	payload := &gmproto.FetchMessagesRequest{ConversationID: conversationID, Count: count}
+func (c *Client) FetchMessages(conversationID string, count int64, cursor *gmproto.Cursor) (*gmproto.ListMessagesResponse, error) {
+	payload := &gmproto.ListMessagesRequest{ConversationID: conversationID, Count: count}
 	if cursor != nil {
 		payload.Cursor = cursor
 	}
 	actionType := gmproto.ActionType_LIST_MESSAGES
-	return typedResponse[*gmproto.FetchMessagesResponse](c.sessionHandler.sendMessage(actionType, payload))
+	return typedResponse[*gmproto.ListMessagesResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
 func (c *Client) SendMessage(payload *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
