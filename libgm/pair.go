@@ -1,15 +1,56 @@
 package libgm
 
 import (
+	"bytes"
 	"crypto/x509"
+	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
+	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
+
+func (c *Client) handlePairingEvent(msg *IncomingRPCMessage) {
+	switch evt := msg.Pair.Event.(type) {
+	case *gmproto.RPCPairData_Paired:
+		c.completePairing(evt.Paired)
+	case *gmproto.RPCPairData_Revoked:
+		c.triggerEvent(evt.Revoked)
+	default:
+		c.Logger.Debug().Any("evt", evt).Msg("Unknown pair event type")
+	}
+}
+
+func (c *Client) completePairing(data *gmproto.PairedData) {
+	c.updateTachyonAuthToken(data.GetTokenData().GetTachyonAuthToken(), data.GetTokenData().GetTTL())
+	c.AuthData.Mobile = data.Mobile
+	c.AuthData.Browser = data.Browser
+
+	c.triggerEvent(&events.PairSuccessful{PairedData: data})
+
+	err := c.Reconnect()
+	if err != nil {
+		c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
+	}
+}
+
+func (c *Client) makeRelayRequest(url string, body []byte) (*http.Response, error) {
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	util.BuildRelayHeaders(req, "application/x-protobuf", "*/*")
+	res, reqErr := c.http.Do(req)
+	if reqErr != nil {
+		return res, reqErr
+	}
+	return res, nil
+}
 
 func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {
 	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
@@ -36,7 +77,7 @@ func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, erro
 	if err != nil {
 		return nil, err
 	}
-	relayResponse, reqErr := c.MakeRelayRequest(util.RegisterPhoneRelayURL, body)
+	relayResponse, reqErr := c.makeRelayRequest(util.RegisterPhoneRelayURL, body)
 	if reqErr != nil {
 		return nil, err
 	}
@@ -65,7 +106,7 @@ func (c *Client) RefreshPhoneRelay() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	relayResponse, err := c.MakeRelayRequest(util.RefreshPhoneRelayURL, body)
+	relayResponse, err := c.makeRelayRequest(util.RefreshPhoneRelayURL, body)
 	if err != nil {
 		return "", err
 	}
@@ -97,7 +138,7 @@ func (c *Client) GetWebEncryptionKey() (*gmproto.WebEncryptionKeyResponse, error
 	if err != nil {
 		return nil, err
 	}
-	webKeyResponse, err := c.MakeRelayRequest(util.GetWebEncryptionKeyURL, body)
+	webKeyResponse, err := c.makeRelayRequest(util.GetWebEncryptionKeyURL, body)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +170,7 @@ func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	revokeResp, err := c.MakeRelayRequest(util.RevokeRelayPairingURL, payload)
+	revokeResp, err := c.makeRelayRequest(util.RevokeRelayPairingURL, payload)
 	if err != nil {
 		return nil, err
 	}
