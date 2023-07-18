@@ -20,6 +20,9 @@ func (s *SessionHandler) cancelResponse(requestID string, ch chan *IncomingRPCMe
 }
 
 func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
+	if msg.Message == nil {
+		return false
+	}
 	requestID := msg.Message.SessionID
 	s.responseWaitersLock.Lock()
 	ch, ok := s.responseWaiters[requestID]
