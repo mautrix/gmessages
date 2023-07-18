@@ -194,48 +194,6 @@ func (c *Client) triggerEvent(evt interface{}) {
 	}
 }
 
-func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
-	downloadMetadata := &gmproto.DownloadAttachmentRequest{
-		Info: &gmproto.AttachmentInfo{
-			AttachmentID: mediaID,
-			Encrypted:    true,
-		},
-		AuthData: &gmproto.AuthMessage{
-			RequestID:        uuid.NewString(),
-			TachyonAuthToken: c.AuthData.TachyonAuthToken,
-			ConfigVersion:    util.ConfigMessage,
-		},
-	}
-	downloadMetadataBytes, err := proto.Marshal(downloadMetadata)
-	if err != nil {
-		return nil, err
-	}
-	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
-	req, err := http.NewRequest("GET", util.UploadMediaURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	util.BuildUploadHeaders(req, downloadMetadataEncoded)
-	res, reqErr := c.http.Do(req)
-	if reqErr != nil {
-		return nil, reqErr
-	}
-	defer res.Body.Close()
-	encryptedBuffImg, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	cryptor, err := crypto.NewAESGCMHelper(key)
-	if err != nil {
-		return nil, err
-	}
-	decryptedImageBytes, decryptionErr := cryptor.DecryptData(encryptedBuffImg)
-	if decryptionErr != nil {
-		return nil, decryptionErr
-	}
-	return decryptedImageBytes, nil
-}
-
 func (c *Client) FetchConfigVersion() {
 	req, bErr := http.NewRequest("GET", util.ConfigUrl, nil)
 	if bErr != nil {
