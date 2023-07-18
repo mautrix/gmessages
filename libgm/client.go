@@ -116,7 +116,7 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to get web encryption key: %w", err)
 	}
 	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-	go c.rpc.ListenReceiveMessages()
+	go c.rpc.ListenReceiveMessages(true)
 	c.sessionHandler.startAckInterval()
 
 	bugleRes, bugleErr := c.IsBugleDefault()
@@ -137,7 +137,7 @@ func (c *Client) StartLogin() (string, error) {
 		return "", err
 	}
 	c.AuthData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
-	go c.rpc.ListenReceiveMessages()
+	go c.rpc.ListenReceiveMessages(false)
 	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
 	if err != nil {
 		return "", fmt.Errorf("failed to generate QR code: %w", err)

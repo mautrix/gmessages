@@ -34,7 +34,7 @@ type RPC struct {
 	recentUpdatesPtr int
 }
 
-func (r *RPC) ListenReceiveMessages() {
+func (r *RPC) ListenReceiveMessages(loggedIn bool) {
 	r.listenID++
 	listenID := r.listenID
 	errored := true
@@ -43,7 +43,9 @@ func (r *RPC) ListenReceiveMessages() {
 		err := r.client.refreshAuthToken()
 		if err != nil {
 			r.client.Logger.Err(err).Msg("Error refreshing auth token")
-			r.client.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
+			if loggedIn {
+				r.client.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
+			}
 			return
 		}
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
@@ -67,7 +69,9 @@ func (r *RPC) ListenReceiveMessages() {
 		util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
 		resp, reqErr := r.http.Do(req)
 		if reqErr != nil {
-			r.client.triggerEvent(&events.ListenTemporaryError{Error: reqErr})
+			if loggedIn {
+				r.client.triggerEvent(&events.ListenTemporaryError{Error: reqErr})
+			}
 			errored = true
 			r.client.Logger.Err(err).Msg("Error making listen request, retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
@@ -75,10 +79,14 @@ func (r *RPC) ListenReceiveMessages() {
 		}
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			r.client.Logger.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
-			r.client.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp}})
+			if loggedIn {
+				r.client.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp}})
+			}
 			return
 		} else if resp.StatusCode >= 500 {
-			r.client.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp}})
+			if loggedIn {
+				r.client.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp}})
+			}
 			errored = true
 			r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("5xx error in long polling, retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
@@ -86,7 +94,9 @@ func (r *RPC) ListenReceiveMessages() {
 		}
 		if errored {
 			errored = false
-			r.client.triggerEvent(&events.ListenRecovered{})
+			if loggedIn {
+				r.client.triggerEvent(&events.ListenRecovered{})
+			}
 		}
 		r.client.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		r.conn = resp.Body
