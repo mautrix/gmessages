@@ -3,6 +3,7 @@ package libgm
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,34 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
+
+func (c *Client) StartLogin() (string, error) {
+	registered, err := c.RegisterPhoneRelay()
+	if err != nil {
+		return "", err
+	}
+	c.AuthData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
+	go c.rpc.ListenReceiveMessages(false)
+	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
+	if err != nil {
+		return "", fmt.Errorf("failed to generate QR code: %w", err)
+	}
+	return qr, nil
+}
+
+func (c *Client) GenerateQRCodeData(pairingKey []byte) (string, error) {
+	urlData := &gmproto.URLData{
+		PairingKey: pairingKey,
+		AESKey:     c.AuthData.RequestCrypto.AESKey,
+		HMACKey:    c.AuthData.RequestCrypto.HMACKey,
+	}
+	encodedURLData, err := proto.Marshal(urlData)
+	if err != nil {
+		return "", err
+	}
+	cData := base64.StdEncoding.EncodeToString(encodedURLData)
+	return util.QRCodeURLBase + cData, nil
+}
 
 func (c *Client) handlePairingEvent(msg *IncomingRPCMessage) {
 	switch evt := msg.Pair.Event.(type) {

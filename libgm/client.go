@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
-	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
@@ -131,34 +129,6 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to set active session: %w", err)
 	}
 	return nil
-}
-
-func (c *Client) StartLogin() (string, error) {
-	registered, err := c.RegisterPhoneRelay()
-	if err != nil {
-		return "", err
-	}
-	c.AuthData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
-	go c.rpc.ListenReceiveMessages(false)
-	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
-	if err != nil {
-		return "", fmt.Errorf("failed to generate QR code: %w", err)
-	}
-	return qr, nil
-}
-
-func (c *Client) GenerateQRCodeData(pairingKey []byte) (string, error) {
-	urlData := &gmproto.URLData{
-		PairingKey: pairingKey,
-		AESKey:     c.AuthData.RequestCrypto.AESKey,
-		HMACKey:    c.AuthData.RequestCrypto.HMACKey,
-	}
-	encodedURLData, err := proto.Marshal(urlData)
-	if err != nil {
-		return "", err
-	}
-	cData := base64.StdEncoding.EncodeToString(encodedURLData)
-	return util.QRCodeURLBase + cData, nil
 }
 
 func (c *Client) Disconnect() {
