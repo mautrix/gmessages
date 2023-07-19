@@ -77,19 +77,23 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 	return msg, nil
 }
 
-func (c *Client) deduplicateHash(hash [32]byte) bool {
+func (c *Client) deduplicateHash(id string, hash [32]byte) bool {
 	const recentUpdatesLen = len(c.recentUpdates)
 	for i := c.recentUpdatesPtr + recentUpdatesLen - 1; i >= c.recentUpdatesPtr; i-- {
-		if c.recentUpdates[i%recentUpdatesLen] == hash {
-			return true
+		if c.recentUpdates[i%recentUpdatesLen].id == id {
+			if c.recentUpdates[i%recentUpdatesLen].hash == hash {
+				return true
+			} else {
+				break
+			}
 		}
 	}
-	c.recentUpdates[c.recentUpdatesPtr] = hash
+	c.recentUpdates[c.recentUpdatesPtr] = updateDedupItem{id: id, hash: hash}
 	c.recentUpdatesPtr = (c.recentUpdatesPtr + 1) % recentUpdatesLen
 	return false
 }
 
-func (c *Client) logContent(res *IncomingRPCMessage) {
+func (c *Client) logContent(res *IncomingRPCMessage, thingID string, contentHash []byte) {
 	if c.Logger.Trace().Enabled() && (res.DecryptedData != nil || res.DecryptedMessage != nil) {
 		evt := c.Logger.Trace()
 		if res.DecryptedMessage != nil {
@@ -97,6 +101,10 @@ func (c *Client) logContent(res *IncomingRPCMessage) {
 		}
 		if res.DecryptedData != nil {
 			evt.Str("data", base64.StdEncoding.EncodeToString(res.DecryptedData))
+			if contentHash != nil {
+				evt.Str("thing_id", thingID)
+				evt.Hex("data_hash", contentHash)
+			}
 		} else {
 			evt.Str("data", "<null>")
 		}
@@ -104,14 +112,14 @@ func (c *Client) logContent(res *IncomingRPCMessage) {
 	}
 }
 
-func (c *Client) deduplicateUpdate(msg *IncomingRPCMessage) bool {
+func (c *Client) deduplicateUpdate(id string, msg *IncomingRPCMessage) bool {
 	if msg.DecryptedData != nil {
 		contentHash := sha256.Sum256(msg.DecryptedData)
-		if c.deduplicateHash(contentHash) {
-			c.Logger.Trace().Hex("data_hash", contentHash[:]).Msg("Ignoring duplicate update")
+		if c.deduplicateHash(id, contentHash) {
+			c.Logger.Trace().Str("thing_id", id).Hex("data_hash", contentHash[:]).Msg("Ignoring duplicate update")
 			return true
 		}
-		c.logContent(msg)
+		c.logContent(msg, id, contentHash[:])
 	}
 	return false
 }

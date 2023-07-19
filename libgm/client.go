@@ -41,6 +41,11 @@ const RefreshTachyonBuffer = 1 * time.Hour
 type Proxy func(*http.Request) (*url.URL, error)
 type EventHandler func(evt any)
 
+type updateDedupItem struct {
+	id   string
+	hash [32]byte
+}
+
 type Client struct {
 	Logger         zerolog.Logger
 	evHandler      EventHandler
@@ -51,7 +56,7 @@ type Client struct {
 	skipCount       int
 	disconnecting   bool
 
-	recentUpdates    [8][32]byte
+	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
 
 	conversationsFetchedOnce bool
