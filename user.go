@@ -718,8 +718,12 @@ func (user *User) syncConversation(v *gmproto.Conversation) {
 			portal.Cleanup(false)
 		default:
 			portal.UpdateMetadata(user, v)
-			portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
-			// TODO sync read status if there was nothing backfilled
+			didBackfill := portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
+			user.syncChatDoublePuppetDetails(portal, v, false)
+			if !didBackfill && !v.GetUnread() && v.LatestMessageID != "" && user.DoublePuppetIntent != nil {
+				// TODO this would spam a lot of read receipts on startup
+				//user.markSelfReadFull(portal, v.LatestMessageID)
+			}
 		}
 	} else if updateType == gmproto.ConvUpdateTypes_UNARCHIVED || updateType == gmproto.ConvUpdateTypes_ARCHIVED {
 		err := portal.CreateMatrixRoom(user, v)
@@ -797,14 +801,46 @@ type CustomReadMarkers struct {
 	FullyReadExtra CustomReadReceipt `json:"com.beeper.fully_read.extra"`
 }
 
+func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
+	ctx := context.TODO()
+	lastMessage, err := user.bridge.DB.Message.GetByID(ctx, portal.Key, lastMessageID)
+	if err == nil && lastMessage == nil {
+		lastMessage, err = user.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
+	}
+	if err != nil {
+		user.zlog.Warn().Err(err).Msg("Failed to get last message in chat to mark it as read")
+		return
+	} else if lastMessage == nil {
+		return
+	}
+	log := user.zlog.With().
+		Str("conversation_id", portal.ID).
+		Str("message_id", lastMessage.ID).
+		Str("room_id", portal.ID).
+		Str("event_id", lastMessage.MXID.String()).
+		Logger()
+	err = user.DoublePuppetIntent.SetReadMarkers(portal.MXID, &CustomReadMarkers{
+		ReqSetReadMarkers: mautrix.ReqSetReadMarkers{
+			Read:      lastMessage.MXID,
+			FullyRead: lastMessage.MXID,
+		},
+		ReadExtra:      CustomReadReceipt{DoublePuppetSource: user.bridge.Name},
+		FullyReadExtra: CustomReadReceipt{DoublePuppetSource: user.bridge.Name},
+	})
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to mark last message in chat as read")
+	} else {
+		log.Debug().Msg("Marked last message in chat as read")
+	}
+}
+
 func (user *User) syncChatDoublePuppetDetails(portal *Portal, conv *gmproto.Conversation, justCreated bool) {
 	if user.DoublePuppetIntent == nil || len(portal.MXID) == 0 {
 		return
 	}
 	if justCreated || !user.bridge.Config.Bridge.TagOnlyOnCreate {
-		//user.updateChatMute(portal, chat.MutedUntil)
-		//user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == 2)
-		//user.updateChatTag(portal, user.bridge.Config.Bridge.PinnedTag, chat.Pinned)
+		user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConvUpdateTypes_ARCHIVED)
+		user.updateChatTag(portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned)
 	}
 }
 

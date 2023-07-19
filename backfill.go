@@ -43,7 +43,7 @@ func (portal *Portal) initialForwardBackfill(user *User, markRead bool) {
 	portal.forwardBackfill(ctx, user, time.Time{}, 50, markRead)
 }
 
-func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead bool) {
+func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead bool) bool {
 	portal.forwardBackfillLock.Lock()
 	defer portal.forwardBackfillLock.Unlock()
 	log := portal.zlog.With().
@@ -55,7 +55,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 			lastMsg, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
 			if err != nil {
 				log.Err(err).Msg("Failed to get last message in chat")
-				return
+				return false
 			} else if lastMsg == nil {
 				log.Debug().Msg("No messages in chat")
 			} else {
@@ -68,7 +68,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 				Str("latest_message_id", lastMessageID).
 				Time("last_bridged_ts", portal.lastMessageTS).
 				Msg("Nothing to backfill")
-			return
+			return false
 		}
 	}
 	log.Info().
@@ -76,7 +76,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("latest_message_id", lastMessageID).
 		Time("last_bridged_ts", portal.lastMessageTS).
 		Msg("Backfilling missed messages")
-	portal.forwardBackfill(ctx, user, portal.lastMessageTS, 100, markRead)
+	return portal.forwardBackfill(ctx, user, portal.lastMessageTS, 100, markRead)
 }
 
 func (portal *Portal) deterministicEventID(messageID string, part int) id.EventID {
@@ -85,12 +85,12 @@ func (portal *Portal) deterministicEventID(messageID string, part int) id.EventI
 	return id.EventID(fmt.Sprintf("$%s:messages.google.com", base64.RawURLEncoding.EncodeToString(sum[:])))
 }
 
-func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int64, markRead bool) {
+func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int64, markRead bool) bool {
 	log := zerolog.Ctx(ctx)
 	resp, err := user.Client.FetchMessages(portal.ID, limit, nil)
 	if err != nil {
 		portal.zlog.Error().Err(err).Msg("Failed to fetch messages")
-		return
+		return false
 	}
 	log.Debug().
 		Int64("total_messages", resp.TotalMessages).
@@ -119,7 +119,7 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 	}
 	if len(converted) == 0 {
 		log.Debug().Msg("Didn't get any converted messages")
-		return
+		return false
 	}
 	log.Debug().
 		Int("converted_count", len(converted)).
@@ -141,6 +141,7 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 		}
 	}
 	portal.lastMessageTS = maxTS
+	return true
 }
 
 func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*ConvertedMessage, markReadBy id.UserID) {
