@@ -540,6 +540,7 @@ func (user *User) HasSession() bool {
 
 func (user *User) DeleteSession() {
 	user.Session = nil
+	user.SelfParticipantIDs = []string{}
 	user.PhoneID = ""
 	err := user.Update(context.TODO())
 	if err != nil {
