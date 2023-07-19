@@ -1760,7 +1760,7 @@ type Conversation struct {
 	LastMessageTimestamp int64          `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
 	Unread               bool           `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
 	IsGroupChat          bool           `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
-	SelfParticipantID    string         `protobuf:"bytes,11,opt,name=selfParticipantID,proto3" json:"selfParticipantID,omitempty"`
+	DefaultOutgoingID    string         `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
 	// bool bool1 = 13;
 	Status            ConvUpdateTypes  `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConvUpdateTypes" json:"status,omitempty"`
 	AvatarHexColor    string           `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
@@ -1847,9 +1847,9 @@ func (x *Conversation) GetIsGroupChat() bool {
 	return false
 }
 
-func (x *Conversation) GetSelfParticipantID() string {
+func (x *Conversation) GetDefaultOutgoingID() string {
 	if x != nil {
-		return x.SelfParticipantID
+		return x.DefaultOutgoingID
 	}
 	return ""
 }

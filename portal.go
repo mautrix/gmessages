@@ -518,7 +518,7 @@ type ConvertedMessage struct {
 }
 
 func (portal *Portal) getIntent(ctx context.Context, source *User, participant string) *appservice.IntentAPI {
-	if participant == portal.SelfUserID {
+	if source.IsSelfParticipantID(participant) {
 		intent := source.DoublePuppetIntent
 		if intent == nil {
 			zerolog.Ctx(ctx).Debug().Msg("Dropping message from self as double puppeting is not enabled")
@@ -712,6 +712,12 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 	var manyParticipants bool
 	for _, participant := range metadata.Participants {
 		if participant.IsMe {
+			err := source.AddSelfParticipantID(context.TODO(), participant.ID.ParticipantID)
+			if err != nil {
+				portal.zlog.Warn().Err(err).
+					Str("participant_id", participant.ID.ParticipantID).
+					Msg("Failed to save self participant ID")
+			}
 			continue
 		} else if participant.ID.Number == "" {
 			portal.zlog.Warn().Interface("participant", participant).Msg("No number found in non-self participant entry")
@@ -784,8 +790,8 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 
 func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []id.UserID {
 	participants, update := portal.SyncParticipants(user, info)
-	if portal.SelfUserID != info.SelfParticipantID {
-		portal.SelfUserID = info.SelfParticipantID
+	if portal.OutgoingID != info.DefaultOutgoingID {
+		portal.OutgoingID = info.DefaultOutgoingID
 		update = true
 	}
 	if portal.MXID != "" {
@@ -1178,10 +1184,10 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		ConversationID: portal.ID,
 		TmpID:          txnID,
 		MessagePayload: &gmproto.MessagePayload{
-			ConversationID:    portal.ID,
-			TmpID:             txnID,
-			TmpID2:            txnID,
-			SelfParticipantID: portal.SelfUserID,
+			ConversationID: portal.ID,
+			TmpID:          txnID,
+			TmpID2:         txnID,
+			ParticipantID:  portal.OutgoingID,
 		},
 	}
 
@@ -1342,7 +1348,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		return errTargetNotFound
 	}
 
-	existingReaction, err := portal.bridge.DB.Reaction.GetByID(ctx, portal.Key, msg.ID, portal.SelfUserID)
+	existingReaction, err := portal.bridge.DB.Reaction.GetByID(ctx, portal.Key, msg.ID, portal.OutgoingID)
 	if err != nil {
 		log.Err(err).Msg("Failed to get existing reaction")
 		return fmt.Errorf("failed to get existing reaction from database")
@@ -1367,7 +1373,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		existingReaction = portal.bridge.DB.Reaction.New()
 		existingReaction.Chat = portal.Key
 		existingReaction.MessageID = msg.ID
-		existingReaction.Sender = portal.SelfUserID
+		existingReaction.Sender = portal.OutgoingID
 	} else if sender.DoublePuppetIntent != nil {
 		_, err = sender.DoublePuppetIntent.RedactEvent(portal.MXID, existingReaction.MXID)
 		if err != nil {

@@ -263,9 +263,9 @@ func fnPing(ce *WrappedCommandEvent) {
 			ce.Reply("You're not logged into Google Messages.")
 		}
 	} else if ce.User.Client == nil || !ce.User.Client.IsConnected() {
-		ce.Reply("You're logged in as %s, but you don't have a Google Messages connection.", ce.User.Phone)
+		ce.Reply("You're logged in as %s, but you don't have a Google Messages connection.", ce.User.PhoneID)
 	} else {
-		ce.Reply("Logged in as %s, connection to Google Messages may be OK", ce.User.Phone)
+		ce.Reply("Logged in as %s, connection to Google Messages may be OK", ce.User.PhoneID)
 	}
 }
 

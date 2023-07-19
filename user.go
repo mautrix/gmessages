@@ -173,15 +173,15 @@ func (br *GMBridge) GetUserByPhone(phone string) *User {
 
 func (user *User) addToPhoneMap() {
 	user.bridge.usersLock.Lock()
-	user.bridge.usersByPhone[user.Phone] = user
+	user.bridge.usersByPhone[user.PhoneID] = user
 	user.bridge.usersLock.Unlock()
 }
 
 func (user *User) removeFromPhoneMap(state status.BridgeState) {
 	user.bridge.usersLock.Lock()
-	phoneUser, ok := user.bridge.usersByPhone[user.Phone]
+	phoneUser, ok := user.bridge.usersByPhone[user.PhoneID]
 	if ok && user == phoneUser {
-		delete(user.bridge.usersByPhone, user.Phone)
+		delete(user.bridge.usersByPhone, user.PhoneID)
 	}
 	user.bridge.usersLock.Unlock()
 	user.BridgeState.Send(state)
@@ -231,11 +231,11 @@ func (br *GMBridge) loadDBUser(dbUser *database.User, mxid *id.UserID) *User {
 	}
 	user := br.NewUser(dbUser)
 	br.usersByMXID[user.MXID] = user
-	if user.Session != nil && user.Phone != "" {
-		br.usersByPhone[user.Phone] = user
+	if user.Session != nil && user.PhoneID != "" {
+		br.usersByPhone[user.PhoneID] = user
 	} else {
 		user.Session = nil
-		user.Phone = ""
+		user.PhoneID = ""
 	}
 	if len(user.ManagementRoom) > 0 {
 		br.managementRooms[user.ManagementRoom] = user
@@ -540,7 +540,7 @@ func (user *User) HasSession() bool {
 
 func (user *User) DeleteSession() {
 	user.Session = nil
-	user.Phone = ""
+	user.PhoneID = ""
 	err := user.Update(context.TODO())
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to delete session from database")
@@ -601,7 +601,7 @@ func (user *User) HandleEvent(event interface{}) {
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
-		user.Phone = v.GetMobile().GetSourceID()
+		user.PhoneID = v.GetMobile().GetSourceID()
 		user.tryAutomaticDoublePuppeting()
 		user.addToPhoneMap()
 		err := user.Update(context.TODO())

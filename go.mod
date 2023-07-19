@@ -8,8 +8,9 @@ require (
 	github.com/rs/zerolog v1.29.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.1.0
+	google.golang.org/protobuf v1.31.0
 	maunium.net/go/maulogger/v2 v2.4.1
-	maunium.net/go/mautrix v0.15.4
+	maunium.net/go/mautrix v0.15.5-0.20230719135321-8c3bd7722909
 )
 
 require (
@@ -33,7 +34,6 @@ require (
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

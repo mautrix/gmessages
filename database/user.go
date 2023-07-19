@@ -22,7 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
+	"golang.org/x/exp/slices"
 	"maunium.net/go/mautrix/id"
 	"maunium.net/go/mautrix/util/dbutil"
 
@@ -44,23 +46,23 @@ func (uq *UserQuery) getDB() *Database {
 }
 
 func (uq *UserQuery) GetAllWithSession(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone, session, management_room, space_room, access_token FROM "user" WHERE phone<>'' AND session IS NOT NULL`)
+	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE session IS NOT NULL`)
 }
 
 func (uq *UserQuery) GetAllWithDoublePuppet(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone, session, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
+	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
 }
 
 func (uq *UserQuery) GetByRowID(ctx context.Context, rowID int) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone, session, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
 }
 
 func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone, session, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
 }
 
 func (uq *UserQuery) GetByPhone(ctx context.Context, phone string) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone, session, management_room, space_room, access_token FROM "user" WHERE phone=$1`, phone)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE phone_id=$1`, phone)
 }
 
 type User struct {
@@ -68,18 +70,22 @@ type User struct {
 
 	RowID   int
 	MXID    id.UserID
-	Phone   string
+	PhoneID string
 	Session *libgm.AuthData
 
 	ManagementRoom id.RoomID
 	SpaceRoom      id.RoomID
 
+	SelfParticipantIDs     []string
+	selfParticipantIDsLock sync.RWMutex
+
 	AccessToken string
 }
 
 func (user *User) Scan(row dbutil.Scannable) (*User, error) {
-	var phone, session, managementRoom, spaceRoom, accessToken sql.NullString
-	err := row.Scan(&user.RowID, &user.MXID, &phone, &session, &managementRoom, &spaceRoom, &accessToken)
+	var phoneID, session, managementRoom, spaceRoom, accessToken sql.NullString
+	var selfParticipantIDs string
+	err := row.Scan(&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &managementRoom, &spaceRoom, &accessToken)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -93,7 +99,13 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 		}
 		user.Session = &sess
 	}
-	user.Phone = phone.String
+	user.selfParticipantIDsLock.Lock()
+	err = json.Unmarshal([]byte(selfParticipantIDs), &user.SelfParticipantIDs)
+	user.selfParticipantIDsLock.Unlock()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse self participant IDs: %w", err)
+	}
+	user.PhoneID = phoneID.String
 	user.AccessToken = accessToken.String
 	user.ManagementRoom = id.RoomID(managementRoom.String)
 	user.SpaceRoom = id.RoomID(spaceRoom.String)
@@ -101,9 +113,9 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 }
 
 func (user *User) sqlVariables() []any {
-	var phone, session, managementRoom, spaceRoom, accessToken *string
-	if user.Phone != "" {
-		phone = &user.Phone
+	var phoneID, session, managementRoom, spaceRoom, accessToken *string
+	if user.PhoneID != "" {
+		phoneID = &user.PhoneID
 	}
 	if user.Session != nil {
 		data, _ := json.Marshal(user.Session)
@@ -119,17 +131,38 @@ func (user *User) sqlVariables() []any {
 	if user.AccessToken != "" {
 		accessToken = &user.AccessToken
 	}
-	return []any{user.MXID, phone, session, managementRoom, spaceRoom, accessToken}
+	user.selfParticipantIDsLock.RLock()
+	selfParticipantIDs, _ := json.Marshal(user.SelfParticipantIDs)
+	user.selfParticipantIDsLock.RUnlock()
+	return []any{user.MXID, phoneID, session, string(selfParticipantIDs), managementRoom, spaceRoom, accessToken}
+}
+
+func (user *User) IsSelfParticipantID(id string) bool {
+	user.selfParticipantIDsLock.RLock()
+	defer user.selfParticipantIDsLock.RUnlock()
+	return slices.Contains(user.SelfParticipantIDs, id)
+}
+
+func (user *User) AddSelfParticipantID(ctx context.Context, id string) error {
+	user.selfParticipantIDsLock.Lock()
+	defer user.selfParticipantIDsLock.Unlock()
+	if !slices.Contains(user.SelfParticipantIDs, id) {
+		user.SelfParticipantIDs = append(user.SelfParticipantIDs, id)
+		selfParticipantIDs, _ := json.Marshal(user.SelfParticipantIDs)
+		_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET self_participant_ids=$2 WHERE mxid=$1`, user.MXID, selfParticipantIDs)
+		return err
+	}
+	return nil
 }
 
 func (user *User) Insert(ctx context.Context) error {
 	err := user.db.Conn(ctx).
-		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone, session, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6) RETURNING rowid`, user.sqlVariables()...).
+		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING rowid`, user.sqlVariables()...).
 		Scan(&user.RowID)
 	return err
 }
 
 func (user *User) Update(ctx context.Context) error {
-	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone=$2, session=$3, management_room=$4, space_room=$5, access_token=$6 WHERE mxid=$1`, user.sqlVariables()...)
+	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone_id=$2, session=$3, self_participant_ids=$4, management_room=$5, space_room=$6, access_token=$7 WHERE mxid=$1`, user.sqlVariables()...)
 	return err
 }

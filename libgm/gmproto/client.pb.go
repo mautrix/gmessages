@@ -2598,7 +2598,7 @@ type MessagePayload struct {
 	TmpID                 string                 `protobuf:"bytes,1,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
 	MessagePayloadContent *MessagePayloadContent `protobuf:"bytes,6,opt,name=messagePayloadContent,proto3" json:"messagePayloadContent,omitempty"`
 	ConversationID        string                 `protobuf:"bytes,7,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	SelfParticipantID     string                 `protobuf:"bytes,9,opt,name=selfParticipantID,proto3" json:"selfParticipantID,omitempty"` // might be participantID
+	ParticipantID         string                 `protobuf:"bytes,9,opt,name=participantID,proto3" json:"participantID,omitempty"`
 	MessageInfo           []*MessageInfo         `protobuf:"bytes,10,rep,name=messageInfo,proto3" json:"messageInfo,omitempty"`
 	TmpID2                string                 `protobuf:"bytes,12,opt,name=tmpID2,proto3" json:"tmpID2,omitempty"`
 }
@@ -2656,9 +2656,9 @@ func (x *MessagePayload) GetConversationID() string {
 	return ""
 }
 
-func (x *MessagePayload) GetSelfParticipantID() string {
+func (x *MessagePayload) GetParticipantID() string {
 	if x != nil {
-		return x.SelfParticipantID
+		return x.ParticipantID
 	}
 	return ""
 }

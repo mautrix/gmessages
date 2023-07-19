@@ -74,7 +74,7 @@ type Portal struct {
 	db *Database
 
 	Key
-	SelfUserID  string
+	OutgoingID  string
 	OtherUserID string
 	MXID        id.RoomID
 
@@ -96,7 +96,7 @@ func (portal *Portal) Scan(row dbutil.Scannable) (*Portal, error) {
 		return nil, err
 	}
 	portal.MXID = id.RoomID(mxid.String)
-	portal.SelfUserID = selfUserID.String
+	portal.OutgoingID = selfUserID.String
 	portal.OtherUserID = otherUserID.String
 	return portal, nil
 }
@@ -106,8 +106,8 @@ func (portal *Portal) sqlVariables() []any {
 	if portal.MXID != "" {
 		mxid = (*string)(&portal.MXID)
 	}
-	if portal.SelfUserID != "" {
-		selfUserID = &portal.SelfUserID
+	if portal.OutgoingID != "" {
+		selfUserID = &portal.OutgoingID
 	}
 	if portal.OtherUserID != "" {
 		otherUserID = &portal.OtherUserID

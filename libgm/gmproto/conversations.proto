@@ -130,7 +130,7 @@ message Conversation {
     bool unread = 6;
 
     bool isGroupChat = 10; // not certain
-    string selfParticipantID = 11;
+    string defaultOutgoingID = 11;
 
     //bool bool1 = 13;
     ConvUpdateTypes status = 12;

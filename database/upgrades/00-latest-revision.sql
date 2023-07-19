@@ -1,4 +1,4 @@
--- v0 -> v1: Latest revision
+-- v0 -> v2: Latest revision
 
 CREATE TABLE "user" (
     -- only: postgres
@@ -6,9 +6,11 @@ CREATE TABLE "user" (
     -- only: sqlite
     rowid INTEGER PRIMARY KEY,
 
-    mxid    TEXT NOT NULL UNIQUE,
-    phone   TEXT UNIQUE,
-    session jsonb,
+    mxid     TEXT NOT NULL UNIQUE,
+    phone_id TEXT UNIQUE,
+    session  jsonb,
+
+    self_participant_ids jsonb NOT NULL DEFAULT '[]',
 
     management_room TEXT,
     space_room      TEXT,

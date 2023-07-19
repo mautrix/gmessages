@@ -269,7 +269,7 @@ message MessagePayload {
     string tmpID = 1;
     MessagePayloadContent messagePayloadContent = 6;
     string conversationID = 7;
-    string selfParticipantID = 9; // might be participantID
+    string participantID = 9;
     repeated conversations.MessageInfo messageInfo = 10;
     string tmpID2 = 12;
 }

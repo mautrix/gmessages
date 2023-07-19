@@ -51,7 +51,7 @@ func (user *User) GetRemoteID() string {
 	if user == nil {
 		return ""
 	}
-	return user.Phone
+	return user.PhoneID
 }
 
 func (user *User) GetRemoteName() string {
