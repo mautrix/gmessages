@@ -154,13 +154,12 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	if resErr != nil {
 		panic(resErr)
 	}
+	defer res.Body.Close()
 
 	statusCode := res.StatusCode
 	if statusCode != 200 {
 		return nil, errFinalizeUploadMedia
 	}
-
-	defer res.Body.Close()
 
 	rHeaders := res.Header
 	googleResponse, err3 := io.ReadAll(base64.NewDecoder(base64.StdEncoding, res.Body))
@@ -202,6 +201,7 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 	if resErr != nil {
 		panic(resErr)
 	}
+	defer res.Body.Close()
 
 	statusCode := res.StatusCode
 	if statusCode != 200 {
