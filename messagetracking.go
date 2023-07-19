@@ -24,8 +24,7 @@ import (
 	"sync"
 	"time"
 
-	log "maunium.net/go/maulogger/v2"
-
+	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/event"
@@ -110,7 +109,7 @@ func (portal *Portal) sendErrorMessage(evt *event.Event, err error, msgType stri
 	}
 	resp, err := portal.sendMainIntentMessage(content)
 	if err != nil {
-		portal.log.Warnfln("Failed to send bridging error message:", err)
+		portal.zlog.Warn().Err(err).Str("event_id", evt.ID.String()).Msg("Failed to send bridging error message")
 		return ""
 	}
 	return resp.EventID
@@ -144,7 +143,7 @@ func (portal *Portal) sendStatusEvent(evtID, lastRetry id.EventID, err error) {
 	}
 	_, err = intent.SendMessageEvent(portal.MXID, event.BeeperMessageStatus, &content)
 	if err != nil {
-		portal.log.Warnln("Failed to send message status event:", err)
+		portal.zlog.Warn().Err(err).Str("event_id", evtID.String()).Msg("Failed to send message status event")
 	}
 }
 
@@ -152,7 +151,7 @@ func (portal *Portal) sendDeliveryReceipt(eventID id.EventID) {
 	if portal.bridge.Config.Bridge.DeliveryReceipts {
 		err := portal.bridge.Bot.SendReceipt(portal.MXID, eventID, event.ReceiptTypeRead, nil)
 		if err != nil {
-			portal.log.Debugfln("Failed to send delivery receipt for %s: %v", eventID, err)
+			portal.zlog.Warn().Err(err).Str("event_id", eventID.String()).Msg("Failed to send delivery receipt")
 		}
 	}
 }
@@ -169,20 +168,21 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 	default:
 		msgType = "unknown event"
 	}
-	evtDescription := evt.ID.String()
-	if evt.Type == event.EventRedaction {
-		evtDescription += fmt.Sprintf(" of %s", evt.Redacts)
-	}
 	origEvtID := evt.ID
 	if retryMeta := evt.Content.AsMessage().MessageSendRetry; retryMeta != nil {
 		origEvtID = retryMeta.OriginalEventID
 	}
 	if err != nil {
-		level := log.LevelError
+		logEvt := portal.zlog.Error()
 		if part == "Ignoring" {
-			level = log.LevelDebug
+			logEvt = portal.zlog.Debug()
 		}
-		portal.log.Logfln(level, "%s %s %s from %s: %v", part, msgType, evtDescription, evt.Sender, err)
+		logEvt.Err(err).
+			Str("event_id", evt.ID.String()).
+			Str("part", part).
+			Str("event_sender", evt.Sender.String()).
+			Str("event_type", evt.Type.Type).
+			Msg("Failed to handle Matrix event")
 		reason, statusCode, isCertain, sendNotice, _ := errorToStatusReason(err)
 		checkpointStatus := status.ReasonToCheckpointStatus(reason, statusCode)
 		portal.bridge.SendMessageCheckpoint(evt, status.MsgStepRemote, err, checkpointStatus, ms.getRetryNum())
@@ -191,7 +191,10 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 		}
 		portal.sendStatusEvent(origEvtID, evt.ID, err)
 	} else {
-		portal.log.Debugfln("Handled Matrix %s %s", msgType, evtDescription)
+		portal.zlog.Debug().
+			Str("event_id", evt.ID.String()).
+			Str("event_type", evt.Type.Type).
+			Msg("Handled Matrix event")
 		portal.sendDeliveryReceipt(evt.ID)
 		portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
 		if msgType != "message" {
@@ -204,43 +207,27 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 		}
 	}
 	if ms != nil {
-		portal.log.Debugfln("Timings for %s: %s", evt.ID, ms.timings.String())
+		portal.zlog.Debug().EmbedObject(ms.timings).Str("event_id", evt.ID.String()).Msg("Timings for Matrix event")
 	}
 }
 
 type messageTimings struct {
 	initReceive  time.Duration
 	decrypt      time.Duration
-	implicitRR   time.Duration
 	portalQueue  time.Duration
 	totalReceive time.Duration
 
-	preproc   time.Duration
-	convert   time.Duration
-	totalSend time.Duration
+	convert time.Duration
+	send    time.Duration
 }
 
-func niceRound(dur time.Duration) time.Duration {
-	switch {
-	case dur < time.Millisecond:
-		return dur
-	case dur < time.Second:
-		return dur.Round(100 * time.Microsecond)
-	default:
-		return dur.Round(time.Millisecond)
-	}
-}
-
-func (mt *messageTimings) String() string {
-	mt.initReceive = niceRound(mt.initReceive)
-	mt.decrypt = niceRound(mt.decrypt)
-	mt.portalQueue = niceRound(mt.portalQueue)
-	mt.totalReceive = niceRound(mt.totalReceive)
-	mt.implicitRR = niceRound(mt.implicitRR)
-	mt.preproc = niceRound(mt.preproc)
-	mt.convert = niceRound(mt.convert)
-	mt.totalSend = niceRound(mt.totalSend)
-	return fmt.Sprintf("BRIDGE: receive: %s, decrypt: %s, queue: %s, total hs->portal: %s, implicit rr: %s -- PORTAL: preprocess: %s, convert: %s, total send: %s", mt.initReceive, mt.decrypt, mt.implicitRR, mt.portalQueue, mt.totalReceive, mt.preproc, mt.convert, mt.totalSend)
+func (mt *messageTimings) MarshalZerologObject(evt *zerolog.Event) {
+	evt.Dur("receive", mt.initReceive).
+		Dur("decrypt", mt.decrypt).
+		Dur("queue", mt.portalQueue).
+		Dur("total_hs_to_portal", mt.totalReceive).
+		Dur("convert", mt.convert).
+		Dur("send", mt.send)
 }
 
 type metricSender struct {

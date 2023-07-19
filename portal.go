@@ -29,7 +29,6 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
-	"maunium.net/go/maulogger/v2"
 	mutil "maunium.net/go/mautrix/util"
 	"maunium.net/go/mautrix/util/variationselector"
 
@@ -187,7 +186,6 @@ func (portal *Portal) GetUsers() []*User {
 func (br *GMBridge) newBlankPortal(key database.Key) *Portal {
 	portal := &Portal{
 		bridge: br,
-		log:    br.Log.Sub(fmt.Sprintf("Portal/%s", key.ID)),
 		zlog:   br.ZLog.With().Str("portal_id", key.ID).Int("portal_receiver", key.Receiver).Logger(),
 
 		messages:       make(chan PortalMessage, br.Config.Bridge.PortalMessageBuffer),
@@ -228,9 +226,7 @@ type Portal struct {
 	*database.Portal
 
 	bridge *GMBridge
-	// Deprecated: use zerolog
-	log  maulogger.Logger
-	zlog zerolog.Logger
+	zlog   zerolog.Logger
 
 	roomCreateLock sync.Mutex
 	encryptLock    sync.Mutex
@@ -1059,7 +1055,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) e
 			if portal.bridge.Config.Bridge.Encryption.Default {
 				err = portal.bridge.Bot.EnsureJoined(portal.MXID)
 				if err != nil {
-					portal.log.Errorln("Failed to join created portal with bridge bot for e2be:", err)
+					portal.zlog.Err(err).Msg("Failed to join created portal with bridge bot for e2be")
 				}
 			}
 
@@ -1312,9 +1308,17 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		content.MsgType = event.MsgImage
 	}
 
-	if req, err := portal.convertMatrixMessage(ctx, sender, content, txnID); err != nil {
+	start := time.Now()
+	req, err := portal.convertMatrixMessage(ctx, sender, content, txnID)
+	timings.convert = time.Since(start)
+	if err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error converting", true)
-	} else if _, err = sender.Client.SendMessage(req); err != nil {
+		return
+	}
+	start = time.Now()
+	_, err = sender.Client.SendMessage(req)
+	timings.send = time.Since(start)
+	if err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error sending", true)
 	} else {
 		go ms.sendMessageMetrics(evt, nil, "", true)
@@ -1529,12 +1533,12 @@ func (portal *Portal) GetMatrixUsers() ([]id.UserID, error) {
 func (portal *Portal) CleanupIfEmpty() {
 	users, err := portal.GetMatrixUsers()
 	if err != nil {
-		portal.log.Errorfln("Failed to get Matrix user list to determine if portal needs to be cleaned up: %v", err)
+		portal.zlog.Err(err).Msg("Failed to get Matrix user list to determine if portal needs to be cleaned up")
 		return
 	}
 
 	if len(users) == 0 {
-		portal.log.Infoln("Room seems to be empty, cleaning up...")
+		portal.zlog.Info().Msg("Room seems to be empty, cleaning up...")
 		portal.Delete()
 		portal.Cleanup(false)
 	}
@@ -1554,7 +1558,7 @@ func (portal *Portal) Cleanup(puppetsOnly bool) {
 	}
 	members, err := intent.JoinedMembers(portal.MXID)
 	if err != nil {
-		portal.log.Errorln("Failed to get portal members for cleanup:", err)
+		portal.zlog.Err(err).Msg("Failed to get portal members for cleanup")
 		return
 	}
 	for member := range members.Joined {
@@ -1565,17 +1569,17 @@ func (portal *Portal) Cleanup(puppetsOnly bool) {
 		if puppet != nil {
 			_, err = puppet.DefaultIntent().LeaveRoom(portal.MXID)
 			if err != nil {
-				portal.log.Errorln("Error leaving as puppet while cleaning up portal:", err)
+				portal.zlog.Err(err).Msg("Failed to leave as puppet while cleaning up portal")
 			}
 		} else if !puppetsOnly {
 			_, err = intent.KickUser(portal.MXID, &mautrix.ReqKickUser{UserID: member, Reason: "Deleting portal"})
 			if err != nil {
-				portal.log.Errorln("Error kicking user while cleaning up portal:", err)
+				portal.zlog.Err(err).Msg("Failed to kick user while cleaning up portal")
 			}
 		}
 	}
 	_, err = intent.LeaveRoom(portal.MXID)
 	if err != nil {
-		portal.log.Errorln("Error leaving with main intent while cleaning up portal:", err)
+		portal.zlog.Err(err).Msg("Failed to leave with main intent while cleaning up portal")
 	}
 }

@@ -294,29 +294,6 @@ func fnPing(ce *WrappedCommandEvent) {
 	}
 }
 
-func canDeletePortal(portal *Portal, userID id.UserID) bool {
-	if len(portal.MXID) == 0 {
-		return false
-	}
-
-	members, err := portal.MainIntent().JoinedMembers(portal.MXID)
-	if err != nil {
-		portal.log.Errorfln("Failed to get joined members to check if portal can be deleted by %s: %v", userID, err)
-		return false
-	}
-	for otherUser := range members.Joined {
-		_, isPuppet := portal.bridge.ParsePuppetMXID(otherUser)
-		if isPuppet || otherUser == portal.bridge.Bot.UserID || otherUser == userID {
-			continue
-		}
-		user := portal.bridge.GetUserByMXID(otherUser)
-		if user != nil && user.Session != nil {
-			return false
-		}
-	}
-	return true
-}
-
 var cmdDeletePortal = &commands.FullHandler{
 	Func: wrapCommand(fnDeletePortal),
 	Name: "delete-portal",
@@ -328,12 +305,12 @@ var cmdDeletePortal = &commands.FullHandler{
 }
 
 func fnDeletePortal(ce *WrappedCommandEvent) {
-	if !ce.User.Admin && !canDeletePortal(ce.Portal, ce.User.MXID) {
-		ce.Reply("Only bridge admins can delete portals with other Matrix users")
+	if !ce.User.Admin && ce.Portal.Receiver != ce.User.RowID {
+		ce.Reply("Only bridge admins can delete other users' portals")
 		return
 	}
 
-	ce.Portal.log.Infoln(ce.User.MXID, "requested deletion of portal.")
+	ce.ZLog.Info().Str("conversation_id", ce.Portal.ID).Msg("Deleting portal from command")
 	ce.Portal.Delete()
 	ce.Portal.Cleanup(false)
 }
