@@ -859,6 +859,7 @@ func (portal *Portal) GetBasePowerLevels() *event.PowerLevelsEventContent {
 		Events: map[string]int{
 			event.StateRoomName.Type:   anyone,
 			event.StateRoomAvatar.Type: anyone,
+			event.EventRedaction.Type:  anyone,
 		},
 	}
 }
@@ -880,6 +881,8 @@ func (portal *Portal) updatePowerLevels(conv *gmproto.Conversation, pl *event.Po
 		changed = true
 	}
 	changed = pl.EnsureEventLevel(event.EventReaction, expectedReaction) || changed
+	// Explicitly set m.room.redaction level to 0 so redactions work even if sending is disabled
+	changed = pl.EnsureEventLevel(event.EventRedaction, 0) || changed
 	changed = pl.EnsureUserLevel(portal.bridge.Bot.UserID, 100) || changed
 	return changed
 }
