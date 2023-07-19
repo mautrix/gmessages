@@ -654,11 +654,13 @@ func (user *User) aggressiveSetActive() {
 }
 
 func (user *User) fetchAndSyncConversations() {
-	resp, err := user.Client.ListConversations(25, gmproto.ListConversationsRequest_INBOX)
+	user.zlog.Info().Msg("Fetching conversation list")
+	resp, err := user.Client.ListConversations(user.bridge.Config.Bridge.InitialChatSyncCount, gmproto.ListConversationsRequest_INBOX)
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to get conversation list")
 		return
 	}
+	user.zlog.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
 	for _, conv := range resp.GetConversations() {
 		user.syncConversation(conv)
 	}

@@ -124,6 +124,8 @@ bridge:
     # Note that updating the m.direct event is not atomic (except with mautrix-asmux)
     # and is therefore prone to race conditions.
     sync_direct_chat_list: false
+    # Number of chats to sync when connecting to Google Messages.
+    initial_chat_sync_count: 25
 
     # Servers to always allow double puppeting from
     double_puppet_server_map:

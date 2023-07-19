@@ -4,7 +4,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
-func (c *Client) ListConversations(count int64, folder gmproto.ListConversationsRequest_Folder) (*gmproto.ListConversationsResponse, error) {
+func (c *Client) ListConversations(count int, folder gmproto.ListConversationsRequest_Folder) (*gmproto.ListConversationsResponse, error) {
 	msgType := gmproto.MessageType_BUGLE_MESSAGE
 	if !c.conversationsFetchedOnce {
 		msgType = gmproto.MessageType_BUGLE_ANNOTATION
@@ -12,7 +12,7 @@ func (c *Client) ListConversations(count int64, folder gmproto.ListConversations
 	}
 	return typedResponse[*gmproto.ListConversationsResponse](c.sessionHandler.sendMessageWithParams(SendMessageParams{
 		Action:      gmproto.ActionType_LIST_CONVERSATIONS,
-		Data:        &gmproto.ListConversationsRequest{Count: count, Folder: folder},
+		Data:        &gmproto.ListConversationsRequest{Count: int64(count), Folder: folder},
 		MessageType: msgType,
 	}))
 }

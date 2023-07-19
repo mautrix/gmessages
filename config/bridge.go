@@ -36,7 +36,8 @@ type BridgeConfig struct {
 	MessageErrorNotices bool `yaml:"message_error_notices"`
 	PortalMessageBuffer int  `yaml:"portal_message_buffer"`
 
-	SyncDirectChatList bool `yaml:"sync_direct_chat_list"`
+	SyncDirectChatList   bool `yaml:"sync_direct_chat_list"`
+	InitialChatSyncCount int  `yaml:"initial_chat_sync_count"`
 
 	DoublePuppetServerMap      map[string]string `yaml:"double_puppet_server_map"`
 	DoublePuppetAllowDiscovery bool              `yaml:"double_puppet_allow_discovery"`
