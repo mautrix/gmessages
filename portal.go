@@ -800,6 +800,18 @@ func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []i
 	if portal.shouldSetDMRoomMetadata() {
 		update = portal.UpdateName(info.Name, false) || update
 	}
+	pls, err := portal.MainIntent().PowerLevels(portal.MXID)
+	if err != nil {
+		portal.zlog.Warn().Err(err).Msg("Failed to get power levels")
+	} else if portal.updatePowerLevels(info, pls) {
+		resp, err := portal.MainIntent().SetPowerLevels(portal.MXID, pls)
+		if err != nil {
+			portal.zlog.Warn().Err(err).Msg("Failed to update power levels")
+		} else {
+			portal.zlog.Debug().Str("event_id", resp.EventID.String()).Msg("Updated power levels")
+		}
+	}
+
 	// TODO avatar
 	if update {
 		err := portal.Update(context.TODO())
@@ -830,23 +842,44 @@ func (portal *Portal) UpdateMatrixRoom(user *User, groupInfo *gmproto.Conversati
 func (portal *Portal) GetBasePowerLevels() *event.PowerLevelsEventContent {
 	anyone := 0
 	nope := 99
-	invite := 50
 	return &event.PowerLevelsEventContent{
 		UsersDefault:    anyone,
 		EventsDefault:   anyone,
 		RedactPtr:       &anyone,
 		StateDefaultPtr: &nope,
 		BanPtr:          &nope,
-		InvitePtr:       &invite,
+		KickPtr:         &nope,
+		InvitePtr:       &nope,
 		Users: map[id.UserID]int{
 			portal.MainIntent().UserID: 100,
+			portal.bridge.Bot.UserID:   100,
 		},
 		Events: map[string]int{
 			event.StateRoomName.Type:   anyone,
 			event.StateRoomAvatar.Type: anyone,
-			event.EventReaction.Type:   anyone, // TODO only allow reactions in RCS rooms
 		},
 	}
+}
+
+func (portal *Portal) updatePowerLevels(conv *gmproto.Conversation, pl *event.PowerLevelsEventContent) bool {
+	expectedEventsDefault := 0
+	if conv.GetReadOnly() {
+		expectedEventsDefault = 99
+	}
+
+	expectedReaction := 99
+	if conv.GetType() == gmproto.ConversationType_RCS {
+		expectedReaction = 0
+	}
+
+	changed := false
+	if pl.EventsDefault != expectedEventsDefault {
+		pl.EventsDefault = expectedEventsDefault
+		changed = true
+	}
+	changed = pl.EnsureEventLevel(event.EventReaction, expectedReaction) || changed
+	changed = pl.EnsureUserLevel(portal.bridge.Bot.UserID, 100) || changed
+	return changed
 }
 
 func (portal *Portal) getBridgeInfoStateKey() string {
@@ -928,11 +961,12 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) e
 
 	bridgeInfoStateKey, bridgeInfo := portal.getBridgeInfo()
 
+	pl := portal.GetBasePowerLevels()
+	portal.updatePowerLevels(conv, pl)
+
 	initialState := []*event.Event{{
-		Type: event.StatePowerLevels,
-		Content: event.Content{
-			Parsed: portal.GetBasePowerLevels(),
-		},
+		Type:    event.StatePowerLevels,
+		Content: event.Content{Parsed: pl},
 	}, {
 		Type:     event.StateBridge,
 		Content:  event.Content{Parsed: bridgeInfo},

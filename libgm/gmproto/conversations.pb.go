@@ -1754,23 +1754,24 @@ type Conversation struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ConversationID       string         `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	Name                 string         `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	LatestMessage        *LatestMessage `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
-	LastMessageTimestamp int64          `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
-	Unread               bool           `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
-	IsGroupChat          bool           `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
-	DefaultOutgoingID    string         `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
-	// bool bool1 = 13;
-	Status            ConvUpdateTypes  `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConvUpdateTypes" json:"status,omitempty"`
-	AvatarHexColor    string           `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
-	LatestMessageID   string           `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
-	Participants      []*Participant   `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
-	OtherParticipants []string         `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
-	Type              ConversationType `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
-	SubType           bool             `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
-	UnknownTimestamp  int64            `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
-	ThirdType         bool             `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
+	ConversationID       string           `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Name                 string           `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	LatestMessage        *LatestMessage   `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
+	LastMessageTimestamp int64            `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
+	Unread               bool             `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
+	IsGroupChat          bool             `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
+	DefaultOutgoingID    string           `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
+	Status               ConvUpdateTypes  `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConvUpdateTypes" json:"status,omitempty"`
+	ReadOnly             bool             `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
+	AvatarHexColor       string           `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
+	LatestMessageID      string           `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
+	Participants         []*Participant   `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
+	OtherParticipants    []string         `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
+	Type                 ConversationType `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
+	SubType              bool             `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
+	Pinned               bool             `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
+	UnknownTimestamp     int64            `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
+	ThirdType            bool             `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
 }
 
 func (x *Conversation) Reset() {
@@ -1861,6 +1862,13 @@ func (x *Conversation) GetStatus() ConvUpdateTypes {
 	return ConvUpdateTypes_UNKNOWN_CONVTYPE
 }
 
+func (x *Conversation) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
+}
+
 func (x *Conversation) GetAvatarHexColor() string {
 	if x != nil {
 		return x.AvatarHexColor
@@ -1899,6 +1907,13 @@ func (x *Conversation) GetType() ConversationType {
 func (x *Conversation) GetSubType() bool {
 	if x != nil {
 		return x.SubType
+	}
+	return false
+}
+
+func (x *Conversation) GetPinned() bool {
+	if x != nil {
+		return x.Pinned
 	}
 	return false
 }

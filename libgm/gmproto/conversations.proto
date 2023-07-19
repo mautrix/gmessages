@@ -132,14 +132,15 @@ message Conversation {
     bool isGroupChat = 10; // not certain
     string defaultOutgoingID = 11;
 
-    //bool bool1 = 13;
     ConvUpdateTypes status = 12;
+    bool readOnly = 13;
     string avatarHexColor = 15;
     string latestMessageID = 17;
     repeated Participant participants = 20;
     repeated string otherParticipants = 21; // participant ids excluding me
     ConversationType type = 22;
     bool subType = 24;
+    bool pinned = 26;
     int64 unknownTimestamp = 28; // set to lastMessageTimestamp + 1000 when marking as unread?
     bool thirdType = 29;
 }
