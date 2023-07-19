@@ -25,8 +25,6 @@ type SessionHandler struct {
 	ackTicker  *time.Ticker
 
 	sessionID string
-
-	responseTimeout time.Duration
 }
 
 func (s *SessionHandler) ResetSessionID() {
@@ -124,7 +122,17 @@ func (s *SessionHandler) sendMessageWithParams(params SendMessageParams) (*Incom
 		return nil, err
 	}
 
-	// TODO add timeout
+	select {
+	case resp := <-ch:
+		return resp, nil
+	case <-time.After(5 * time.Second):
+		// Notify the pinger in order to trigger an event that the phone isn't responding
+		select {
+		case s.client.pingShortCircuit <- struct{}{}:
+		default:
+		}
+	}
+	// TODO hard timeout?
 	return <-ch, nil
 }
 

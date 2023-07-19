@@ -121,15 +121,13 @@ func (c *Client) SetActiveSession() error {
 }
 
 func (c *Client) IsBugleDefault() (*gmproto.IsBugleDefaultResponse, error) {
-	c.sessionHandler.ResetSessionID()
 	actionType := gmproto.ActionType_IS_BUGLE_DEFAULT
 	return typedResponse[*gmproto.IsBugleDefaultResponse](c.sessionHandler.sendMessage(actionType, nil))
 }
 
-func (c *Client) NotifyDittoActivity() error {
-	payload := &gmproto.NotifyDittoActivityRequest{Success: true}
-	actionType := gmproto.ActionType_NOTIFY_DITTO_ACTIVITY
-
-	_, err := c.sessionHandler.sendMessage(actionType, payload)
-	return err
+func (c *Client) NotifyDittoActivity() (<-chan *IncomingRPCMessage, error) {
+	return c.sessionHandler.sendAsyncMessage(SendMessageParams{
+		Action: gmproto.ActionType_NOTIFY_DITTO_ACTIVITY,
+		Data:   &gmproto.NotifyDittoActivityRequest{Success: true},
+	})
 }

@@ -35,3 +35,7 @@ type ListenTemporaryError struct {
 }
 
 type ListenRecovered struct{}
+
+type PhoneNotResponding struct{}
+
+type PhoneRespondingAgain struct{}

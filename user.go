@@ -71,6 +71,7 @@ type User struct {
 	browserInactiveType status.BridgeStateErrorCode
 	batteryLow          bool
 	mobileData          bool
+	phoneResponding     bool
 	ready               bool
 	batteryLowAlertSent time.Time
 	pollErrorAlertSent  bool
@@ -254,6 +255,7 @@ func (br *GMBridge) NewUser(dbUser *database.User) *User {
 	}
 	user.log = maulogadapt.ZeroAsMau(&user.zlog)
 	user.longPollingError = errors.New("not connected")
+	user.phoneResponding = true
 
 	user.PermissionLevel = user.bridge.Config.Bridge.Permissions.Get(user.MXID)
 	user.Whitelisted = user.PermissionLevel >= bridgeconfig.PermissionLevelUser
@@ -615,6 +617,12 @@ func (user *User) HandleEvent(event interface{}) {
 			go user.sendMarkdownBridgeAlert(false, "Reconnected to Google Messages")
 			user.pollErrorAlertSent = false
 		}
+	case *events.PhoneNotResponding:
+		user.phoneResponding = false
+		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	case *events.PhoneRespondingAgain:
+		user.phoneResponding = true
+		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
 		user.PhoneID = v.GetMobile().GetSourceID()
@@ -652,13 +660,18 @@ func (user *User) HandleEvent(event interface{}) {
 }
 
 func (user *User) aggressiveSetActive() {
-	sleepTimes := []int{2, 5, 10, 30}
-	for i := 0; i < 4; i++ {
+	sleepTimes := []int{5, 10, 30}
+	for i := 0; i < 3; i++ {
 		sleep := time.Duration(sleepTimes[i]) * time.Second
 		user.zlog.Info().
 			Int("sleep_seconds", int(sleep.Seconds())).
-			Msg("Aggressively reactivating after sleep")
+			Msg("Aggressively reactivating bridge session after sleep")
 		time.Sleep(sleep)
+		if user.browserInactiveType == "" {
+			user.zlog.Info().Msg("Bridge session became active on its own, not reactivating")
+			return
+		}
+		user.zlog.Info().Msg("Now reactivating bridge session")
 		err := user.Client.SetActiveSession()
 		if err != nil {
 			user.zlog.Warn().Err(err).Msg("Failed to set self as active session")
@@ -689,6 +702,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
+		// TODO check if session ID changed?
 		user.pollErrorAlertSent = false
 		user.browserInactiveType = ""
 		user.ready = true
@@ -741,13 +755,21 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 			state.StateEvent = status.StateConnecting
 			state.Error = GMConnecting
 		}
+		if !user.phoneResponding {
+			state.StateEvent = status.StateBadCredentials
+			state.Error = GMPhoneNotResponding
+		}
 		if user.longPollingError != nil {
 			state.StateEvent = status.StateTransientDisconnect
 			state.Error = GMListenError
 			state.Info["go_error"] = user.longPollingError.Error()
 		}
 		if user.browserInactiveType != "" {
-			state.StateEvent = status.StateTransientDisconnect
+			if user.bridge.Config.GoogleMessages.AggressiveReconnect {
+				state.StateEvent = status.StateTransientDisconnect
+			} else {
+				state.StateEvent = status.StateBadCredentials
+			}
 			state.Error = user.browserInactiveType
 		}
 	}

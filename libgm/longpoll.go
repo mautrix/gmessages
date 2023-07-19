@@ -20,21 +20,84 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
+func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, stopPinger chan struct{}) {
+	notResponding := false
+	exit := false
+	onRespond := func() {
+		if notResponding {
+			log.Debug().Msg("Ditto ping succeeded, phone is back online")
+			c.triggerEvent(&events.PhoneRespondingAgain{})
+			notResponding = false
+		}
+	}
+	doPing := func() {
+		pingChan, err := c.NotifyDittoActivity()
+		if err != nil {
+			log.Err(err).Msg("Error notifying ditto activity")
+			return
+		}
+		select {
+		case <-pingChan:
+			onRespond()
+			return
+		case <-time.After(15 * time.Second):
+			log.Warn().Msg("Ditto ping is taking long, phone may be offline")
+			c.triggerEvent(&events.PhoneNotResponding{})
+			notResponding = true
+		case <-stopPinger:
+			exit = true
+			return
+		}
+		select {
+		case <-pingChan:
+			onRespond()
+		case <-stopPinger:
+			exit = true
+			return
+		}
+	}
+	for !exit {
+		select {
+		case <-c.pingShortCircuit:
+			log.Debug().Msg("Ditto ping wait short-circuited")
+			doPing()
+		case <-dittoPing:
+			log.Trace().Msg("Doing normal ditto ping")
+			doPing()
+		case <-stopPinger:
+			return
+		}
+	}
+}
+
 func (c *Client) doLongPoll(loggedIn bool) {
 	c.listenID++
 	listenID := c.listenID
 	errored := true
 	listenReqID := uuid.NewString()
+
+	log := c.Logger.With().Int("listen_id", listenID).Logger()
+	defer func() {
+		log.Debug().Msg("Long polling stopped")
+	}()
+	log.Debug().Str("listen_uuid", listenReqID).Msg("Long polling starting")
+
+	dittoPing := make(chan struct{}, 1)
+	stopDittoPinger := make(chan struct{})
+
+	defer close(stopDittoPinger)
+	go c.doDittoPinger(&log, dittoPing, stopDittoPinger)
+
 	for c.listenID == listenID {
 		err := c.refreshAuthToken()
 		if err != nil {
-			c.Logger.Err(err).Msg("Error refreshing auth token")
+			log.Err(err).Msg("Error refreshing auth token")
 			if loggedIn {
 				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
 			}
 			return
 		}
-		c.Logger.Debug().Msg("Starting new long-polling request")
+		log.Debug().Msg("Starting new long-polling request")
 		payload := &gmproto.ReceiveMessagesRequest{
 			Auth: &gmproto.AuthMessage{
 				RequestID:        listenReqID,
@@ -51,12 +114,12 @@ func (c *Client) doLongPoll(loggedIn bool) {
 				c.triggerEvent(&events.ListenTemporaryError{Error: err})
 			}
 			errored = true
-			c.Logger.Err(err).Msg("Error making listen request, retrying in 5 seconds")
+			log.Err(err).Msg("Error making listen request, retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
 		}
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			c.Logger.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
+			log.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
 			if loggedIn {
 				c.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp}})
 			}
@@ -66,7 +129,7 @@ func (c *Client) doLongPoll(loggedIn bool) {
 				c.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp}})
 			}
 			errored = true
-			c.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("5xx error in long polling, retrying in 5 seconds")
+			log.Debug().Int("statusCode", resp.StatusCode).Msg("5xx error in long polling, retrying in 5 seconds")
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -76,22 +139,21 @@ func (c *Client) doLongPoll(loggedIn bool) {
 				c.triggerEvent(&events.ListenRecovered{})
 			}
 		}
-		c.Logger.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
+		log.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		c.longPollingConn = resp.Body
-		if c.AuthData.Browser != nil {
-			go func() {
-				err := c.NotifyDittoActivity()
-				if err != nil {
-					c.Logger.Err(err).Msg("Error notifying ditto activity")
-				}
-			}()
+		if loggedIn {
+			select {
+			case dittoPing <- struct{}{}:
+			default:
+				log.Debug().Msg("Ditto pinger is still waiting for previous ping, skipping new ping")
+			}
 		}
-		c.readLongPoll(resp.Body)
+		c.readLongPoll(&log, resp.Body)
 		c.longPollingConn = nil
 	}
 }
 
-func (c *Client) readLongPoll(rc io.ReadCloser) {
+func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 	defer rc.Close()
 	c.disconnecting = false
 	reader := bufio.NewReader(rc)
@@ -99,10 +161,10 @@ func (c *Client) readLongPoll(rc io.ReadCloser) {
 	var accumulatedData []byte
 	n, err := reader.Read(buf[:2])
 	if err != nil {
-		c.Logger.Err(err).Msg("Error reading opening bytes")
+		log.Err(err).Msg("Error reading opening bytes")
 		return
 	} else if n != 2 || string(buf[:2]) != "[[" {
-		c.Logger.Err(err).Msg("Opening is not [[")
+		log.Err(err).Msg("Opening is not [[")
 		return
 	}
 	var expectEOF bool
@@ -111,19 +173,19 @@ func (c *Client) readLongPoll(rc io.ReadCloser) {
 		if err != nil {
 			var logEvt *zerolog.Event
 			if (errors.Is(err, io.EOF) && expectEOF) || c.disconnecting {
-				logEvt = c.Logger.Debug()
+				logEvt = log.Debug()
 			} else {
-				logEvt = c.Logger.Warn()
+				logEvt = log.Warn()
 			}
 			logEvt.Err(err).Msg("Stopped reading data from server")
 			return
 		} else if expectEOF {
-			c.Logger.Warn().Msg("Didn't get EOF after stream end marker")
+			log.Warn().Msg("Didn't get EOF after stream end marker")
 		}
 		chunk := buf[:n]
 		if len(accumulatedData) == 0 {
 			if len(chunk) == 2 && string(chunk) == "]]" {
-				c.Logger.Debug().Msg("Got stream end marker")
+				log.Debug().Msg("Got stream end marker")
 				expectEOF = true
 				continue
 			}
@@ -131,7 +193,7 @@ func (c *Client) readLongPoll(rc io.ReadCloser) {
 		}
 		accumulatedData = append(accumulatedData, chunk...)
 		if !json.Valid(accumulatedData) {
-			c.Logger.Trace().Bytes("data", chunk).Msg("Invalid JSON, reading next chunk")
+			log.Trace().Bytes("data", chunk).Msg("Invalid JSON, reading next chunk")
 			continue
 		}
 		currentBlock := accumulatedData
@@ -139,21 +201,21 @@ func (c *Client) readLongPoll(rc io.ReadCloser) {
 		msg := &gmproto.LongPollingPayload{}
 		err = pblite.Unmarshal(currentBlock, msg)
 		if err != nil {
-			c.Logger.Err(err).Msg("Error deserializing pblite message")
+			log.Err(err).Msg("Error deserializing pblite message")
 			continue
 		}
 		switch {
 		case msg.GetData() != nil:
 			c.HandleRPCMsg(msg.GetData())
 		case msg.GetAck() != nil:
-			c.Logger.Debug().Int32("count", msg.GetAck().GetCount()).Msg("Got startup ack count message")
+			log.Debug().Int32("count", msg.GetAck().GetCount()).Msg("Got startup ack count message")
 			c.skipCount = int(msg.GetAck().GetCount())
 		case msg.GetStartRead() != nil:
-			c.Logger.Trace().Msg("Got startRead message")
+			log.Trace().Msg("Got startRead message")
 		case msg.GetHeartbeat() != nil:
-			c.Logger.Trace().Msg("Got heartbeat message")
+			log.Trace().Msg("Got heartbeat message")
 		default:
-			c.Logger.Warn().
+			log.Warn().
 				Str("data", base64.StdEncoding.EncodeToString(currentBlock)).
 				Msg("Got unknown message")
 		}
@@ -162,7 +224,7 @@ func (c *Client) readLongPoll(rc io.ReadCloser) {
 
 func (c *Client) closeLongPolling() {
 	if conn := c.longPollingConn; conn != nil {
-		c.Logger.Debug().Msg("Closing long polling connection manually")
+		c.Logger.Debug().Int("current_listen_id", c.listenID).Msg("Closing long polling connection manually")
 		c.listenID++
 		c.disconnecting = true
 		_ = conn.Close()

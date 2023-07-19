@@ -34,6 +34,8 @@ const (
 	GMBrowserInactive           status.BridgeStateErrorCode = "gm-browser-inactive"
 	GMBrowserInactiveTimeout    status.BridgeStateErrorCode = "gm-browser-inactive-timeout"
 	GMBrowserInactiveInactivity status.BridgeStateErrorCode = "gm-browser-inactive-inactivity"
+
+	GMPhoneNotResponding status.BridgeStateErrorCode = "gm-phone-not-responding"
 )
 
 func init() {
@@ -44,6 +46,7 @@ func init() {
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
+		GMPhoneNotResponding:        "Your phone is not responding, please check that it is connected to the internet",
 	})
 }
 

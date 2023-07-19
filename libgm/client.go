@@ -56,6 +56,8 @@ type Client struct {
 	skipCount       int
 	disconnecting   bool
 
+	pingShortCircuit chan struct{}
+
 	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
 
@@ -77,13 +79,14 @@ func NewAuthData() *AuthData {
 func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
 		responseWaiters: make(map[string]chan<- *IncomingRPCMessage),
-		responseTimeout: time.Duration(5000) * time.Millisecond,
 	}
 	cli := &Client{
 		AuthData:       authData,
 		Logger:         logger,
 		sessionHandler: sessionHandler,
 		http:           &http.Client{},
+
+		pingShortCircuit: make(chan struct{}),
 	}
 	sessionHandler.client = cli
 	cli.FetchConfigVersion()
@@ -127,17 +130,33 @@ func (c *Client) Connect() error {
 	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
 	go c.doLongPoll(true)
 	c.sessionHandler.startAckInterval()
+	go c.postConnect()
+	return nil
+}
 
-	bugleRes, bugleErr := c.IsBugleDefault()
-	if bugleErr != nil {
-		return fmt.Errorf("failed to check bugle default: %w", err)
+func (c *Client) postConnect() {
+	err := c.SetActiveSession()
+	if err != nil {
+		c.Logger.Err(err).Msg("Failed to set active session")
+		return
+	}
+
+	doneChan := make(chan struct{})
+	go func() {
+		select {
+		case <-time.After(5 * time.Second):
+			c.Logger.Warn().Msg("Checking bugle default on connect is taking long")
+		case <-doneChan:
+		}
+	}()
+	bugleRes, err := c.IsBugleDefault()
+	close(doneChan)
+	if err != nil {
+		c.Logger.Err(err).Msg("Failed to check bugle default")
+		return
 	}
 	c.Logger.Debug().Bool("bugle_default", bugleRes.Success).Msg("Got is bugle default response on connect")
-	sessionErr := c.SetActiveSession()
-	if sessionErr != nil {
-		return fmt.Errorf("failed to set active session: %w", err)
-	}
-	return nil
+
 }
 
 func (c *Client) Disconnect() {
