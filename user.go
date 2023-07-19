@@ -72,6 +72,8 @@ type User struct {
 	batteryLow          bool
 	mobileData          bool
 	ready               bool
+	batteryLowAlertSent time.Time
+	pollErrorAlertSent  bool
 
 	loginInProgress   atomic.Bool
 	pairSuccessChan   chan struct{}
@@ -571,12 +573,15 @@ func (user *User) tryAutomaticDoublePuppeting() {
 	}
 }
 
-func (user *User) sendMarkdownBridgeAlert(formatString string, args ...interface{}) {
+func (user *User) sendMarkdownBridgeAlert(important bool, formatString string, args ...interface{}) {
 	if user.bridge.Config.Bridge.DisableBridgeAlerts {
 		return
 	}
 	notice := fmt.Sprintf(formatString, args...)
 	content := format.RenderMarkdown(notice, true, false)
+	if !important {
+		content.MsgType = event.MsgNotice
+	}
 	_, err := user.bridge.Bot.SendMessageEvent(user.GetManagementRoom(), event.EventMessage, content)
 	if err != nil {
 		user.zlog.Warn().Err(err).Str("notice", notice).Msg("Failed to send bridge alert")
@@ -591,6 +596,7 @@ func (user *User) HandleEvent(event interface{}) {
 			Error:      GMFatalError,
 			Info:       map[string]any{"go_error": v.Error.Error()},
 		}, false)
+		go user.sendMarkdownBridgeAlert(true, "Fatal error while listening to Google Messages: %v - Log in again to continue using the bridge", v.Error)
 	case *events.ListenTemporaryError:
 		user.longPollingError = v.Error
 		user.BridgeState.Send(status.BridgeState{
@@ -598,9 +604,17 @@ func (user *User) HandleEvent(event interface{}) {
 			Error:      GMListenError,
 			Info:       map[string]any{"go_error": v.Error.Error()},
 		})
+		if !user.pollErrorAlertSent {
+			go user.sendMarkdownBridgeAlert(false, "Temporary error while listening to Google Messages: %v", v.Error)
+			user.pollErrorAlertSent = true
+		}
 	case *events.ListenRecovered:
 		user.longPollingError = nil
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		if user.pollErrorAlertSent {
+			go user.sendMarkdownBridgeAlert(false, "Reconnected to Google Messages")
+			user.pollErrorAlertSent = false
+		}
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
 		user.PhoneID = v.GetMobile().GetSourceID()
@@ -619,6 +633,7 @@ func (user *User) HandleEvent(event interface{}) {
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
 		}, false)
+		user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
 		err := user.Update(context.TODO())
 		if err != nil {
@@ -674,9 +689,11 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
+		user.pollErrorAlertSent = false
 		user.browserInactiveType = ""
 		user.ready = true
 		go user.fetchAndSyncConversations()
+		user.sendMarkdownBridgeAlert(false, "Connected to Google Messages")
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		user.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
@@ -689,8 +706,16 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.mobileData = false
 	case gmproto.AlertType_MOBILE_BATTERY_LOW:
 		user.batteryLow = true
+		if time.Since(user.batteryLowAlertSent) > 30*time.Minute {
+			go user.sendMarkdownBridgeAlert(true, "Your phone's battery is low")
+			user.batteryLowAlertSent = time.Now()
+		}
 	case gmproto.AlertType_MOBILE_BATTERY_RESTORED:
 		user.batteryLow = false
+		if !user.batteryLowAlertSent.IsZero() {
+			go user.sendMarkdownBridgeAlert(false, "Phone battery restored")
+			user.batteryLowAlertSent = time.Time{}
+		}
 	default:
 		return
 	}
@@ -698,7 +723,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		if user.bridge.Config.GoogleMessages.AggressiveReconnect {
 			go user.aggressiveSetActive()
 		} else {
-			user.sendMarkdownBridgeAlert("Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
+			go user.sendMarkdownBridgeAlert(true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
 		}
 	}
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
