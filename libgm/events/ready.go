@@ -12,13 +12,6 @@ type ClientReady struct {
 	Conversations []*gmproto.Conversation
 }
 
-func NewClientReady(sessionID string, conversationList *gmproto.ListConversationsResponse) *ClientReady {
-	return &ClientReady{
-		SessionID:     sessionID,
-		Conversations: conversationList.Conversations,
-	}
-}
-
 type AuthTokenRefreshed struct{}
 
 type HTTPError struct {

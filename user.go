@@ -71,6 +71,7 @@ type User struct {
 	browserInactiveType status.BridgeStateErrorCode
 	batteryLow          bool
 	mobileData          bool
+	ready               bool
 
 	loginInProgress   atomic.Bool
 	pairSuccessChan   chan struct{}
@@ -628,17 +629,6 @@ func (user *User) HandleEvent(event interface{}) {
 	case *gmproto.Message:
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v, source: user}
-	case *events.ClientReady:
-		user.browserInactiveType = ""
-		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
-		go func() {
-			for _, conv := range v.Conversations {
-				user.syncConversation(conv)
-			}
-		}()
-	case *events.BrowserActive:
-		user.zlog.Trace().Any("data", v).Msg("Browser active")
-		user.browserInactiveType = ""
 	case *gmproto.UserAlertEvent:
 		user.handleUserAlert(v)
 	default:
@@ -663,14 +653,28 @@ func (user *User) aggressiveSetActive() {
 	}
 }
 
+func (user *User) fetchAndSyncConversations() {
+	resp, err := user.Client.ListConversations(25, gmproto.ListConversationsRequest_INBOX)
+	if err != nil {
+		user.zlog.Err(err).Msg("Failed to get conversation list")
+		return
+	}
+	for _, conv := range resp.GetConversations() {
+		user.syncConversation(conv)
+	}
+}
+
 func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
-	user.zlog.Debug().Any("data", v).Msg("Got user alert event")
+	user.zlog.Debug().Str("alert_type", v.GetAlertType().String()).Msg("Got user alert event")
 	becameInactive := false
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
-		// TODO aggressively reactivate if configured to do so
 		user.browserInactiveType = GMBrowserInactive
 		becameInactive = true
+	case gmproto.AlertType_BROWSER_ACTIVE:
+		user.browserInactiveType = ""
+		user.ready = true
+		go user.fetchAndSyncConversations()
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		user.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
@@ -706,6 +710,10 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 		state.Info["battery_low"] = user.batteryLow
 		state.Info["mobile_data"] = user.mobileData
 		state.Info["browser_active"] = user.browserInactiveType == ""
+		if !user.ready {
+			state.StateEvent = status.StateConnecting
+			state.Error = GMConnecting
+		}
 		if user.longPollingError != nil {
 			state.StateEvent = status.StateTransientDisconnect
 			state.Error = GMListenError

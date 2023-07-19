@@ -156,3 +156,45 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 		c.handleUpdatesEvent(msg)
 	}
 }
+
+func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
+	switch msg.Message.Action {
+	case gmproto.ActionType_GET_UPDATES:
+		data, ok := msg.DecryptedMessage.(*gmproto.UpdateEvents)
+		if !ok {
+			c.Logger.Error().Type("data_type", msg.DecryptedMessage).Msg("Unexpected data type in GET_UPDATES event")
+			return
+		}
+
+		switch evt := data.Event.(type) {
+		case *gmproto.UpdateEvents_UserAlertEvent:
+			c.logContent(msg, "", nil)
+			c.triggerEvent(evt.UserAlertEvent)
+
+		case *gmproto.UpdateEvents_SettingsEvent:
+			c.logContent(msg, "", nil)
+			c.triggerEvent(evt.SettingsEvent)
+
+		case *gmproto.UpdateEvents_ConversationEvent:
+			if c.deduplicateUpdate(evt.ConversationEvent.GetData().GetConversationID(), msg) {
+				return
+			}
+			c.triggerEvent(evt.ConversationEvent.GetData())
+
+		case *gmproto.UpdateEvents_MessageEvent:
+			if c.deduplicateUpdate(evt.MessageEvent.GetData().GetMessageID(), msg) {
+				return
+			}
+			c.triggerEvent(evt.MessageEvent.GetData())
+
+		case *gmproto.UpdateEvents_TypingEvent:
+			c.logContent(msg, "", nil)
+			c.triggerEvent(evt.TypingEvent.GetData())
+
+		default:
+			c.Logger.Trace().Any("evt", evt).Msg("Got unknown event type")
+		}
+	default:
+		c.Logger.Trace().Any("response", msg).Msg("Got unexpected response")
+	}
+}
