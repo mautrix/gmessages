@@ -789,6 +789,54 @@ func (x *OutgoingRPCData) GetSessionID() string {
 	return ""
 }
 
+type OutgoingRPCResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// This is not present for AckMessage responses, only for SendMessage
+	Timestamp *string `protobuf:"bytes,2,opt,name=timestamp,proto3,oneof" json:"timestamp,omitempty"`
+}
+
+func (x *OutgoingRPCResponse) Reset() {
+	*x = OutgoingRPCResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rpc_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OutgoingRPCResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OutgoingRPCResponse) ProtoMessage() {}
+
+func (x *OutgoingRPCResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OutgoingRPCResponse.ProtoReflect.Descriptor instead.
+func (*OutgoingRPCResponse) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *OutgoingRPCResponse) GetTimestamp() string {
+	if x != nil && x.Timestamp != nil {
+		return *x.Timestamp
+	}
+	return ""
+}
+
 type OutgoingRPCMessage_Auth struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -802,7 +850,7 @@ type OutgoingRPCMessage_Auth struct {
 func (x *OutgoingRPCMessage_Auth) Reset() {
 	*x = OutgoingRPCMessage_Auth{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[6]
+		mi := &file_rpc_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -815,7 +863,7 @@ func (x *OutgoingRPCMessage_Auth) String() string {
 func (*OutgoingRPCMessage_Auth) ProtoMessage() {}
 
 func (x *OutgoingRPCMessage_Auth) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[6]
+	mi := &file_rpc_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -867,7 +915,7 @@ type OutgoingRPCMessage_Data struct {
 func (x *OutgoingRPCMessage_Data) Reset() {
 	*x = OutgoingRPCMessage_Data{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[7]
+		mi := &file_rpc_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -880,7 +928,7 @@ func (x *OutgoingRPCMessage_Data) String() string {
 func (*OutgoingRPCMessage_Data) ProtoMessage() {}
 
 func (x *OutgoingRPCMessage_Data) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -936,7 +984,7 @@ type OutgoingRPCMessage_Data_Type struct {
 func (x *OutgoingRPCMessage_Data_Type) Reset() {
 	*x = OutgoingRPCMessage_Data_Type{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[8]
+		mi := &file_rpc_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -949,7 +997,7 @@ func (x *OutgoingRPCMessage_Data_Type) String() string {
 func (*OutgoingRPCMessage_Data_Type) ProtoMessage() {}
 
 func (x *OutgoingRPCMessage_Data_Type) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[8]
+	mi := &file_rpc_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -979,6 +1027,54 @@ func (x *OutgoingRPCMessage_Data_Type) GetMessageType() MessageType {
 	return MessageType_UNKNOWN_MESSAGE_TYPE
 }
 
+type OutgoingRPCResponse_SomeIdentifier struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// 1 -> unknown
+	SomeNumber string `protobuf:"bytes,2,opt,name=someNumber,proto3" json:"someNumber,omitempty"`
+}
+
+func (x *OutgoingRPCResponse_SomeIdentifier) Reset() {
+	*x = OutgoingRPCResponse_SomeIdentifier{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rpc_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OutgoingRPCResponse_SomeIdentifier) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OutgoingRPCResponse_SomeIdentifier) ProtoMessage() {}
+
+func (x *OutgoingRPCResponse_SomeIdentifier) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OutgoingRPCResponse_SomeIdentifier.ProtoReflect.Descriptor instead.
+func (*OutgoingRPCResponse_SomeIdentifier) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{6, 0}
+}
+
+func (x *OutgoingRPCResponse_SomeIdentifier) GetSomeNumber() string {
+	if x != nil {
+		return x.SomeNumber
+	}
+	return ""
+}
+
 var File_rpc_proto protoreflect.FileDescriptor
 
 //go:embed rpc.pb.raw
@@ -997,43 +1093,45 @@ func file_rpc_proto_rawDescGZIP() []byte {
 }
 
 var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_rpc_proto_goTypes = []interface{}{
-	(BugleRoute)(0),                      // 0: rpc.BugleRoute
-	(ActionType)(0),                      // 1: rpc.ActionType
-	(MessageType)(0),                     // 2: rpc.MessageType
-	(*StartAckMessage)(nil),              // 3: rpc.StartAckMessage
-	(*LongPollingPayload)(nil),           // 4: rpc.LongPollingPayload
-	(*IncomingRPCMessage)(nil),           // 5: rpc.IncomingRPCMessage
-	(*RPCMessageData)(nil),               // 6: rpc.RPCMessageData
-	(*OutgoingRPCMessage)(nil),           // 7: rpc.OutgoingRPCMessage
-	(*OutgoingRPCData)(nil),              // 8: rpc.OutgoingRPCData
-	(*OutgoingRPCMessage_Auth)(nil),      // 9: rpc.OutgoingRPCMessage.Auth
-	(*OutgoingRPCMessage_Data)(nil),      // 10: rpc.OutgoingRPCMessage.Data
-	(*OutgoingRPCMessage_Data_Type)(nil), // 11: rpc.OutgoingRPCMessage.Data.Type
-	(*EmptyArr)(nil),                     // 12: util.EmptyArr
-	(*Device)(nil),                       // 13: authentication.Device
-	(*ConfigVersion)(nil),                // 14: authentication.ConfigVersion
+	(BugleRoute)(0),                            // 0: rpc.BugleRoute
+	(ActionType)(0),                            // 1: rpc.ActionType
+	(MessageType)(0),                           // 2: rpc.MessageType
+	(*StartAckMessage)(nil),                    // 3: rpc.StartAckMessage
+	(*LongPollingPayload)(nil),                 // 4: rpc.LongPollingPayload
+	(*IncomingRPCMessage)(nil),                 // 5: rpc.IncomingRPCMessage
+	(*RPCMessageData)(nil),                     // 6: rpc.RPCMessageData
+	(*OutgoingRPCMessage)(nil),                 // 7: rpc.OutgoingRPCMessage
+	(*OutgoingRPCData)(nil),                    // 8: rpc.OutgoingRPCData
+	(*OutgoingRPCResponse)(nil),                // 9: rpc.OutgoingRPCResponse
+	(*OutgoingRPCMessage_Auth)(nil),            // 10: rpc.OutgoingRPCMessage.Auth
+	(*OutgoingRPCMessage_Data)(nil),            // 11: rpc.OutgoingRPCMessage.Data
+	(*OutgoingRPCMessage_Data_Type)(nil),       // 12: rpc.OutgoingRPCMessage.Data.Type
+	(*OutgoingRPCResponse_SomeIdentifier)(nil), // 13: rpc.OutgoingRPCResponse.SomeIdentifier
+	(*EmptyArr)(nil),                           // 14: util.EmptyArr
+	(*Device)(nil),                             // 15: authentication.Device
+	(*ConfigVersion)(nil),                      // 16: authentication.ConfigVersion
 }
 var file_rpc_proto_depIdxs = []int32{
 	5,  // 0: rpc.LongPollingPayload.data:type_name -> rpc.IncomingRPCMessage
-	12, // 1: rpc.LongPollingPayload.heartbeat:type_name -> util.EmptyArr
+	14, // 1: rpc.LongPollingPayload.heartbeat:type_name -> util.EmptyArr
 	3,  // 2: rpc.LongPollingPayload.ack:type_name -> rpc.StartAckMessage
-	12, // 3: rpc.LongPollingPayload.startRead:type_name -> util.EmptyArr
+	14, // 3: rpc.LongPollingPayload.startRead:type_name -> util.EmptyArr
 	0,  // 4: rpc.IncomingRPCMessage.bugleRoute:type_name -> rpc.BugleRoute
 	2,  // 5: rpc.IncomingRPCMessage.messageType:type_name -> rpc.MessageType
-	13, // 6: rpc.IncomingRPCMessage.mobile:type_name -> authentication.Device
-	13, // 7: rpc.IncomingRPCMessage.browser:type_name -> authentication.Device
+	15, // 6: rpc.IncomingRPCMessage.mobile:type_name -> authentication.Device
+	15, // 7: rpc.IncomingRPCMessage.browser:type_name -> authentication.Device
 	1,  // 8: rpc.RPCMessageData.action:type_name -> rpc.ActionType
-	13, // 9: rpc.OutgoingRPCMessage.mobile:type_name -> authentication.Device
-	10, // 10: rpc.OutgoingRPCMessage.data:type_name -> rpc.OutgoingRPCMessage.Data
-	9,  // 11: rpc.OutgoingRPCMessage.auth:type_name -> rpc.OutgoingRPCMessage.Auth
-	12, // 12: rpc.OutgoingRPCMessage.emptyArr:type_name -> util.EmptyArr
+	15, // 9: rpc.OutgoingRPCMessage.mobile:type_name -> authentication.Device
+	11, // 10: rpc.OutgoingRPCMessage.data:type_name -> rpc.OutgoingRPCMessage.Data
+	10, // 11: rpc.OutgoingRPCMessage.auth:type_name -> rpc.OutgoingRPCMessage.Auth
+	14, // 12: rpc.OutgoingRPCMessage.emptyArr:type_name -> util.EmptyArr
 	1,  // 13: rpc.OutgoingRPCData.action:type_name -> rpc.ActionType
-	14, // 14: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
+	16, // 14: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
 	0,  // 15: rpc.OutgoingRPCMessage.Data.bugleRoute:type_name -> rpc.BugleRoute
-	11, // 16: rpc.OutgoingRPCMessage.Data.messageTypeData:type_name -> rpc.OutgoingRPCMessage.Data.Type
-	12, // 17: rpc.OutgoingRPCMessage.Data.Type.emptyArr:type_name -> util.EmptyArr
+	12, // 16: rpc.OutgoingRPCMessage.Data.messageTypeData:type_name -> rpc.OutgoingRPCMessage.Data.Type
+	14, // 17: rpc.OutgoingRPCMessage.Data.Type.emptyArr:type_name -> util.EmptyArr
 	2,  // 18: rpc.OutgoingRPCMessage.Data.Type.messageType:type_name -> rpc.MessageType
 	19, // [19:19] is the sub-list for method output_type
 	19, // [19:19] is the sub-list for method input_type
@@ -1123,7 +1221,7 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OutgoingRPCMessage_Auth); i {
+			switch v := v.(*OutgoingRPCResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1135,7 +1233,7 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OutgoingRPCMessage_Data); i {
+			switch v := v.(*OutgoingRPCMessage_Auth); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1147,7 +1245,31 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OutgoingRPCMessage_Data); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rpc_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OutgoingRPCMessage_Data_Type); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rpc_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OutgoingRPCResponse_SomeIdentifier); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1161,13 +1283,14 @@ func file_rpc_proto_init() {
 	}
 	file_rpc_proto_msgTypes[0].OneofWrappers = []interface{}{}
 	file_rpc_proto_msgTypes[1].OneofWrappers = []interface{}{}
+	file_rpc_proto_msgTypes[6].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_rpc_proto_rawDesc,
 			NumEnums:      3,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

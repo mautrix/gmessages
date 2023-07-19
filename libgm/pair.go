@@ -1,12 +1,9 @@
 package libgm
 
 import (
-	"bytes"
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
@@ -68,26 +65,13 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 	}
 }
 
-func (c *Client) makeRelayRequest(url string, body []byte) (*http.Response, error) {
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	util.BuildRelayHeaders(req, "application/x-protobuf", "*/*")
-	res, reqErr := c.http.Do(req)
-	if reqErr != nil {
-		return res, reqErr
-	}
-	return res, nil
-}
-
 func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {
 	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := proto.Marshal(&gmproto.AuthenticationContainer{
+	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:     uuid.NewString(),
 			Network:       &util.Network,
@@ -102,50 +86,24 @@ func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, erro
 				},
 			},
 		},
-	})
-	if err != nil {
-		return nil, err
 	}
-	relayResponse, reqErr := c.makeRelayRequest(util.RegisterPhoneRelayURL, body)
-	if reqErr != nil {
-		return nil, err
-	}
-	responseBody, err := io.ReadAll(relayResponse.Body)
-	if err != nil {
-		return nil, err
-	}
-	relayResponse.Body.Close()
-	res := &gmproto.RegisterPhoneRelayResponse{}
-	err = proto.Unmarshal(responseBody, res)
-	if err != nil {
-		return nil, err
-	}
-	return res, err
+	return typedHTTPResponse[*gmproto.RegisterPhoneRelayResponse](
+		c.makeProtobufHTTPRequest(util.RegisterPhoneRelayURL, payload, ContentTypeProtobuf),
+	)
 }
 
 func (c *Client) RefreshPhoneRelay() (string, error) {
-	body, err := proto.Marshal(&gmproto.AuthenticationContainer{
+	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			Network:          &util.Network,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
-	})
-	if err != nil {
-		return "", err
 	}
-	relayResponse, err := c.makeRelayRequest(util.RefreshPhoneRelayURL, body)
-	if err != nil {
-		return "", err
-	}
-	responseBody, err := io.ReadAll(relayResponse.Body)
-	defer relayResponse.Body.Close()
-	if err != nil {
-		return "", err
-	}
-	res := &gmproto.RefreshPhoneRelayResponse{}
-	err = proto.Unmarshal(responseBody, res)
+	res, err := typedHTTPResponse[*gmproto.RefreshPhoneRelayResponse](
+		c.makeProtobufHTTPRequest(util.RefreshPhoneRelayURL, payload, ContentTypeProtobuf),
+	)
 	if err != nil {
 		return "", err
 	}
@@ -157,61 +115,31 @@ func (c *Client) RefreshPhoneRelay() (string, error) {
 }
 
 func (c *Client) GetWebEncryptionKey() (*gmproto.WebEncryptionKeyResponse, error) {
-	body, err := proto.Marshal(&gmproto.AuthenticationContainer{
+	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
-	})
-	if err != nil {
-		return nil, err
 	}
-	webKeyResponse, err := c.makeRelayRequest(util.GetWebEncryptionKeyURL, body)
-	if err != nil {
-		return nil, err
-	}
-	responseBody, err := io.ReadAll(webKeyResponse.Body)
-	defer webKeyResponse.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-	parsedResponse := &gmproto.WebEncryptionKeyResponse{}
-	err = proto.Unmarshal(responseBody, parsedResponse)
-	if err != nil {
-		return nil, err
-	}
-	return parsedResponse, nil
+	return typedHTTPResponse[*gmproto.WebEncryptionKeyResponse](
+		c.makeProtobufHTTPRequest(util.GetWebEncryptionKeyURL, payload, ContentTypeProtobuf),
+	)
 }
 
 func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
 	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
-	payload, err := proto.Marshal(&gmproto.RevokeRelayPairingRequest{
+	payload := &gmproto.RevokeRelayPairingRequest{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
 		Browser: c.AuthData.Browser,
-	})
-	if err != nil {
-		return nil, err
 	}
-	revokeResp, err := c.makeRelayRequest(util.RevokeRelayPairingURL, payload)
-	if err != nil {
-		return nil, err
-	}
-	responseBody, err := io.ReadAll(revokeResp.Body)
-	defer revokeResp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-	parsedResponse := &gmproto.RevokeRelayPairingResponse{}
-	err = proto.Unmarshal(responseBody, parsedResponse)
-	if err != nil {
-		return nil, err
-	}
-	return parsedResponse, nil
+	return typedHTTPResponse[*gmproto.RevokeRelayPairingResponse](
+		c.makeProtobufHTTPRequest(util.RevokeRelayPairingURL, payload, ContentTypeProtobuf),
+	)
 }

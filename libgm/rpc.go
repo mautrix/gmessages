@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +22,6 @@ import (
 
 type RPC struct {
 	client   *Client
-	http     *http.Client
 	conn     io.ReadCloser
 	stopping bool
 	listenID int
@@ -49,7 +47,7 @@ func (r *RPC) ListenReceiveMessages(loggedIn bool) {
 			return
 		}
 		r.client.Logger.Debug().Msg("Starting new long-polling request")
-		receivePayload, err := pblite.Marshal(&gmproto.ReceiveMessagesRequest{
+		payload := &gmproto.ReceiveMessagesRequest{
 			Auth: &gmproto.AuthMessage{
 				RequestID:        listenReqID,
 				TachyonAuthToken: r.client.AuthData.TachyonAuthToken,
@@ -58,19 +56,11 @@ func (r *RPC) ListenReceiveMessages(loggedIn bool) {
 			Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject2{
 				Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject1{},
 			},
-		})
-		if err != nil {
-			panic(fmt.Errorf("Error marshaling request: %v", err))
 		}
-		req, err := http.NewRequest(http.MethodPost, util.ReceiveMessagesURL, bytes.NewReader(receivePayload))
+		resp, err := r.client.makeProtobufHTTPRequest(util.ReceiveMessagesURL, payload, ContentTypePBLite)
 		if err != nil {
-			panic(fmt.Errorf("Error creating request: %v", err))
-		}
-		util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
-		resp, reqErr := r.http.Do(req)
-		if reqErr != nil {
 			if loggedIn {
-				r.client.triggerEvent(&events.ListenTemporaryError{Error: reqErr})
+				r.client.triggerEvent(&events.ListenTemporaryError{Error: err})
 			}
 			errored = true
 			r.client.Logger.Err(err).Msg("Error making listen request, retrying in 5 seconds")
@@ -202,17 +192,4 @@ func (r *RPC) CloseConnection() {
 		r.conn.Close()
 		r.conn = nil
 	}
-}
-
-func (r *RPC) sendMessageRequest(url string, payload []byte) (*http.Response, error) {
-	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-	util.BuildRelayHeaders(req, "application/json+protobuf", "*/*")
-	resp, reqErr := r.client.http.Do(req)
-	if reqErr != nil {
-		return nil, fmt.Errorf("error making request: %w", err)
-	}
-	return resp, reqErr
 }

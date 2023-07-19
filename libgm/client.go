@@ -17,7 +17,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
@@ -75,8 +74,7 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 		http:           &http.Client{},
 	}
 	sessionHandler.client = cli
-	rpc := &RPC{client: cli, http: &http.Client{Transport: &http.Transport{Proxy: cli.proxy}}}
-	cli.rpc = rpc
+	cli.rpc = &RPC{client: cli}
 	cli.FetchConfigVersion()
 	return cli
 }
@@ -234,7 +232,7 @@ func (c *Client) refreshAuthToken() error {
 		return err
 	}
 
-	payload, err := pblite.Marshal(&gmproto.RegisterRefreshRequest{
+	payload := &gmproto.RegisterRefreshRequest{
 		MessageAuth: &gmproto.AuthMessage{
 			RequestID:        requestID,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
@@ -245,37 +243,18 @@ func (c *Client) refreshAuthToken() error {
 		Signature:         sig,
 		EmptyRefreshArr:   &gmproto.RegisterRefreshRequest_NestedEmptyArr{EmptyArr: &gmproto.EmptyArr{}},
 		MessageType:       2, // hmm
-	})
+	}
+
+	resp, err := typedHTTPResponse[*gmproto.RegisterRefreshResponse](
+		c.makeProtobufHTTPRequest(util.RegisterRefreshURL, payload, ContentTypePBLite),
+	)
 	if err != nil {
 		return err
 	}
 
-	refreshResponse, requestErr := c.rpc.sendMessageRequest(util.RegisterRefreshURL, payload)
-	if requestErr != nil {
-		return requestErr
-	}
-
-	if refreshResponse.StatusCode == 401 {
-		return fmt.Errorf("failed to refresh auth token: unauthorized (try reauthenticating through qr code)")
-	}
-
-	if refreshResponse.StatusCode == 400 {
-		return fmt.Errorf("failed to refresh auth token: signature failed")
-	}
-	responseBody, readErr := io.ReadAll(refreshResponse.Body)
-	if readErr != nil {
-		return readErr
-	}
-
-	resp := &gmproto.RegisterRefreshResponse{}
-	deserializeErr := pblite.Unmarshal(responseBody, resp)
-	if deserializeErr != nil {
-		return deserializeErr
-	}
-
 	token := resp.GetTokenData().GetTachyonAuthToken()
 	if token == nil {
-		return fmt.Errorf("failed to refresh auth token: something happened")
+		return fmt.Errorf("no tachyon auth token in refresh response")
 	}
 
 	validFor, _ := strconv.ParseInt(resp.GetTokenData().GetValidFor(), 10, 64)

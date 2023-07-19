@@ -10,8 +10,6 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/pblite"
-
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -41,7 +39,9 @@ func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
 		return err
 	}
 
-	_, err = s.client.rpc.sendMessageRequest(util.SendMessageURL, payload)
+	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
+		s.client.makeProtobufHTTPRequest(util.SendMessageURL, payload, ContentTypePBLite),
+	)
 	return err
 }
 
@@ -52,10 +52,12 @@ func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *Inc
 	}
 
 	ch := s.waitResponse(requestID)
-	_, reqErr := s.client.rpc.sendMessageRequest(util.SendMessageURL, payload)
-	if reqErr != nil {
+	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
+		s.client.makeProtobufHTTPRequest(util.SendMessageURL, payload, ContentTypePBLite),
+	)
+	if err != nil {
 		s.cancelResponse(requestID, ch)
-		return nil, reqErr
+		return nil, err
 	}
 	return ch, nil
 }
@@ -142,7 +144,7 @@ type SendMessageParams struct {
 	MessageType  gmproto.MessageType
 }
 
-func (s *SessionHandler) buildMessage(params SendMessageParams) (string, []byte, error) {
+func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.Message, error) {
 	var requestID string
 	var err error
 	sessionID := s.client.sessionHandler.sessionID
@@ -199,9 +201,7 @@ func (s *SessionHandler) buildMessage(params SendMessageParams) (string, []byte,
 		return "", nil, err
 	}
 
-	var marshaledMessage []byte
-	marshaledMessage, err = pblite.Marshal(message)
-	return requestID, marshaledMessage, err
+	return requestID, message, err
 }
 
 func (s *SessionHandler) queueMessageAck(messageID string) {
@@ -243,7 +243,7 @@ func (s *SessionHandler) sendAckRequest() {
 			Device:    s.client.AuthData.Browser,
 		}
 	}
-	ackMessagePayload := &gmproto.AckMessageRequest{
+	payload := &gmproto.AckMessageRequest{
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
@@ -252,13 +252,13 @@ func (s *SessionHandler) sendAckRequest() {
 		EmptyArr: &gmproto.EmptyArr{},
 		Acks:     ackMessages,
 	}
-	jsonData, err := pblite.Marshal(ackMessagePayload)
+	_, err := typedHTTPResponse[*gmproto.OutgoingRPCResponse](
+		s.client.makeProtobufHTTPRequest(util.AckMessagesURL, payload, ContentTypePBLite),
+	)
 	if err != nil {
-		panic(err)
+		// TODO retry?
+		s.client.Logger.Err(err).Strs("message_ids", dataToAck).Msg("Failed to send acks")
+	} else {
+		s.client.Logger.Debug().Strs("message_ids", dataToAck).Msg("Sent acks")
 	}
-	_, err = s.client.rpc.sendMessageRequest(util.AckMessagesURL, jsonData)
-	if err != nil {
-		panic(err)
-	}
-	s.client.Logger.Debug().Strs("message_ids", dataToAck).Msg("Sent acks")
 }

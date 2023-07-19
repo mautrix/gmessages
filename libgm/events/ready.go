@@ -27,6 +27,9 @@ type HTTPError struct {
 }
 
 func (he HTTPError) Error() string {
+	if he.Action == "" {
+		return fmt.Sprintf("unexpected http %d", he.Resp.StatusCode)
+	}
 	return fmt.Sprintf("http %d while %s", he.Resp.StatusCode, he.Action)
 }
 

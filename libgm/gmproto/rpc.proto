@@ -85,6 +85,16 @@ message OutgoingRPCData {
     string sessionID = 6;
 }
 
+message OutgoingRPCResponse {
+    message SomeIdentifier {
+        // 1 -> unknown
+        string someNumber = 2;
+    }
+
+    // This is not present for AckMessage responses, only for SendMessage
+    optional string timestamp = 2;
+}
+
 enum BugleRoute {
     Unknown = 0;
     DataEvent = 19;
