@@ -214,9 +214,9 @@ func (c *Client) FetchConfigVersion() {
 	currVersion := util.ConfigMessage
 	if version.Year != currVersion.Year || version.Month != currVersion.Month || version.Day != currVersion.Day {
 		toLog := c.diffVersionFormat(currVersion, version)
-		c.Logger.Info().Any("version", toLog).Msg("There's a new version available!")
+		c.Logger.Trace().Any("version", toLog).Msg("Messages for web version is not latest")
 	} else {
-		c.Logger.Info().Any("version", currVersion).Msg("You are running on the latest version.")
+		c.Logger.Debug().Any("version", currVersion).Msg("Using latest messages for web version")
 	}
 }
 
