@@ -764,29 +764,21 @@ type CustomTagEventContent struct {
 	Tags map[string]CustomTagData `json:"tags"`
 }
 
-func (user *User) updateChatTag(portal *Portal, tag string, active bool) {
-	intent := user.DoublePuppetIntent
-	if intent == nil || len(portal.MXID) == 0 {
-		return
-	}
-	var existingTags CustomTagEventContent
-	err := intent.GetTagsWithCustomData(portal.MXID, &existingTags)
-	if err != nil && !errors.Is(err, mautrix.MNotFound) {
-		user.log.Warnfln("Failed to get tags of %s: %v", portal.MXID, err)
-	}
+func (user *User) updateChatTag(portal *Portal, tag string, active bool, existingTags CustomTagEventContent) {
+	var err error
 	currentTag, ok := existingTags.Tags[tag]
 	if active && !ok {
-		user.log.Debugln("Adding tag", tag, "to", portal.MXID)
+		user.zlog.Debug().Str("tag", tag).Str("room_id", portal.MXID.String()).Msg("Adding room tag")
 		data := CustomTagData{Order: "0.5", DoublePuppet: user.bridge.Name}
-		err = intent.AddTagWithCustomData(portal.MXID, tag, &data)
+		err = user.DoublePuppetIntent.AddTagWithCustomData(portal.MXID, tag, &data)
 	} else if !active && ok && currentTag.DoublePuppet == user.bridge.Name {
-		user.log.Debugln("Removing tag", tag, "from", portal.MXID)
-		err = intent.RemoveTag(portal.MXID, tag)
+		user.zlog.Debug().Str("tag", tag).Str("room_id", portal.MXID.String()).Msg("Removing room tag")
+		err = user.DoublePuppetIntent.RemoveTag(portal.MXID, tag)
 	} else {
 		err = nil
 	}
 	if err != nil {
-		user.log.Warnfln("Failed to update tag %s for %s through double puppet: %v", tag, portal.MXID, err)
+		user.zlog.Warn().Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to update room tag")
 	}
 }
 
@@ -839,8 +831,13 @@ func (user *User) syncChatDoublePuppetDetails(portal *Portal, conv *gmproto.Conv
 		return
 	}
 	if justCreated || !user.bridge.Config.Bridge.TagOnlyOnCreate {
-		user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConvUpdateTypes_ARCHIVED)
-		user.updateChatTag(portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned)
+		var existingTags CustomTagEventContent
+		err := user.DoublePuppetIntent.GetTagsWithCustomData(portal.MXID, &existingTags)
+		if err != nil && !errors.Is(err, mautrix.MNotFound) {
+			user.zlog.Warn().Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to get existing room tags")
+		}
+		user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConvUpdateTypes_ARCHIVED, existingTags)
+		user.updateChatTag(portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned, existingTags)
 	}
 }
 
