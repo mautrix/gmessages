@@ -646,16 +646,37 @@ func (user *User) HandleEvent(event interface{}) {
 	}
 }
 
+func (user *User) aggressiveSetActive() {
+	sleepTimes := []int{2, 5, 10, 30}
+	for i := 0; i < 4; i++ {
+		sleep := time.Duration(sleepTimes[i]) * time.Second
+		user.zlog.Info().
+			Int("sleep_seconds", int(sleep.Seconds())).
+			Msg("Aggressively reactivating after sleep")
+		time.Sleep(sleep)
+		err := user.Client.SetActiveSession()
+		if err != nil {
+			user.zlog.Warn().Err(err).Msg("Failed to set self as active session")
+		} else {
+			break
+		}
+	}
+}
+
 func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	user.zlog.Debug().Any("data", v).Msg("Got user alert event")
+	becameInactive := false
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
 		// TODO aggressively reactivate if configured to do so
 		user.browserInactiveType = GMBrowserInactive
+		becameInactive = true
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		user.browserInactiveType = GMBrowserInactiveTimeout
+		becameInactive = true
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
 		user.browserInactiveType = GMBrowserInactiveInactivity
+		becameInactive = true
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
 		user.mobileData = true
 	case gmproto.AlertType_MOBILE_WIFI_CONNECTION:
@@ -666,6 +687,13 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.batteryLow = false
 	default:
 		return
+	}
+	if becameInactive {
+		if user.bridge.Config.GoogleMessages.AggressiveReconnect {
+			go user.aggressiveSetActive()
+		} else {
+			user.sendMarkdownBridgeAlert("Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
+		}
 	}
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 }

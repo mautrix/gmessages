@@ -42,6 +42,7 @@ func (br *GMBridge) RegisterCommands() {
 		cmdLogout,
 		cmdReconnect,
 		cmdDisconnect,
+		cmdSetActive,
 		cmdPing,
 		cmdDeletePortal,
 		cmdDeleteAllPortals,
@@ -246,6 +247,28 @@ func fnDisconnect(ce *WrappedCommandEvent) {
 	ce.User.BridgeState.Send(status.BridgeState{StateEvent: status.StateBadCredentials, Error: GMNotConnected})
 }
 
+var cmdSetActive = &commands.FullHandler{
+	Func: wrapCommand(fnSetActive),
+	Name: "set-active",
+	Help: commands.HelpMeta{
+		Section:     HelpSectionConnectionManagement,
+		Description: "Set the bridge as the active browser (if you opened Google Messages in a real browser)",
+	},
+}
+
+func fnSetActive(ce *WrappedCommandEvent) {
+	if ce.User.Client == nil {
+		ce.Reply("You don't have a Google Messages connection.")
+		return
+	}
+	err := ce.User.Client.SetActiveSession()
+	if err != nil {
+		ce.Reply("Failed to set active session: %v", err)
+	} else {
+		ce.Reply("Set bridge as active session")
+	}
+}
+
 var cmdPing = &commands.FullHandler{
 	Func: wrapCommand(fnPing),
 	Name: "ping",
@@ -264,8 +287,10 @@ func fnPing(ce *WrappedCommandEvent) {
 		}
 	} else if ce.User.Client == nil || !ce.User.Client.IsConnected() {
 		ce.Reply("You're logged in as %s, but you don't have a Google Messages connection.", ce.User.PhoneID)
+	} else if ce.User.browserInactiveType == "" {
+		ce.Reply("Logged in as %s and active as primary browser", ce.User.PhoneID)
 	} else {
-		ce.Reply("Logged in as %s, connection to Google Messages may be OK", ce.User.PhoneID)
+		ce.Reply("Logged in as %s, but not active, use `set-active` to reconnect", ce.User.PhoneID)
 	}
 }
 
