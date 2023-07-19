@@ -43,9 +43,16 @@ type EventHandler func(evt any)
 
 type Client struct {
 	Logger         zerolog.Logger
-	rpc            *RPC
 	evHandler      EventHandler
 	sessionHandler *SessionHandler
+
+	longPollingConn io.Closer
+	listenID        int
+	skipCount       int
+	disconnecting   bool
+
+	recentUpdates    [8][32]byte
+	recentUpdatesPtr int
 
 	conversationsFetchedOnce bool
 
@@ -74,7 +81,6 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 		http:           &http.Client{},
 	}
 	sessionHandler.client = cli
-	cli.rpc = &RPC{client: cli}
 	cli.FetchConfigVersion()
 	return cli
 }
@@ -114,7 +120,7 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to get web encryption key: %w", err)
 	}
 	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-	go c.rpc.ListenReceiveMessages(true)
+	go c.ListenReceiveMessages(true)
 	c.sessionHandler.startAckInterval()
 
 	bugleRes, bugleErr := c.IsBugleDefault()
@@ -130,12 +136,13 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Disconnect() {
-	c.rpc.CloseConnection()
+	c.closeLongPolling()
 	c.http.CloseIdleConnections()
 }
 
 func (c *Client) IsConnected() bool {
-	return c.rpc != nil
+	// TODO add better check (longPollingConn is set to nil while the polling reconnects)
+	return c.longPollingConn != nil
 }
 
 func (c *Client) IsLoggedIn() bool {
@@ -143,10 +150,7 @@ func (c *Client) IsLoggedIn() bool {
 }
 
 func (c *Client) Reconnect() error {
-	c.rpc.CloseConnection()
-	for c.rpc.conn != nil {
-		time.Sleep(time.Millisecond * 100)
-	}
+	c.closeLongPolling()
 	err := c.Connect()
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to reconnect")

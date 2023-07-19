@@ -16,27 +16,27 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 
 		switch evt := data.Event.(type) {
 		case *gmproto.UpdateEvents_UserAlertEvent:
-			c.rpc.logContent(msg)
+			c.logContent(msg)
 			c.handleUserAlertEvent(msg, evt.UserAlertEvent)
 
 		case *gmproto.UpdateEvents_SettingsEvent:
-			c.rpc.logContent(msg)
+			c.logContent(msg)
 			c.triggerEvent(evt.SettingsEvent)
 
 		case *gmproto.UpdateEvents_ConversationEvent:
-			if c.rpc.deduplicateUpdate(msg) {
+			if c.deduplicateUpdate(msg) {
 				return
 			}
 			c.triggerEvent(evt.ConversationEvent.GetData())
 
 		case *gmproto.UpdateEvents_MessageEvent:
-			if c.rpc.deduplicateUpdate(msg) {
+			if c.deduplicateUpdate(msg) {
 				return
 			}
 			c.triggerEvent(evt.MessageEvent.GetData())
 
 		case *gmproto.UpdateEvents_TypingEvent:
-			c.rpc.logContent(msg)
+			c.logContent(msg)
 			c.triggerEvent(evt.TypingEvent.GetData())
 
 		default:

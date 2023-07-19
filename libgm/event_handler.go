@@ -38,7 +38,7 @@ var responseType = map[gmproto.ActionType]proto.Message{
 	gmproto.ActionType_UPDATE_CONVERSATION:        &gmproto.UpdateConversationResponse{},
 }
 
-func (r *RPC) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*IncomingRPCMessage, error) {
+func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*IncomingRPCMessage, error) {
 	msg := &IncomingRPCMessage{
 		IncomingRPCMessage: data,
 	}
@@ -60,7 +60,7 @@ func (r *RPC) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Incomin
 			msg.DecryptedMessage = responseStruct.ProtoReflect().New().Interface()
 		}
 		if msg.Message.EncryptedData != nil {
-			msg.DecryptedData, err = r.client.AuthData.RequestCrypto.Decrypt(msg.Message.EncryptedData)
+			msg.DecryptedData, err = c.AuthData.RequestCrypto.Decrypt(msg.Message.EncryptedData)
 			if err != nil {
 				return nil, err
 			}
@@ -77,21 +77,21 @@ func (r *RPC) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Incomin
 	return msg, nil
 }
 
-func (r *RPC) deduplicateHash(hash [32]byte) bool {
-	const recentUpdatesLen = len(r.recentUpdates)
-	for i := r.recentUpdatesPtr + recentUpdatesLen - 1; i >= r.recentUpdatesPtr; i-- {
-		if r.recentUpdates[i%recentUpdatesLen] == hash {
+func (c *Client) deduplicateHash(hash [32]byte) bool {
+	const recentUpdatesLen = len(c.recentUpdates)
+	for i := c.recentUpdatesPtr + recentUpdatesLen - 1; i >= c.recentUpdatesPtr; i-- {
+		if c.recentUpdates[i%recentUpdatesLen] == hash {
 			return true
 		}
 	}
-	r.recentUpdates[r.recentUpdatesPtr] = hash
-	r.recentUpdatesPtr = (r.recentUpdatesPtr + 1) % recentUpdatesLen
+	c.recentUpdates[c.recentUpdatesPtr] = hash
+	c.recentUpdatesPtr = (c.recentUpdatesPtr + 1) % recentUpdatesLen
 	return false
 }
 
-func (r *RPC) logContent(res *IncomingRPCMessage) {
-	if r.client.Logger.Trace().Enabled() && (res.DecryptedData != nil || res.DecryptedMessage != nil) {
-		evt := r.client.Logger.Trace()
+func (c *Client) logContent(res *IncomingRPCMessage) {
+	if c.Logger.Trace().Enabled() && (res.DecryptedData != nil || res.DecryptedMessage != nil) {
+		evt := c.Logger.Trace()
 		if res.DecryptedMessage != nil {
 			evt.Str("proto_name", string(res.DecryptedMessage.ProtoReflect().Descriptor().FullName()))
 		}
@@ -104,47 +104,47 @@ func (r *RPC) logContent(res *IncomingRPCMessage) {
 	}
 }
 
-func (r *RPC) deduplicateUpdate(msg *IncomingRPCMessage) bool {
+func (c *Client) deduplicateUpdate(msg *IncomingRPCMessage) bool {
 	if msg.DecryptedData != nil {
 		contentHash := sha256.Sum256(msg.DecryptedData)
-		if r.deduplicateHash(contentHash) {
-			r.client.Logger.Trace().Hex("data_hash", contentHash[:]).Msg("Ignoring duplicate update")
+		if c.deduplicateHash(contentHash) {
+			c.Logger.Trace().Hex("data_hash", contentHash[:]).Msg("Ignoring duplicate update")
 			return true
 		}
-		r.logContent(msg)
+		c.logContent(msg)
 	}
 	return false
 }
 
-func (r *RPC) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
-	msg, err := r.decryptInternalMessage(rawMsg)
+func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
+	msg, err := c.decryptInternalMessage(rawMsg)
 	if err != nil {
-		r.client.Logger.Err(err).Msg("Failed to decode incoming RPC message")
+		c.Logger.Err(err).Msg("Failed to decode incoming RPC message")
 		return
 	}
 
-	r.client.sessionHandler.queueMessageAck(msg.ResponseID)
-	if r.client.sessionHandler.receiveResponse(msg) {
+	c.sessionHandler.queueMessageAck(msg.ResponseID)
+	if c.sessionHandler.receiveResponse(msg) {
 		return
 	}
 	switch msg.BugleRoute {
 	case gmproto.BugleRoute_PairEvent:
-		go r.client.handlePairingEvent(msg)
+		go c.handlePairingEvent(msg)
 	case gmproto.BugleRoute_DataEvent:
-		if r.skipCount > 0 {
-			r.skipCount--
-			r.client.Logger.Debug().
+		if c.skipCount > 0 {
+			c.skipCount--
+			c.Logger.Debug().
 				Any("action", msg.Message.GetAction()).
-				Int("remaining_skip_count", r.skipCount).
+				Int("remaining_skip_count", c.skipCount).
 				Msg("Skipped DataEvent")
 			if msg.DecryptedMessage != nil {
-				r.client.Logger.Trace().
+				c.Logger.Trace().
 					Str("proto_name", string(msg.DecryptedMessage.ProtoReflect().Descriptor().FullName())).
 					Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
 					Msg("Skipped event data")
 			}
 			return
 		}
-		r.client.handleUpdatesEvent(msg)
+		c.handleUpdatesEvent(msg)
 	}
 }
