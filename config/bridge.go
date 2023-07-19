@@ -39,6 +39,11 @@ type BridgeConfig struct {
 	SyncDirectChatList   bool `yaml:"sync_direct_chat_list"`
 	InitialChatSyncCount int  `yaml:"initial_chat_sync_count"`
 
+	Backfill struct {
+		InitialLimit int `yaml:"initial_limit"`
+		MissedLimit  int `yaml:"missed_limit"`
+	} `yaml:"backfill"`
+
 	DoublePuppetServerMap      map[string]string `yaml:"double_puppet_server_map"`
 	DoublePuppetAllowDiscovery bool              `yaml:"double_puppet_allow_discovery"`
 	LoginSharedSecretMap       map[string]string `yaml:"login_shared_secret_map"`

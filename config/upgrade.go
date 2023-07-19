@@ -44,6 +44,8 @@ func DoUpgrade(helper *up.Helper) {
 	helper.Copy(up.Int, "bridge", "portal_message_buffer")
 	helper.Copy(up.Bool, "bridge", "sync_direct_chat_list")
 	helper.Copy(up.Int, "bridge", "initial_chat_sync_count")
+	helper.Copy(up.Int, "bridge", "backfill", "initial_limit")
+	helper.Copy(up.Int, "bridge", "backfill", "missed_limit")
 	helper.Copy(up.Map, "bridge", "double_puppet_server_map")
 	helper.Copy(up.Bool, "bridge", "double_puppet_allow_discovery")
 	helper.Copy(up.Map, "bridge", "login_shared_secret_map")

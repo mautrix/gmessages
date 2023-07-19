@@ -126,6 +126,12 @@ bridge:
     sync_direct_chat_list: false
     # Number of chats to sync when connecting to Google Messages.
     initial_chat_sync_count: 25
+    # Backfill settings
+    backfill:
+        # Number of messages to backfill in new chats.
+        initial_limit: 50
+        # Number of messages to backfill on startup if the last message ID in the chat sync doesn't match the last bridged message.
+        missed_limit: 100
 
     # Servers to always allow double puppeting from
     double_puppet_server_map:

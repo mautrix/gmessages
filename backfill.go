@@ -40,10 +40,14 @@ func (portal *Portal) initialForwardBackfill(user *User, markRead bool) {
 		Logger()
 	ctx := log.WithContext(context.TODO())
 
-	portal.forwardBackfill(ctx, user, time.Time{}, 50, markRead)
+	portal.forwardBackfill(ctx, user, time.Time{}, portal.bridge.Config.Bridge.Backfill.InitialLimit, markRead)
 }
 
 func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead bool) bool {
+	if portal.bridge.Config.Bridge.Backfill.MissedLimit == 0 {
+		return false
+	}
+
 	portal.forwardBackfillLock.Lock()
 	defer portal.forwardBackfillLock.Unlock()
 	log := portal.zlog.With().
@@ -76,7 +80,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("latest_message_id", lastMessageID).
 		Time("last_bridged_ts", portal.lastMessageTS).
 		Msg("Backfilling missed messages")
-	return portal.forwardBackfill(ctx, user, portal.lastMessageTS, 100, markRead)
+	return portal.forwardBackfill(ctx, user, portal.lastMessageTS, portal.bridge.Config.Bridge.Backfill.MissedLimit, markRead)
 }
 
 func (portal *Portal) deterministicEventID(messageID string, part int) id.EventID {
@@ -85,9 +89,13 @@ func (portal *Portal) deterministicEventID(messageID string, part int) id.EventI
 	return id.EventID(fmt.Sprintf("$%s:messages.google.com", base64.RawURLEncoding.EncodeToString(sum[:])))
 }
 
-func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int64, markRead bool) bool {
+func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int, markRead bool) bool {
+	if limit == 0 {
+		return false
+	}
+
 	log := zerolog.Ctx(ctx)
-	resp, err := user.Client.FetchMessages(portal.ID, limit, nil)
+	resp, err := user.Client.FetchMessages(portal.ID, int64(limit), nil)
 	if err != nil {
 		portal.zlog.Error().Err(err).Msg("Failed to fetch messages")
 		return false
