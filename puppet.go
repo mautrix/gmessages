@@ -140,8 +140,12 @@ func (br *GMBridge) NewPuppet(dbPuppet *database.Puppet) *Puppet {
 	return &Puppet{
 		Puppet: dbPuppet,
 		bridge: br,
-		log:    br.ZLog.With().Str("phone", dbPuppet.Phone).Int("puppet_receiver", dbPuppet.Receiver).Logger(),
-		MXID:   br.FormatPuppetMXID(dbPuppet.Key),
+		log: br.ZLog.With().
+			Str("phone", dbPuppet.Phone).
+			Str("puppet_id", dbPuppet.ID).
+			Int("puppet_receiver", dbPuppet.Receiver).
+			Logger(),
+		MXID: br.FormatPuppetMXID(dbPuppet.Key),
 	}
 }
 

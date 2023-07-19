@@ -726,6 +726,10 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 		}
 		portal.zlog.Debug().Interface("participant", participant).Msg("Syncing participant")
 		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
+		if puppet == nil {
+			portal.zlog.Error().Any("participant_id", participant.ID).Msg("Failed to get puppet for participant")
+			continue
+		}
 		userIDs = append(userIDs, puppet.MXID)
 		puppet.Sync(source, participant)
 		if portal.MXID != "" {

@@ -537,6 +537,7 @@ func (user *User) DeleteConnection() {
 	defer user.connLock.Unlock()
 	user.unlockedDeleteConnection()
 	user.longPollingError = errors.New("not connected")
+	user.phoneResponding = true
 }
 
 func (user *User) HasSession() bool {
