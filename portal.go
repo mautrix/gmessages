@@ -800,15 +800,17 @@ func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []i
 	if portal.shouldSetDMRoomMetadata() {
 		update = portal.UpdateName(info.Name, false) || update
 	}
-	pls, err := portal.MainIntent().PowerLevels(portal.MXID)
-	if err != nil {
-		portal.zlog.Warn().Err(err).Msg("Failed to get power levels")
-	} else if portal.updatePowerLevels(info, pls) {
-		resp, err := portal.MainIntent().SetPowerLevels(portal.MXID, pls)
+	if portal.MXID != "" {
+		pls, err := portal.MainIntent().PowerLevels(portal.MXID)
 		if err != nil {
-			portal.zlog.Warn().Err(err).Msg("Failed to update power levels")
-		} else {
-			portal.zlog.Debug().Str("event_id", resp.EventID.String()).Msg("Updated power levels")
+			portal.zlog.Warn().Err(err).Msg("Failed to get power levels")
+		} else if portal.updatePowerLevels(info, pls) {
+			resp, err := portal.MainIntent().SetPowerLevels(portal.MXID, pls)
+			if err != nil {
+				portal.zlog.Warn().Err(err).Msg("Failed to update power levels")
+			} else {
+				portal.zlog.Debug().Str("event_id", resp.EventID.String()).Msg("Updated power levels")
+			}
 		}
 	}
 
