@@ -20,7 +20,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
-func (c *Client) ListenReceiveMessages(loggedIn bool) {
+func (c *Client) doLongPoll(loggedIn bool) {
 	c.listenID++
 	listenID := c.listenID
 	errored := true
@@ -86,12 +86,12 @@ func (c *Client) ListenReceiveMessages(loggedIn bool) {
 				}
 			}()
 		}
-		c.startReadingData(resp.Body)
+		c.readLongPoll(resp.Body)
 		c.longPollingConn = nil
 	}
 }
 
-func (c *Client) startReadingData(rc io.ReadCloser) {
+func (c *Client) readLongPoll(rc io.ReadCloser) {
 	defer rc.Close()
 	c.disconnecting = false
 	reader := bufio.NewReader(rc)

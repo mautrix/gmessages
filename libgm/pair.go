@@ -19,7 +19,7 @@ func (c *Client) StartLogin() (string, error) {
 		return "", err
 	}
 	c.AuthData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
-	go c.ListenReceiveMessages(false)
+	go c.doLongPoll(false)
 	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
 	if err != nil {
 		return "", fmt.Errorf("failed to generate QR code: %w", err)

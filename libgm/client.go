@@ -120,7 +120,7 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to get web encryption key: %w", err)
 	}
 	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-	go c.ListenReceiveMessages(true)
+	go c.doLongPoll(true)
 	c.sessionHandler.startAckInterval()
 
 	bugleRes, bugleErr := c.IsBugleDefault()
