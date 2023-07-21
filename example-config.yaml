@@ -96,7 +96,7 @@ google_messages:
     browser: OTHER
 
     # Should the bridge aggressively set itself as the active device if the user opens Google Messages in a browser?
-    # If this is disabled, the user must manually use the `reconnect` command to reactivate the bridge.
+    # If this is disabled, the user must manually use the `set-active` command to reactivate the bridge.
     aggressive_reconnect: false
 
 # Bridge config
