@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/skip2/go-qrcode"
 	"maunium.net/go/mautrix"
@@ -25,6 +26,8 @@ import (
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
+
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type WrappedCommandEvent struct {
@@ -44,6 +47,7 @@ func (br *GMBridge) RegisterCommands() {
 		cmdDisconnect,
 		cmdSetActive,
 		cmdPing,
+		cmdPM,
 		cmdDeletePortal,
 		cmdDeleteAllPortals,
 	)
@@ -291,6 +295,54 @@ func fnPing(ce *WrappedCommandEvent) {
 		ce.Reply("Logged in as %s and active as primary browser", ce.User.PhoneID)
 	} else {
 		ce.Reply("Logged in as %s, but not active, use `set-active` to reconnect", ce.User.PhoneID)
+	}
+}
+
+var cmdPM = &commands.FullHandler{
+	Func: wrapCommand(fnPM),
+	Name: "pm",
+	Help: commands.HelpMeta{
+		Section:     HelpSectionPortalManagement,
+		Description: "Create a chat on Google Messages",
+		Args:        "<phone numbers...>",
+	},
+	RequiresLogin: true,
+}
+
+func fnPM(ce *WrappedCommandEvent) {
+	var reqData gmproto.GetOrCreateConversationRequest
+	reqData.Numbers = make([]*gmproto.ContactNumber, 0, len(ce.Args))
+	for _, number := range ce.Args {
+		number = strings.TrimSpace(number)
+		if number == "" {
+			continue
+		}
+		reqData.Numbers = append(reqData.Numbers, &gmproto.ContactNumber{
+			// This should maybe sometimes be 7
+			MysteriousInt: 2,
+			Number:        number,
+			Number2:       number,
+		})
+	}
+	resp, err := ce.User.Client.GetOrCreateConversation(&reqData)
+	if err != nil {
+		ce.ZLog.Err(err).Msg("Failed to start chat")
+		ce.Reply("Failed to start chat: request failed")
+	} else if len(reqData.Numbers) > 1 && resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
+		ce.Reply("All recipients are on RCS, but creating RCS groups via this command is not yet supported.")
+	} else if resp.GetConversation() == nil {
+		ce.ZLog.Warn().
+			Int("req_number_count", len(reqData.Numbers)).
+			Str("status", resp.GetStatus().String()).
+			Msg("No conversation in chat create response")
+		ce.Reply("Failed to start chat: no conversation in response")
+	} else if portal := ce.User.GetPortalByID(resp.Conversation.ConversationID); portal.MXID != "" {
+		ce.Reply("Chat already exists at [%s](https://matrix.to/#/%s)", portal.MXID, portal.MXID)
+	} else if err = portal.CreateMatrixRoom(ce.User, resp.Conversation); err != nil {
+		ce.ZLog.Err(err).Msg("Failed to create matrix room")
+		ce.Reply("Failed to create portal room for conversation")
+	} else {
+		ce.Reply("Chat created: [%s](https://matrix.to/#/%s)", portal.MXID, portal.MXID)
 	}
 }
 
