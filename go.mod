@@ -40,11 +40,4 @@ require (
 	maunium.net/go/mauflag v1.0.0 // indirect
 )
 
-// Exclude some things that cause go.sum to explode
-exclude (
-	cloud.google.com/go v0.65.0
-	github.com/prometheus/client_golang v1.12.1
-	google.golang.org/appengine v1.6.6
-)
-
 replace go.mau.fi/mautrix-gmessages/libgm => ./libgm
