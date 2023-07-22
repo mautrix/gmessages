@@ -174,6 +174,9 @@ func (prov *ProvisioningAPI) ListContacts(w http.ResponseWriter, r *http.Request
 
 type StartChatRequest struct {
 	Numbers []string `json:"numbers"`
+
+	CreateRCSGroup bool   `json:"create_rcs_group"`
+	RCSGroupName   string `json:"rcs_group_name"`
 }
 
 type StartChatResponse struct {
@@ -205,6 +208,10 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 			Number2:       number,
 		})
 	}
+	if req.CreateRCSGroup {
+		reqData.CreateRCSGroup = proto.Bool(true)
+		reqData.RCSGroupName = proto.String(req.RCSGroupName)
+	}
 	resp, err := user.Client.GetOrCreateConversation(&reqData)
 	if err != nil {
 		prov.zlog.Err(err).Msg("Failed to start chat")
@@ -213,22 +220,18 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 			ErrCode: "unknown error",
 		})
 		return
-	} else if resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
-		prov.zlog.Debug().Msg("Creating RCS group")
-		// TODO this will always create a new group and won't deduplicate
-		reqData.CreateRCSGroup = proto.Bool(true)
-		resp, err = user.Client.GetOrCreateConversation(&reqData)
-		if err != nil {
-			prov.zlog.Err(err).Msg("Failed to start RCS chat")
-			jsonResponse(w, http.StatusInternalServerError, Error{
-				Error:   "Failed to start chat",
-				ErrCode: "unknown error",
-			})
-			return
-		}
+	} else if len(req.Numbers) > 1 && resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
+		jsonResponse(w, http.StatusBadRequest, Error{
+			Error:   "All recipients are on RCS, please create a RCS group",
+			ErrCode: "rcs group",
+		})
+		return
 	}
 	if resp.GetConversation() == nil {
-		prov.zlog.Warn().Str("status", resp.GetStatus().String()).Msg("No conversation in chat create response")
+		prov.zlog.Warn().
+			Int("req_number_count", len(req.Numbers)).
+			Str("status", resp.GetStatus().String()).
+			Msg("No conversation in chat create response")
 		jsonResponse(w, http.StatusInternalServerError, Error{
 			Error:   "Failed to start chat",
 			ErrCode: "unknown error",
