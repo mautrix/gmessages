@@ -790,7 +790,19 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 
 func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []id.UserID {
 	participants, update := portal.SyncParticipants(user, info)
+	if portal.Type != info.Type {
+		portal.zlog.Debug().
+			Str("old_type", portal.Type.String()).
+			Str("new_type", info.Type.String()).
+			Msg("Conversation type changed")
+		portal.Type = info.Type
+		update = true
+	}
 	if portal.OutgoingID != info.DefaultOutgoingID {
+		portal.zlog.Debug().
+			Str("old_id", portal.OutgoingID).
+			Str("new_id", info.DefaultOutgoingID).
+			Msg("Default outgoing participant ID changed")
 		portal.OutgoingID = info.DefaultOutgoingID
 		update = true
 	}
@@ -888,7 +900,7 @@ func (portal *Portal) getBridgeInfoStateKey() string {
 }
 
 func (portal *Portal) getBridgeInfo() (string, event.BridgeEventContent) {
-	return portal.getBridgeInfoStateKey(), event.BridgeEventContent{
+	content := event.BridgeEventContent{
 		BridgeBot: portal.bridge.Bot.UserID,
 		Creator:   portal.MainIntent().UserID,
 		Protocol: event.BridgeInfoSection{
@@ -903,6 +915,14 @@ func (portal *Portal) getBridgeInfo() (string, event.BridgeEventContent) {
 			AvatarURL:   portal.AvatarMXC.CUString(),
 		},
 	}
+	if portal.Type == gmproto.ConversationType_SMS {
+		content.Protocol.ID = "gmessages-sms"
+		content.Protocol.DisplayName = "Google Messages (SMS)"
+	} else if portal.Type == gmproto.ConversationType_RCS {
+		content.Protocol.ID = "gmessages-rcs"
+		content.Protocol.DisplayName = "Google Messages (RCS)"
+	}
+	return portal.getBridgeInfoStateKey(), content
 }
 
 func (portal *Portal) UpdateBridgeInfo() {

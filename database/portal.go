@@ -25,6 +25,8 @@ import (
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/id"
 	"maunium.net/go/mautrix/util/dbutil"
+
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type PortalQuery struct {
@@ -42,19 +44,19 @@ func (pq *PortalQuery) getDB() *Database {
 }
 
 func (pq *PortalQuery) GetAll(ctx context.Context) ([]*Portal, error) {
-	return getAll[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal")
+	return getAll[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal")
 }
 
 func (pq *PortalQuery) GetAllForUser(ctx context.Context, receiver int) ([]*Portal, error) {
-	return getAll[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal WHERE receiver=$1", receiver)
+	return getAll[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal WHERE receiver=$1", receiver)
 }
 
 func (pq *PortalQuery) GetByKey(ctx context.Context, key Key) (*Portal, error) {
-	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
+	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
 }
 
 func (pq *PortalQuery) GetByMXID(ctx context.Context, mxid id.RoomID) (*Portal, error) {
-	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal WHERE mxid=$1", mxid)
+	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space FROM portal WHERE mxid=$1", mxid)
 }
 
 type Key struct {
@@ -78,6 +80,7 @@ type Portal struct {
 	OtherUserID string
 	MXID        id.RoomID
 
+	Type      gmproto.ConversationType
 	Name      string
 	NameSet   bool
 	AvatarID  string
@@ -89,12 +92,14 @@ type Portal struct {
 
 func (portal *Portal) Scan(row dbutil.Scannable) (*Portal, error) {
 	var mxid, selfUserID, otherUserID sql.NullString
-	err := row.Scan(&portal.ID, &portal.Receiver, &selfUserID, &otherUserID, &mxid, &portal.Name, &portal.NameSet, &portal.AvatarID, &portal.AvatarMXC, &portal.AvatarSet, &portal.Encrypted, &portal.InSpace)
+	var convType int
+	err := row.Scan(&portal.ID, &portal.Receiver, &selfUserID, &otherUserID, &convType, &mxid, &portal.Name, &portal.NameSet, &portal.AvatarID, &portal.AvatarMXC, &portal.AvatarSet, &portal.Encrypted, &portal.InSpace)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
+	portal.Type = gmproto.ConversationType(convType)
 	portal.MXID = id.RoomID(mxid.String)
 	portal.OutgoingID = selfUserID.String
 	portal.OtherUserID = otherUserID.String
@@ -112,13 +117,13 @@ func (portal *Portal) sqlVariables() []any {
 	if portal.OtherUserID != "" {
 		otherUserID = &portal.OtherUserID
 	}
-	return []any{portal.ID, portal.Receiver, selfUserID, otherUserID, mxid, portal.Name, portal.NameSet, portal.AvatarID, &portal.AvatarMXC, portal.AvatarSet, portal.Encrypted, portal.InSpace}
+	return []any{portal.ID, portal.Receiver, selfUserID, otherUserID, int(portal.Type), mxid, portal.Name, portal.NameSet, portal.AvatarID, &portal.AvatarMXC, portal.AvatarSet, portal.Encrypted, portal.InSpace}
 }
 
 func (portal *Portal) Insert(ctx context.Context) error {
 	_, err := portal.db.Conn(ctx).ExecContext(ctx, `
-		INSERT INTO portal (id, receiver, self_user, other_user, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO portal (id, receiver, self_user, other_user, type, mxid, name, name_set, avatar_id, avatar_mxc, avatar_set, encrypted, in_space)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`, portal.sqlVariables()...)
 	return err
 }
@@ -126,7 +131,7 @@ func (portal *Portal) Insert(ctx context.Context) error {
 func (portal *Portal) Update(ctx context.Context) error {
 	_, err := portal.db.Conn(ctx).ExecContext(ctx, `
 		UPDATE portal
-		SET self_user=$3, other_user=$4, mxid=$5, name=$6, name_set=$7, avatar_id=$8, avatar_mxc=$9, avatar_set=$10, encrypted=$11, in_space=$12
+		SET self_user=$3, other_user=$4, type=$5, mxid=$6, name=$7, name_set=$8, avatar_id=$9, avatar_mxc=$10, avatar_set=$11, encrypted=$12, in_space=$13
 		WHERE id=$1 AND receiver=$2
 	`, portal.sqlVariables()...)
 	return err

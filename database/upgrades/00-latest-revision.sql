@@ -1,4 +1,4 @@
--- v0 -> v2: Latest revision
+-- v0 -> v3: Latest revision
 
 CREATE TABLE "user" (
     -- only: postgres
@@ -39,6 +39,7 @@ CREATE TABLE portal (
     receiver   BIGINT  NOT NULL,
     self_user  TEXT,
     other_user TEXT,
+    type       INTEGER NOT NULL,
     mxid       TEXT    UNIQUE,
     name       TEXT    NOT NULL,
     name_set   BOOLEAN NOT NULL DEFAULT false,
