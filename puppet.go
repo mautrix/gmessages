@@ -263,8 +263,6 @@ func (puppet *Puppet) Sync(source *User, contact *gmproto.Participant) {
 		puppet.log.Err(err).Msg("Failed to ensure registered")
 	}
 
-	puppet.log.Debug().Msg("Syncing info")
-
 	update := false
 	if contact != nil {
 		if contact.ID.Number != "" && puppet.Phone != contact.ID.Number {
