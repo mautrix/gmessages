@@ -183,16 +183,9 @@ message ConversationAction5 {
 message UpdateConversationData {
     string conversationID = 1;
     oneof data {
-        ConversationStatus status = 12;
+        conversations.ConversationStatus status = 12;
         ConversationMuteStatus mute = 7;
     }
-}
-
-enum ConversationStatus {
-    UNKNOWN_STATUS = 0;
-    UNARCHIVE = 1;
-    ARCHIVE = 2;
-    DELETE = 3;
 }
 
 enum ConversationActionStatus {

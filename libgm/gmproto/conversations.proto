@@ -132,7 +132,7 @@ message Conversation {
     bool isGroupChat = 10; // not certain
     string defaultOutgoingID = 11;
 
-    ConvUpdateTypes status = 12;
+    ConversationStatus status = 12;
     bool readOnly = 13;
     string avatarHexColor = 15;
     string latestMessageID = 17;
@@ -281,13 +281,14 @@ enum MessageStatusType {
     MESSAGE_DELETED = 300;
 }
 
-enum ConvUpdateTypes {
-    UNKNOWN_CONVTYPE = 0;
-    UNARCHIVED = 1;
+enum ConversationStatus {
+    UNKNOWN_CONVERSATION_STATUS = 0;
+    ACTIVE = 1;
     ARCHIVED = 2;
     DELETED = 3;
-    BLOCKED_AND_REPORTED = 5;
-    BLOCKED = 6;
+    KEEP_ARCHIVED = 4;
+    SPAM_FOLDER = 5;
+    BLOCKED_FOLDER = 6;
 }
 
 enum MediaFormats {

@@ -22,58 +22,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ConversationStatus int32
-
-const (
-	ConversationStatus_UNKNOWN_STATUS ConversationStatus = 0
-	ConversationStatus_UNARCHIVE      ConversationStatus = 1
-	ConversationStatus_ARCHIVE        ConversationStatus = 2
-	ConversationStatus_DELETE         ConversationStatus = 3
-)
-
-// Enum value maps for ConversationStatus.
-var (
-	ConversationStatus_name = map[int32]string{
-		0: "UNKNOWN_STATUS",
-		1: "UNARCHIVE",
-		2: "ARCHIVE",
-		3: "DELETE",
-	}
-	ConversationStatus_value = map[string]int32{
-		"UNKNOWN_STATUS": 0,
-		"UNARCHIVE":      1,
-		"ARCHIVE":        2,
-		"DELETE":         3,
-	}
-)
-
-func (x ConversationStatus) Enum() *ConversationStatus {
-	p := new(ConversationStatus)
-	*p = x
-	return p
-}
-
-func (x ConversationStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ConversationStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_client_proto_enumTypes[0].Descriptor()
-}
-
-func (ConversationStatus) Type() protoreflect.EnumType {
-	return &file_client_proto_enumTypes[0]
-}
-
-func (x ConversationStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ConversationStatus.Descriptor instead.
-func (ConversationStatus) EnumDescriptor() ([]byte, []int) {
-	return file_client_proto_rawDescGZIP(), []int{0}
-}
-
 type ConversationActionStatus int32
 
 const (
@@ -110,11 +58,11 @@ func (x ConversationActionStatus) String() string {
 }
 
 func (ConversationActionStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_client_proto_enumTypes[1].Descriptor()
+	return file_client_proto_enumTypes[0].Descriptor()
 }
 
 func (ConversationActionStatus) Type() protoreflect.EnumType {
-	return &file_client_proto_enumTypes[1]
+	return &file_client_proto_enumTypes[0]
 }
 
 func (x ConversationActionStatus) Number() protoreflect.EnumNumber {
@@ -123,7 +71,7 @@ func (x ConversationActionStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ConversationActionStatus.Descriptor instead.
 func (ConversationActionStatus) EnumDescriptor() ([]byte, []int) {
-	return file_client_proto_rawDescGZIP(), []int{1}
+	return file_client_proto_rawDescGZIP(), []int{0}
 }
 
 type ConversationMuteStatus int32
@@ -156,11 +104,11 @@ func (x ConversationMuteStatus) String() string {
 }
 
 func (ConversationMuteStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_client_proto_enumTypes[2].Descriptor()
+	return file_client_proto_enumTypes[1].Descriptor()
 }
 
 func (ConversationMuteStatus) Type() protoreflect.EnumType {
-	return &file_client_proto_enumTypes[2]
+	return &file_client_proto_enumTypes[1]
 }
 
 func (x ConversationMuteStatus) Number() protoreflect.EnumNumber {
@@ -169,7 +117,7 @@ func (x ConversationMuteStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ConversationMuteStatus.Descriptor instead.
 func (ConversationMuteStatus) EnumDescriptor() ([]byte, []int) {
-	return file_client_proto_rawDescGZIP(), []int{2}
+	return file_client_proto_rawDescGZIP(), []int{1}
 }
 
 type ListConversationsRequest_Folder int32
@@ -208,11 +156,11 @@ func (x ListConversationsRequest_Folder) String() string {
 }
 
 func (ListConversationsRequest_Folder) Descriptor() protoreflect.EnumDescriptor {
-	return file_client_proto_enumTypes[3].Descriptor()
+	return file_client_proto_enumTypes[2].Descriptor()
 }
 
 func (ListConversationsRequest_Folder) Type() protoreflect.EnumType {
-	return &file_client_proto_enumTypes[3]
+	return &file_client_proto_enumTypes[2]
 }
 
 func (x ListConversationsRequest_Folder) Number() protoreflect.EnumNumber {
@@ -257,11 +205,11 @@ func (x GetOrCreateConversationResponse_Status) String() string {
 }
 
 func (GetOrCreateConversationResponse_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_client_proto_enumTypes[4].Descriptor()
+	return file_client_proto_enumTypes[3].Descriptor()
 }
 
 func (GetOrCreateConversationResponse_Status) Type() protoreflect.EnumType {
-	return &file_client_proto_enumTypes[4]
+	return &file_client_proto_enumTypes[3]
 }
 
 func (x GetOrCreateConversationResponse_Status) Number() protoreflect.EnumNumber {
@@ -309,11 +257,11 @@ func (x SendReactionRequest_Action) String() string {
 }
 
 func (SendReactionRequest_Action) Descriptor() protoreflect.EnumDescriptor {
-	return file_client_proto_enumTypes[5].Descriptor()
+	return file_client_proto_enumTypes[4].Descriptor()
 }
 
 func (SendReactionRequest_Action) Type() protoreflect.EnumType {
-	return &file_client_proto_enumTypes[5]
+	return &file_client_proto_enumTypes[4]
 }
 
 func (x SendReactionRequest_Action) Number() protoreflect.EnumNumber {
@@ -2038,7 +1986,7 @@ func (x *UpdateConversationData) GetStatus() ConversationStatus {
 	if x, ok := x.GetData().(*UpdateConversationData_Status); ok {
 		return x.Status
 	}
-	return ConversationStatus_UNKNOWN_STATUS
+	return ConversationStatus_UNKNOWN_CONVERSATION_STATUS
 }
 
 func (x *UpdateConversationData) GetMute() ConversationMuteStatus {
@@ -2053,7 +2001,7 @@ type isUpdateConversationData_Data interface {
 }
 
 type UpdateConversationData_Status struct {
-	Status ConversationStatus `protobuf:"varint,12,opt,name=status,proto3,enum=client.ConversationStatus,oneof"`
+	Status ConversationStatus `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConversationStatus,oneof"`
 }
 
 type UpdateConversationData_Mute struct {
@@ -3187,121 +3135,121 @@ func file_client_proto_rawDescGZIP() []byte {
 	return file_client_proto_rawDescData
 }
 
-var file_client_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_client_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_client_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_client_proto_goTypes = []interface{}{
-	(ConversationStatus)(0),                            // 0: client.ConversationStatus
-	(ConversationActionStatus)(0),                      // 1: client.ConversationActionStatus
-	(ConversationMuteStatus)(0),                        // 2: client.ConversationMuteStatus
-	(ListConversationsRequest_Folder)(0),               // 3: client.ListConversationsRequest.Folder
-	(GetOrCreateConversationResponse_Status)(0),        // 4: client.GetOrCreateConversationResponse.Status
-	(SendReactionRequest_Action)(0),                    // 5: client.SendReactionRequest.Action
-	(*NotifyDittoActivityRequest)(nil),                 // 6: client.NotifyDittoActivityRequest
-	(*NotifyDittoActivityResponse)(nil),                // 7: client.NotifyDittoActivityResponse
-	(*ReceiveMessagesRequest)(nil),                     // 8: client.ReceiveMessagesRequest
-	(*MessageReadRequest)(nil),                         // 9: client.MessageReadRequest
-	(*AckMessageRequest)(nil),                          // 10: client.AckMessageRequest
-	(*DownloadAttachmentRequest)(nil),                  // 11: client.DownloadAttachmentRequest
-	(*AttachmentInfo)(nil),                             // 12: client.AttachmentInfo
-	(*StartMediaUploadRequest)(nil),                    // 13: client.StartMediaUploadRequest
-	(*UploadMediaResponse)(nil),                        // 14: client.UploadMediaResponse
-	(*UploadedMedia)(nil),                              // 15: client.UploadedMedia
-	(*GetParticipantThumbnailRequest)(nil),             // 16: client.GetParticipantThumbnailRequest
-	(*GetParticipantThumbnailResponse)(nil),            // 17: client.GetParticipantThumbnailResponse
-	(*ParticipantThumbnail)(nil),                       // 18: client.ParticipantThumbnail
-	(*GetContactsThumbnailRequest)(nil),                // 19: client.GetContactsThumbnailRequest
-	(*ThumbnailData)(nil),                              // 20: client.ThumbnailData
-	(*Cursor)(nil),                                     // 21: client.Cursor
-	(*ListMessagesRequest)(nil),                        // 22: client.ListMessagesRequest
-	(*ListMessagesResponse)(nil),                       // 23: client.ListMessagesResponse
-	(*ListContactsRequest)(nil),                        // 24: client.ListContactsRequest
-	(*ListTopContactsRequest)(nil),                     // 25: client.ListTopContactsRequest
-	(*ListContactsResponse)(nil),                       // 26: client.ListContactsResponse
-	(*ListTopContactsResponse)(nil),                    // 27: client.ListTopContactsResponse
-	(*ListConversationsRequest)(nil),                   // 28: client.ListConversationsRequest
-	(*ListConversationsResponse)(nil),                  // 29: client.ListConversationsResponse
-	(*GetOrCreateConversationRequest)(nil),             // 30: client.GetOrCreateConversationRequest
-	(*GetOrCreateConversationResponse)(nil),            // 31: client.GetOrCreateConversationResponse
-	(*DeleteMessageRequest)(nil),                       // 32: client.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil),                      // 33: client.DeleteMessageResponse
-	(*UpdateConversationRequest)(nil),                  // 34: client.UpdateConversationRequest
-	(*ConversationAction5)(nil),                        // 35: client.ConversationAction5
-	(*UpdateConversationData)(nil),                     // 36: client.UpdateConversationData
-	(*UpdateConversationResponse)(nil),                 // 37: client.UpdateConversationResponse
-	(*ConversationTypeRequest)(nil),                    // 38: client.ConversationTypeRequest
-	(*GetConversationTypeResponse)(nil),                // 39: client.GetConversationTypeResponse
-	(*GetConversationRequest)(nil),                     // 40: client.GetConversationRequest
-	(*GetConversationResponse)(nil),                    // 41: client.GetConversationResponse
-	(*OpenConversationRequest)(nil),                    // 42: client.OpenConversationRequest
-	(*PrepareOpenConversationRequest)(nil),             // 43: client.PrepareOpenConversationRequest
-	(*IsBugleDefaultResponse)(nil),                     // 44: client.IsBugleDefaultResponse
-	(*SendMessageRequest)(nil),                         // 45: client.SendMessageRequest
-	(*ReplyPayload)(nil),                               // 46: client.ReplyPayload
-	(*MessagePayload)(nil),                             // 47: client.MessagePayload
-	(*MessagePayloadContent)(nil),                      // 48: client.MessagePayloadContent
-	(*SendMessageResponse)(nil),                        // 49: client.SendMessageResponse
-	(*SendReactionRequest)(nil),                        // 50: client.SendReactionRequest
-	(*SendReactionResponse)(nil),                       // 51: client.SendReactionResponse
-	(*ResendMessageRequest)(nil),                       // 52: client.ResendMessageRequest
-	(*TypingUpdateRequest)(nil),                        // 53: client.TypingUpdateRequest
-	(*ReceiveMessagesRequest_UnknownEmptyObject1)(nil), // 54: client.ReceiveMessagesRequest.UnknownEmptyObject1
-	(*ReceiveMessagesRequest_UnknownEmptyObject2)(nil), // 55: client.ReceiveMessagesRequest.UnknownEmptyObject2
-	(*AckMessageRequest_Message)(nil),                  // 56: client.AckMessageRequest.Message
-	(*TypingUpdateRequest_Data)(nil),                   // 57: client.TypingUpdateRequest.Data
-	(*AuthMessage)(nil),                                // 58: authentication.AuthMessage
-	(*EmptyArr)(nil),                                   // 59: util.EmptyArr
-	(*Device)(nil),                                     // 60: authentication.Device
-	(*Dimensions)(nil),                                 // 61: conversations.Dimensions
-	(*Message)(nil),                                    // 62: conversations.Message
-	(*Contact)(nil),                                    // 63: conversations.Contact
-	(*Conversation)(nil),                               // 64: conversations.Conversation
-	(*ContactNumber)(nil),                              // 65: conversations.ContactNumber
+	(ConversationActionStatus)(0),                      // 0: client.ConversationActionStatus
+	(ConversationMuteStatus)(0),                        // 1: client.ConversationMuteStatus
+	(ListConversationsRequest_Folder)(0),               // 2: client.ListConversationsRequest.Folder
+	(GetOrCreateConversationResponse_Status)(0),        // 3: client.GetOrCreateConversationResponse.Status
+	(SendReactionRequest_Action)(0),                    // 4: client.SendReactionRequest.Action
+	(*NotifyDittoActivityRequest)(nil),                 // 5: client.NotifyDittoActivityRequest
+	(*NotifyDittoActivityResponse)(nil),                // 6: client.NotifyDittoActivityResponse
+	(*ReceiveMessagesRequest)(nil),                     // 7: client.ReceiveMessagesRequest
+	(*MessageReadRequest)(nil),                         // 8: client.MessageReadRequest
+	(*AckMessageRequest)(nil),                          // 9: client.AckMessageRequest
+	(*DownloadAttachmentRequest)(nil),                  // 10: client.DownloadAttachmentRequest
+	(*AttachmentInfo)(nil),                             // 11: client.AttachmentInfo
+	(*StartMediaUploadRequest)(nil),                    // 12: client.StartMediaUploadRequest
+	(*UploadMediaResponse)(nil),                        // 13: client.UploadMediaResponse
+	(*UploadedMedia)(nil),                              // 14: client.UploadedMedia
+	(*GetParticipantThumbnailRequest)(nil),             // 15: client.GetParticipantThumbnailRequest
+	(*GetParticipantThumbnailResponse)(nil),            // 16: client.GetParticipantThumbnailResponse
+	(*ParticipantThumbnail)(nil),                       // 17: client.ParticipantThumbnail
+	(*GetContactsThumbnailRequest)(nil),                // 18: client.GetContactsThumbnailRequest
+	(*ThumbnailData)(nil),                              // 19: client.ThumbnailData
+	(*Cursor)(nil),                                     // 20: client.Cursor
+	(*ListMessagesRequest)(nil),                        // 21: client.ListMessagesRequest
+	(*ListMessagesResponse)(nil),                       // 22: client.ListMessagesResponse
+	(*ListContactsRequest)(nil),                        // 23: client.ListContactsRequest
+	(*ListTopContactsRequest)(nil),                     // 24: client.ListTopContactsRequest
+	(*ListContactsResponse)(nil),                       // 25: client.ListContactsResponse
+	(*ListTopContactsResponse)(nil),                    // 26: client.ListTopContactsResponse
+	(*ListConversationsRequest)(nil),                   // 27: client.ListConversationsRequest
+	(*ListConversationsResponse)(nil),                  // 28: client.ListConversationsResponse
+	(*GetOrCreateConversationRequest)(nil),             // 29: client.GetOrCreateConversationRequest
+	(*GetOrCreateConversationResponse)(nil),            // 30: client.GetOrCreateConversationResponse
+	(*DeleteMessageRequest)(nil),                       // 31: client.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),                      // 32: client.DeleteMessageResponse
+	(*UpdateConversationRequest)(nil),                  // 33: client.UpdateConversationRequest
+	(*ConversationAction5)(nil),                        // 34: client.ConversationAction5
+	(*UpdateConversationData)(nil),                     // 35: client.UpdateConversationData
+	(*UpdateConversationResponse)(nil),                 // 36: client.UpdateConversationResponse
+	(*ConversationTypeRequest)(nil),                    // 37: client.ConversationTypeRequest
+	(*GetConversationTypeResponse)(nil),                // 38: client.GetConversationTypeResponse
+	(*GetConversationRequest)(nil),                     // 39: client.GetConversationRequest
+	(*GetConversationResponse)(nil),                    // 40: client.GetConversationResponse
+	(*OpenConversationRequest)(nil),                    // 41: client.OpenConversationRequest
+	(*PrepareOpenConversationRequest)(nil),             // 42: client.PrepareOpenConversationRequest
+	(*IsBugleDefaultResponse)(nil),                     // 43: client.IsBugleDefaultResponse
+	(*SendMessageRequest)(nil),                         // 44: client.SendMessageRequest
+	(*ReplyPayload)(nil),                               // 45: client.ReplyPayload
+	(*MessagePayload)(nil),                             // 46: client.MessagePayload
+	(*MessagePayloadContent)(nil),                      // 47: client.MessagePayloadContent
+	(*SendMessageResponse)(nil),                        // 48: client.SendMessageResponse
+	(*SendReactionRequest)(nil),                        // 49: client.SendReactionRequest
+	(*SendReactionResponse)(nil),                       // 50: client.SendReactionResponse
+	(*ResendMessageRequest)(nil),                       // 51: client.ResendMessageRequest
+	(*TypingUpdateRequest)(nil),                        // 52: client.TypingUpdateRequest
+	(*ReceiveMessagesRequest_UnknownEmptyObject1)(nil), // 53: client.ReceiveMessagesRequest.UnknownEmptyObject1
+	(*ReceiveMessagesRequest_UnknownEmptyObject2)(nil), // 54: client.ReceiveMessagesRequest.UnknownEmptyObject2
+	(*AckMessageRequest_Message)(nil),                  // 55: client.AckMessageRequest.Message
+	(*TypingUpdateRequest_Data)(nil),                   // 56: client.TypingUpdateRequest.Data
+	(*AuthMessage)(nil),                                // 57: authentication.AuthMessage
+	(*EmptyArr)(nil),                                   // 58: util.EmptyArr
+	(*Device)(nil),                                     // 59: authentication.Device
+	(*Dimensions)(nil),                                 // 60: conversations.Dimensions
+	(*Message)(nil),                                    // 61: conversations.Message
+	(*Contact)(nil),                                    // 62: conversations.Contact
+	(*Conversation)(nil),                               // 63: conversations.Conversation
+	(*ContactNumber)(nil),                              // 64: conversations.ContactNumber
+	(ConversationStatus)(0),                            // 65: conversations.ConversationStatus
 	(*MessageInfo)(nil),                                // 66: conversations.MessageInfo
 	(*MessageContent)(nil),                             // 67: conversations.MessageContent
 	(*ReactionData)(nil),                               // 68: conversations.ReactionData
 }
 var file_client_proto_depIdxs = []int32{
-	58, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
-	55, // 1: client.ReceiveMessagesRequest.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject2
-	58, // 2: client.AckMessageRequest.authData:type_name -> authentication.AuthMessage
-	59, // 3: client.AckMessageRequest.emptyArr:type_name -> util.EmptyArr
-	56, // 4: client.AckMessageRequest.acks:type_name -> client.AckMessageRequest.Message
-	12, // 5: client.DownloadAttachmentRequest.info:type_name -> client.AttachmentInfo
-	58, // 6: client.DownloadAttachmentRequest.authData:type_name -> authentication.AuthMessage
-	58, // 7: client.StartMediaUploadRequest.authData:type_name -> authentication.AuthMessage
-	60, // 8: client.StartMediaUploadRequest.mobile:type_name -> authentication.Device
-	15, // 9: client.UploadMediaResponse.media:type_name -> client.UploadedMedia
-	18, // 10: client.GetParticipantThumbnailResponse.thumbnail:type_name -> client.ParticipantThumbnail
-	20, // 11: client.ParticipantThumbnail.data:type_name -> client.ThumbnailData
-	61, // 12: client.ThumbnailData.dimensions:type_name -> conversations.Dimensions
-	21, // 13: client.ListMessagesRequest.cursor:type_name -> client.Cursor
-	62, // 14: client.ListMessagesResponse.messages:type_name -> conversations.Message
-	21, // 15: client.ListMessagesResponse.cursor:type_name -> client.Cursor
-	63, // 16: client.ListContactsResponse.contacts:type_name -> conversations.Contact
-	63, // 17: client.ListTopContactsResponse.contacts:type_name -> conversations.Contact
-	3,  // 18: client.ListConversationsRequest.folder:type_name -> client.ListConversationsRequest.Folder
-	21, // 19: client.ListConversationsRequest.cursor:type_name -> client.Cursor
-	64, // 20: client.ListConversationsResponse.conversations:type_name -> conversations.Conversation
-	21, // 21: client.ListConversationsResponse.cursor:type_name -> client.Cursor
-	65, // 22: client.GetOrCreateConversationRequest.numbers:type_name -> conversations.ContactNumber
-	64, // 23: client.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
-	4,  // 24: client.GetOrCreateConversationResponse.status:type_name -> client.GetOrCreateConversationResponse.Status
-	36, // 25: client.UpdateConversationRequest.data:type_name -> client.UpdateConversationData
-	1,  // 26: client.UpdateConversationRequest.action:type_name -> client.ConversationActionStatus
-	35, // 27: client.UpdateConversationRequest.action5:type_name -> client.ConversationAction5
-	0,  // 28: client.UpdateConversationData.status:type_name -> client.ConversationStatus
-	2,  // 29: client.UpdateConversationData.mute:type_name -> client.ConversationMuteStatus
-	64, // 30: client.GetConversationResponse.conversation:type_name -> conversations.Conversation
-	47, // 31: client.SendMessageRequest.messagePayload:type_name -> client.MessagePayload
-	46, // 32: client.SendMessageRequest.reply:type_name -> client.ReplyPayload
-	48, // 33: client.MessagePayload.messagePayloadContent:type_name -> client.MessagePayloadContent
+	57, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
+	54, // 1: client.ReceiveMessagesRequest.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject2
+	57, // 2: client.AckMessageRequest.authData:type_name -> authentication.AuthMessage
+	58, // 3: client.AckMessageRequest.emptyArr:type_name -> util.EmptyArr
+	55, // 4: client.AckMessageRequest.acks:type_name -> client.AckMessageRequest.Message
+	11, // 5: client.DownloadAttachmentRequest.info:type_name -> client.AttachmentInfo
+	57, // 6: client.DownloadAttachmentRequest.authData:type_name -> authentication.AuthMessage
+	57, // 7: client.StartMediaUploadRequest.authData:type_name -> authentication.AuthMessage
+	59, // 8: client.StartMediaUploadRequest.mobile:type_name -> authentication.Device
+	14, // 9: client.UploadMediaResponse.media:type_name -> client.UploadedMedia
+	17, // 10: client.GetParticipantThumbnailResponse.thumbnail:type_name -> client.ParticipantThumbnail
+	19, // 11: client.ParticipantThumbnail.data:type_name -> client.ThumbnailData
+	60, // 12: client.ThumbnailData.dimensions:type_name -> conversations.Dimensions
+	20, // 13: client.ListMessagesRequest.cursor:type_name -> client.Cursor
+	61, // 14: client.ListMessagesResponse.messages:type_name -> conversations.Message
+	20, // 15: client.ListMessagesResponse.cursor:type_name -> client.Cursor
+	62, // 16: client.ListContactsResponse.contacts:type_name -> conversations.Contact
+	62, // 17: client.ListTopContactsResponse.contacts:type_name -> conversations.Contact
+	2,  // 18: client.ListConversationsRequest.folder:type_name -> client.ListConversationsRequest.Folder
+	20, // 19: client.ListConversationsRequest.cursor:type_name -> client.Cursor
+	63, // 20: client.ListConversationsResponse.conversations:type_name -> conversations.Conversation
+	20, // 21: client.ListConversationsResponse.cursor:type_name -> client.Cursor
+	64, // 22: client.GetOrCreateConversationRequest.numbers:type_name -> conversations.ContactNumber
+	63, // 23: client.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
+	3,  // 24: client.GetOrCreateConversationResponse.status:type_name -> client.GetOrCreateConversationResponse.Status
+	35, // 25: client.UpdateConversationRequest.data:type_name -> client.UpdateConversationData
+	0,  // 26: client.UpdateConversationRequest.action:type_name -> client.ConversationActionStatus
+	34, // 27: client.UpdateConversationRequest.action5:type_name -> client.ConversationAction5
+	65, // 28: client.UpdateConversationData.status:type_name -> conversations.ConversationStatus
+	1,  // 29: client.UpdateConversationData.mute:type_name -> client.ConversationMuteStatus
+	63, // 30: client.GetConversationResponse.conversation:type_name -> conversations.Conversation
+	46, // 31: client.SendMessageRequest.messagePayload:type_name -> client.MessagePayload
+	45, // 32: client.SendMessageRequest.reply:type_name -> client.ReplyPayload
+	47, // 33: client.MessagePayload.messagePayloadContent:type_name -> client.MessagePayloadContent
 	66, // 34: client.MessagePayload.messageInfo:type_name -> conversations.MessageInfo
 	67, // 35: client.MessagePayloadContent.messageContent:type_name -> conversations.MessageContent
 	68, // 36: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
-	5,  // 37: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
-	57, // 38: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
-	54, // 39: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
-	60, // 40: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	4,  // 37: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
+	56, // 38: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
+	53, // 39: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	59, // 40: client.AckMessageRequest.Message.device:type_name -> authentication.Device
 	41, // [41:41] is the sub-list for method output_type
 	41, // [41:41] is the sub-list for method input_type
 	41, // [41:41] is the sub-list for extension type_name
@@ -3956,7 +3904,7 @@ func file_client_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_client_proto_rawDesc,
-			NumEnums:      6,
+			NumEnums:      5,
 			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   0,

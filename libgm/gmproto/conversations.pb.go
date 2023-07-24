@@ -476,61 +476,64 @@ func (MessageStatusType) EnumDescriptor() ([]byte, []int) {
 	return file_conversations_proto_rawDescGZIP(), []int{3}
 }
 
-type ConvUpdateTypes int32
+type ConversationStatus int32
 
 const (
-	ConvUpdateTypes_UNKNOWN_CONVTYPE     ConvUpdateTypes = 0
-	ConvUpdateTypes_UNARCHIVED           ConvUpdateTypes = 1
-	ConvUpdateTypes_ARCHIVED             ConvUpdateTypes = 2
-	ConvUpdateTypes_DELETED              ConvUpdateTypes = 3
-	ConvUpdateTypes_BLOCKED_AND_REPORTED ConvUpdateTypes = 5
-	ConvUpdateTypes_BLOCKED              ConvUpdateTypes = 6
+	ConversationStatus_UNKNOWN_CONVERSATION_STATUS ConversationStatus = 0
+	ConversationStatus_ACTIVE                      ConversationStatus = 1
+	ConversationStatus_ARCHIVED                    ConversationStatus = 2
+	ConversationStatus_DELETED                     ConversationStatus = 3
+	ConversationStatus_KEEP_ARCHIVED               ConversationStatus = 4
+	ConversationStatus_SPAM_FOLDER                 ConversationStatus = 5
+	ConversationStatus_BLOCKED_FOLDER              ConversationStatus = 6
 )
 
-// Enum value maps for ConvUpdateTypes.
+// Enum value maps for ConversationStatus.
 var (
-	ConvUpdateTypes_name = map[int32]string{
-		0: "UNKNOWN_CONVTYPE",
-		1: "UNARCHIVED",
+	ConversationStatus_name = map[int32]string{
+		0: "UNKNOWN_CONVERSATION_STATUS",
+		1: "ACTIVE",
 		2: "ARCHIVED",
 		3: "DELETED",
-		5: "BLOCKED_AND_REPORTED",
-		6: "BLOCKED",
+		4: "KEEP_ARCHIVED",
+		5: "SPAM_FOLDER",
+		6: "BLOCKED_FOLDER",
 	}
-	ConvUpdateTypes_value = map[string]int32{
-		"UNKNOWN_CONVTYPE":     0,
-		"UNARCHIVED":           1,
-		"ARCHIVED":             2,
-		"DELETED":              3,
-		"BLOCKED_AND_REPORTED": 5,
-		"BLOCKED":              6,
+	ConversationStatus_value = map[string]int32{
+		"UNKNOWN_CONVERSATION_STATUS": 0,
+		"ACTIVE":                      1,
+		"ARCHIVED":                    2,
+		"DELETED":                     3,
+		"KEEP_ARCHIVED":               4,
+		"SPAM_FOLDER":                 5,
+		"BLOCKED_FOLDER":              6,
 	}
 )
 
-func (x ConvUpdateTypes) Enum() *ConvUpdateTypes {
-	p := new(ConvUpdateTypes)
+func (x ConversationStatus) Enum() *ConversationStatus {
+	p := new(ConversationStatus)
 	*p = x
 	return p
 }
 
-func (x ConvUpdateTypes) String() string {
+func (x ConversationStatus) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (ConvUpdateTypes) Descriptor() protoreflect.EnumDescriptor {
+func (ConversationStatus) Descriptor() protoreflect.EnumDescriptor {
 	return file_conversations_proto_enumTypes[4].Descriptor()
 }
 
-func (ConvUpdateTypes) Type() protoreflect.EnumType {
+func (ConversationStatus) Type() protoreflect.EnumType {
 	return &file_conversations_proto_enumTypes[4]
 }
 
-func (x ConvUpdateTypes) Number() protoreflect.EnumNumber {
+func (x ConversationStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ConvUpdateTypes.Descriptor instead.
-func (ConvUpdateTypes) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ConversationStatus.Descriptor instead.
+func (ConversationStatus) EnumDescriptor() ([]byte, []int) {
 	return file_conversations_proto_rawDescGZIP(), []int{4}
 }
 
@@ -1754,24 +1757,24 @@ type Conversation struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ConversationID       string           `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	Name                 string           `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	LatestMessage        *LatestMessage   `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
-	LastMessageTimestamp int64            `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
-	Unread               bool             `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
-	IsGroupChat          bool             `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
-	DefaultOutgoingID    string           `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
-	Status               ConvUpdateTypes  `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConvUpdateTypes" json:"status,omitempty"`
-	ReadOnly             bool             `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
-	AvatarHexColor       string           `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
-	LatestMessageID      string           `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
-	Participants         []*Participant   `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
-	OtherParticipants    []string         `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
-	Type                 ConversationType `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
-	SubType              bool             `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
-	Pinned               bool             `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
-	UnknownTimestamp     int64            `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
-	ThirdType            bool             `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
+	ConversationID       string             `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Name                 string             `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	LatestMessage        *LatestMessage     `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
+	LastMessageTimestamp int64              `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
+	Unread               bool               `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
+	IsGroupChat          bool               `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
+	DefaultOutgoingID    string             `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
+	Status               ConversationStatus `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConversationStatus" json:"status,omitempty"`
+	ReadOnly             bool               `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
+	AvatarHexColor       string             `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
+	LatestMessageID      string             `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
+	Participants         []*Participant     `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
+	OtherParticipants    []string           `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
+	Type                 ConversationType   `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
+	SubType              bool               `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
+	Pinned               bool               `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
+	UnknownTimestamp     int64              `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
+	ThirdType            bool               `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
 }
 
 func (x *Conversation) Reset() {
@@ -1855,11 +1858,11 @@ func (x *Conversation) GetDefaultOutgoingID() string {
 	return ""
 }
 
-func (x *Conversation) GetStatus() ConvUpdateTypes {
+func (x *Conversation) GetStatus() ConversationStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ConvUpdateTypes_UNKNOWN_CONVTYPE
+	return ConversationStatus_UNKNOWN_CONVERSATION_STATUS
 }
 
 func (x *Conversation) GetReadOnly() bool {
@@ -2327,7 +2330,7 @@ var file_conversations_proto_goTypes = []interface{}{
 	(IdentifierType)(0),         // 1: conversations.IdentifierType
 	(ConversationType)(0),       // 2: conversations.ConversationType
 	(MessageStatusType)(0),      // 3: conversations.MessageStatusType
-	(ConvUpdateTypes)(0),        // 4: conversations.ConvUpdateTypes
+	(ConversationStatus)(0),     // 4: conversations.ConversationStatus
 	(MediaFormats)(0),           // 5: conversations.MediaFormats
 	(*Contact)(nil),             // 6: conversations.Contact
 	(*ContactNumber)(nil),       // 7: conversations.ContactNumber
@@ -2368,7 +2371,7 @@ var file_conversations_proto_depIdxs = []int32{
 	17, // 13: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
 	3,  // 14: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
 	24, // 15: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
-	4,  // 16: conversations.Conversation.status:type_name -> conversations.ConvUpdateTypes
+	4,  // 16: conversations.Conversation.status:type_name -> conversations.ConversationStatus
 	22, // 17: conversations.Conversation.participants:type_name -> conversations.Participant
 	2,  // 18: conversations.Conversation.type:type_name -> conversations.ConversationType
 	23, // 19: conversations.Participant.ID:type_name -> conversations.SmallInfo

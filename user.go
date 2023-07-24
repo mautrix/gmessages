@@ -795,14 +795,23 @@ func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) 
 func (user *User) syncConversation(v *gmproto.Conversation) {
 	updateType := v.GetStatus()
 	portal := user.GetPortalByID(v.GetConversationID())
+	log := portal.zlog.With().
+		Str("action", "sync conversation").
+		Str("conversation_status", updateType.String()).
+		Logger()
 	if portal.MXID != "" {
 		switch updateType {
 		// TODO also delete if blocked?
-		case gmproto.ConvUpdateTypes_DELETED:
-			user.zlog.Info().Str("conversation_id", portal.ID).Msg("Got delete event, cleaning up portal")
+		case gmproto.ConversationStatus_DELETED:
+			log.Info().Msg("Got delete event, cleaning up portal")
 			portal.Delete()
 			portal.Cleanup(false)
 		default:
+			if v.Participants == nil {
+				log.Debug().Msg("Not syncing conversation with nil participants")
+				return
+			}
+			log.Debug().Msg("Syncing existing portal")
 			portal.UpdateMetadata(user, v)
 			didBackfill := portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
 			user.syncChatDoublePuppetDetails(portal, v, false)
@@ -811,13 +820,18 @@ func (user *User) syncConversation(v *gmproto.Conversation) {
 				//user.markSelfReadFull(portal, v.LatestMessageID)
 			}
 		}
-	} else if updateType == gmproto.ConvUpdateTypes_UNARCHIVED || updateType == gmproto.ConvUpdateTypes_ARCHIVED {
+	} else if updateType == gmproto.ConversationStatus_ACTIVE || updateType == gmproto.ConversationStatus_ARCHIVED {
+		if v.Participants == nil {
+			log.Debug().Msg("Not syncing conversation with nil participants")
+			return
+		}
+		log.Debug().Msg("Creating portal for conversation")
 		err := portal.CreateMatrixRoom(user, v)
 		if err != nil {
-			user.zlog.Err(err).Msg("Error creating Matrix room from conversation event")
+			log.Err(err).Msg("Error creating Matrix room from conversation event")
 		}
 	} else {
-		user.zlog.Debug().Str("update_type", updateType.String()).Msg("Not creating portal for conversation")
+		log.Debug().Msg("Not creating portal for conversation")
 	}
 }
 
@@ -922,7 +936,7 @@ func (user *User) syncChatDoublePuppetDetails(portal *Portal, conv *gmproto.Conv
 		if err != nil && !errors.Is(err, mautrix.MNotFound) {
 			user.zlog.Warn().Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to get existing room tags")
 		}
-		user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConvUpdateTypes_ARCHIVED, existingTags)
+		user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED, existingTags)
 		user.updateChatTag(portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned, existingTags)
 	}
 }
