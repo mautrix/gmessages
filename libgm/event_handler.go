@@ -47,13 +47,19 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 		msg.Pair = &gmproto.RPCPairData{}
 		err := proto.Unmarshal(data.GetMessageData(), msg.Pair)
 		if err != nil {
-			return nil, err
+			c.Logger.Trace().
+				Str("data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
+				Msg("Errored pair event content")
+			return nil, fmt.Errorf("failed to decode pair event: %w", err)
 		}
 	case gmproto.BugleRoute_DataEvent:
 		msg.Message = &gmproto.RPCMessageData{}
 		err := proto.Unmarshal(data.GetMessageData(), msg.Message)
 		if err != nil {
-			return nil, err
+			c.Logger.Trace().
+				Str("data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
+				Msg("Errored data event content")
+			return nil, fmt.Errorf("failed to decode data event: %w", err)
 		}
 		responseStruct, ok := responseType[msg.Message.GetAction()]
 		if ok {
@@ -62,12 +68,15 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 		if msg.Message.EncryptedData != nil {
 			msg.DecryptedData, err = c.AuthData.RequestCrypto.Decrypt(msg.Message.EncryptedData)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to decrypt data event: %w", err)
 			}
 			if msg.DecryptedMessage != nil {
 				err = proto.Unmarshal(msg.DecryptedData, msg.DecryptedMessage)
 				if err != nil {
-					return nil, err
+					c.Logger.Trace().
+						Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+						Msg("Errored decrypted data event content")
+					return nil, fmt.Errorf("failed to decode decrypted data event: %w", err)
 				}
 			}
 		}
