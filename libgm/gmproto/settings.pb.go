@@ -27,14 +27,14 @@ type Settings struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data         *Data           `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	OpCodeData   *SomeData       `protobuf:"bytes,3,opt,name=opCodeData,proto3" json:"opCodeData,omitempty"`
-	RcsSettings  *RCSSettings    `protobuf:"bytes,4,opt,name=rcsSettings,proto3" json:"rcsSettings,omitempty"`
-	BugleVersion string          `protobuf:"bytes,5,opt,name=bugleVersion,proto3" json:"bugleVersion,omitempty"`
-	Bool1        bool            `protobuf:"varint,7,opt,name=bool1,proto3" json:"bool1,omitempty"`
-	BoolFields2  *BooleanFields2 `protobuf:"bytes,8,opt,name=boolFields2,proto3" json:"boolFields2,omitempty"`
-	EmptyString  string          `protobuf:"bytes,9,opt,name=emptyString,proto3" json:"emptyString,omitempty"`
-	BoolFields3  *BooleanFields3 `protobuf:"bytes,10,opt,name=boolFields3,proto3" json:"boolFields3,omitempty"`
+	Data            *Data           `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	OpCodeData      *SomeData       `protobuf:"bytes,3,opt,name=opCodeData,proto3" json:"opCodeData,omitempty"`
+	RcsSettings     *RCSSettings    `protobuf:"bytes,4,opt,name=rcsSettings,proto3" json:"rcsSettings,omitempty"`
+	BugleVersion    string          `protobuf:"bytes,5,opt,name=bugleVersion,proto3" json:"bugleVersion,omitempty"`
+	Bool1           bool            `protobuf:"varint,7,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	BoolFields2     *BooleanFields2 `protobuf:"bytes,8,opt,name=boolFields2,proto3" json:"boolFields2,omitempty"`
+	MysteriousBytes []byte          `protobuf:"bytes,9,opt,name=mysteriousBytes,proto3" json:"mysteriousBytes,omitempty"`
+	BoolFields3     *BooleanFields3 `protobuf:"bytes,10,opt,name=boolFields3,proto3" json:"boolFields3,omitempty"`
 }
 
 func (x *Settings) Reset() {
@@ -111,11 +111,11 @@ func (x *Settings) GetBoolFields2() *BooleanFields2 {
 	return nil
 }
 
-func (x *Settings) GetEmptyString() string {
+func (x *Settings) GetMysteriousBytes() []byte {
 	if x != nil {
-		return x.EmptyString
+		return x.MysteriousBytes
 	}
-	return ""
+	return nil
 }
 
 func (x *Settings) GetBoolFields3() *BooleanFields3 {

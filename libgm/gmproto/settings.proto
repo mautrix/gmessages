@@ -11,7 +11,7 @@ message Settings {
     string bugleVersion = 5;
     bool bool1 = 7;
     BooleanFields2 boolFields2 = 8;
-    string emptyString = 9;
+    bytes mysteriousBytes = 9;
     BooleanFields3 boolFields3 = 10;
 }
 
