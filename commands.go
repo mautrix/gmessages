@@ -290,11 +290,27 @@ func fnPing(ce *WrappedCommandEvent) {
 			ce.Reply("You're not logged into Google Messages.")
 		}
 	} else if ce.User.Client == nil || !ce.User.Client.IsConnected() {
-		ce.Reply("You're logged in as %s, but you don't have a Google Messages connection.", ce.User.PhoneID)
-	} else if ce.User.browserInactiveType == "" {
-		ce.Reply("Logged in as %s and active as primary browser", ce.User.PhoneID)
+		ce.Reply("Linked to %s, but not connected to Google Messages.", ce.User.PhoneID)
+	} else if ce.User.longPollingError != nil {
+		ce.Reply("Linked to %s, but long polling is erroring (%v)", ce.User.PhoneID, ce.User.longPollingError)
+	} else if ce.User.browserInactiveType != "" {
+		ce.Reply("Linked to %s, but not active, use `set-active` to reconnect", ce.User.PhoneID)
 	} else {
-		ce.Reply("Logged in as %s, but not active, use `set-active` to reconnect", ce.User.PhoneID)
+		modifiers := make([]string, 0, 3)
+		if ce.User.batteryLow {
+			modifiers = append(modifiers, "battery low")
+		}
+		if ce.User.mobileData {
+			modifiers = append(modifiers, "using mobile data")
+		}
+		if !ce.User.phoneResponding {
+			modifiers = append(modifiers, "phone not responding")
+		}
+		var modifierStr string
+		if len(modifiers) > 0 {
+			modifierStr = fmt.Sprintf(" (warnings: %s)", strings.Join(modifiers, ", "))
+		}
+		ce.Reply("Linked to %s and active as primary browser%s", ce.User.PhoneID, modifierStr)
 	}
 }
 
