@@ -802,7 +802,6 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		Str("action", "sync conversation").
 		Str("conversation_status", updateType.String()).
 		Str("data_source", source).
-		Str("room_id", portal.MXID.String()).
 		Interface("conversation_data", convCopy).
 		Logger()
 	if portal.MXID != "" {

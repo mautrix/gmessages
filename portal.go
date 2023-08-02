@@ -183,23 +183,27 @@ func (portal *Portal) GetUsers() []*User {
 	return nil
 }
 
-func (br *GMBridge) newBlankPortal(key database.Key) *Portal {
+func (portal *Portal) updateLogger() {
+	portal.zlog = portal.bridge.ZLog.With().
+		Str("portal_id", portal.ID).
+		Int("portal_receiver", portal.Receiver).
+		Str("room_id", portal.MXID.String()).
+		Logger()
+}
+
+func (br *GMBridge) NewPortal(dbPortal *database.Portal) *Portal {
 	portal := &Portal{
+		Portal: dbPortal,
+
 		bridge: br,
-		zlog:   br.ZLog.With().Str("portal_id", key.ID).Int("portal_receiver", key.Receiver).Logger(),
 
 		messages:       make(chan PortalMessage, br.Config.Bridge.PortalMessageBuffer),
 		matrixMessages: make(chan PortalMatrixMessage, br.Config.Bridge.PortalMessageBuffer),
 
 		outgoingMessages: make(map[string]*outgoingMessage),
 	}
+	portal.updateLogger()
 	go portal.handleMessageLoop()
-	return portal
-}
-
-func (br *GMBridge) NewPortal(dbPortal *database.Portal) *Portal {
-	portal := br.newBlankPortal(dbPortal.Key)
-	portal.Portal = dbPortal
 	return portal
 }
 
@@ -1067,11 +1071,12 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) e
 	if err != nil {
 		return err
 	}
-	portal.zlog.Info().Str("room_id", resp.RoomID.String()).Msg("Matrix room created")
+	portal.zlog.Info().Str("new_room_id", resp.RoomID.String()).Msg("Matrix room created")
 	portal.InSpace = false
 	portal.NameSet = len(req.Name) > 0
 	portal.forwardBackfillLock.Lock()
 	portal.MXID = resp.RoomID
+	portal.updateLogger()
 	portal.bridge.portalsLock.Lock()
 	portal.bridge.portalsByMXID[portal.MXID] = portal
 	portal.bridge.portalsLock.Unlock()
