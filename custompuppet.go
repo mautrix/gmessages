@@ -42,7 +42,15 @@ func (user *User) SwitchCustomMXID(accessToken string, mxid id.UserID) error {
 	}
 	user.DoublePuppetIntent = nil
 	user.AccessToken = accessToken
-	return user.startCustomMXID(false)
+	err := user.startCustomMXID(false)
+	if err != nil {
+		return err
+	}
+	err = user.Update(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to save access token to database: %w", err)
+	}
+	return nil
 }
 
 func (user *User) CustomIntent() *appservice.IntentAPI {
