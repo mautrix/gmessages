@@ -93,6 +93,10 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	return cli
 }
 
+func (c *Client) CurrentSessionID() string {
+	return c.sessionHandler.sessionID
+}
+
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
 	c.evHandler = eventHandler
 }

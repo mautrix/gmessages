@@ -74,6 +74,7 @@ type User struct {
 	mobileData          bool
 	phoneResponding     bool
 	ready               bool
+	sessionID           string
 	batteryLowAlertSent time.Time
 	pollErrorAlertSent  bool
 
@@ -704,12 +705,24 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
-		// TODO check if session ID changed?
+		wasInactive := user.browserInactiveType != "" || !user.ready
 		user.pollErrorAlertSent = false
 		user.browserInactiveType = ""
 		user.ready = true
-		go user.fetchAndSyncConversations()
-		user.sendMarkdownBridgeAlert(false, "Connected to Google Messages")
+		newSessionID := user.Client.CurrentSessionID()
+		if user.sessionID != newSessionID || wasInactive {
+			user.zlog.Debug().
+				Str("old_session_id", user.sessionID).
+				Str("new_session_id", newSessionID).
+				Msg("Session ID changed for browser active event, resyncing")
+			user.sessionID = newSessionID
+			go user.fetchAndSyncConversations()
+			user.sendMarkdownBridgeAlert(false, "Connected to Google Messages")
+		} else {
+			user.zlog.Debug().
+				Str("session_id", user.sessionID).
+				Msg("Session ID didn't change for browser active event, not resyncing")
+		}
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		user.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
