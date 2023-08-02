@@ -650,7 +650,7 @@ func (user *User) HandleEvent(event interface{}) {
 			user.zlog.Err(err).Msg("Failed to update session in database")
 		}
 	case *gmproto.Conversation:
-		user.syncConversation(v)
+		user.syncConversation(v, "event")
 	case *gmproto.Message:
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v, source: user}
@@ -692,7 +692,7 @@ func (user *User) fetchAndSyncConversations() {
 	}
 	user.zlog.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
 	for _, conv := range resp.GetConversations() {
-		user.syncConversation(conv)
+		user.syncConversation(conv, "sync")
 	}
 }
 
@@ -793,7 +793,7 @@ func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) 
 	return
 }
 
-func (user *User) syncConversation(v *gmproto.Conversation) {
+func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 	updateType := v.GetStatus()
 	portal := user.GetPortalByID(v.GetConversationID())
 	convCopy := proto.Clone(v).(*gmproto.Conversation)
@@ -801,6 +801,7 @@ func (user *User) syncConversation(v *gmproto.Conversation) {
 	log := portal.zlog.With().
 		Str("action", "sync conversation").
 		Str("conversation_status", updateType.String()).
+		Str("data_source", source).
 		Str("room_id", portal.MXID.String()).
 		Interface("conversation_data", convCopy).
 		Logger()

@@ -842,16 +842,6 @@ func (portal *Portal) ensureUserInvited(user *User) bool {
 	return user.ensureInvited(portal.MainIntent(), portal.MXID, portal.IsPrivateChat())
 }
 
-func (portal *Portal) UpdateMatrixRoom(user *User, groupInfo *gmproto.Conversation) bool {
-	if len(portal.MXID) == 0 {
-		return false
-	}
-
-	portal.ensureUserInvited(user)
-	portal.UpdateMetadata(user, groupInfo)
-	return true
-}
-
 func (portal *Portal) GetBasePowerLevels() *event.PowerLevelsEventContent {
 	anyone := 0
 	nope := 99

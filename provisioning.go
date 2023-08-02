@@ -238,6 +238,9 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
+	convCopy.LatestMessage = nil
+	prov.zlog.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for start chat")
 	portal := user.GetPortalByID(resp.Conversation.ConversationID)
 	err = portal.CreateMatrixRoom(user, resp.Conversation)
 	if err != nil {
