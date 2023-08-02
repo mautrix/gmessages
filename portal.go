@@ -748,6 +748,33 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 		portal.OtherUserID = firstParticipant.ID.ParticipantID
 		changed = true
 	}
+	if portal.MXID != "" {
+		members, err := portal.MainIntent().JoinedMembers(portal.MXID)
+		if err != nil {
+			portal.zlog.Warn().Err(err).Msg("Failed to get joined members")
+		} else {
+			delete(members.Joined, portal.bridge.Bot.UserID)
+			delete(members.Joined, source.MXID)
+			for _, userID := range userIDs {
+				delete(members.Joined, userID)
+			}
+			for userID := range members.Joined {
+				_, err = portal.MainIntent().KickUser(portal.MXID, &mautrix.ReqKickUser{
+					UserID: userID,
+					Reason: "User is not participating in chat",
+				})
+				if err != nil {
+					portal.zlog.Warn().Err(err).
+						Str("user_id", userID.String()).
+						Msg("Failed to kick extra user from portal")
+				} else {
+					portal.zlog.Debug().
+						Str("user_id", userID.String()).
+						Msg("Kicked extra user from portal")
+				}
+			}
+		}
+	}
 	return userIDs, changed
 }
 
