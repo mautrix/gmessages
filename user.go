@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/proto"
 	"maunium.net/go/maulogger/v2"
 	"maunium.net/go/maulogger/v2/maulogadapt"
 	"maunium.net/go/mautrix"
@@ -795,9 +796,13 @@ func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) 
 func (user *User) syncConversation(v *gmproto.Conversation) {
 	updateType := v.GetStatus()
 	portal := user.GetPortalByID(v.GetConversationID())
+	convCopy := proto.Clone(v).(*gmproto.Conversation)
+	convCopy.LatestMessage = nil
 	log := portal.zlog.With().
 		Str("action", "sync conversation").
 		Str("conversation_status", updateType.String()).
+		Str("room_id", portal.MXID.String()).
+		Interface("conversation_data", convCopy).
 		Logger()
 	if portal.MXID != "" {
 		switch updateType {
