@@ -20,6 +20,8 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
+const phoneNotRespondingTimeout = 30 * time.Second
+
 func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, stopPinger chan struct{}) {
 	notResponding := false
 	exit := false
@@ -40,7 +42,7 @@ func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, sto
 		case <-pingChan:
 			onRespond()
 			return
-		case <-time.After(15 * time.Second):
+		case <-time.After(phoneNotRespondingTimeout):
 			log.Warn().Msg("Ditto ping is taking long, phone may be offline")
 			c.triggerEvent(&events.PhoneNotResponding{})
 			notResponding = true
