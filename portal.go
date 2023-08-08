@@ -593,9 +593,17 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.SenderID = evt.ParticipantID
 	cm.ID = evt.MessageID
 	cm.Timestamp = time.UnixMicro(evt.Timestamp)
-	cm.Intent = portal.getIntent(ctx, source, evt.ParticipantID)
-	if cm.Intent == nil {
-		return nil
+	msgStatus := evt.GetMessageStatus().GetStatus()
+	if msgStatus >= 200 && msgStatus < 300 {
+		cm.Intent = portal.bridge.Bot
+		if !portal.Encrypted && portal.IsPrivateChat() {
+			cm.Intent = portal.MainIntent()
+		}
+	} else {
+		cm.Intent = portal.getIntent(ctx, source, evt.ParticipantID)
+		if cm.Intent == nil {
+			return nil
+		}
 	}
 
 	var replyTo id.EventID
