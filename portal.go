@@ -25,6 +25,7 @@ import (
 	_ "image/gif"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -239,6 +240,8 @@ type Portal struct {
 	forwardBackfillLock sync.Mutex
 	lastMessageTS       time.Time
 
+	pendingRecentBackfill atomic.Pointer[pendingBackfill]
+
 	recentlyHandled      [recentlyHandledLength]string
 	recentlyHandledLock  sync.Mutex
 	recentlyHandledIndex uint8
@@ -270,8 +273,6 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 	switch {
 	case msg.evt != nil:
 		portal.handleMessage(msg.source, msg.evt)
-	//case msg.receipt != nil:
-	//	portal.handleReceipt(msg.receipt, msg.source)
 	default:
 		portal.zlog.Warn().Interface("portal_message", msg).Msg("Unexpected PortalMessage with no message")
 	}

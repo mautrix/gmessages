@@ -831,8 +831,8 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 			}
 			log.Debug().Msg("Syncing existing portal")
 			portal.UpdateMetadata(user, v)
-			didBackfill := portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
 			user.syncChatDoublePuppetDetails(portal, v, false)
+			didBackfill := portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
 			if !didBackfill && !v.GetUnread() && v.LatestMessageID != "" && user.DoublePuppetIntent != nil {
 				// TODO this would spam a lot of read receipts on startup
 				//user.markSelfReadFull(portal, v.LatestMessageID)

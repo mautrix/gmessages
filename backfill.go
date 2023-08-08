@@ -43,17 +43,41 @@ func (portal *Portal) initialForwardBackfill(user *User, markRead bool) {
 	portal.forwardBackfill(ctx, user, time.Time{}, portal.bridge.Config.Bridge.Backfill.InitialLimit, markRead)
 }
 
+const recentBackfillDelay = 15 * time.Second
+
+type pendingBackfill struct {
+	cancel        context.CancelFunc
+	lastMessageID string
+	lastMessageTS time.Time
+}
+
 func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead bool) bool {
 	if portal.bridge.Config.Bridge.Backfill.MissedLimit == 0 {
 		return false
 	}
+	log := portal.zlog.With().
+		Str("action", "missed forward backfill").
+		Str("latest_message_id", lastMessageID).
+		Logger()
+	ctx := log.WithContext(context.TODO())
+	if time.Since(lastMessageTS) < 5*time.Minute {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		prev := portal.pendingRecentBackfill.Swap(&pendingBackfill{cancel: cancel, lastMessageID: lastMessageID, lastMessageTS: lastMessageTS})
+		if prev != nil {
+			prev.cancel()
+		}
+		log.Debug().Msg("Delaying missed forward backfill as latest message is new")
+		select {
+		case <-time.After(recentBackfillDelay):
+		case <-ctx.Done():
+			log.Debug().Msg("Backfill was cancelled by a newer backfill")
+			return false
+		}
+	}
 
 	portal.forwardBackfillLock.Lock()
 	defer portal.forwardBackfillLock.Unlock()
-	log := portal.zlog.With().
-		Str("action", "missed forward backfill").
-		Logger()
-	ctx := log.WithContext(context.TODO())
 	if !lastMessageTS.IsZero() {
 		if portal.lastMessageTS.IsZero() {
 			lastMsg, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
