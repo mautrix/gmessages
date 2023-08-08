@@ -29,9 +29,8 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
-	mutil "maunium.net/go/mautrix/util"
-	"maunium.net/go/mautrix/util/variationselector"
-
+	"go.mau.fi/util/exerrors"
+	"go.mau.fi/util/variationselector"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
@@ -1303,12 +1302,12 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		}
 		data, err := portal.MainIntent().DownloadBytesContext(ctx, url)
 		if err != nil {
-			return nil, mutil.NewDualError(errMediaDownloadFailed, err)
+			return nil, exerrors.NewDualError(errMediaDownloadFailed, err)
 		}
 		if content.File != nil {
 			err = content.File.DecryptInPlace(data)
 			if err != nil {
-				return nil, mutil.NewDualError(errMediaDecryptFailed, err)
+				return nil, exerrors.NewDualError(errMediaDecryptFailed, err)
 			}
 		}
 		if content.Info.MimeType == "" {
@@ -1320,7 +1319,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		}
 		resp, err := sender.Client.UploadMedia(data, fileName, content.Info.MimeType)
 		if err != nil {
-			return nil, mutil.NewDualError(errMediaReuploadFailed, err)
+			return nil, exerrors.NewDualError(errMediaReuploadFailed, err)
 		}
 		req.MessagePayload.MessageInfo = []*gmproto.MessageInfo{{
 			Data: &gmproto.MessageInfo_MediaContent{MediaContent: resp},

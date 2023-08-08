@@ -5,13 +5,14 @@ go 1.20
 require (
 	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/mattn/go-sqlite3 v1.14.17
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.1.0
+	go.mau.fi/util v0.0.0-20230805161919-cf42c11d39c3
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	google.golang.org/protobuf v1.31.0
 	maunium.net/go/maulogger/v2 v2.4.1
-	maunium.net/go/mautrix v0.15.5-0.20230728182848-1ef656165098
+	maunium.net/go/mautrix v0.15.5-0.20230805162445-fd1cdd8c9457
 )
 
 require (

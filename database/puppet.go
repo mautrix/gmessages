@@ -21,8 +21,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"go.mau.fi/util/dbutil"
 	"maunium.net/go/mautrix/id"
-	"maunium.net/go/mautrix/util/dbutil"
 )
 
 type PuppetQuery struct {

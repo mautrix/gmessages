@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"sync"
 
+	"go.mau.fi/util/dbutil"
 	"golang.org/x/exp/slices"
 	"maunium.net/go/mautrix/id"
-	"maunium.net/go/mautrix/util/dbutil"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
 )
