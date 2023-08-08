@@ -50,10 +50,21 @@ var (
 type OutgoingStatusError gmproto.MessageStatusType
 
 func (ose OutgoingStatusError) Error() string {
-	return strings.TrimPrefix(string((gmproto.MessageStatusType)(ose).Descriptor().Name()), "OUTGOING_")
+	return strings.TrimPrefix(gmproto.MessageStatusType(ose).String(), "OUTGOING_")
 }
 
 func (ose OutgoingStatusError) HumanError() string {
+	switch gmproto.MessageStatusType(ose) {
+	case gmproto.MessageStatusType_OUTGOING_FAILED_TOO_LARGE:
+		return "too large"
+	case gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS:
+		return "recipient lost RCS support"
+	case gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION:
+		return "recipient lost encryption support"
+	case gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
+		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
+		return "recipient failed to decrypt message"
+	}
 	return ""
 }
 
