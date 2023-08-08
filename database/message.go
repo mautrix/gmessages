@@ -74,6 +74,11 @@ func (mq *MessageQuery) GetLastInChat(ctx context.Context, chat Key) (*Message, 
 
 type MessageStatus struct {
 	Type gmproto.MessageStatusType
+
+	MSSSent         bool
+	MSSFailSent     bool
+	MSSDeliverySent bool
+	ReadReceiptSent bool
 }
 
 type Message struct {

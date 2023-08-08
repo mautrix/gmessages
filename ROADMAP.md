@@ -15,7 +15,8 @@
     * [x] Replies (RCS)
   * [x] Reactions (RCS)
   * [ ] Typing notifications (RCS)
-  * [ ] Read receipts (RCS)
+  * [x] Read receipts in 1:1 chats (RCS)
+  * [ ] Read receipts in groups (RCS)
   * [x] Message deletions (own device only)
 * Misc
   * [x] Automatic portal creation

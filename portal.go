@@ -313,39 +313,19 @@ func (portal *Portal) handleMessageLoop() {
 	}
 }
 
-func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) id.EventID {
+func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) *database.Message {
 	portal.outgoingMessagesLock.Lock()
 	defer portal.outgoingMessagesLock.Unlock()
 	out, ok := portal.outgoingMessages[msg.TmpID]
 	if ok {
-		if !out.Saved {
-			portal.markHandled(&ConvertedMessage{
-				ID:        msg.MessageID,
-				Timestamp: time.UnixMicro(msg.GetTimestamp()),
-				SenderID:  msg.ParticipantID,
-			}, out.ID, true)
-			out.Saved = true
-		}
-		switch msg.GetMessageStatus().GetStatus() {
-		case gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_COMPLETE, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
-			delete(portal.outgoingMessages, msg.TmpID)
-			go portal.sendStatusEvent(out.ID, "", nil)
-		case gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC,
-			gmproto.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER,
-			gmproto.MessageStatusType_OUTGOING_CANCELED,
-			gmproto.MessageStatusType_OUTGOING_FAILED_TOO_LARGE,
-			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS,
-			gmproto.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK,
-			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
-			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION,
-			gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
-			err := OutgoingStatusError(msg.GetMessageStatus().GetStatus())
-			go portal.sendStatusEvent(out.ID, "", err)
-			// TODO error notice
-		}
-		return out.ID
+		delete(portal.outgoingMessages, msg.TmpID)
+		return portal.markHandled(&ConvertedMessage{
+			ID:        msg.MessageID,
+			Timestamp: time.UnixMicro(msg.GetTimestamp()),
+			SenderID:  msg.ParticipantID,
+		}, out.ID, true)
 	}
-	return ""
+	return nil
 }
 func hasInProgressMedia(msg *gmproto.Message) bool {
 	for _, part := range msg.MessageInfo {
@@ -355,6 +335,76 @@ func hasInProgressMedia(msg *gmproto.Message) bool {
 		}
 	}
 	return false
+}
+
+func isSuccessfullySentStatus(status gmproto.MessageStatusType) bool {
+	switch status {
+	case gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_COMPLETE, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
+		return true
+	default:
+		return false
+	}
+}
+
+func isFailSendStatus(status gmproto.MessageStatusType) bool {
+	switch status {
+	case gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC,
+		gmproto.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER,
+		gmproto.MessageStatusType_OUTGOING_CANCELED,
+		gmproto.MessageStatusType_OUTGOING_FAILED_TOO_LARGE,
+		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_RCS,
+		gmproto.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK,
+		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
+		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION,
+		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
+		return true
+	default:
+		return false
+	}
+}
+
+func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *User, dbMsg *database.Message, evt *gmproto.Message) {
+	log := zerolog.Ctx(ctx)
+	portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
+	newStatus := evt.GetMessageStatus().GetStatus()
+	if dbMsg.Status.Type != newStatus {
+		log.Debug().Str("old_status", dbMsg.Status.Type.String()).Msg("Message status changed")
+		switch {
+		case !dbMsg.Status.ReadReceiptSent && portal.IsPrivateChat() && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED:
+			dbMsg.Status.ReadReceiptSent = true
+			if !dbMsg.Status.MSSDeliverySent {
+				dbMsg.Status.MSSDeliverySent = true
+				dbMsg.Status.MSSSent = true
+				go portal.sendStatusEvent(dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
+			}
+			err := portal.MainIntent().MarkRead(portal.MXID, dbMsg.MXID)
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed to mark message as read")
+			}
+		case !dbMsg.Status.MSSDeliverySent && portal.IsPrivateChat() && newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED:
+			dbMsg.Status.MSSDeliverySent = true
+			dbMsg.Status.MSSSent = true
+			go portal.sendStatusEvent(dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
+		case !dbMsg.Status.MSSSent && isSuccessfullySentStatus(newStatus):
+			dbMsg.Status.MSSSent = true
+			var deliveredTo *[]id.UserID
+			// TODO SMSes can enable delivery receipts too, but can it be detected?
+			if portal.IsPrivateChat() && portal.Type == gmproto.ConversationType_RCS {
+				deliveredTo = &[]id.UserID{}
+			}
+			go portal.sendStatusEvent(dbMsg.MXID, "", nil, deliveredTo)
+		case !dbMsg.Status.MSSFailSent && !dbMsg.Status.MSSSent && isFailSendStatus(newStatus):
+			go portal.sendStatusEvent(dbMsg.MXID, "", OutgoingStatusError(newStatus), nil)
+			// TODO error notice
+		default:
+			// TODO do something?
+		}
+		dbMsg.Status.Type = newStatus
+		err := dbMsg.UpdateStatus(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to save updated message status to database")
+		}
+	}
 }
 
 func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
@@ -385,8 +435,9 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		log.Debug().Msg("Not handling incoming message that doesn't have full media yet")
 		return
 	}
-	if evtID := portal.isOutgoingMessage(evt); evtID != "" {
-		log.Debug().Str("event_id", evtID.String()).Msg("Got echo for outgoing message")
+	if existingMsg := portal.isOutgoingMessage(evt); existingMsg != nil {
+		log.Debug().Str("event_id", existingMsg.MXID.String()).Msg("Got echo for outgoing message")
+		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
 		return
 	}
 	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, evt.MessageID)
@@ -394,7 +445,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		log.Err(err).Msg("Failed to check if message is duplicate")
 	} else if existingMsg != nil {
 		log.Debug().Msg("Not handling duplicate message")
-		portal.syncReactions(ctx, source, existingMsg, evt.Reactions)
+		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
 		return
 	}
 

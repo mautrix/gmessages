@@ -135,8 +135,9 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 	for i := len(resp.Messages) - 1; i >= 0; i-- {
 		evt := resp.Messages[i]
 		// TODO this should check the database too
-		if evtID := portal.isOutgoingMessage(evt); evtID != "" {
-			log.Debug().Str("event_id", evtID.String()).Msg("Got echo for outgoing message in backfill batch")
+		if dbMsg := portal.isOutgoingMessage(evt); dbMsg != nil {
+			log.Debug().Str("event_id", dbMsg.MXID.String()).Msg("Got echo for outgoing message in backfill batch")
+			portal.handleExistingMessageUpdate(ctx, user, dbMsg, evt)
 			continue
 		} else if !time.UnixMicro(evt.Timestamp).After(after) {
 			continue
