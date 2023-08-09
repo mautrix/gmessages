@@ -914,7 +914,7 @@ type CustomReadMarkers struct {
 }
 
 func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
-	if user.DoublePuppetIntent == nil {
+	if user.DoublePuppetIntent == nil || portal.lastUserReadID == lastMessageID {
 		return
 	}
 	ctx := context.TODO()
@@ -925,7 +925,7 @@ func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
 	if err != nil {
 		user.zlog.Warn().Err(err).Msg("Failed to get last message in chat to mark it as read")
 		return
-	} else if lastMessage == nil {
+	} else if lastMessage == nil || portal.lastUserReadID == lastMessage.ID {
 		return
 	}
 	log := user.zlog.With().
@@ -946,6 +946,7 @@ func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
 		log.Warn().Err(err).Msg("Failed to mark last message in chat as read")
 	} else {
 		log.Debug().Msg("Marked last message in chat as read")
+		portal.lastUserReadID = lastMessage.ID
 	}
 }
 

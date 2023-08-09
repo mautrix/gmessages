@@ -72,13 +72,30 @@ func (mq *MessageQuery) GetLastInChat(ctx context.Context, chat Key) (*Message, 
 	return get[*Message](mq, ctx, getLastMessageInChatQuery, chat.ID, chat.Receiver)
 }
 
-type MessageStatus struct {
-	Type gmproto.MessageStatusType
+type MediaPart struct {
+	EventID      id.EventID `json:"mxid,omitempty"`
+	PendingMedia bool       `json:"pending_media,omitempty"`
+}
 
-	MSSSent         bool
-	MSSFailSent     bool
-	MSSDeliverySent bool
-	ReadReceiptSent bool
+type MessageStatus struct {
+	Type gmproto.MessageStatusType `json:"type,omitempty"`
+
+	MediaStatus string               `json:"media_status,omitempty"`
+	MediaParts  map[string]MediaPart `json:"media_parts,omitempty"`
+
+	MSSSent         bool `json:"mss_sent,omitempty"`
+	MSSFailSent     bool `json:"mss_fail_sent,omitempty"`
+	MSSDeliverySent bool `json:"mss_delivery_sent,omitempty"`
+	ReadReceiptSent bool `json:"read_receipt_sent,omitempty"`
+}
+
+func (ms *MessageStatus) HasPendingMediaParts() bool {
+	for _, part := range ms.MediaParts {
+		if part.PendingMedia {
+			return true
+		}
+	}
+	return false
 }
 
 type Message struct {
@@ -145,7 +162,7 @@ func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) err
 }
 
 func (msg *Message) UpdateStatus(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, "UPDATE message SET status=$1 WHERE conv_id=$2 AND conv_receiver=$3 AND id=$4", dbutil.JSON{Data: &msg.Status}, msg.Chat.ID, msg.Chat.Receiver, msg.ID)
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, "UPDATE message SET status=$1, timestamp=$2 WHERE conv_id=$3 AND conv_receiver=$4 AND id=$5", dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.ID, msg.Chat.Receiver, msg.ID)
 	return err
 }
 

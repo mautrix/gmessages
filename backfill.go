@@ -62,7 +62,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("latest_message_id", lastMessageID).
 		Logger()
 	ctx := log.WithContext(context.TODO())
-	if !lastMessageTS.IsZero() && time.Since(lastMessageTS) < 5*time.Minute && portal.lastMessageTS.Before(lastMessageTS) {
+	if portal.hasSyncedThisRun && !lastMessageTS.IsZero() && time.Since(lastMessageTS) < 5*time.Minute && portal.lastMessageTS.Before(lastMessageTS) {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithCancel(ctx)
 		prev := portal.pendingRecentBackfill.Swap(&pendingBackfill{cancel: cancel, lastMessageID: lastMessageID, lastMessageTS: lastMessageTS})
@@ -80,6 +80,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 
 	portal.forwardBackfillLock.Lock()
 	defer portal.forwardBackfillLock.Unlock()
+	portal.hasSyncedThisRun = true
 	if !lastMessageTS.IsZero() {
 		if portal.lastMessageTS.IsZero() {
 			lastMsg, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
@@ -192,6 +193,9 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 		dbm.ID = msg.ID
 		dbm.Sender = msg.SenderID
 		dbm.Timestamp = msg.Timestamp
+		dbm.Status.Type = msg.Status
+		dbm.Status.MediaStatus = msg.MediaStatus
+		dbm.Status.MediaParts = make(map[string]database.MediaPart, len(msg.Parts))
 
 		for i, part := range msg.Parts {
 			content := event.Content{
@@ -217,6 +221,14 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 			events = append(events, evt)
 			if dbm.MXID == "" {
 				dbm.MXID = evt.ID
+				if part.PendingMedia {
+					dbm.Status.MediaParts[""] = database.MediaPart{PendingMedia: true}
+				}
+			} else {
+				dbm.Status.MediaParts[part.ID] = database.MediaPart{
+					EventID:      evt.ID,
+					PendingMedia: part.PendingMedia,
+				}
 			}
 		}
 		if dbm.MXID != "" {
@@ -243,7 +255,11 @@ func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*Conve
 	var lastEventID id.EventID
 	eventIDs := make(map[string]id.EventID)
 	for _, msg := range converted {
-		var eventID id.EventID
+		if len(msg.Parts) == 0 {
+			continue
+		}
+		var msgFirstEventID id.EventID
+		mediaParts := make(map[string]database.MediaPart, len(msg.Parts)-1)
 		for i, part := range msg.Parts {
 			if msg.ReplyTo != "" && part.Content.RelatesTo == nil {
 				replyToEvent, ok := eventIDs[msg.ReplyTo]
@@ -256,16 +272,21 @@ func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*Conve
 			resp, err := portal.sendMessage(msg.Intent, event.EventMessage, part.Content, part.Extra, msg.Timestamp.UnixMilli())
 			if err != nil {
 				log.Err(err).Str("message_id", msg.ID).Int("part", i).Msg("Failed to send message")
-			} else if eventID == "" {
-				eventID = resp.EventID
-				eventIDs[msg.ID] = resp.EventID
-			}
-			if resp != nil {
+			} else {
+				if msgFirstEventID == "" {
+					msgFirstEventID = resp.EventID
+					eventIDs[msg.ID] = resp.EventID
+				} else {
+					mediaParts[part.ID] = database.MediaPart{
+						EventID:      resp.EventID,
+						PendingMedia: part.PendingMedia,
+					}
+				}
 				lastEventID = resp.EventID
 			}
 		}
-		if eventID != "" {
-			portal.markHandled(msg, eventID, false)
+		if msgFirstEventID != "" {
+			portal.markHandled(msg, msgFirstEventID, mediaParts, false)
 		}
 	}
 	return lastEventID
