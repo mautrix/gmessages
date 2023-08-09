@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -75,7 +76,6 @@ func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, sto
 func (c *Client) doLongPoll(loggedIn bool) {
 	c.listenID++
 	listenID := c.listenID
-	errored := true
 	listenReqID := uuid.NewString()
 
 	log := c.Logger.With().Int("listen_id", listenID).Logger()
@@ -90,6 +90,7 @@ func (c *Client) doLongPoll(loggedIn bool) {
 	defer close(stopDittoPinger)
 	go c.doDittoPinger(&log, dittoPing, stopDittoPinger)
 
+	errorCount := 1
 	for c.listenID == listenID {
 		err := c.refreshAuthToken()
 		if err != nil {
@@ -115,28 +116,33 @@ func (c *Client) doLongPoll(loggedIn bool) {
 			if loggedIn {
 				c.triggerEvent(&events.ListenTemporaryError{Error: err})
 			}
-			errored = true
-			log.Err(err).Msg("Error making listen request, retrying in 5 seconds")
-			time.Sleep(5 * time.Second)
+			errorCount++
+			sleepSeconds := (errorCount + 1) * 5
+			log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error making listen request, retrying in a while")
+			time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			continue
 		}
-		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 			log.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
 			if loggedIn {
 				c.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp}})
 			}
 			return
-		} else if resp.StatusCode >= 500 {
+		} else if resp.StatusCode >= 400 {
 			if loggedIn {
 				c.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp}})
 			}
-			errored = true
-			log.Debug().Int("statusCode", resp.StatusCode).Msg("5xx error in long polling, retrying in 5 seconds")
-			time.Sleep(5 * time.Second)
+			errorCount++
+			sleepSeconds := (errorCount + 1) * 5
+			log.Debug().
+				Int("statusCode", resp.StatusCode).
+				Int("sleep_seconds", sleepSeconds).
+				Msg("Error in long polling, retrying in a while")
+			time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			continue
 		}
-		if errored {
-			errored = false
+		if errorCount > 0 {
+			errorCount = 0
 			if loggedIn {
 				c.triggerEvent(&events.ListenRecovered{})
 			}
