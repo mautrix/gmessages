@@ -325,6 +325,7 @@ func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) *database.Message 
 			ID:        msg.MessageID,
 			Timestamp: time.UnixMicro(msg.GetTimestamp()),
 			SenderID:  msg.ParticipantID,
+			PartCount: len(msg.GetMessageInfo()),
 		}, out.ID, nil, true)
 	}
 	return nil
@@ -414,7 +415,8 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		}
 		return
 	case dbMsg.Status.MediaStatus != downloadPendingStatusMessage(newStatus),
-		dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt):
+		dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt),
+		dbMsg.Status.PartCount != len(evt.MessageInfo):
 		converted := portal.convertGoogleMessage(ctx, source, evt, false)
 		dbMsg.Status.MediaStatus = converted.MediaStatus
 		if dbMsg.Status.MediaParts == nil {
@@ -479,6 +481,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		// TODO do something?
 	}
 	dbMsg.Status.Type = newStatus
+	dbMsg.Status.PartCount = len(evt.MessageInfo)
 	dbMsg.Timestamp = time.UnixMicro(evt.GetTimestamp())
 	err := dbMsg.UpdateStatus(ctx)
 	if err != nil {
@@ -502,10 +505,6 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		Str("action", "handle google message").
 		Logger()
 	ctx := log.WithContext(context.TODO())
-	//if hasInProgressMedia(evt) {
-	//	log.Debug().Msg("Not handling incoming message that doesn't have full media yet")
-	//	return
-	//}
 	if existingMsg := portal.isOutgoingMessage(evt); existingMsg != nil {
 		log.Debug().Str("event_id", existingMsg.MXID.String()).Msg("Got echo for outgoing message")
 		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
@@ -636,6 +635,7 @@ type ConvertedMessage struct {
 	Timestamp time.Time
 	ReplyTo   string
 	Parts     []ConvertedMessagePart
+	PartCount int
 
 	Status      gmproto.MessageStatusType
 	MediaStatus string
@@ -679,6 +679,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.Status = evt.GetMessageStatus().GetStatus()
 	cm.SenderID = evt.ParticipantID
 	cm.ID = evt.MessageID
+	cm.PartCount = len(evt.GetMessageInfo())
 	cm.Timestamp = time.UnixMicro(evt.Timestamp)
 	if cm.Status >= 200 && cm.Status < 300 {
 		cm.Intent = portal.bridge.Bot
@@ -873,6 +874,7 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, medi
 	msg.Timestamp = cm.Timestamp
 	msg.Sender = cm.SenderID
 	msg.Status.Type = cm.Status
+	msg.Status.PartCount = cm.PartCount
 	msg.Status.MediaStatus = cm.MediaStatus
 	msg.Status.MediaParts = mediaParts
 	err := msg.Insert(context.TODO())

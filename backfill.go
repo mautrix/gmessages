@@ -194,6 +194,7 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 		dbm.Sender = msg.SenderID
 		dbm.Timestamp = msg.Timestamp
 		dbm.Status.Type = msg.Status
+		dbm.Status.PartCount = msg.PartCount
 		dbm.Status.MediaStatus = msg.MediaStatus
 		dbm.Status.MediaParts = make(map[string]database.MediaPart, len(msg.Parts))
 

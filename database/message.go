@@ -82,6 +82,7 @@ type MessageStatus struct {
 
 	MediaStatus string               `json:"media_status,omitempty"`
 	MediaParts  map[string]MediaPart `json:"media_parts,omitempty"`
+	PartCount   int                  `json:"part_count,omitempty"`
 
 	MSSSent         bool `json:"mss_sent,omitempty"`
 	MSSFailSent     bool `json:"mss_fail_sent,omitempty"`
