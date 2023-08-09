@@ -832,11 +832,13 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 			log.Debug().Msg("Syncing existing portal")
 			portal.UpdateMetadata(user, v)
 			user.syncChatDoublePuppetDetails(portal, v, false)
-			didBackfill := portal.missedForwardBackfill(user, time.UnixMicro(v.LastMessageTimestamp), v.LatestMessageID, !v.GetUnread())
-			if !didBackfill && !v.GetUnread() && v.LatestMessageID != "" && user.DoublePuppetIntent != nil {
-				// TODO this would spam a lot of read receipts on startup
-				//user.markSelfReadFull(portal, v.LatestMessageID)
-			}
+			go portal.missedForwardBackfill(
+				user,
+				time.UnixMicro(v.LastMessageTimestamp),
+				v.LatestMessageID,
+				!v.GetUnread(),
+				source == "event",
+			)
 		}
 	} else if updateType == gmproto.ConversationStatus_ACTIVE || updateType == gmproto.ConversationStatus_ARCHIVED {
 		if v.Participants == nil {
@@ -912,6 +914,9 @@ type CustomReadMarkers struct {
 }
 
 func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
+	if user.DoublePuppetIntent == nil {
+		return
+	}
 	ctx := context.TODO()
 	lastMessage, err := user.bridge.DB.Message.GetByID(ctx, portal.Key, lastMessageID)
 	if err == nil && lastMessage == nil {

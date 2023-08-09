@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
@@ -51,16 +50,19 @@ type pendingBackfill struct {
 	lastMessageTS time.Time
 }
 
-func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead bool) bool {
+func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead, markReadIfNoBackfill bool) {
 	if portal.bridge.Config.Bridge.Backfill.MissedLimit == 0 {
-		return false
+		if markRead && markReadIfNoBackfill {
+			user.markSelfReadFull(portal, lastMessageID)
+		}
+		return
 	}
 	log := portal.zlog.With().
 		Str("action", "missed forward backfill").
 		Str("latest_message_id", lastMessageID).
 		Logger()
 	ctx := log.WithContext(context.TODO())
-	if time.Since(lastMessageTS) < 5*time.Minute {
+	if !lastMessageTS.IsZero() && time.Since(lastMessageTS) < 5*time.Minute && portal.lastMessageTS.Before(lastMessageTS) {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithCancel(ctx)
 		prev := portal.pendingRecentBackfill.Swap(&pendingBackfill{cancel: cancel, lastMessageID: lastMessageID, lastMessageTS: lastMessageTS})
@@ -72,7 +74,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		case <-time.After(recentBackfillDelay):
 		case <-ctx.Done():
 			log.Debug().Msg("Backfill was cancelled by a newer backfill")
-			return false
+			return
 		}
 	}
 
@@ -83,7 +85,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 			lastMsg, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
 			if err != nil {
 				log.Err(err).Msg("Failed to get last message in chat")
-				return false
+				return
 			} else if lastMsg == nil {
 				log.Debug().Msg("No messages in chat")
 			} else {
@@ -96,7 +98,10 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 				Str("latest_message_id", lastMessageID).
 				Time("last_bridged_ts", portal.lastMessageTS).
 				Msg("Nothing to backfill")
-			return false
+			if markRead && markReadIfNoBackfill {
+				user.markSelfReadFull(portal, lastMessageID)
+			}
+			return
 		}
 	}
 	log.Info().
@@ -104,7 +109,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("latest_message_id", lastMessageID).
 		Time("last_bridged_ts", portal.lastMessageTS).
 		Msg("Backfilling missed messages")
-	return portal.forwardBackfill(ctx, user, portal.lastMessageTS, portal.bridge.Config.Bridge.Backfill.MissedLimit, markRead)
+	portal.forwardBackfill(ctx, user, portal.lastMessageTS, portal.bridge.Config.Bridge.Backfill.MissedLimit, markRead)
 }
 
 func (portal *Portal) deterministicEventID(messageID string, part int) id.EventID {
