@@ -597,7 +597,7 @@ func (user *User) HandleEvent(event interface{}) {
 	switch v := event.(type) {
 	case *events.ListenFatalError:
 		user.Logout(status.BridgeState{
-			StateEvent: status.StateBadCredentials,
+			StateEvent: status.StateUnknownError,
 			Error:      GMFatalError,
 			Info:       map[string]any{"go_error": v.Error.Error()},
 		}, false)

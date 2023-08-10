@@ -42,7 +42,7 @@ func init() {
 	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{
 		GMListenError:               "Error polling messages from Google Messages server, the bridge will try to reconnect",
 		GMFatalError:                "Google Messages token was invalidated, please re-link the bridge",
-		GMUnpaired:                  "The bridge was unpaired from Google Messages, please re-link the bridge",
+		GMUnpaired:                  "Unpaired from Google Messages, please re-link to continue using the bridge",
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
