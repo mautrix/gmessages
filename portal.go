@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/gif"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -509,6 +510,14 @@ func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, e
 	return false
 }
 
+func idToInt(id string) int {
+	i, err := strconv.Atoi(id)
+	if err != nil {
+		return 0
+	}
+	return i
+}
+
 func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 	eventTS := time.UnixMicro(evt.GetTimestamp())
 	if eventTS.After(portal.lastMessageTS) {
@@ -518,6 +527,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		Str("message_id", evt.MessageID).
 		Str("participant_id", evt.ParticipantID).
 		Str("status", evt.GetMessageStatus().GetStatus().String()).
+		Time("message_timestamp", eventTS).
 		Str("action", "handle google message").
 		Logger()
 	ctx := log.WithContext(context.TODO())
@@ -527,6 +537,14 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 	if evt.GetMessageStatus().GetStatus() == gmproto.MessageStatusType_MESSAGE_DELETED {
 		log.Debug().Msg("Not handling unknown deleted message")
 		return
+	} else if eventTS.Add(24 * time.Hour).Before(time.Now()) {
+		lastMessage, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
+		} else if lastMessage != nil && lastMessage.Timestamp.After(eventTS) && idToInt(lastMessage.ID) > idToInt(evt.MessageID) {
+			log.Debug().Msg("Not handling old message")
+			return
+		}
 	}
 
 	converted := portal.convertGoogleMessage(ctx, source, evt, false)
