@@ -239,10 +239,18 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 			dbMessages = append(dbMessages, dbm)
 		}
 	}
+	forward := true
+	log.Debug().
+		Int("event_count", len(events)).
+		Bool("forward", forward).
+		Bool("mark_read", markReadBy != "").
+		Bool("notify", markReadBy == "").
+		Msg("Sending batch of messages")
 	_, err := portal.MainIntent().BeeperBatchSend(portal.MXID, &mautrix.ReqBeeperBatchSend{
-		Forward:    true,
-		MarkReadBy: markReadBy,
-		Events:     events,
+		Forward:          forward,
+		MarkReadBy:       markReadBy,
+		SendNotification: forward && markReadBy == "",
+		Events:           events,
 	})
 	if err != nil {
 		log.Err(err).Msg("Failed to send batch of messages")
