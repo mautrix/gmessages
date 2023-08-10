@@ -59,10 +59,12 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 
 	c.triggerEvent(&events.PairSuccessful{PairedData: data})
 
-	err := c.Reconnect()
-	if err != nil {
-		c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
-	}
+	go func() {
+		err := c.Reconnect()
+		if err != nil {
+			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
+		}
+	}()
 }
 
 func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {

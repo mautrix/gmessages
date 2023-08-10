@@ -409,10 +409,6 @@ func (user *User) createClient(sess *libgm.AuthData) {
 	user.Client.SetEventHandler(user.syncHandleEvent)
 }
 
-func (user *User) syncHandleEvent(ev any) {
-	go user.HandleEvent(ev)
-}
-
 type qrChannelItem struct {
 	success bool
 	qr      string
@@ -593,10 +589,10 @@ func (user *User) sendMarkdownBridgeAlert(important bool, formatString string, a
 	}
 }
 
-func (user *User) HandleEvent(event interface{}) {
+func (user *User) syncHandleEvent(event any) {
 	switch v := event.(type) {
 	case *events.ListenFatalError:
-		user.Logout(status.BridgeState{
+		go user.Logout(status.BridgeState{
 			StateEvent: status.StateUnknownError,
 			Error:      GMFatalError,
 			Info:       map[string]any{"go_error": v.Error.Error()},
@@ -629,7 +625,6 @@ func (user *User) HandleEvent(event interface{}) {
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
 		user.PhoneID = v.GetMobile().GetSourceID()
-		user.tryAutomaticDoublePuppeting()
 		user.addToPhoneMap()
 		err := user.Update(context.TODO())
 		if err != nil {
@@ -638,20 +633,23 @@ func (user *User) HandleEvent(event interface{}) {
 		if ch := user.pairSuccessChan; ch != nil {
 			close(ch)
 		}
+		go user.tryAutomaticDoublePuppeting()
 	case *gmproto.RevokePairData:
 		user.zlog.Info().Any("revoked_device", v.GetRevokedDevice()).Msg("Got pair revoked event")
-		user.Logout(status.BridgeState{
+		go user.Logout(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
 		}, false)
-		user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
+		go user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
-		err := user.Update(context.TODO())
-		if err != nil {
-			user.zlog.Err(err).Msg("Failed to update session in database")
-		}
+		go func() {
+			err := user.Update(context.TODO())
+			if err != nil {
+				user.zlog.Err(err).Msg("Failed to update session in database")
+			}
+		}()
 	case *gmproto.Conversation:
-		user.syncConversation(v, "event")
+		go user.syncConversation(v, "event")
 	case *gmproto.Message:
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v, source: user}
@@ -717,7 +715,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 				Msg("Session ID changed for browser active event, resyncing")
 			user.sessionID = newSessionID
 			go user.fetchAndSyncConversations()
-			user.sendMarkdownBridgeAlert(false, "Connected to Google Messages")
+			go user.sendMarkdownBridgeAlert(false, "Connected to Google Messages")
 		} else {
 			user.zlog.Debug().
 				Str("session_id", user.sessionID).

@@ -146,7 +146,7 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	}
 	switch msg.BugleRoute {
 	case gmproto.BugleRoute_PairEvent:
-		go c.handlePairingEvent(msg)
+		c.handlePairingEvent(msg)
 	case gmproto.BugleRoute_DataEvent:
 		if c.skipCount > 0 {
 			c.skipCount--
