@@ -510,10 +510,6 @@ func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, e
 }
 
 func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
-	if len(portal.MXID) == 0 {
-		portal.zlog.Warn().Msg("handleMessage called even though portal.MXID is empty")
-		return
-	}
 	eventTS := time.UnixMicro(evt.GetTimestamp())
 	if eventTS.After(portal.lastMessageTS) {
 		portal.lastMessageTS = eventTS
@@ -1216,6 +1212,15 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) e
 		return nil
 	}
 
+	var err error
+	if conv == nil {
+		portal.zlog.Debug().Msg("CreateMatrixRoom called without conversation info, requesting from phone")
+		conv, err = user.Client.GetConversation(portal.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get conversation info: %w", err)
+		}
+	}
+
 	members := portal.UpdateMetadata(user, conv)
 
 	if portal.IsPrivateChat() && portal.GetDMPuppet() == nil {
@@ -1224,7 +1229,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) e
 	}
 
 	intent := portal.MainIntent()
-	if err := intent.EnsureRegistered(); err != nil {
+	if err = intent.EnsureRegistered(); err != nil {
 		return err
 	}
 
