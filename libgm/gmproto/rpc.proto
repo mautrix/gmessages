@@ -104,7 +104,6 @@ enum BugleRoute {
 enum ActionType {
     UNSPECIFIED = 0;
     LIST_CONVERSATIONS = 1;
-    LIST_CONVERSATIONS_SYNC = 1111; // fake value
     LIST_MESSAGES = 2;
     SEND_MESSAGE = 3;
     MESSAGE_UPDATES = 4;
