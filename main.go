@@ -50,7 +50,6 @@ type GMBridge struct {
 	Provisioning *ProvisioningAPI
 
 	usersByMXID         map[id.UserID]*User
-	usersByPhone        map[string]*User
 	usersLock           sync.Mutex
 	spaceRooms          map[id.RoomID]*User
 	spaceRoomsLock      sync.Mutex
@@ -125,7 +124,7 @@ func (br *GMBridge) StartUsers() {
 }
 
 func (br *GMBridge) Stop() {
-	for _, user := range br.usersByPhone {
+	for _, user := range br.usersByMXID {
 		if user.Client == nil {
 			continue
 		}
@@ -149,7 +148,6 @@ func (br *GMBridge) GetConfigPtr() interface{} {
 func main() {
 	br := &GMBridge{
 		usersByMXID:     make(map[id.UserID]*User),
-		usersByPhone:    make(map[string]*User),
 		spaceRooms:      make(map[id.RoomID]*User),
 		managementRooms: make(map[id.RoomID]*User),
 		portalsByMXID:   make(map[id.RoomID]*Portal),

@@ -1796,40 +1796,17 @@ func (portal *Portal) Delete() {
 	portal.bridge.portalsLock.Unlock()
 }
 
-func (portal *Portal) GetMatrixUsers() ([]id.UserID, error) {
-	members, err := portal.MainIntent().JoinedMembers(portal.MXID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get member list: %w", err)
-	}
-	var users []id.UserID
-	for userID := range members.Joined {
-		_, isPuppet := portal.bridge.ParsePuppetMXID(userID)
-		if !isPuppet && userID != portal.bridge.Bot.UserID {
-			users = append(users, userID)
-		}
-	}
-	return users, nil
-}
-
-func (portal *Portal) CleanupIfEmpty() {
-	users, err := portal.GetMatrixUsers()
-	if err != nil {
-		portal.zlog.Err(err).Msg("Failed to get Matrix user list to determine if portal needs to be cleaned up")
-		return
-	}
-
-	if len(users) == 0 {
-		portal.zlog.Info().Msg("Room seems to be empty, cleaning up...")
-		portal.Delete()
-		portal.Cleanup(false)
-	}
-}
-
-func (portal *Portal) Cleanup(puppetsOnly bool) {
+func (portal *Portal) Cleanup() {
 	if len(portal.MXID) == 0 {
 		return
 	}
-	intent := portal.MainIntent()
+	intent := portal.bridge.Bot
+	if portal.IsPrivateChat() {
+		intent = portal.bridge.AS.Intent(portal.bridge.FormatPuppetMXID(database.Key{
+			ID:       portal.OtherUserID,
+			Receiver: portal.Receiver,
+		}))
+	}
 	if portal.bridge.SpecVersions.Supports(mautrix.BeeperFeatureRoomYeeting) {
 		err := intent.BeeperDeleteRoom(portal.MXID)
 		if err != nil && !errors.Is(err, mautrix.MNotFound) {
@@ -1846,13 +1823,12 @@ func (portal *Portal) Cleanup(puppetsOnly bool) {
 		if member == intent.UserID {
 			continue
 		}
-		puppet := portal.bridge.GetPuppetByMXID(member)
-		if puppet != nil {
-			_, err = puppet.DefaultIntent().LeaveRoom(portal.MXID)
+		if portal.bridge.IsGhost(member) {
+			_, err = portal.bridge.AS.Intent(member).LeaveRoom(portal.MXID)
 			if err != nil {
 				portal.zlog.Err(err).Msg("Failed to leave as puppet while cleaning up portal")
 			}
-		} else if !puppetsOnly {
+		} else {
 			_, err = intent.KickUser(portal.MXID, &mautrix.ReqKickUser{UserID: member, Reason: "Deleting portal"})
 			if err != nil {
 				portal.zlog.Err(err).Msg("Failed to kick user while cleaning up portal")

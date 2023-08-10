@@ -61,10 +61,6 @@ func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, er
 	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
 }
 
-func (uq *UserQuery) GetByPhone(ctx context.Context, phone string) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE phone_id=$1`, phone)
-}
-
 type User struct {
 	db *Database
 

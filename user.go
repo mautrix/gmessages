@@ -161,38 +161,6 @@ func (br *GMBridge) GetUserByMXIDIfExists(userID id.UserID) *User {
 	return br.getUserByMXID(userID, true)
 }
 
-func (br *GMBridge) GetUserByPhone(phone string) *User {
-	br.usersLock.Lock()
-	defer br.usersLock.Unlock()
-	user, ok := br.usersByPhone[phone]
-	if !ok {
-		dbUser, err := br.DB.User.GetByPhone(context.TODO(), phone)
-		if err != nil {
-			br.ZLog.Err(err).
-				Str("phone", phone).
-				Msg("Failed to load user from database")
-		}
-		return br.loadDBUser(dbUser, nil)
-	}
-	return user
-}
-
-func (user *User) addToPhoneMap() {
-	user.bridge.usersLock.Lock()
-	user.bridge.usersByPhone[user.PhoneID] = user
-	user.bridge.usersLock.Unlock()
-}
-
-func (user *User) removeFromPhoneMap(state status.BridgeState) {
-	user.bridge.usersLock.Lock()
-	phoneUser, ok := user.bridge.usersByPhone[user.PhoneID]
-	if ok && user == phoneUser {
-		delete(user.bridge.usersByPhone, user.PhoneID)
-	}
-	user.bridge.usersLock.Unlock()
-	user.BridgeState.Send(state)
-}
-
 func (br *GMBridge) GetAllUsersWithSession() []*User {
 	return br.loadManyUsers(br.DB.User.GetAllWithSession)
 }
@@ -237,12 +205,6 @@ func (br *GMBridge) loadDBUser(dbUser *database.User, mxid *id.UserID) *User {
 	}
 	user := br.NewUser(dbUser)
 	br.usersByMXID[user.MXID] = user
-	if user.Session != nil && user.PhoneID != "" {
-		br.usersByPhone[user.PhoneID] = user
-	} else {
-		user.Session = nil
-		user.PhoneID = ""
-	}
 	if len(user.ManagementRoom) > 0 {
 		br.managementRooms[user.ManagementRoom] = user
 	}
@@ -545,7 +507,6 @@ func (user *User) HasSession() bool {
 func (user *User) DeleteSession() {
 	user.Session = nil
 	user.SelfParticipantIDs = []string{}
-	user.PhoneID = ""
 	err := user.Update(context.TODO())
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to delete session from database")
@@ -624,8 +585,14 @@ func (user *User) syncHandleEvent(event any) {
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
+		if user.PhoneID != "" && user.PhoneID != v.GetMobile().GetSourceID() {
+			user.zlog.Warn().
+				Str("old_phone_id", user.PhoneID).
+				Str("new_phone_id", v.GetMobile().GetSourceID()).
+				Msg("Phone ID changed, resetting state")
+			user.ResetState()
+		}
 		user.PhoneID = v.GetMobile().GetSourceID()
-		user.addToPhoneMap()
 		err := user.Update(context.TODO())
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to update session in database")
@@ -658,6 +625,23 @@ func (user *User) syncHandleEvent(event any) {
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
+}
+
+func (user *User) ResetState() {
+	portals := user.bridge.GetAllPortalsForUser(user.RowID)
+	user.zlog.Debug().Int("portal_count", len(portals)).Msg("Deleting portals")
+	for _, portal := range portals {
+		portal.Delete()
+	}
+	user.bridge.DeleteAllPuppetsForUser(user.RowID)
+	user.PhoneID = ""
+	go func() {
+		user.zlog.Debug().Msg("Cleaning up portal rooms in background")
+		for _, portal := range portals {
+			portal.Cleanup()
+		}
+		user.zlog.Debug().Msg("Finished cleaning up portals")
+	}()
 }
 
 func (user *User) aggressiveSetActive() {
@@ -798,9 +782,9 @@ func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) 
 			logoutOK = true
 		}
 	}
-	user.removeFromPhoneMap(state)
 	user.DeleteConnection()
 	user.DeleteSession()
+	user.BridgeState.Send(state)
 	return
 }
 
@@ -821,7 +805,7 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		case gmproto.ConversationStatus_DELETED:
 			log.Info().Msg("Got delete event, cleaning up portal")
 			portal.Delete()
-			portal.Cleanup(false)
+			portal.Cleanup()
 		default:
 			if v.Participants == nil {
 				log.Debug().Msg("Not syncing conversation with nil participants")

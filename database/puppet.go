@@ -43,6 +43,11 @@ func (pq *PuppetQuery) GetAll(ctx context.Context) ([]*Puppet, error) {
 	return getAll[*Puppet](pq, ctx, "SELECT id, receiver, phone, name, name_set, avatar_id, avatar_mxc, avatar_set, contact_info_set FROM puppet")
 }
 
+func (pq *PuppetQuery) DeleteAllForUser(ctx context.Context, userID int) error {
+	_, err := pq.db.Conn(ctx).ExecContext(ctx, "DELETE FROM puppet WHERE receiver=$1", userID)
+	return err
+}
+
 func (pq *PuppetQuery) Get(ctx context.Context, key Key) (*Puppet, error) {
 	return get[*Puppet](pq, ctx, "SELECT id, receiver, phone, name, name_set, avatar_id, avatar_mxc, avatar_set, contact_info_set FROM puppet WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
 }

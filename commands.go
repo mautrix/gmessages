@@ -380,7 +380,7 @@ func fnDeletePortal(ce *WrappedCommandEvent) {
 
 	ce.ZLog.Info().Str("conversation_id", ce.Portal.ID).Msg("Deleting portal from command")
 	ce.Portal.Delete()
-	ce.Portal.Cleanup(false)
+	ce.Portal.Cleanup()
 }
 
 var cmdDeleteAllPortals = &commands.FullHandler{
@@ -419,7 +419,7 @@ func fnDeleteAllPortals(ce *WrappedCommandEvent) {
 	roomYeeting := ce.Bridge.SpecVersions.Supports(mautrix.BeeperFeatureRoomYeeting)
 	if roomYeeting {
 		leave = func(portal *Portal) {
-			portal.Cleanup(false)
+			portal.Cleanup()
 		}
 	}
 	ce.Reply("Found %d portals, deleting...", len(portals))
@@ -431,7 +431,7 @@ func fnDeleteAllPortals(ce *WrappedCommandEvent) {
 		ce.Reply("Finished deleting portal info. Now cleaning up rooms in background.")
 		go func() {
 			for _, portal := range portals {
-				portal.Cleanup(false)
+				portal.Cleanup()
 			}
 			ce.Reply("Finished background cleanup of deleted portal rooms.")
 		}()
