@@ -31,6 +31,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
+	"go.mau.fi/util/random"
 	"go.mau.fi/util/variationselector"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
@@ -523,19 +524,38 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 	}
 
 	converted := portal.convertGoogleMessage(ctx, source, evt, false)
-	if converted == nil {
-		return
-	} else if len(converted.Parts) == 0 {
-		log.Debug().Msg("Didn't get any converted parts from message")
-		return
+	eventIDs := portal.sendMessageParts(ctx, converted, nil)
+	if len(eventIDs) > 0 {
+		portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
+		log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
 	}
+}
 
+func (portal *Portal) sendMessageParts(ctx context.Context, converted *ConvertedMessage, replyToMap map[string]id.EventID) []id.EventID {
+	if converted == nil {
+		return nil
+	} else if len(converted.Parts) == 0 {
+		zerolog.Ctx(ctx).Debug().Msg("Didn't get any converted parts from message")
+		return nil
+	} else if converted.DontBridge {
+		zerolog.Ctx(ctx).Debug().Msg("Ignored incoming tombstone message")
+		portal.markHandled(converted, id.EventID(fmt.Sprintf("$fake::%s", random.String(37))), nil, true)
+		return nil
+	}
 	eventIDs := make([]id.EventID, 0, len(converted.Parts))
 	mediaParts := make(map[string]database.MediaPart, len(converted.Parts)-1)
-	for _, part := range converted.Parts {
+	for i, part := range converted.Parts {
+		if replyToMap != nil && converted.ReplyTo != "" && part.Content.RelatesTo == nil {
+			replyToEvent, ok := replyToMap[converted.ReplyTo]
+			if ok {
+				part.Content.RelatesTo = &event.RelatesTo{
+					InReplyTo: &event.InReplyTo{EventID: replyToEvent},
+				}
+			}
+		}
 		resp, err := portal.sendMessage(converted.Intent, event.EventMessage, part.Content, part.Extra, converted.Timestamp.UnixMilli())
 		if err != nil {
-			log.Err(err).Msg("Failed to send message")
+			zerolog.Ctx(ctx).Err(err).Int("part_index", i).Str("part_id", part.ID).Msg("Failed to send message")
 		} else {
 			eventIDs = append(eventIDs, resp.EventID)
 			if len(eventIDs) > 1 {
@@ -549,8 +569,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		}
 	}
 	portal.markHandled(converted, eventIDs[0], mediaParts, true)
-	portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
-	log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
+	return eventIDs
 }
 
 func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*gmproto.ReactionEntry) {
@@ -637,6 +656,8 @@ type ConvertedMessage struct {
 	Parts     []ConvertedMessagePart
 	PartCount int
 
+	DontBridge bool
+
 	Status      gmproto.MessageStatusType
 	MediaStatus string
 }
@@ -672,6 +693,17 @@ func addDownloadStatus(content *event.MessageEventContent, status string) {
 	}
 }
 
+func shouldIgnoreStatus(status gmproto.MessageStatusType) bool {
+	switch status {
+	case gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_TEXT,
+		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_RCS,
+		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_ENCRYPTED_RCS:
+		return true
+	default:
+		return false
+	}
+}
+
 func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *gmproto.Message, backfill bool) *ConvertedMessage {
 	log := zerolog.Ctx(ctx)
 
@@ -681,6 +713,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.ID = evt.MessageID
 	cm.PartCount = len(evt.GetMessageInfo())
 	cm.Timestamp = time.UnixMicro(evt.Timestamp)
+	cm.DontBridge = shouldIgnoreStatus(cm.Status)
 	if cm.Status >= 200 && cm.Status < 300 {
 		cm.Intent = portal.bridge.Bot
 		if !portal.Encrypted && portal.IsPrivateChat() {
@@ -705,6 +738,8 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 			} else {
 				log.Warn().Str("reply_to_id", cm.ReplyTo).Msg("Reply target message not found")
 			}
+		} else if msg.IsFakeMXID() {
+			log.Debug().Str("reply_to_id", msg.ID).Msg("Ignoring reply to non-bridged message")
 		} else {
 			replyTo = msg.MXID
 		}
@@ -1570,7 +1605,7 @@ func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.Eve
 		log.Err(err).Msg("Failed to get target message to handle read receipt")
 		return
 	} else if targetMessage == nil {
-		lastMessage, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
+		lastMessage, err := portal.bridge.DB.Message.GetLastInChatWithMXID(ctx, portal.Key)
 		if err != nil {
 			log.Err(err).Msg("Failed to get last message to handle read receipt")
 			return

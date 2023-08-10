@@ -54,6 +54,11 @@ const (
 		WHERE conv_id=$1 AND conv_receiver=$2
 		ORDER BY timestamp DESC LIMIT 1
 	`
+	getLastMessageInChatWithMXIDQuery = `
+		SELECT conv_id, conv_receiver, id, mxid, sender, timestamp, status FROM message
+		WHERE conv_id=$1 AND conv_receiver=$2 AND mxid NOT LIKE '$fake::%'
+		ORDER BY timestamp DESC LIMIT 1
+	`
 	getMessageByMXIDQuery = `
 		SELECT conv_id, conv_receiver, id, mxid, sender, timestamp, status FROM message
 		WHERE mxid=$1
@@ -70,6 +75,10 @@ func (mq *MessageQuery) GetByMXID(ctx context.Context, mxid id.EventID) (*Messag
 
 func (mq *MessageQuery) GetLastInChat(ctx context.Context, chat Key) (*Message, error) {
 	return get[*Message](mq, ctx, getLastMessageInChatQuery, chat.ID, chat.Receiver)
+}
+
+func (mq *MessageQuery) GetLastInChatWithMXID(ctx context.Context, chat Key) (*Message, error) {
+	return get[*Message](mq, ctx, getLastMessageInChatWithMXIDQuery, chat.ID, chat.Receiver)
 }
 
 type MediaPart struct {
@@ -170,4 +179,8 @@ func (msg *Message) UpdateStatus(ctx context.Context) error {
 func (msg *Message) Delete(ctx context.Context) error {
 	_, err := msg.db.Conn(ctx).ExecContext(ctx, "DELETE FROM message WHERE conv_id=$1 AND conv_receiver=$2 AND id=$3", msg.Chat.ID, msg.Chat.Receiver, msg.ID)
 	return err
+}
+
+func (msg *Message) IsFakeMXID() bool {
+	return strings.HasPrefix(msg.MXID.String(), "$fake:")
 }

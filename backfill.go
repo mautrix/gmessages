@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/random"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
@@ -197,6 +198,11 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 		dbm.Status.PartCount = msg.PartCount
 		dbm.Status.MediaStatus = msg.MediaStatus
 		dbm.Status.MediaParts = make(map[string]database.MediaPart, len(msg.Parts))
+		if msg.DontBridge {
+			dbm.MXID = id.EventID(fmt.Sprintf("$fake::%s", random.String(37)))
+			dbMessages = append(dbMessages, dbm)
+			continue
+		}
 
 		for i, part := range msg.Parts {
 			content := event.Content{
@@ -252,42 +258,16 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 }
 
 func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*ConvertedMessage) id.EventID {
-	log := zerolog.Ctx(ctx)
 	var lastEventID id.EventID
 	eventIDs := make(map[string]id.EventID)
 	for _, msg := range converted {
 		if len(msg.Parts) == 0 {
 			continue
 		}
-		var msgFirstEventID id.EventID
-		mediaParts := make(map[string]database.MediaPart, len(msg.Parts)-1)
-		for i, part := range msg.Parts {
-			if msg.ReplyTo != "" && part.Content.RelatesTo == nil {
-				replyToEvent, ok := eventIDs[msg.ReplyTo]
-				if ok {
-					part.Content.RelatesTo = &event.RelatesTo{
-						InReplyTo: &event.InReplyTo{EventID: replyToEvent},
-					}
-				}
-			}
-			resp, err := portal.sendMessage(msg.Intent, event.EventMessage, part.Content, part.Extra, msg.Timestamp.UnixMilli())
-			if err != nil {
-				log.Err(err).Str("message_id", msg.ID).Int("part", i).Msg("Failed to send message")
-			} else {
-				if msgFirstEventID == "" {
-					msgFirstEventID = resp.EventID
-					eventIDs[msg.ID] = resp.EventID
-				} else {
-					mediaParts[part.ID] = database.MediaPart{
-						EventID:      resp.EventID,
-						PendingMedia: part.PendingMedia,
-					}
-				}
-				lastEventID = resp.EventID
-			}
-		}
-		if msgFirstEventID != "" {
-			portal.markHandled(msg, msgFirstEventID, mediaParts, false)
+		msgEventIDs := portal.sendMessageParts(ctx, msg, eventIDs)
+		if len(msgEventIDs) > 0 {
+			eventIDs[msg.ID] = msgEventIDs[0]
+			lastEventID = msgEventIDs[len(msgEventIDs)-1]
 		}
 	}
 	return lastEventID
