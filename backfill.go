@@ -141,20 +141,17 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 	maxTS := portal.lastMessageTS
 	for i := len(resp.Messages) - 1; i >= 0; i-- {
 		evt := resp.Messages[i]
-		// TODO this should check the database too
-		if dbMsg := portal.isOutgoingMessage(evt); dbMsg != nil {
-			log.Debug().Str("event_id", dbMsg.MXID.String()).Msg("Got echo for outgoing message in backfill batch")
-			portal.handleExistingMessageUpdate(ctx, user, dbMsg, evt)
-			continue
-		} else if !time.UnixMicro(evt.Timestamp).After(after) {
+		isTooOld := !time.UnixMicro(evt.Timestamp).After(after)
+		if portal.handleExistingMessage(ctx, user, evt, isTooOld) || isTooOld {
 			continue
 		}
 		c := portal.convertGoogleMessage(ctx, user, evt, batchSending)
-		if c != nil {
-			converted = append(converted, c)
-			if c.Timestamp.After(maxTS) {
-				maxTS = c.Timestamp
-			}
+		if c == nil {
+			continue
+		}
+		converted = append(converted, c)
+		if c.Timestamp.After(maxTS) {
+			maxTS = c.Timestamp
 		}
 	}
 	if len(converted) == 0 {
@@ -261,9 +258,6 @@ func (portal *Portal) backfillSendLegacy(ctx context.Context, converted []*Conve
 	var lastEventID id.EventID
 	eventIDs := make(map[string]id.EventID)
 	for _, msg := range converted {
-		if len(msg.Parts) == 0 {
-			continue
-		}
 		msgEventIDs := portal.sendMessageParts(ctx, msg, eventIDs)
 		if len(msgEventIDs) > 0 {
 			eventIDs[msg.ID] = msgEventIDs[0]

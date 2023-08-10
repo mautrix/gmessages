@@ -490,6 +490,25 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	}
 }
 
+func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, evt *gmproto.Message, outgoingOnly bool) bool {
+	log := zerolog.Ctx(ctx)
+	if existingMsg := portal.isOutgoingMessage(evt); existingMsg != nil {
+		log.Debug().Str("event_id", existingMsg.MXID.String()).Msg("Got echo for outgoing message")
+		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
+		return true
+	} else if outgoingOnly {
+		return false
+	}
+	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, evt.MessageID)
+	if err != nil {
+		log.Err(err).Msg("Failed to check if message is duplicate")
+	} else if existingMsg != nil {
+		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
+		return true
+	}
+	return false
+}
+
 func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 	if len(portal.MXID) == 0 {
 		portal.zlog.Warn().Msg("handleMessage called even though portal.MXID is empty")
@@ -506,16 +525,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		Str("action", "handle google message").
 		Logger()
 	ctx := log.WithContext(context.TODO())
-	if existingMsg := portal.isOutgoingMessage(evt); existingMsg != nil {
-		log.Debug().Str("event_id", existingMsg.MXID.String()).Msg("Got echo for outgoing message")
-		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
-		return
-	}
-	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, evt.MessageID)
-	if err != nil {
-		log.Err(err).Msg("Failed to check if message is duplicate")
-	} else if existingMsg != nil {
-		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
+	if portal.handleExistingMessage(ctx, source, evt, false) {
 		return
 	}
 	if evt.GetMessageStatus().GetStatus() == gmproto.MessageStatusType_MESSAGE_DELETED {
