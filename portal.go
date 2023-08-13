@@ -534,10 +534,15 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 	if portal.handleExistingMessage(ctx, source, evt, false) {
 		return
 	}
-	if evt.GetMessageStatus().GetStatus() == gmproto.MessageStatusType_MESSAGE_DELETED {
+	switch evt.GetMessageStatus().GetStatus() {
+	case gmproto.MessageStatusType_MESSAGE_DELETED:
 		log.Debug().Msg("Not handling unknown deleted message")
 		return
-	} else if eventTS.Add(24 * time.Hour).Before(time.Now()) {
+	case gmproto.MessageStatusType_INCOMING_AUTO_DOWNLOADING, gmproto.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
+		log.Debug().Msg("Not handling incoming auto-downloading MMS")
+		return
+	}
+	if eventTS.Add(24 * time.Hour).Before(time.Now()) {
 		lastMessage, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
@@ -820,7 +825,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	}
 	if downloadStatus != "" {
 		content := event.MessageEventContent{
-			MsgType: event.MsgText,
+			MsgType: event.MsgNotice,
 			Body:    downloadStatus,
 		}
 		if subject != "" {
@@ -1614,6 +1619,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		go ms.sendMessageMetrics(evt, err, "Error converting", true)
 		return
 	}
+	log.Debug().Str("tmp_id", req.TmpID).Msg("Sending Matrix message to Google Messages")
 	start = time.Now()
 	_, err = sender.Client.SendMessage(req)
 	timings.send = time.Since(start)
