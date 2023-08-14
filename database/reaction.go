@@ -44,13 +44,17 @@ func (rq *ReactionQuery) getDB() *Database {
 const (
 	getReactionByIDQuery = `
 		SELECT conv_id, conv_receiver, msg_id, sender, reaction, mxid FROM reaction
-		WHERE conv_id=$1 AND conv_receiver=$2 AND msg_id=$3 AND sender=$4
+		WHERE conv_receiver=$1 AND msg_id=$2 AND sender=$3
 	`
 	getReactionByMXIDQuery = `
 		SELECT conv_id, conv_receiver, msg_id, sender, reaction, mxid FROM reaction
 		WHERE mxid=$1
 	`
 	getReactionsByMessageIDQuery = `
+		SELECT conv_id, conv_receiver, msg_id, sender, reaction, mxid FROM reaction
+		WHERE conv_receiver=$1 AND msg_id=$2
+	`
+	deleteReactionsByMessageIDQuery = `
 		SELECT conv_id, conv_receiver, msg_id, sender, reaction, mxid FROM reaction
 		WHERE conv_id=$1 AND conv_receiver=$2 AND msg_id=$3
 	`
@@ -62,16 +66,21 @@ const (
 	`
 )
 
-func (rq *ReactionQuery) GetByID(ctx context.Context, chat Key, messageID, sender string) (*Reaction, error) {
-	return get[*Reaction](rq, ctx, getReactionByIDQuery, chat.ID, chat.Receiver, messageID, sender)
+func (rq *ReactionQuery) GetByID(ctx context.Context, receiver int, messageID, sender string) (*Reaction, error) {
+	return get[*Reaction](rq, ctx, getReactionByIDQuery, receiver, messageID, sender)
 }
 
 func (rq *ReactionQuery) GetByMXID(ctx context.Context, mxid id.EventID) (*Reaction, error) {
 	return get[*Reaction](rq, ctx, getReactionByMXIDQuery, mxid)
 }
 
-func (rq *ReactionQuery) GetAllByMessage(ctx context.Context, chat Key, messageID string) ([]*Reaction, error) {
-	return getAll[*Reaction](rq, ctx, getReactionsByMessageIDQuery, chat.ID, chat.Receiver, messageID)
+func (rq *ReactionQuery) GetAllByMessage(ctx context.Context, receiver int, messageID string) ([]*Reaction, error) {
+	return getAll[*Reaction](rq, ctx, getReactionsByMessageIDQuery, receiver, messageID)
+}
+
+func (rq *ReactionQuery) DeleteAllByMessage(ctx context.Context, chat Key, messageID string) error {
+	_, err := rq.db.Conn(ctx).ExecContext(ctx, deleteReactionsByMessageIDQuery, chat.ID, chat.Receiver, messageID)
+	return err
 }
 
 type Reaction struct {

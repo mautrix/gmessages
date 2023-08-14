@@ -46,27 +46,27 @@ func (mq *MessageQuery) getDB() *Database {
 
 const (
 	getMessageByIDQuery = `
-		SELECT conv_id, conv_receiver, id, mxid, sender, timestamp, status FROM message
-		WHERE conv_id=$1 AND conv_receiver=$2 AND id=$3
+		SELECT conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status FROM message
+		WHERE conv_receiver=$1 AND id=$2
 	`
 	getLastMessageInChatQuery = `
-		SELECT conv_id, conv_receiver, id, mxid, sender, timestamp, status FROM message
+		SELECT conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status FROM message
 		WHERE conv_id=$1 AND conv_receiver=$2
 		ORDER BY timestamp DESC LIMIT 1
 	`
 	getLastMessageInChatWithMXIDQuery = `
-		SELECT conv_id, conv_receiver, id, mxid, sender, timestamp, status FROM message
+		SELECT conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status FROM message
 		WHERE conv_id=$1 AND conv_receiver=$2 AND mxid NOT LIKE '$fake::%'
 		ORDER BY timestamp DESC LIMIT 1
 	`
 	getMessageByMXIDQuery = `
-		SELECT conv_id, conv_receiver, id, mxid, sender, timestamp, status FROM message
+		SELECT conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status FROM message
 		WHERE mxid=$1
 	`
 )
 
-func (mq *MessageQuery) GetByID(ctx context.Context, chat Key, messageID string) (*Message, error) {
-	return get[*Message](mq, ctx, getMessageByIDQuery, chat.ID, chat.Receiver, messageID)
+func (mq *MessageQuery) GetByID(ctx context.Context, receiver int, messageID string) (*Message, error) {
+	return get[*Message](mq, ctx, getMessageByIDQuery, receiver, messageID)
 }
 
 func (mq *MessageQuery) GetByMXID(ctx context.Context, mxid id.EventID) (*Message, error) {
@@ -114,6 +114,7 @@ type Message struct {
 	Chat      Key
 	ID        string
 	MXID      id.EventID
+	RoomID    id.RoomID
 	Sender    string
 	Timestamp time.Time
 	Status    MessageStatus
@@ -121,7 +122,7 @@ type Message struct {
 
 func (msg *Message) Scan(row dbutil.Scannable) (*Message, error) {
 	var ts int64
-	err := row.Scan(&msg.Chat.ID, &msg.Chat.Receiver, &msg.ID, &msg.MXID, &msg.Sender, &ts, dbutil.JSON{Data: &msg.Status})
+	err := row.Scan(&msg.Chat.ID, &msg.Chat.Receiver, &msg.ID, &msg.MXID, &msg.RoomID, &msg.Sender, &ts, dbutil.JSON{Data: &msg.Status})
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -134,28 +135,29 @@ func (msg *Message) Scan(row dbutil.Scannable) (*Message, error) {
 }
 
 func (msg *Message) sqlVariables() []any {
-	return []any{msg.Chat.ID, msg.Chat.Receiver, msg.ID, msg.MXID, msg.Sender, msg.Timestamp.UnixMicro(), dbutil.JSON{Data: &msg.Status}}
+	return []any{msg.Chat.ID, msg.Chat.Receiver, msg.ID, msg.MXID, msg.RoomID, msg.Sender, msg.Timestamp.UnixMicro(), dbutil.JSON{Data: &msg.Status}}
 }
 
 func (msg *Message) Insert(ctx context.Context) error {
 	_, err := msg.db.Conn(ctx).ExecContext(ctx, `
-		INSERT INTO message (conv_id, conv_receiver, id, mxid, sender, timestamp, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, msg.sqlVariables()...)
 	return err
 }
 
 func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) error {
-	valueStringFormat := "($1, $2, $%d, $%d, $%d, $%d, $%d)"
+	valueStringFormat := "($1, $2, $%d, $%d, $3, $%d, $%d, $%d)"
 	if mq.db.Dialect == dbutil.SQLite {
 		valueStringFormat = strings.ReplaceAll(valueStringFormat, "$", "?")
 	}
 	placeholders := make([]string, len(messages))
-	params := make([]any, 2+len(messages)*5)
+	params := make([]any, 3+len(messages)*5)
 	params[0] = messages[0].Chat.ID
 	params[1] = messages[0].Chat.Receiver
+	params[2] = messages[0].RoomID
 	for i, msg := range messages {
-		baseIndex := 2 + i*5
+		baseIndex := 3 + i*5
 		params[baseIndex] = msg.ID
 		params[baseIndex+1] = msg.MXID
 		params[baseIndex+2] = msg.Sender
@@ -164,15 +166,24 @@ func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) err
 		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4, baseIndex+5)
 	}
 	query := `
-		INSERT INTO message (conv_id, conv_receiver, id, mxid, sender, timestamp, status)
+		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
 		VALUES
 	` + strings.Join(placeholders, ",")
 	_, err := mq.db.Conn(ctx).ExecContext(ctx, query, params...)
 	return err
 }
 
+func (msg *Message) Update(ctx context.Context) error {
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, `
+		UPDATE message
+		SET conv_id=$1, mxid=$4, mx_room=$5, sender=$6, timestamp=$7, status=$8
+		WHERE conv_receiver=$2 AND id=$3
+	`, msg.sqlVariables()...)
+	return err
+}
+
 func (msg *Message) UpdateStatus(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, "UPDATE message SET status=$1, timestamp=$2 WHERE conv_id=$3 AND conv_receiver=$4 AND id=$5", dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.ID, msg.Chat.Receiver, msg.ID)
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, "UPDATE message SET status=$1, timestamp=$2 WHERE conv_receiver=$3 AND id=$4", dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.Receiver, msg.ID)
 	return err
 }
 

@@ -900,7 +900,7 @@ func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
 		return
 	}
 	ctx := context.TODO()
-	lastMessage, err := user.bridge.DB.Message.GetByID(ctx, portal.Key, lastMessageID)
+	lastMessage, err := user.bridge.DB.Message.GetByID(ctx, portal.Receiver, lastMessageID)
 	if err == nil && lastMessage == nil || lastMessage.IsFakeMXID() {
 		lastMessage, err = user.bridge.DB.Message.GetLastInChatWithMXID(ctx, portal.Key)
 	}

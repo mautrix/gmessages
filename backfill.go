@@ -188,6 +188,7 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 	for _, msg := range converted {
 		dbm := portal.bridge.DB.Message.New()
 		dbm.Chat = portal.Key
+		dbm.RoomID = portal.MXID
 		dbm.ID = msg.ID
 		dbm.Sender = msg.SenderID
 		dbm.Timestamp = msg.Timestamp

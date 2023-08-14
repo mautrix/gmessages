@@ -355,7 +355,7 @@ func isSuccessfullySentStatus(status gmproto.MessageStatusType) bool {
 func downloadPendingStatusMessage(status gmproto.MessageStatusType) string {
 	switch status {
 	case gmproto.MessageStatusType_INCOMING_YET_TO_MANUAL_DOWNLOAD:
-		return "Attachment message (auto-download is disabled)"
+		return "Attachment message (auto-download is disabled, use Messages on Android to download)"
 	case gmproto.MessageStatusType_INCOMING_MANUAL_DOWNLOADING,
 		gmproto.MessageStatusType_INCOMING_AUTO_DOWNLOADING,
 		gmproto.MessageStatusType_INCOMING_RETRYING_MANUAL_DOWNLOAD,
@@ -391,32 +391,68 @@ func isFailSendStatus(status gmproto.MessageStatusType) bool {
 	}
 }
 
-func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *User, dbMsg *database.Message, evt *gmproto.Message) {
-	log := zerolog.Ctx(ctx)
-	portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
-	newStatus := evt.GetMessageStatus().GetStatus()
-	if dbMsg.Status.Type == newStatus && !(dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt)) {
+func (portal *Portal) redactMessage(ctx context.Context, msg *database.Message) {
+	if msg.IsFakeMXID() {
 		return
 	}
-	log.Debug().Str("old_status", dbMsg.Status.Type.String()).Msg("Message status changed")
+	log := zerolog.Ctx(ctx)
+	intent := portal.MainIntent()
+	if msg.Chat.ID != portal.ID {
+		otherPortal := portal.bridge.GetExistingPortalByKey(msg.Chat)
+		if otherPortal != nil {
+			intent = otherPortal.MainIntent()
+		}
+	}
+	for partID, part := range msg.Status.MediaParts {
+		if part.EventID != "" {
+			if _, err := intent.RedactEvent(msg.RoomID, part.EventID); err != nil {
+				log.Err(err).Str("part_id", partID).Msg("Failed to redact part of message")
+			}
+			part.EventID = ""
+			msg.Status.MediaParts[partID] = part
+		}
+	}
+	if _, err := intent.RedactEvent(msg.RoomID, msg.MXID); err != nil {
+		log.Err(err).Msg("Failed to redact message")
+	}
+	msg.MXID = ""
+}
+
+func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *User, dbMsg *database.Message, evt *gmproto.Message) {
+	log := *zerolog.Ctx(ctx)
+	newStatus := evt.GetMessageStatus().GetStatus()
+	chatIDChanged := dbMsg.Chat.ID != portal.ID
+	if dbMsg.Status.Type == newStatus && !chatIDChanged && !(dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt)) {
+		portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
+		return
+	}
+	if chatIDChanged {
+		log = log.With().Str("old_chat_id", dbMsg.Chat.ID).Logger()
+		log.Debug().
+			Str("old_room_id", dbMsg.RoomID.String()).
+			Str("sender_id", dbMsg.Sender).
+			Msg("Redacting events from old room")
+		ctx = log.WithContext(ctx)
+		err := portal.bridge.DB.Reaction.DeleteAllByMessage(ctx, dbMsg.Chat, dbMsg.ID)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to delete db reactions for message that moved to another room")
+		}
+		portal.redactMessage(ctx, dbMsg)
+	}
+	log.Debug().
+		Str("old_status", dbMsg.Status.Type.String()).
+		Msg("Message status changed")
 	switch {
 	case newStatus == gmproto.MessageStatusType_MESSAGE_DELETED:
-		for partID, part := range dbMsg.Status.MediaParts {
-			if part.EventID != "" {
-				if _, err := portal.MainIntent().RedactEvent(portal.MXID, part.EventID); err != nil {
-					log.Err(err).Str("part_iD", partID).Msg("Failed to redact part of deleted message")
-				}
-			}
-		}
-		if _, err := portal.MainIntent().RedactEvent(portal.MXID, dbMsg.MXID); err != nil {
-			log.Err(err).Msg("Failed to redact deleted message")
-		} else if err = dbMsg.Delete(ctx); err != nil {
+		portal.redactMessage(ctx, dbMsg)
+		if err := dbMsg.Delete(ctx); err != nil {
 			log.Err(err).Msg("Failed to delete message from database")
 		} else {
 			log.Debug().Msg("Handled message deletion")
 		}
 		return
-	case dbMsg.Status.MediaStatus != downloadPendingStatusMessage(newStatus),
+	case chatIDChanged,
+		dbMsg.Status.MediaStatus != downloadPendingStatusMessage(newStatus),
 		dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt),
 		dbMsg.Status.PartCount != len(evt.MessageInfo):
 		converted := portal.convertGoogleMessage(ctx, source, evt, false)
@@ -428,7 +464,9 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		for i, part := range converted.Parts {
 			isEdit := true
 			ts := time.Now().UnixMilli()
-			if i == 0 {
+			if chatIDChanged {
+				isEdit = false
+			} else if i == 0 {
 				part.Content.SetEdit(dbMsg.MXID)
 			} else if existingPart, ok := dbMsg.Status.MediaParts[part.ID]; ok {
 				part.Content.SetEdit(existingPart.EventID)
@@ -443,6 +481,9 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 				eventIDs = append(eventIDs, resp.EventID)
 			}
 			if i == 0 {
+				if chatIDChanged {
+					dbMsg.MXID = resp.EventID
+				}
 				dbMsg.Status.MediaParts[""] = database.MediaPart{PendingMedia: part.PendingMedia}
 			} else if !isEdit {
 				dbMsg.Status.MediaParts[part.ID] = database.MediaPart{EventID: resp.EventID, PendingMedia: part.PendingMedia}
@@ -485,10 +526,18 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	dbMsg.Status.Type = newStatus
 	dbMsg.Status.PartCount = len(evt.MessageInfo)
 	dbMsg.Timestamp = time.UnixMicro(evt.GetTimestamp())
-	err := dbMsg.UpdateStatus(ctx)
+	var err error
+	if chatIDChanged {
+		dbMsg.Chat = portal.Key
+		dbMsg.RoomID = portal.MXID
+		err = dbMsg.Update(ctx)
+	} else {
+		err = dbMsg.UpdateStatus(ctx)
+	}
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to save updated message status to database")
 	}
+	portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
 }
 
 func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, evt *gmproto.Message, outgoingOnly bool) bool {
@@ -500,7 +549,7 @@ func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, e
 	} else if outgoingOnly {
 		return false
 	}
-	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, evt.MessageID)
+	existingMsg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Receiver, evt.MessageID)
 	if err != nil {
 		log.Err(err).Msg("Failed to check if message is duplicate")
 	} else if existingMsg != nil {
@@ -603,7 +652,7 @@ func (portal *Portal) sendMessageParts(ctx context.Context, converted *Converted
 
 func (portal *Portal) syncReactions(ctx context.Context, source *User, message *database.Message, reactions []*gmproto.ReactionEntry) {
 	log := zerolog.Ctx(ctx)
-	existing, err := portal.bridge.DB.Reaction.GetAllByMessage(ctx, portal.Key, message.ID)
+	existing, err := portal.bridge.DB.Reaction.GetAllByMessage(ctx, portal.Receiver, message.ID)
 	if err != nil {
 		log.Err(err).Msg("Failed to get existing reactions from db to sync reactions")
 		return
@@ -758,7 +807,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	var replyTo id.EventID
 	if evt.GetReplyMessage() != nil {
 		cm.ReplyTo = evt.GetReplyMessage().GetMessageID()
-		msg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Key, cm.ReplyTo)
+		msg, err := portal.bridge.DB.Message.GetByID(ctx, portal.Receiver, cm.ReplyTo)
 		if err != nil {
 			log.Err(err).Str("reply_to_id", cm.ReplyTo).Msg("Failed to get reply target message")
 		} else if msg == nil {
@@ -933,6 +982,7 @@ func (portal *Portal) isRecentlyHandled(id string) bool {
 func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, mediaParts map[string]database.MediaPart, recent bool) *database.Message {
 	msg := portal.bridge.DB.Message.New()
 	msg.Chat = portal.Key
+	msg.RoomID = portal.MXID
 	msg.ID = cm.ID
 	msg.MXID = eventID
 	msg.Timestamp = cm.Timestamp
@@ -1691,7 +1741,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		return errTargetNotFound
 	}
 
-	existingReaction, err := portal.bridge.DB.Reaction.GetByID(ctx, portal.Key, msg.ID, portal.OutgoingID)
+	existingReaction, err := portal.bridge.DB.Reaction.GetByID(ctx, portal.Receiver, msg.ID, portal.OutgoingID)
 	if err != nil {
 		log.Err(err).Msg("Failed to get existing reaction")
 		return fmt.Errorf("failed to get existing reaction from database")
