@@ -1,4 +1,4 @@
--- v0 -> v3: Latest revision
+-- v0 -> v4: Latest revision
 
 CREATE TABLE "user" (
     -- only: postgres
