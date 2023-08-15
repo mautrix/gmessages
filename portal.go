@@ -1278,7 +1278,7 @@ func (portal *Portal) GetEncryptionEventContent() (evt *event.EncryptionEventCon
 	return
 }
 
-func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) error {
+func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, isFromSync bool) error {
 	portal.roomCreateLock.Lock()
 	defer portal.roomCreateLock.Unlock()
 	if len(portal.MXID) > 0 {
@@ -1418,7 +1418,8 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation) e
 		portal.ensureUserInvited(user)
 	}
 	user.syncChatDoublePuppetDetails(portal, conv, true)
-	go portal.initialForwardBackfill(user, !conv.GetUnread())
+	allowNotify := !isFromSync
+	go portal.initialForwardBackfill(user, !conv.GetUnread(), allowNotify)
 	go portal.addToPersonalSpace(user, true)
 	return nil
 }

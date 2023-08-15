@@ -828,7 +828,7 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 			return
 		}
 		log.Debug().Msg("Creating portal for conversation")
-		err := portal.CreateMatrixRoom(user, v)
+		err := portal.CreateMatrixRoom(user, v, source == "sync")
 		if err != nil {
 			log.Err(err).Msg("Error creating Matrix room from conversation event")
 		}

@@ -354,7 +354,7 @@ func fnPM(ce *WrappedCommandEvent) {
 		ce.Reply("Failed to start chat: no conversation in response")
 	} else if portal := ce.User.GetPortalByID(resp.Conversation.ConversationID); portal.MXID != "" {
 		ce.Reply("Chat already exists at [%s](https://matrix.to/#/%s)", portal.MXID, portal.MXID)
-	} else if err = portal.CreateMatrixRoom(ce.User, resp.Conversation); err != nil {
+	} else if err = portal.CreateMatrixRoom(ce.User, resp.Conversation, false); err != nil {
 		ce.ZLog.Err(err).Msg("Failed to create matrix room")
 		ce.Reply("Failed to create portal room for conversation")
 	} else {

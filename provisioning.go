@@ -242,7 +242,7 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 	convCopy.LatestMessage = nil
 	prov.zlog.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for start chat")
 	portal := user.GetPortalByID(resp.Conversation.ConversationID)
-	err = portal.CreateMatrixRoom(user, resp.Conversation)
+	err = portal.CreateMatrixRoom(user, resp.Conversation, false)
 	if err != nil {
 		prov.zlog.Err(err).Msg("Failed to create matrix room")
 		jsonResponse(w, http.StatusInternalServerError, Error{

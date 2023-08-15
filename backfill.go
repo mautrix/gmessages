@@ -32,7 +32,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/database"
 )
 
-func (portal *Portal) initialForwardBackfill(user *User, markRead bool) {
+func (portal *Portal) initialForwardBackfill(user *User, markRead, allowNotify bool) {
 	// This is only called from CreateMatrixRoom which locks forwardBackfillLock
 	defer portal.forwardBackfillLock.Unlock()
 	log := portal.zlog.With().
@@ -40,7 +40,7 @@ func (portal *Portal) initialForwardBackfill(user *User, markRead bool) {
 		Logger()
 	ctx := log.WithContext(context.TODO())
 
-	portal.forwardBackfill(ctx, user, time.Time{}, portal.bridge.Config.Bridge.Backfill.InitialLimit, markRead)
+	portal.forwardBackfill(ctx, user, time.Time{}, portal.bridge.Config.Bridge.Backfill.InitialLimit, markRead, allowNotify)
 }
 
 const recentBackfillDelay = 15 * time.Second
@@ -111,7 +111,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("latest_message_id", lastMessageID).
 		Time("last_bridged_ts", portal.lastMessageTS).
 		Msg("Backfilling missed messages")
-	portal.forwardBackfill(ctx, user, portal.lastMessageTS, portal.bridge.Config.Bridge.Backfill.MissedLimit, markRead)
+	portal.forwardBackfill(ctx, user, portal.lastMessageTS, portal.bridge.Config.Bridge.Backfill.MissedLimit, markRead, true)
 }
 
 func (portal *Portal) deterministicEventID(messageID string, part int) id.EventID {
@@ -120,7 +120,7 @@ func (portal *Portal) deterministicEventID(messageID string, part int) id.EventI
 	return id.EventID(fmt.Sprintf("$%s:messages.google.com", base64.RawURLEncoding.EncodeToString(sum[:])))
 }
 
-func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int, markRead bool) bool {
+func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after time.Time, limit int, markRead, allowNotify bool) bool {
 	if limit == 0 {
 		return false
 	}
@@ -138,7 +138,7 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 
 	batchSending := portal.bridge.SpecVersions.Supports(mautrix.BeeperFeatureBatchSending)
 	converted := make([]*ConvertedMessage, 0, len(resp.Messages))
-	maxTS := portal.lastMessageTS
+	maxTS := time.Time{}
 	for i := len(resp.Messages) - 1; i >= 0; i-- {
 		evt := resp.Messages[i]
 		isTooOld := !time.UnixMicro(evt.Timestamp).After(after)
@@ -167,7 +167,8 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 		if markRead {
 			markReadBy = user.MXID
 		}
-		portal.backfillSendBatch(ctx, converted, markReadBy)
+		allowNotify = allowNotify && time.Since(maxTS) < 24*time.Hour
+		portal.backfillSendBatch(ctx, converted, markReadBy, allowNotify)
 	} else {
 		lastEventID := portal.backfillSendLegacy(ctx, converted)
 		if markRead && user.DoublePuppetIntent != nil {
@@ -177,11 +178,13 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 			}
 		}
 	}
-	portal.lastMessageTS = maxTS
+	if maxTS.After(portal.lastMessageTS) {
+		portal.lastMessageTS = maxTS
+	}
 	return true
 }
 
-func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*ConvertedMessage, markReadBy id.UserID) {
+func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*ConvertedMessage, markReadBy id.UserID, allowNotify bool) {
 	log := zerolog.Ctx(ctx)
 	events := make([]*event.Event, 0, len(converted))
 	dbMessages := make([]*database.Message, 0, len(converted))
@@ -250,7 +253,7 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 	_, err := portal.MainIntent().BeeperBatchSend(portal.MXID, &mautrix.ReqBeeperBatchSend{
 		Forward:          forward,
 		MarkReadBy:       markReadBy,
-		SendNotification: forward && markReadBy == "",
+		SendNotification: forward && markReadBy == "" && allowNotify,
 		Events:           events,
 	})
 	if err != nil {
