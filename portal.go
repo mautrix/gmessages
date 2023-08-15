@@ -775,7 +775,8 @@ func shouldIgnoreStatus(status gmproto.MessageStatusType) bool {
 	switch status {
 	case gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_TEXT,
 		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_RCS,
-		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_ENCRYPTED_RCS:
+		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_ENCRYPTED_RCS,
+		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_ENCRYPTED_RCS_INFO:
 		return true
 	default:
 		return false
@@ -791,7 +792,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.ID = evt.MessageID
 	cm.PartCount = len(evt.GetMessageInfo())
 	cm.Timestamp = time.UnixMicro(evt.Timestamp)
-	cm.DontBridge = shouldIgnoreStatus(cm.Status)
+	cm.DontBridge = portal.IsPrivateChat() && shouldIgnoreStatus(cm.Status)
 	if cm.Status >= 200 && cm.Status < 300 {
 		cm.Intent = portal.bridge.Bot
 		if !portal.Encrypted && portal.IsPrivateChat() {
