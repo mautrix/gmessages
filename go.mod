@@ -9,10 +9,10 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.1.0
 	go.mau.fi/util v0.0.0-20230805171708-199bf3eec776
-	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
+	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
 	google.golang.org/protobuf v1.31.0
 	maunium.net/go/maulogger/v2 v2.4.1
-	maunium.net/go/mautrix v0.15.5-0.20230810094433-16a756dc3131
+	maunium.net/go/mautrix v0.16.0
 )
 
 require (
