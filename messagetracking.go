@@ -25,11 +25,13 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
+	"go.mau.fi/mautrix-gmessages/database"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
@@ -126,6 +128,26 @@ func (portal *Portal) sendErrorMessage(evt *event.Event, err error, msgType stri
 	return resp.EventID
 }
 
+func (portal *Portal) sendCheckpoint(dbMsg *database.Message, err error, delivered bool) {
+	checkpoint := status.MessageCheckpoint{
+		EventID:    dbMsg.MXID,
+		RoomID:     dbMsg.RoomID,
+		Step:       status.MsgStepRemote,
+		Timestamp:  jsontime.UnixMilliNow(),
+		Status:     "",
+		ReportedBy: status.MsgReportedByBridge,
+	}
+	if err != nil {
+		checkpoint.Status = status.MsgStatusPermFailure
+		checkpoint.Info = err.Error()
+	} else if delivered {
+		checkpoint.Status = status.MsgStatusDelivered
+	} else {
+		checkpoint.Status = status.MsgStatusSuccess
+	}
+	go portal.bridge.SendRawMessageCheckpoint(&checkpoint)
+}
+
 func (portal *Portal) sendStatusEvent(evtID, lastRetry id.EventID, err error, deliveredTo *[]id.UserID) {
 	if !portal.bridge.Config.Bridge.MessageStatusEvents {
 		return
@@ -209,8 +231,8 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 			Str("event_type", evt.Type.Type).
 			Msg("Handled Matrix event")
 		portal.sendDeliveryReceipt(evt.ID)
-		portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
 		if msgType != "message" {
+			portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
 			portal.sendStatusEvent(origEvtID, evt.ID, nil, nil)
 		}
 		if prevNotice := ms.popNoticeID(); prevNotice != "" {

@@ -495,16 +495,24 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		}
 	case !dbMsg.Status.ReadReceiptSent && portal.IsPrivateChat() && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED:
 		dbMsg.Status.ReadReceiptSent = true
+		if !dbMsg.Status.MSSSent {
+			portal.sendCheckpoint(dbMsg, nil, false)
+		}
 		if !dbMsg.Status.MSSDeliverySent {
 			dbMsg.Status.MSSDeliverySent = true
 			dbMsg.Status.MSSSent = true
 			go portal.sendStatusEvent(dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
+			portal.sendCheckpoint(dbMsg, nil, true)
 		}
 		err := portal.MainIntent().MarkRead(portal.MXID, dbMsg.MXID)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to mark message as read")
 		}
 	case !dbMsg.Status.MSSDeliverySent && portal.IsPrivateChat() && newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED:
+		if !dbMsg.Status.MSSSent {
+			portal.sendCheckpoint(dbMsg, nil, false)
+		}
+		portal.sendCheckpoint(dbMsg, nil, true)
 		dbMsg.Status.MSSDeliverySent = true
 		dbMsg.Status.MSSSent = true
 		go portal.sendStatusEvent(dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
@@ -516,8 +524,10 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 			deliveredTo = &[]id.UserID{}
 		}
 		go portal.sendStatusEvent(dbMsg.MXID, "", nil, deliveredTo)
+		portal.sendCheckpoint(dbMsg, nil, false)
 	case !dbMsg.Status.MSSFailSent && !dbMsg.Status.MSSSent && isFailSendStatus(newStatus):
 		go portal.sendStatusEvent(dbMsg.MXID, "", OutgoingStatusError(newStatus), nil)
+		portal.sendCheckpoint(dbMsg, OutgoingStatusError(newStatus), false)
 		// TODO error notice
 	default:
 		log.Debug().Msg("Ignored message update")
