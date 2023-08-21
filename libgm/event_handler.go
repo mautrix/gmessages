@@ -201,9 +201,11 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			c.triggerEvent(evt.TypingEvent.GetData())
 
 		default:
-			c.Logger.Trace().Any("evt", evt).Msg("Got unknown event type")
+			c.Logger.Warn().
+				Str("evt_data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+				Msg("Got unknown event type")
 		}
 	default:
-		c.Logger.Trace().Any("response", msg).Msg("Got unexpected response")
+		c.Logger.Debug().Str("action_type", msg.Message.Action.String()).Msg("Got unexpected response")
 	}
 }
