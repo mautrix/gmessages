@@ -785,13 +785,24 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		Str("data_source", source).
 		Interface("conversation_data", convCopy).
 		Logger()
+	if cancel := portal.cancelCreation.Load(); cancel != nil {
+		if updateType == gmproto.ConversationStatus_SPAM_FOLDER || updateType == gmproto.ConversationStatus_BLOCKED_FOLDER {
+			(*cancel)(fmt.Errorf("conversation was moved to spam"))
+		} else {
+			log.Debug().Msg("Conversation creation is still pending, ignoring new sync event")
+			return
+		}
+	}
 	if portal.MXID != "" {
 		switch updateType {
-		// TODO also delete if blocked?
 		case gmproto.ConversationStatus_DELETED:
 			log.Info().Msg("Got delete event, cleaning up portal")
 			portal.Delete()
 			portal.Cleanup()
+		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER:
+			log.Info().Msg("Got spam/block event, cleaning up portal")
+			portal.Cleanup()
+			portal.RemoveMXID(context.TODO())
 		default:
 			if v.Participants == nil {
 				log.Debug().Msg("Not syncing conversation with nil participants")
@@ -816,10 +827,33 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 			log.Debug().Msg("Not syncing conversation with nil participants")
 			return
 		}
-		log.Debug().Msg("Creating portal for conversation")
-		err := portal.CreateMatrixRoom(user, v, source == "sync")
-		if err != nil {
-			log.Err(err).Msg("Error creating Matrix room from conversation event")
+		if source == "event" {
+			go func() {
+				ctx, cancel := context.WithCancelCause(context.TODO())
+				cancelPtr := &cancel
+				defer func() {
+					portal.cancelCreation.CompareAndSwap(cancelPtr, nil)
+					cancel(nil)
+				}()
+				portal.cancelCreation.Store(cancelPtr)
+				log.Debug().Msg("Creating portal for conversation in 5 seconds")
+				select {
+				case <-time.After(5 * time.Second):
+				case <-ctx.Done():
+					log.Debug().Err(ctx.Err()).Msg("Portal creation was cancelled")
+					return
+				}
+				err := portal.CreateMatrixRoom(user, v, source == "sync")
+				if err != nil {
+					log.Err(err).Msg("Error creating Matrix room from conversation event")
+				}
+			}()
+		} else {
+			log.Debug().Msg("Creating portal for conversation")
+			err := portal.CreateMatrixRoom(user, v, source == "sync")
+			if err != nil {
+				log.Err(err).Msg("Error creating Matrix room from conversation event")
+			}
 		}
 	} else {
 		log.Debug().Msg("Not creating portal for conversation")

@@ -63,6 +63,9 @@ const (
 		SELECT conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status FROM message
 		WHERE mxid=$1
 	`
+	deleteAllInChat = `
+		DELETE FROM message WHERE conv_id=$1 AND conv_receiver=$2
+	`
 )
 
 func (mq *MessageQuery) GetByID(ctx context.Context, receiver int, messageID string) (*Message, error) {
@@ -79,6 +82,11 @@ func (mq *MessageQuery) GetLastInChat(ctx context.Context, chat Key) (*Message, 
 
 func (mq *MessageQuery) GetLastInChatWithMXID(ctx context.Context, chat Key) (*Message, error) {
 	return get[*Message](mq, ctx, getLastMessageInChatWithMXIDQuery, chat.ID, chat.Receiver)
+}
+
+func (mq *MessageQuery) DeleteAllInChat(ctx context.Context, chat Key) error {
+	_, err := mq.db.Conn(ctx).ExecContext(ctx, deleteAllInChat, chat.ID, chat.Receiver)
+	return err
 }
 
 type MediaPart struct {

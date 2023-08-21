@@ -258,6 +258,8 @@ type Portal struct {
 
 	messages       chan PortalMessage
 	matrixMessages chan PortalMatrixMessage
+
+	cancelCreation atomic.Pointer[context.CancelCauseFunc]
 }
 
 var (
@@ -1896,6 +1898,29 @@ func (portal *Portal) Delete() {
 		delete(portal.bridge.portalsByMXID, portal.MXID)
 	}
 	portal.bridge.portalsLock.Unlock()
+}
+
+func (portal *Portal) RemoveMXID(ctx context.Context) {
+	portal.bridge.portalsLock.Lock()
+	if len(portal.MXID) == 0 {
+		portal.bridge.portalsLock.Unlock()
+		return
+	}
+	delete(portal.bridge.portalsByMXID, portal.MXID)
+	portal.MXID = ""
+	portal.NameSet = false
+	portal.AvatarSet = false
+	portal.InSpace = false
+	portal.Encrypted = false
+	portal.bridge.portalsLock.Unlock()
+	err := portal.bridge.DB.Message.DeleteAllInChat(ctx, portal.Key)
+	if err != nil {
+		portal.zlog.Err(err).Msg("Failed to delete messages from database")
+	}
+	err = portal.Update(ctx)
+	if err != nil {
+		portal.zlog.Err(err).Msg("Failed to remove portal mxid from database")
+	}
 }
 
 func (portal *Portal) Cleanup() {
