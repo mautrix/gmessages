@@ -692,7 +692,13 @@ func (portal *Portal) syncReactions(ctx context.Context, source *User, message *
 				continue
 			}
 			var resp *mautrix.RespSendEvent
-			resp, err = intent.SendReaction(portal.MXID, message.MXID, variationselector.Add(emoji))
+			resp, err = intent.SendMessageEvent(portal.MXID, event.EventReaction, &event.ReactionEventContent{
+				RelatesTo: event.RelatesTo{
+					EventID: message.MXID,
+					Type:    event.RelAnnotation,
+					Key:     variationselector.Add(emoji),
+				},
+			})
 			if err != nil {
 				log.Err(err).Str("reaction_sender_id", participant).Msg("Failed to send reaction")
 				continue
