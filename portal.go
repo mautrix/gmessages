@@ -791,7 +791,7 @@ func addDownloadStatus(content *event.MessageEventContent, status string) {
 	}
 }
 
-func shouldIgnoreStatus(status gmproto.MessageStatusType) bool {
+func (portal *Portal) shouldIgnoreStatus(status gmproto.MessageStatusType) bool {
 	switch status {
 	case gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_TEXT,
 		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_RCS,
@@ -800,8 +800,9 @@ func shouldIgnoreStatus(status gmproto.MessageStatusType) bool {
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_TEXT_TO_E2EE,
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_TEXT,
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_RCS_TO_E2EE,
-		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_RCS,
-		gmproto.MessageStatusType_TOMBSTONE_SHOW_LINK_PREVIEWS:
+		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_RCS:
+		return portal.IsPrivateChat()
+	case gmproto.MessageStatusType_TOMBSTONE_SHOW_LINK_PREVIEWS:
 		return true
 	default:
 		return false
@@ -817,7 +818,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.ID = evt.MessageID
 	cm.PartCount = len(evt.GetMessageInfo())
 	cm.Timestamp = time.UnixMicro(evt.Timestamp)
-	cm.DontBridge = portal.IsPrivateChat() && shouldIgnoreStatus(cm.Status)
+	cm.DontBridge = portal.shouldIgnoreStatus(cm.Status)
 	if cm.Status >= 200 && cm.Status < 300 {
 		cm.Intent = portal.bridge.Bot
 		if !portal.Encrypted && portal.IsPrivateChat() {
