@@ -521,20 +521,6 @@ func (user *User) IsLoggedIn() bool {
 	return user.IsConnected() && user.Client.IsLoggedIn()
 }
 
-func (user *User) tryAutomaticDoublePuppeting() {
-	if !user.bridge.Config.CanAutoDoublePuppet(user.MXID) || user.DoublePuppetIntent != nil {
-		return
-	}
-
-	if err := user.loginWithSharedSecret(); err != nil {
-		user.zlog.Warn().Err(err).Msg("Failed to login with shared secret for double puppeting")
-	} else if err = user.startCustomMXID(false); err != nil {
-		user.zlog.Warn().Err(err).Msg("Failed to start double puppet after logging in with shared secret")
-	} else {
-		user.zlog.Info().Msg("Successfully automatically enabled double puppet")
-	}
-}
-
 func (user *User) sendMarkdownBridgeAlert(important bool, formatString string, args ...interface{}) {
 	if user.bridge.Config.Bridge.DisableBridgeAlerts {
 		return

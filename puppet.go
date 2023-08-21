@@ -184,6 +184,8 @@ func (puppet *Puppet) SwitchCustomMXID(_ string, _ id.UserID) error {
 	return fmt.Errorf("puppets don't support custom MXIDs here")
 }
 
+func (puppet *Puppet) ClearCustomMXID() {}
+
 func (puppet *Puppet) IntentFor(_ *Portal) *appservice.IntentAPI {
 	return puppet.DefaultIntent()
 }

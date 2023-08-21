@@ -44,9 +44,7 @@ type BridgeConfig struct {
 		MissedLimit  int `yaml:"missed_limit"`
 	} `yaml:"backfill"`
 
-	DoublePuppetServerMap      map[string]string `yaml:"double_puppet_server_map"`
-	DoublePuppetAllowDiscovery bool              `yaml:"double_puppet_allow_discovery"`
-	LoginSharedSecretMap       map[string]string `yaml:"login_shared_secret_map"`
+	DoublePuppetConfig bridgeconfig.DoublePuppetConfig `yaml:",inline"`
 
 	PrivateChatPortalMeta string `yaml:"private_chat_portal_meta"`
 	BridgeNotices         bool   `yaml:"bridge_notices"`
@@ -75,6 +73,10 @@ type BridgeConfig struct {
 
 	ParsedUsernameTemplate *template.Template `yaml:"-"`
 	displaynameTemplate    *template.Template `yaml:"-"`
+}
+
+func (bc BridgeConfig) GetDoublePuppetConfig() bridgeconfig.DoublePuppetConfig {
+	return bc.DoublePuppetConfig
 }
 
 func (bc BridgeConfig) GetEncryptionConfig() bridgeconfig.EncryptionConfig {

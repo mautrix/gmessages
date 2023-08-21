@@ -115,7 +115,7 @@ func (br *GMBridge) StartUsers() {
 	for _, loopuser := range br.GetAllUsersWithDoublePuppet() {
 		go func(user *User) {
 			user.zlog.Debug().Msg("Starting double puppet")
-			err := user.startCustomMXID(true)
+			err := user.StartCustomMXID(true)
 			if err != nil {
 				user.zlog.Err(err).Msg("Failed to start double puppet")
 			}
