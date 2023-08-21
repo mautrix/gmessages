@@ -61,7 +61,7 @@ const (
 	insertReaction = `
 		INSERT INTO reaction (conv_id, conv_receiver, msg_id, sender, reaction, mxid)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (conv_id, conv_receiver, msg_id, sender)
+		ON CONFLICT (conv_receiver, msg_id, sender)
 		DO UPDATE SET reaction=excluded.reaction, mxid=excluded.mxid
 	`
 )
