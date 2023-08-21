@@ -810,6 +810,9 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 			if v.Participants == nil {
 				log.Debug().Msg("Not syncing conversation with nil participants")
 				return
+			} else if portal.IsPrivateChat() && v.IsGroupChat {
+				log.Warn().Msg("Ignoring group chat update for private chat")
+				return
 			}
 			log.Debug().Msg("Syncing existing portal")
 			portal.UpdateMetadata(user, v)
