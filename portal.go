@@ -428,6 +428,10 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	}
 	if chatIDChanged {
 		log = log.With().Str("old_chat_id", dbMsg.Chat.ID).Logger()
+		if downloadPendingStatusMessage(newStatus) != "" && !portal.IsPrivateChat() {
+			log.Debug().Msg("Ignoring chat ID change from group chat as update is a pending download")
+			return
+		}
 		log.Debug().
 			Str("old_room_id", dbMsg.RoomID.String()).
 			Str("sender_id", dbMsg.Sender).
