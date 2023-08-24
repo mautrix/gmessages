@@ -7,7 +7,7 @@ import (
 var ConfigMessage = &gmproto.ConfigVersion{
 	Year:  2023,
 	Month: 8,
-	Day:   10,
+	Day:   17,
 	V1:    4,
 	V2:    6,
 }
@@ -16,5 +16,5 @@ var BrowserDetailsMessage = &gmproto.BrowserDetails{
 	UserAgent:   UserAgent,
 	BrowserType: gmproto.BrowserType_OTHER,
 	OS:          "libgm",
-	SomeBool:    true,
+	DeviceType:  gmproto.DeviceType_TABLET,
 }

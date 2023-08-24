@@ -94,6 +94,10 @@ google_messages:
     # Browser type to tell the phone. This decides which icon is shown.
     # Valid types: OTHER, CHROME, FIREFOX, SAFARI, OPERA, IE, EDGE
     browser: OTHER
+    # Device type to tell the phone. This also affects the icon, as well as how many sessions are allowed simultaneously.
+    # One web, two tablets and one PWA should be able to connect at the same time.
+    # Valid types: WEB, TABLET, PWA
+    device: TABLET
 
     # Should the bridge aggressively set itself as the active device if the user opens Google Messages in a browser?
     # If this is disabled, the user must manually use the `set-active` command to reactivate the bridge.

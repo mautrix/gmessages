@@ -73,6 +73,12 @@ func (br *GMBridge) Init() {
 	} else {
 		util.BrowserDetailsMessage.BrowserType = gmproto.BrowserType(browserVal)
 	}
+	deviceVal, ok := gmproto.DeviceType_value[br.Config.GoogleMessages.Device]
+	if !ok {
+		br.ZLog.Error().Str("device_value", br.Config.GoogleMessages.Device).Msg("Invalid device value")
+	} else {
+		util.BrowserDetailsMessage.DeviceType = gmproto.DeviceType(deviceVal)
+	}
 
 	Segment.log = br.ZLog.With().Str("component", "segment").Logger()
 	Segment.key = br.Config.SegmentKey

@@ -35,6 +35,7 @@ type Config struct {
 	GoogleMessages struct {
 		OS      string `yaml:"os"`
 		Browser string `yaml:"browser"`
+		Device  string `yaml:"device"`
 
 		AggressiveReconnect bool `yaml:"aggressive_reconnect"`
 	} `yaml:"google_messages"`

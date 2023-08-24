@@ -86,6 +86,58 @@ func (BrowserType) EnumDescriptor() ([]byte, []int) {
 	return file_authentication_proto_rawDescGZIP(), []int{0}
 }
 
+type DeviceType int32
+
+const (
+	DeviceType_UNKNOWN_DEVICE_TYPE DeviceType = 0
+	DeviceType_WEB                 DeviceType = 1
+	DeviceType_TABLET              DeviceType = 2
+	DeviceType_PWA                 DeviceType = 3
+)
+
+// Enum value maps for DeviceType.
+var (
+	DeviceType_name = map[int32]string{
+		0: "UNKNOWN_DEVICE_TYPE",
+		1: "WEB",
+		2: "TABLET",
+		3: "PWA",
+	}
+	DeviceType_value = map[string]int32{
+		"UNKNOWN_DEVICE_TYPE": 0,
+		"WEB":                 1,
+		"TABLET":              2,
+		"PWA":                 3,
+	}
+)
+
+func (x DeviceType) Enum() *DeviceType {
+	p := new(DeviceType)
+	*p = x
+	return p
+}
+
+func (x DeviceType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DeviceType) Descriptor() protoreflect.EnumDescriptor {
+	return file_authentication_proto_enumTypes[1].Descriptor()
+}
+
+func (DeviceType) Type() protoreflect.EnumType {
+	return &file_authentication_proto_enumTypes[1]
+}
+
+func (x DeviceType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DeviceType.Descriptor instead.
+func (DeviceType) EnumDescriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{1}
+}
+
 type BrowserDetails struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -94,7 +146,7 @@ type BrowserDetails struct {
 	UserAgent   string      `protobuf:"bytes,1,opt,name=userAgent,proto3" json:"userAgent,omitempty"`
 	BrowserType BrowserType `protobuf:"varint,2,opt,name=browserType,proto3,enum=authentication.BrowserType" json:"browserType,omitempty"`
 	OS          string      `protobuf:"bytes,3,opt,name=OS,proto3" json:"OS,omitempty"`
-	SomeBool    bool        `protobuf:"varint,6,opt,name=someBool,proto3" json:"someBool,omitempty"`
+	DeviceType  DeviceType  `protobuf:"varint,6,opt,name=deviceType,proto3,enum=authentication.DeviceType" json:"deviceType,omitempty"`
 }
 
 func (x *BrowserDetails) Reset() {
@@ -150,11 +202,11 @@ func (x *BrowserDetails) GetOS() string {
 	return ""
 }
 
-func (x *BrowserDetails) GetSomeBool() bool {
+func (x *BrowserDetails) GetDeviceType() DeviceType {
 	if x != nil {
-		return x.SomeBool
+		return x.DeviceType
 	}
-	return false
+	return DeviceType_UNKNOWN_DEVICE_TYPE
 }
 
 type Device struct {
@@ -1576,69 +1628,71 @@ func file_authentication_proto_rawDescGZIP() []byte {
 	return file_authentication_proto_rawDescData
 }
 
-var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_authentication_proto_goTypes = []interface{}{
 	(BrowserType)(0),                               // 0: authentication.BrowserType
-	(*BrowserDetails)(nil),                         // 1: authentication.BrowserDetails
-	(*Device)(nil),                                 // 2: authentication.Device
-	(*ConfigVersion)(nil),                          // 3: authentication.ConfigVersion
-	(*AuthenticationContainer)(nil),                // 4: authentication.AuthenticationContainer
-	(*AuthMessage)(nil),                            // 5: authentication.AuthMessage
-	(*RevokeRelayPairingRequest)(nil),              // 6: authentication.RevokeRelayPairingRequest
-	(*RevokeRelayPairingResponse)(nil),             // 7: authentication.RevokeRelayPairingResponse
-	(*RegisterRefreshRequest)(nil),                 // 8: authentication.RegisterRefreshRequest
-	(*RegisterRefreshResponse)(nil),                // 9: authentication.RegisterRefreshResponse
-	(*RegisterPhoneRelayResponse)(nil),             // 10: authentication.RegisterPhoneRelayResponse
-	(*CoordinateMessage)(nil),                      // 11: authentication.CoordinateMessage
-	(*RefreshPhoneRelayResponse)(nil),              // 12: authentication.RefreshPhoneRelayResponse
-	(*WebEncryptionKeyResponse)(nil),               // 13: authentication.WebEncryptionKeyResponse
-	(*ECDSAKeys)(nil),                              // 14: authentication.ECDSAKeys
-	(*CurrentDeviceData)(nil),                      // 15: authentication.CurrentDeviceData
-	(*KeyData)(nil),                                // 16: authentication.KeyData
-	(*WebAuthKey)(nil),                             // 17: authentication.WebAuthKey
-	(*URLData)(nil),                                // 18: authentication.URLData
-	(*TokenData)(nil),                              // 19: authentication.TokenData
-	(*PairedData)(nil),                             // 20: authentication.PairedData
-	(*RevokePairData)(nil),                         // 21: authentication.RevokePairData
-	(*RegisterRefreshRequest_NestedEmptyArr)(nil),  // 22: authentication.RegisterRefreshRequest.NestedEmptyArr
-	(*RegisterRefreshResponse_AuthKeyData)(nil),    // 23: authentication.RegisterRefreshResponse.AuthKeyData
-	(*RegisterPhoneRelayResponse_AuthKeyData)(nil), // 24: authentication.RegisterPhoneRelayResponse.AuthKeyData
-	(*EmptyArr)(nil),                               // 25: util.EmptyArr
+	(DeviceType)(0),                                // 1: authentication.DeviceType
+	(*BrowserDetails)(nil),                         // 2: authentication.BrowserDetails
+	(*Device)(nil),                                 // 3: authentication.Device
+	(*ConfigVersion)(nil),                          // 4: authentication.ConfigVersion
+	(*AuthenticationContainer)(nil),                // 5: authentication.AuthenticationContainer
+	(*AuthMessage)(nil),                            // 6: authentication.AuthMessage
+	(*RevokeRelayPairingRequest)(nil),              // 7: authentication.RevokeRelayPairingRequest
+	(*RevokeRelayPairingResponse)(nil),             // 8: authentication.RevokeRelayPairingResponse
+	(*RegisterRefreshRequest)(nil),                 // 9: authentication.RegisterRefreshRequest
+	(*RegisterRefreshResponse)(nil),                // 10: authentication.RegisterRefreshResponse
+	(*RegisterPhoneRelayResponse)(nil),             // 11: authentication.RegisterPhoneRelayResponse
+	(*CoordinateMessage)(nil),                      // 12: authentication.CoordinateMessage
+	(*RefreshPhoneRelayResponse)(nil),              // 13: authentication.RefreshPhoneRelayResponse
+	(*WebEncryptionKeyResponse)(nil),               // 14: authentication.WebEncryptionKeyResponse
+	(*ECDSAKeys)(nil),                              // 15: authentication.ECDSAKeys
+	(*CurrentDeviceData)(nil),                      // 16: authentication.CurrentDeviceData
+	(*KeyData)(nil),                                // 17: authentication.KeyData
+	(*WebAuthKey)(nil),                             // 18: authentication.WebAuthKey
+	(*URLData)(nil),                                // 19: authentication.URLData
+	(*TokenData)(nil),                              // 20: authentication.TokenData
+	(*PairedData)(nil),                             // 21: authentication.PairedData
+	(*RevokePairData)(nil),                         // 22: authentication.RevokePairData
+	(*RegisterRefreshRequest_NestedEmptyArr)(nil),  // 23: authentication.RegisterRefreshRequest.NestedEmptyArr
+	(*RegisterRefreshResponse_AuthKeyData)(nil),    // 24: authentication.RegisterRefreshResponse.AuthKeyData
+	(*RegisterPhoneRelayResponse_AuthKeyData)(nil), // 25: authentication.RegisterPhoneRelayResponse.AuthKeyData
+	(*EmptyArr)(nil),                               // 26: util.EmptyArr
 }
 var file_authentication_proto_depIdxs = []int32{
 	0,  // 0: authentication.BrowserDetails.browserType:type_name -> authentication.BrowserType
-	5,  // 1: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
-	1,  // 2: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
-	16, // 3: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
-	15, // 4: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
-	3,  // 5: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
-	5,  // 6: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
-	2,  // 7: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
-	5,  // 8: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
-	2,  // 9: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
-	22, // 10: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
-	23, // 11: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.RegisterRefreshResponse.AuthKeyData
-	11, // 12: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
-	2,  // 13: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
-	24, // 14: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.RegisterPhoneRelayResponse.AuthKeyData
-	11, // 15: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
-	11, // 16: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
-	2,  // 17: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
-	2,  // 18: authentication.KeyData.mobile:type_name -> authentication.Device
-	14, // 19: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
-	17, // 20: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
-	2,  // 21: authentication.KeyData.browser:type_name -> authentication.Device
-	2,  // 22: authentication.PairedData.mobile:type_name -> authentication.Device
-	19, // 23: authentication.PairedData.tokenData:type_name -> authentication.TokenData
-	2,  // 24: authentication.PairedData.browser:type_name -> authentication.Device
-	2,  // 25: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
-	25, // 26: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
-	27, // [27:27] is the sub-list for method output_type
-	27, // [27:27] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	1,  // 1: authentication.BrowserDetails.deviceType:type_name -> authentication.DeviceType
+	6,  // 2: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
+	2,  // 3: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
+	17, // 4: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
+	16, // 5: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
+	4,  // 6: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
+	6,  // 7: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
+	3,  // 8: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
+	6,  // 9: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
+	3,  // 10: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
+	23, // 11: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
+	24, // 12: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.RegisterRefreshResponse.AuthKeyData
+	12, // 13: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	3,  // 14: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
+	25, // 15: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.RegisterPhoneRelayResponse.AuthKeyData
+	12, // 16: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	12, // 17: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
+	3,  // 18: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
+	3,  // 19: authentication.KeyData.mobile:type_name -> authentication.Device
+	15, // 20: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
+	18, // 21: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
+	3,  // 22: authentication.KeyData.browser:type_name -> authentication.Device
+	3,  // 23: authentication.PairedData.mobile:type_name -> authentication.Device
+	20, // 24: authentication.PairedData.tokenData:type_name -> authentication.TokenData
+	3,  // 25: authentication.PairedData.browser:type_name -> authentication.Device
+	3,  // 26: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
+	26, // 27: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_authentication_proto_init() }
@@ -1947,7 +2001,7 @@ func file_authentication_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_authentication_proto_rawDesc,
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   0,

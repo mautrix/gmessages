@@ -16,11 +16,18 @@ enum BrowserType {
     EDGE = 7;
 }
 
+enum DeviceType {
+    UNKNOWN_DEVICE_TYPE = 0;
+    WEB = 1;
+    TABLET = 2;
+    PWA = 3;
+}
+
 message BrowserDetails {
     string userAgent = 1;
     BrowserType browserType = 2;
     string OS = 3;
-    bool someBool = 6;
+    DeviceType deviceType = 6;
 }
 
 message Device {
