@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"image"
@@ -214,6 +215,7 @@ const recentlyHandledLength = 100
 type PortalMessage struct {
 	evt    *gmproto.Message
 	source *User
+	raw    []byte
 }
 
 type PortalMatrixMessage struct {
@@ -278,7 +280,7 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 	defer portal.forwardBackfillLock.Unlock()
 	switch {
 	case msg.evt != nil:
-		portal.handleMessage(msg.source, msg.evt)
+		portal.handleMessage(msg.source, msg.evt, msg.raw)
 	default:
 		portal.zlog.Warn().Interface("portal_message", msg).Msg("Unexpected PortalMessage with no message")
 	}
@@ -420,11 +422,12 @@ func (portal *Portal) redactMessage(ctx context.Context, msg *database.Message) 
 	msg.MXID = ""
 }
 
-func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *User, dbMsg *database.Message, evt *gmproto.Message) {
+func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *User, dbMsg *database.Message, evt *gmproto.Message, raw []byte) {
 	log := *zerolog.Ctx(ctx)
 	newStatus := evt.GetMessageStatus().GetStatus()
 	chatIDChanged := dbMsg.Chat.ID != portal.ID
 	if dbMsg.Status.Type == newStatus && !chatIDChanged && !(dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt)) {
+		log.Debug().Msg("Nothing changed in message update, just syncing reactions")
 		portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
 		return
 	}
@@ -461,7 +464,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		dbMsg.Status.MediaStatus != downloadPendingStatusMessage(newStatus),
 		dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt),
 		dbMsg.Status.PartCount != len(evt.MessageInfo):
-		converted := portal.convertGoogleMessage(ctx, source, evt, false)
+		converted := portal.convertGoogleMessage(ctx, source, evt, false, raw)
 		dbMsg.Status.MediaStatus = converted.MediaStatus
 		if dbMsg.Status.MediaParts == nil {
 			dbMsg.Status.MediaParts = make(map[string]database.MediaPart)
@@ -556,11 +559,11 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
 }
 
-func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, evt *gmproto.Message, outgoingOnly bool) bool {
+func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, evt *gmproto.Message, outgoingOnly bool, raw []byte) bool {
 	log := zerolog.Ctx(ctx)
 	if existingMsg := portal.isOutgoingMessage(evt); existingMsg != nil {
 		log.Debug().Str("event_id", existingMsg.MXID.String()).Msg("Got echo for outgoing message")
-		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
+		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt, raw)
 		return true
 	} else if outgoingOnly {
 		return false
@@ -569,7 +572,7 @@ func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, e
 	if err != nil {
 		log.Err(err).Msg("Failed to check if message is duplicate")
 	} else if existingMsg != nil {
-		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt)
+		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt, raw)
 		return true
 	}
 	return false
@@ -583,7 +586,7 @@ func idToInt(id string) int {
 	return i
 }
 
-func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
+func (portal *Portal) handleMessage(source *User, evt *gmproto.Message, raw []byte) {
 	eventTS := time.UnixMicro(evt.GetTimestamp())
 	if eventTS.After(portal.lastMessageTS) {
 		portal.lastMessageTS = eventTS
@@ -596,7 +599,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		Str("action", "handle google message").
 		Logger()
 	ctx := log.WithContext(context.TODO())
-	if portal.handleExistingMessage(ctx, source, evt, false) {
+	if portal.handleExistingMessage(ctx, source, evt, false, raw) {
 		return
 	}
 	switch evt.GetMessageStatus().GetStatus() {
@@ -617,7 +620,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message) {
 		}
 	}
 
-	converted := portal.convertGoogleMessage(ctx, source, evt, false)
+	converted := portal.convertGoogleMessage(ctx, source, evt, false, raw)
 	eventIDs := portal.sendMessageParts(ctx, converted, nil)
 	if len(eventIDs) > 0 {
 		portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
@@ -811,7 +814,7 @@ func (portal *Portal) shouldIgnoreStatus(status gmproto.MessageStatusType) bool 
 	}
 }
 
-func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *gmproto.Message, backfill bool) *ConvertedMessage {
+func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, evt *gmproto.Message, backfill bool, raw []byte) *ConvertedMessage {
 	log := zerolog.Ctx(ctx)
 
 	var cm ConvertedMessage
@@ -922,6 +925,14 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	}
 	if portal.bridge.Config.Bridge.CaptionInMessage {
 		cm.MergeCaption()
+	}
+	if raw != nil && base64.StdEncoding.EncodedLen(len(raw)) < 8192 {
+		extra := cm.Parts[0].Extra
+		if extra == nil {
+			extra = make(map[string]any)
+		}
+		extra["fi.mau.gmessages.raw_debug_data"] = base64.StdEncoding.EncodeToString(raw)
+		cm.Parts[0].Extra = extra
 	}
 	return &cm
 }

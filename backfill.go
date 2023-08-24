@@ -142,10 +142,10 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 	for i := len(resp.Messages) - 1; i >= 0; i-- {
 		evt := resp.Messages[i]
 		isTooOld := !time.UnixMicro(evt.Timestamp).After(after)
-		if portal.handleExistingMessage(ctx, user, evt, isTooOld) || isTooOld {
+		if portal.handleExistingMessage(ctx, user, evt, isTooOld, nil) || isTooOld {
 			continue
 		}
-		c := portal.convertGoogleMessage(ctx, user, evt, batchSending)
+		c := portal.convertGoogleMessage(ctx, user, evt, batchSending, nil)
 		if c == nil {
 			continue
 		}

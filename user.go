@@ -603,7 +603,8 @@ func (user *User) syncHandleEvent(event any) {
 		}()
 	case *gmproto.Conversation:
 		go user.syncConversation(v, "event")
-	case *gmproto.Message:
+	//case *gmproto.Message:
+	case *libgm.WrappedMessage:
 		user.zlog.Debug().
 			Str("conversation_id", v.GetConversationID()).
 			Str("participant_id", v.GetParticipantID()).
@@ -613,7 +614,7 @@ func (user *User) syncHandleEvent(event any) {
 			Str("tmp_id", v.GetTmpID()).
 			Msg("Received message")
 		portal := user.GetPortalByID(v.GetConversationID())
-		portal.messages <- PortalMessage{evt: v, source: user}
+		portal.messages <- PortalMessage{evt: v.Message, source: user, raw: v.Data}
 	case *gmproto.UserAlertEvent:
 		user.handleUserAlert(v)
 	default:

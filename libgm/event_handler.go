@@ -166,6 +166,11 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	}
 }
 
+type WrappedMessage struct {
+	*gmproto.Message
+	Data []byte
+}
+
 func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 	switch msg.Message.Action {
 	case gmproto.ActionType_GET_UPDATES:
@@ -194,7 +199,10 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			if c.deduplicateUpdate(evt.MessageEvent.GetData().GetMessageID(), msg) {
 				return
 			}
-			c.triggerEvent(evt.MessageEvent.GetData())
+			c.triggerEvent(&WrappedMessage{
+				Message: evt.MessageEvent.GetData(),
+				Data:    msg.DecryptedData,
+			})
 
 		case *gmproto.UpdateEvents_TypingEvent:
 			c.logContent(msg, "", nil)
