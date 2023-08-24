@@ -1710,7 +1710,10 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		go ms.sendMessageMetrics(evt, err, "Error converting", true)
 		return
 	}
-	log.Debug().Str("tmp_id", req.TmpID).Msg("Sending Matrix message to Google Messages")
+	log.Debug().
+		Str("tmp_id", req.TmpID).
+		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
+		Msg("Sending Matrix message to Google Messages")
 	start = time.Now()
 	_, err = sender.Client.SendMessage(req)
 	timings.send = time.Since(start)
