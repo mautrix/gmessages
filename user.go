@@ -397,7 +397,7 @@ func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 	user.createClient(libgm.NewAuthData())
 	qr, err := user.Client.StartLogin()
 	if err != nil {
-		user.DeleteConnection()
+		user.unlockedDeleteConnection()
 		user.pairSuccessChan = nil
 		user.loginInProgress.Store(false)
 		return nil, fmt.Errorf("failed to connect to Google Messages: %w", err)

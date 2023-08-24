@@ -27,7 +27,7 @@ func BuildRelayHeaders(req *http.Request, contentType string, accept string) {
 	if len(contentType) > 0 {
 		req.Header.Add("content-type", contentType)
 	}
-	req.Header.Add("sec-ch-ua-mobile", "?0")
+	req.Header.Add("sec-ch-ua-mobile", SecUAMobile)
 	req.Header.Add("user-agent", UserAgent)
 	req.Header.Add("sec-ch-ua-platform", "\""+UAPlatform+"\"")
 	req.Header.Add("accept", accept)
@@ -44,7 +44,7 @@ func BuildUploadHeaders(req *http.Request, metadata string) {
 	req.Header.Add("connection", "keep-alive")
 	req.Header.Add("x-goog-download-metadata", metadata)
 	req.Header.Add("sec-ch-ua", SecUA)
-	req.Header.Add("sec-ch-ua-mobile", "?0")
+	req.Header.Add("sec-ch-ua-mobile", SecUAMobile)
 	req.Header.Add("user-agent", UserAgent)
 	req.Header.Add("sec-ch-ua-platform", "\""+UAPlatform+"\"")
 	req.Header.Add("accept", "*/*")
@@ -67,7 +67,7 @@ func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string
 		headers.Add("x-goog-upload-protocol", protocol)
 	}
 	headers.Add("x-goog-upload-header-content-length", imageSize)
-	headers.Add("sec-ch-ua-mobile", "?0")
+	headers.Add("sec-ch-ua-mobile", SecUAMobile)
 	headers.Add("user-agent", UserAgent)
 	if imageContentType != "" {
 		headers.Add("x-goog-upload-header-content-type", imageContentType)

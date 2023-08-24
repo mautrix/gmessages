@@ -105,6 +105,7 @@ var SpacedBlocks = [][]string{
 	{"appservice", "as_token"},
 	{"segment_key"},
 	{"metrics"},
+	{"google_messages"},
 	{"bridge"},
 	{"bridge", "command_prefix"},
 	{"bridge", "management_room_text"},
