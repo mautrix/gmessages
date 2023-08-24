@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
@@ -60,6 +61,10 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 	c.triggerEvent(&events.PairSuccessful{PairedData: data})
 
 	go func() {
+		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
+		// the phone won't recognize the session the bridge will get unpaired.
+		time.Sleep(2 * time.Second)
+
 		err := c.Reconnect()
 		if err != nil {
 			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
