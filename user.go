@@ -774,6 +774,30 @@ func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) 
 	return
 }
 
+func conversationDataIsSus(portal *Portal, v *gmproto.Conversation) bool {
+	if !portal.IsPrivateChat() {
+		// Group chats hopefully never get bad updates
+		return false
+	} else if v.IsGroupChat {
+		// Group chat update for a DM is always sus
+		return true
+	}
+	count := 0
+	mainName := ""
+	for _, pcp := range v.Participants {
+		if !pcp.IsMe {
+			if count == 0 {
+				mainName = pcp.FullName
+				count++
+			} else if mainName != pcp.FullName {
+				count++
+			}
+		}
+	}
+	// If there are multiple names in a DM, that's sus even if it's not marked as a group
+	return count > 1
+}
+
 func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 	updateType := v.GetStatus()
 	portal := user.GetPortalByID(v.GetConversationID())
@@ -807,8 +831,8 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 			if v.Participants == nil {
 				log.Debug().Msg("Not syncing conversation with nil participants")
 				return
-			} else if portal.IsPrivateChat() && v.IsGroupChat {
-				log.Warn().Msg("Ignoring group chat update for private chat")
+			} else if conversationDataIsSus(portal, v) {
+				log.Warn().Msg("Ignoring suspicious update for private chat")
 				return
 			}
 			log.Debug().Msg("Syncing existing portal")
