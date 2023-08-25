@@ -218,6 +218,9 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 				Msg("Got unknown event type")
 		}
 	default:
-		c.Logger.Debug().Str("action_type", msg.Message.Action.String()).Msg("Got unexpected response")
+		c.Logger.Debug().
+			Str("request_id", msg.Message.SessionID).
+			Str("action_type", msg.Message.Action.String()).
+			Msg("Got unexpected response")
 	}
 }

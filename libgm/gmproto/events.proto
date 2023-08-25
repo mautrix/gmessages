@@ -7,23 +7,6 @@ import "conversations.proto";
 import "authentication.proto";
 import "settings.proto";
 
-
-/*
-
-    ConversationEvent = 2
-    MessageEvent = 3
-    TypingEvent = 4
-    SettingsEvent = 5
-    UserAlertEvent = 6
-    BrowserPresenceCheckEvent = 7
-    ParticipantsEvent = 8
-    ConversationTypeEvent = 9
-    FavoriteStickersEvent = 10
-    RecentStickerEvent = 11
-    CloudStoreInfoEvent = 12
-    BlobForAttachmentProgressUpdate = 13
-*/
-
 message UpdateEvents {
     oneof event {
         ConversationEvent conversationEvent = 2;
@@ -31,6 +14,13 @@ message UpdateEvents {
         TypingEvent typingEvent = 4;
         settings.Settings settingsEvent = 5;
         UserAlertEvent userAlertEvent = 6;
+        BrowserPresenceCheckEvent browserPresenceCheckEvent = 7;
+        //ParticipantsEvent participantsEvent = 8;
+        //ConversationTypeEvent conversationTypeEvent = 9;
+        //FavoriteStickersEvent favoriteStickersEvent = 10;
+        //RecentStickerEvent recentStickerEvent = 11;
+        //CloudStoreInfoEvent cloudStoreInfoEvent = 12;
+        //BlobForAttachmentProgressUpdate blobForAttachmentProgressUpdate = 13;
     }
 }
 
@@ -49,6 +39,8 @@ message MessageEvent {
 message UserAlertEvent {
     AlertType alertType = 2;
 }
+
+message BrowserPresenceCheckEvent {}
 
 message TypingData {
     string conversationID = 1;
