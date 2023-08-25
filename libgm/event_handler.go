@@ -190,19 +190,23 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			c.triggerEvent(evt.SettingsEvent)
 
 		case *gmproto.UpdateEvents_ConversationEvent:
-			if c.deduplicateUpdate(evt.ConversationEvent.GetData().GetConversationID(), msg) {
-				return
+			for _, part := range evt.ConversationEvent.GetData() {
+				if c.deduplicateUpdate(part.GetConversationID(), msg) {
+					return
+				}
+				c.triggerEvent(part)
 			}
-			c.triggerEvent(evt.ConversationEvent.GetData())
 
 		case *gmproto.UpdateEvents_MessageEvent:
-			if c.deduplicateUpdate(evt.MessageEvent.GetData().GetMessageID(), msg) {
-				return
+			for _, part := range evt.MessageEvent.GetData() {
+				if c.deduplicateUpdate(part.GetMessageID(), msg) {
+					return
+				}
+				c.triggerEvent(&WrappedMessage{
+					Message: part,
+					Data:    msg.DecryptedData,
+				})
 			}
-			c.triggerEvent(&WrappedMessage{
-				Message: evt.MessageEvent.GetData(),
-				Data:    msg.DecryptedData,
-			})
 
 		case *gmproto.UpdateEvents_TypingEvent:
 			c.logContent(msg, "", nil)

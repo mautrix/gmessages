@@ -290,7 +290,7 @@ type ConversationEvent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data *Conversation `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Data []*Conversation `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty"`
 }
 
 func (x *ConversationEvent) Reset() {
@@ -325,7 +325,7 @@ func (*ConversationEvent) Descriptor() ([]byte, []int) {
 	return file_events_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ConversationEvent) GetData() *Conversation {
+func (x *ConversationEvent) GetData() []*Conversation {
 	if x != nil {
 		return x.Data
 	}
@@ -384,7 +384,7 @@ type MessageEvent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data *Message `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Data []*Message `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty"`
 }
 
 func (x *MessageEvent) Reset() {
@@ -419,7 +419,7 @@ func (*MessageEvent) Descriptor() ([]byte, []int) {
 	return file_events_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *MessageEvent) GetData() *Message {
+func (x *MessageEvent) GetData() []*Message {
 	if x != nil {
 		return x.Data
 	}

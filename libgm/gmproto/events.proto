@@ -35,7 +35,7 @@ message UpdateEvents {
 }
 
 message ConversationEvent {
-    conversations.Conversation data = 2;
+    repeated conversations.Conversation data = 2;
 }
 
 message TypingEvent {
@@ -43,7 +43,7 @@ message TypingEvent {
 }
 
 message MessageEvent {
-    conversations.Message data = 2;
+    repeated conversations.Message data = 2;
 }
 
 message UserAlertEvent {
