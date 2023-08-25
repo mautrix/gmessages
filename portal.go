@@ -802,11 +802,21 @@ func (portal *Portal) shouldIgnoreStatus(status gmproto.MessageStatusType) bool 
 		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_RCS,
 		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_ENCRYPTED_RCS,
 		gmproto.MessageStatusType_TOMBSTONE_PROTOCOL_SWITCH_TO_ENCRYPTED_RCS_INFO,
+		gmproto.MessageStatusType_TOMBSTONE_ONE_ON_ONE_SMS_CREATED,
+		gmproto.MessageStatusType_TOMBSTONE_ONE_ON_ONE_RCS_CREATED,
+		gmproto.MessageStatusType_TOMBSTONE_ENCRYPTED_ONE_ON_ONE_RCS_CREATED,
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_TEXT_TO_E2EE,
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_TEXT,
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_RCS_TO_E2EE,
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_RCS:
 		return portal.IsPrivateChat()
+	case gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_ENCRYPTED_GROUP_CREATED,
+		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_GROUP_PROTOCOL_SWITCH_E2EE_TO_RCS,
+		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_GROUP_PROTOCOL_SWITCH_RCS_TO_E2EE,
+		gmproto.MessageStatusType_TOMBSTONE_RCS_GROUP_CREATED,
+		gmproto.MessageStatusType_TOMBSTONE_MMS_GROUP_CREATED,
+		gmproto.MessageStatusType_TOMBSTONE_SMS_BROADCAST_CREATED:
+		return true
 	case gmproto.MessageStatusType_TOMBSTONE_SHOW_LINK_PREVIEWS:
 		return true
 	default:
