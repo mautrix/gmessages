@@ -821,6 +821,9 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 	if cancel := portal.cancelCreation.Load(); cancel != nil {
 		if updateType == gmproto.ConversationStatus_SPAM_FOLDER || updateType == gmproto.ConversationStatus_BLOCKED_FOLDER {
 			(*cancel)(fmt.Errorf("conversation was moved to spam"))
+		} else if updateType == gmproto.ConversationStatus_DELETED {
+			(*cancel)(fmt.Errorf("conversation was deleted"))
+			portal.Delete()
 		} else {
 			log.Debug().Msg("Conversation creation is still pending, ignoring new sync event")
 			return
