@@ -243,6 +243,14 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 			dbMessages = append(dbMessages, dbm)
 		}
 	}
+	if len(dbMessages) == 0 {
+		log.Warn().
+			Int("converted_count", len(converted)).
+			Int("event_count", len(events)).
+			Int("db_count", len(dbMessages)).
+			Msg("Didn't get any parts to send from converted messages")
+		return
+	}
 	forward := true
 	log.Debug().
 		Int("event_count", len(events)).
