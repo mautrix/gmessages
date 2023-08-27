@@ -1,4 +1,4 @@
-module go.mau.fi/mautrix-gmessages/gmtest
+module go.mau.fi/mautrix-gmessages/libgm/gmtest
 
 go 1.20
 
@@ -18,4 +18,4 @@ require (
 	rsc.io/qr v0.2.0 // indirect
 )
 
-replace go.mau.fi/mautrix-gmessages/libgm => ../libgm
+replace go.mau.fi/mautrix-gmessages/libgm => ../
