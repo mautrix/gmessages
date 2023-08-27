@@ -41,7 +41,7 @@ func (c *Client) GetOrCreateConversation(req *gmproto.GetOrCreateConversationReq
 }
 
 func (c *Client) GetConversationType(conversationID string) (*gmproto.GetConversationTypeResponse, error) {
-	payload := &gmproto.ConversationTypeRequest{ConversationID: conversationID}
+	payload := &gmproto.GetConversationTypeRequest{ConversationID: conversationID}
 	actionType := gmproto.ActionType_GET_CONVERSATION_TYPE
 	return typedResponse[*gmproto.GetConversationTypeResponse](c.sessionHandler.sendMessage(actionType, payload))
 }

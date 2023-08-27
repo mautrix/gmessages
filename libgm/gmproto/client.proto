@@ -215,7 +215,7 @@ message UpdateConversationResponse {
     */
 }
 
-message ConversationTypeRequest {
+message GetConversationTypeRequest {
     string conversationID = 2;
 }
 

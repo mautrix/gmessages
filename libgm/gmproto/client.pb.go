@@ -2059,7 +2059,7 @@ func (x *UpdateConversationResponse) GetSuccess() bool {
 	return false
 }
 
-type ConversationTypeRequest struct {
+type GetConversationTypeRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -2067,8 +2067,8 @@ type ConversationTypeRequest struct {
 	ConversationID string `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
 }
 
-func (x *ConversationTypeRequest) Reset() {
-	*x = ConversationTypeRequest{}
+func (x *GetConversationTypeRequest) Reset() {
+	*x = GetConversationTypeRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_client_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2076,13 +2076,13 @@ func (x *ConversationTypeRequest) Reset() {
 	}
 }
 
-func (x *ConversationTypeRequest) String() string {
+func (x *GetConversationTypeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ConversationTypeRequest) ProtoMessage() {}
+func (*GetConversationTypeRequest) ProtoMessage() {}
 
-func (x *ConversationTypeRequest) ProtoReflect() protoreflect.Message {
+func (x *GetConversationTypeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_client_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2094,12 +2094,12 @@ func (x *ConversationTypeRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConversationTypeRequest.ProtoReflect.Descriptor instead.
-func (*ConversationTypeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetConversationTypeRequest.ProtoReflect.Descriptor instead.
+func (*GetConversationTypeRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{32}
 }
 
-func (x *ConversationTypeRequest) GetConversationID() string {
+func (x *GetConversationTypeRequest) GetConversationID() string {
 	if x != nil {
 		return x.ConversationID
 	}
@@ -3175,7 +3175,7 @@ var file_client_proto_goTypes = []interface{}{
 	(*ConversationAction5)(nil),                        // 34: client.ConversationAction5
 	(*UpdateConversationData)(nil),                     // 35: client.UpdateConversationData
 	(*UpdateConversationResponse)(nil),                 // 36: client.UpdateConversationResponse
-	(*ConversationTypeRequest)(nil),                    // 37: client.ConversationTypeRequest
+	(*GetConversationTypeRequest)(nil),                 // 37: client.GetConversationTypeRequest
 	(*GetConversationTypeResponse)(nil),                // 38: client.GetConversationTypeResponse
 	(*GetConversationRequest)(nil),                     // 39: client.GetConversationRequest
 	(*GetConversationResponse)(nil),                    // 40: client.GetConversationResponse
@@ -3651,7 +3651,7 @@ func file_client_proto_init() {
 			}
 		}
 		file_client_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConversationTypeRequest); i {
+			switch v := v.(*GetConversationTypeRequest); i {
 			case 0:
 				return &v.state
 			case 1:
