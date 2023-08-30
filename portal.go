@@ -1730,7 +1730,10 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
 		Msg("Sending Matrix message to Google Messages")
 	start = time.Now()
-	_, err = sender.Client.SendMessage(req)
+	resp, err := sender.Client.SendMessage(req)
+	if resp != nil {
+		ms.responseType = resp.Type
+	}
 	timings.send = time.Since(start)
 	if err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error sending", true)

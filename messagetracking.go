@@ -226,10 +226,13 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 		}
 		portal.sendStatusEvent(origEvtID, evt.ID, err, nil)
 	} else {
-		portal.zlog.Debug().
+		logEvt := portal.zlog.Debug().
 			Str("event_id", evt.ID.String()).
-			Str("event_type", evt.Type.Type).
-			Msg("Handled Matrix event")
+			Str("event_type", evt.Type.Type)
+		if ms.responseType != 0 {
+			logEvt = logEvt.Int64("response_type", ms.responseType)
+		}
+		logEvt.Msg("Handled Matrix event")
 		portal.sendDeliveryReceipt(evt.ID)
 		if msgType != "message" {
 			portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
@@ -272,6 +275,7 @@ type metricSender struct {
 	completed      bool
 	retryNum       int
 	timings        *messageTimings
+	responseType   int64
 }
 
 func (ms *metricSender) getRetryNum() int {
