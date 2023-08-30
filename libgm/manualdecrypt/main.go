@@ -109,12 +109,17 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, "------------------------------ RAW DECRYPTED DATA ------------------------------")
 		fmt.Println(base64.StdEncoding.EncodeToString(decrypted))
 		_, _ = fmt.Fprintln(os.Stderr, "--------------------------------- DECODED DATA ---------------------------------")
-		cmd := exec.Command("protoc", "--decode_raw")
+		respType, ok := requestType[ord.Action]
+		var cmd *exec.Cmd
+		if ok {
+			cmd = exec.Command("protoc", "--proto_path=../gmproto", "--decode", string(respType.ProtoReflect().Type().Descriptor().FullName()), "client.proto")
+		} else {
+			cmd = exec.Command("protoc", "--decode_raw")
+		}
 		cmd.Stdin = bytes.NewReader(decrypted)
 		cmd.Stdout = os.Stderr
 		cmd.Stderr = os.Stderr
 		mustNoReturn(cmd.Run())
-		respType, ok := requestType[ord.Action]
 		if ok {
 			respData := respType.ProtoReflect().New().Interface()
 			mustNoReturn(proto.Unmarshal(decrypted, respData))
