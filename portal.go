@@ -665,7 +665,11 @@ func (portal *Portal) sendMessageParts(ctx context.Context, converted *Converted
 			}
 		}
 	}
-	portal.markHandled(converted, eventIDs[0], mediaParts, true)
+	if len(eventIDs) > 0 {
+		portal.markHandled(converted, eventIDs[0], mediaParts, true)
+	} else {
+		zerolog.Ctx(ctx).Warn().Msg("All parts of message failed to send")
+	}
 	return eventIDs
 }
 
