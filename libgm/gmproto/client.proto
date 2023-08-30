@@ -5,6 +5,7 @@ option go_package = "../gmproto";
 
 import "conversations.proto";
 import "authentication.proto";
+import "settings.proto";
 import "util.proto";
 
 message NotifyDittoActivityRequest {
@@ -249,6 +250,7 @@ message IsBugleDefaultResponse {
 message SendMessageRequest {
     string conversationID = 2;
     MessagePayload messagePayload = 3;
+    settings.SIMPayload SIMPayload = 4;
     string tmpID = 5;
     bool isReply = 6; // not sure
     ReplyPayload reply = 8;

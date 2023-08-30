@@ -27,9 +27,9 @@ type Settings struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data            *Data           `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	SIMCards        []*SIMCard      `protobuf:"bytes,2,rep,name=SIMCards,proto3" json:"SIMCards,omitempty"`
 	OpCodeData      *SomeData       `protobuf:"bytes,3,opt,name=opCodeData,proto3" json:"opCodeData,omitempty"`
-	RcsSettings     *RCSSettings    `protobuf:"bytes,4,opt,name=rcsSettings,proto3" json:"rcsSettings,omitempty"`
+	RCSSettings     *RCSSettings    `protobuf:"bytes,4,opt,name=RCSSettings,proto3" json:"RCSSettings,omitempty"`
 	BugleVersion    string          `protobuf:"bytes,5,opt,name=bugleVersion,proto3" json:"bugleVersion,omitempty"`
 	Bool1           bool            `protobuf:"varint,7,opt,name=bool1,proto3" json:"bool1,omitempty"`
 	BoolFields2     *BooleanFields2 `protobuf:"bytes,8,opt,name=boolFields2,proto3" json:"boolFields2,omitempty"`
@@ -69,9 +69,9 @@ func (*Settings) Descriptor() ([]byte, []int) {
 	return file_settings_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Settings) GetData() *Data {
+func (x *Settings) GetSIMCards() []*SIMCard {
 	if x != nil {
-		return x.Data
+		return x.SIMCards
 	}
 	return nil
 }
@@ -83,9 +83,9 @@ func (x *Settings) GetOpCodeData() *SomeData {
 	return nil
 }
 
-func (x *Settings) GetRcsSettings() *RCSSettings {
+func (x *Settings) GetRCSSettings() *RCSSettings {
 	if x != nil {
-		return x.RcsSettings
+		return x.RCSSettings
 	}
 	return nil
 }
@@ -125,19 +125,19 @@ func (x *Settings) GetBoolFields3() *BooleanFields3 {
 	return nil
 }
 
-type Data struct {
+type SIMCard struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	RcsChats *RCSChats `protobuf:"bytes,3,opt,name=rcsChats,proto3" json:"rcsChats,omitempty"`
-	SimData  *SimData  `protobuf:"bytes,5,opt,name=simData,proto3" json:"simData,omitempty"`
-	Bool1    bool      `protobuf:"varint,6,opt,name=bool1,proto3" json:"bool1,omitempty"`
-	NoClue   *NoClue   `protobuf:"bytes,7,opt,name=noClue,proto3" json:"noClue,omitempty"`
+	RCSChats       *RCSChats       `protobuf:"bytes,3,opt,name=RCSChats,proto3,oneof" json:"RCSChats,omitempty"`
+	SIMData        *SIMData        `protobuf:"bytes,5,opt,name=SIMData,proto3" json:"SIMData,omitempty"`
+	Bool1          bool            `protobuf:"varint,6,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	SIMParticipant *SIMParticipant `protobuf:"bytes,7,opt,name=SIMParticipant,proto3" json:"SIMParticipant,omitempty"`
 }
 
-func (x *Data) Reset() {
-	*x = Data{}
+func (x *SIMCard) Reset() {
+	*x = SIMCard{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_settings_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -145,13 +145,13 @@ func (x *Data) Reset() {
 	}
 }
 
-func (x *Data) String() string {
+func (x *SIMCard) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Data) ProtoMessage() {}
+func (*SIMCard) ProtoMessage() {}
 
-func (x *Data) ProtoReflect() protoreflect.Message {
+func (x *SIMCard) ProtoReflect() protoreflect.Message {
 	mi := &file_settings_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -163,35 +163,35 @@ func (x *Data) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Data.ProtoReflect.Descriptor instead.
-func (*Data) Descriptor() ([]byte, []int) {
+// Deprecated: Use SIMCard.ProtoReflect.Descriptor instead.
+func (*SIMCard) Descriptor() ([]byte, []int) {
 	return file_settings_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Data) GetRcsChats() *RCSChats {
+func (x *SIMCard) GetRCSChats() *RCSChats {
 	if x != nil {
-		return x.RcsChats
+		return x.RCSChats
 	}
 	return nil
 }
 
-func (x *Data) GetSimData() *SimData {
+func (x *SIMCard) GetSIMData() *SIMData {
 	if x != nil {
-		return x.SimData
+		return x.SIMData
 	}
 	return nil
 }
 
-func (x *Data) GetBool1() bool {
+func (x *SIMCard) GetBool1() bool {
 	if x != nil {
 		return x.Bool1
 	}
 	return false
 }
 
-func (x *Data) GetNoClue() *NoClue {
+func (x *SIMCard) GetSIMParticipant() *SIMParticipant {
 	if x != nil {
-		return x.NoClue
+		return x.SIMParticipant
 	}
 	return nil
 }
@@ -290,20 +290,17 @@ func (x *BoolMsg) GetBool1() bool {
 	return false
 }
 
-type SimData struct {
+type SIMPayload struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UnknownMessage *UnknownMessage `protobuf:"bytes,1,opt,name=unknownMessage,proto3" json:"unknownMessage,omitempty"`
-	Bool1          bool            `protobuf:"varint,2,opt,name=bool1,proto3" json:"bool1,omitempty"`
-	CarrierName    string          `protobuf:"bytes,3,opt,name=carrierName,proto3" json:"carrierName,omitempty"`
-	HexHash        string          `protobuf:"bytes,4,opt,name=hexHash,proto3" json:"hexHash,omitempty"`
-	Int1           int64           `protobuf:"varint,5,opt,name=int1,proto3" json:"int1,omitempty"`
+	Two       int32 `protobuf:"varint,1,opt,name=two,proto3" json:"two,omitempty"`
+	SIMNumber int32 `protobuf:"varint,2,opt,name=SIMNumber,proto3" json:"SIMNumber,omitempty"`
 }
 
-func (x *SimData) Reset() {
-	*x = SimData{}
+func (x *SIMPayload) Reset() {
+	*x = SIMPayload{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_settings_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -311,13 +308,13 @@ func (x *SimData) Reset() {
 	}
 }
 
-func (x *SimData) String() string {
+func (x *SIMPayload) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SimData) ProtoMessage() {}
+func (*SIMPayload) ProtoMessage() {}
 
-func (x *SimData) ProtoReflect() protoreflect.Message {
+func (x *SIMPayload) ProtoReflect() protoreflect.Message {
 	mi := &file_settings_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -329,40 +326,98 @@ func (x *SimData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SimData.ProtoReflect.Descriptor instead.
-func (*SimData) Descriptor() ([]byte, []int) {
+// Deprecated: Use SIMPayload.ProtoReflect.Descriptor instead.
+func (*SIMPayload) Descriptor() ([]byte, []int) {
 	return file_settings_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *SimData) GetUnknownMessage() *UnknownMessage {
+func (x *SIMPayload) GetTwo() int32 {
 	if x != nil {
-		return x.UnknownMessage
+		return x.Two
+	}
+	return 0
+}
+
+func (x *SIMPayload) GetSIMNumber() int32 {
+	if x != nil {
+		return x.SIMNumber
+	}
+	return 0
+}
+
+type SIMData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SIMPayload  *SIMPayload `protobuf:"bytes,1,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
+	Bool1       bool        `protobuf:"varint,2,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	CarrierName string      `protobuf:"bytes,3,opt,name=carrierName,proto3" json:"carrierName,omitempty"`
+	HexHash     string      `protobuf:"bytes,4,opt,name=hexHash,proto3" json:"hexHash,omitempty"`
+	Int1        int64       `protobuf:"varint,5,opt,name=int1,proto3" json:"int1,omitempty"`
+}
+
+func (x *SIMData) Reset() {
+	*x = SIMData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_settings_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SIMData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SIMData) ProtoMessage() {}
+
+func (x *SIMData) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SIMData.ProtoReflect.Descriptor instead.
+func (*SIMData) Descriptor() ([]byte, []int) {
+	return file_settings_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SIMData) GetSIMPayload() *SIMPayload {
+	if x != nil {
+		return x.SIMPayload
 	}
 	return nil
 }
 
-func (x *SimData) GetBool1() bool {
+func (x *SIMData) GetBool1() bool {
 	if x != nil {
 		return x.Bool1
 	}
 	return false
 }
 
-func (x *SimData) GetCarrierName() string {
+func (x *SIMData) GetCarrierName() string {
 	if x != nil {
 		return x.CarrierName
 	}
 	return ""
 }
 
-func (x *SimData) GetHexHash() string {
+func (x *SIMData) GetHexHash() string {
 	if x != nil {
 		return x.HexHash
 	}
 	return ""
 }
 
-func (x *SimData) GetInt1() int64 {
+func (x *SIMData) GetInt1() int64 {
 	if x != nil {
 		return x.Int1
 	}
@@ -381,7 +436,7 @@ type UnknownMessage struct {
 func (x *UnknownMessage) Reset() {
 	*x = UnknownMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_settings_proto_msgTypes[5]
+		mi := &file_settings_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -394,7 +449,7 @@ func (x *UnknownMessage) String() string {
 func (*UnknownMessage) ProtoMessage() {}
 
 func (x *UnknownMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_proto_msgTypes[5]
+	mi := &file_settings_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -407,7 +462,7 @@ func (x *UnknownMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnknownMessage.ProtoReflect.Descriptor instead.
 func (*UnknownMessage) Descriptor() ([]byte, []int) {
-	return file_settings_proto_rawDescGZIP(), []int{5}
+	return file_settings_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UnknownMessage) GetInt1() int64 {
@@ -424,31 +479,31 @@ func (x *UnknownMessage) GetInt2() int64 {
 	return 0
 }
 
-type NoClue struct {
+type SIMParticipant struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Count string `protobuf:"bytes,1,opt,name=count,proto3" json:"count,omitempty"`
+	ID string `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 }
 
-func (x *NoClue) Reset() {
-	*x = NoClue{}
+func (x *SIMParticipant) Reset() {
+	*x = SIMParticipant{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_settings_proto_msgTypes[6]
+		mi := &file_settings_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
 }
 
-func (x *NoClue) String() string {
+func (x *SIMParticipant) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*NoClue) ProtoMessage() {}
+func (*SIMParticipant) ProtoMessage() {}
 
-func (x *NoClue) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_proto_msgTypes[6]
+func (x *SIMParticipant) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -459,14 +514,14 @@ func (x *NoClue) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NoClue.ProtoReflect.Descriptor instead.
-func (*NoClue) Descriptor() ([]byte, []int) {
-	return file_settings_proto_rawDescGZIP(), []int{6}
+// Deprecated: Use SIMParticipant.ProtoReflect.Descriptor instead.
+func (*SIMParticipant) Descriptor() ([]byte, []int) {
+	return file_settings_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *NoClue) GetCount() string {
+func (x *SIMParticipant) GetID() string {
 	if x != nil {
-		return x.Count
+		return x.ID
 	}
 	return ""
 }
@@ -486,7 +541,7 @@ type SomeData struct {
 func (x *SomeData) Reset() {
 	*x = SomeData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_settings_proto_msgTypes[7]
+		mi := &file_settings_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -499,7 +554,7 @@ func (x *SomeData) String() string {
 func (*SomeData) ProtoMessage() {}
 
 func (x *SomeData) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_proto_msgTypes[7]
+	mi := &file_settings_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -512,7 +567,7 @@ func (x *SomeData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SomeData.ProtoReflect.Descriptor instead.
 func (*SomeData) Descriptor() ([]byte, []int) {
-	return file_settings_proto_rawDescGZIP(), []int{7}
+	return file_settings_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SomeData) GetField7() bool {
@@ -564,7 +619,7 @@ type RCSSettings struct {
 func (x *RCSSettings) Reset() {
 	*x = RCSSettings{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_settings_proto_msgTypes[8]
+		mi := &file_settings_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -577,7 +632,7 @@ func (x *RCSSettings) String() string {
 func (*RCSSettings) ProtoMessage() {}
 
 func (x *RCSSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_proto_msgTypes[8]
+	mi := &file_settings_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +645,7 @@ func (x *RCSSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RCSSettings.ProtoReflect.Descriptor instead.
 func (*RCSSettings) Descriptor() ([]byte, []int) {
-	return file_settings_proto_rawDescGZIP(), []int{8}
+	return file_settings_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RCSSettings) GetIsEnabled() bool {
@@ -636,7 +691,7 @@ type BooleanFields2 struct {
 func (x *BooleanFields2) Reset() {
 	*x = BooleanFields2{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_settings_proto_msgTypes[9]
+		mi := &file_settings_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -649,7 +704,7 @@ func (x *BooleanFields2) String() string {
 func (*BooleanFields2) ProtoMessage() {}
 
 func (x *BooleanFields2) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_proto_msgTypes[9]
+	mi := &file_settings_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -662,7 +717,7 @@ func (x *BooleanFields2) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BooleanFields2.ProtoReflect.Descriptor instead.
 func (*BooleanFields2) Descriptor() ([]byte, []int) {
-	return file_settings_proto_rawDescGZIP(), []int{9}
+	return file_settings_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *BooleanFields2) GetBool1() bool {
@@ -718,7 +773,7 @@ type BooleanFields3 struct {
 func (x *BooleanFields3) Reset() {
 	*x = BooleanFields3{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_settings_proto_msgTypes[10]
+		mi := &file_settings_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -731,7 +786,7 @@ func (x *BooleanFields3) String() string {
 func (*BooleanFields3) ProtoMessage() {}
 
 func (x *BooleanFields3) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_proto_msgTypes[10]
+	mi := &file_settings_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -744,7 +799,7 @@ func (x *BooleanFields3) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BooleanFields3.ProtoReflect.Descriptor instead.
 func (*BooleanFields3) Descriptor() ([]byte, []int) {
-	return file_settings_proto_rawDescGZIP(), []int{10}
+	return file_settings_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *BooleanFields3) GetBool1() bool {
@@ -820,30 +875,31 @@ func file_settings_proto_rawDescGZIP() []byte {
 	return file_settings_proto_rawDescData
 }
 
-var file_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_settings_proto_goTypes = []interface{}{
 	(*Settings)(nil),       // 0: settings.Settings
-	(*Data)(nil),           // 1: settings.Data
+	(*SIMCard)(nil),        // 1: settings.SIMCard
 	(*RCSChats)(nil),       // 2: settings.RCSChats
 	(*BoolMsg)(nil),        // 3: settings.BoolMsg
-	(*SimData)(nil),        // 4: settings.SimData
-	(*UnknownMessage)(nil), // 5: settings.UnknownMessage
-	(*NoClue)(nil),         // 6: settings.NoClue
-	(*SomeData)(nil),       // 7: settings.SomeData
-	(*RCSSettings)(nil),    // 8: settings.RCSSettings
-	(*BooleanFields2)(nil), // 9: settings.BooleanFields2
-	(*BooleanFields3)(nil), // 10: settings.BooleanFields3
+	(*SIMPayload)(nil),     // 4: settings.SIMPayload
+	(*SIMData)(nil),        // 5: settings.SIMData
+	(*UnknownMessage)(nil), // 6: settings.UnknownMessage
+	(*SIMParticipant)(nil), // 7: settings.SIMParticipant
+	(*SomeData)(nil),       // 8: settings.SomeData
+	(*RCSSettings)(nil),    // 9: settings.RCSSettings
+	(*BooleanFields2)(nil), // 10: settings.BooleanFields2
+	(*BooleanFields3)(nil), // 11: settings.BooleanFields3
 }
 var file_settings_proto_depIdxs = []int32{
-	1,  // 0: settings.Settings.data:type_name -> settings.Data
-	7,  // 1: settings.Settings.opCodeData:type_name -> settings.SomeData
-	8,  // 2: settings.Settings.rcsSettings:type_name -> settings.RCSSettings
-	9,  // 3: settings.Settings.boolFields2:type_name -> settings.BooleanFields2
-	10, // 4: settings.Settings.boolFields3:type_name -> settings.BooleanFields3
-	2,  // 5: settings.Data.rcsChats:type_name -> settings.RCSChats
-	4,  // 6: settings.Data.simData:type_name -> settings.SimData
-	6,  // 7: settings.Data.noClue:type_name -> settings.NoClue
-	5,  // 8: settings.SimData.unknownMessage:type_name -> settings.UnknownMessage
+	1,  // 0: settings.Settings.SIMCards:type_name -> settings.SIMCard
+	8,  // 1: settings.Settings.opCodeData:type_name -> settings.SomeData
+	9,  // 2: settings.Settings.RCSSettings:type_name -> settings.RCSSettings
+	10, // 3: settings.Settings.boolFields2:type_name -> settings.BooleanFields2
+	11, // 4: settings.Settings.boolFields3:type_name -> settings.BooleanFields3
+	2,  // 5: settings.SIMCard.RCSChats:type_name -> settings.RCSChats
+	5,  // 6: settings.SIMCard.SIMData:type_name -> settings.SIMData
+	7,  // 7: settings.SIMCard.SIMParticipant:type_name -> settings.SIMParticipant
+	4,  // 8: settings.SIMData.SIMPayload:type_name -> settings.SIMPayload
 	3,  // 9: settings.BooleanFields2.boolMsg1:type_name -> settings.BoolMsg
 	3,  // 10: settings.BooleanFields2.boolMsg2:type_name -> settings.BoolMsg
 	11, // [11:11] is the sub-list for method output_type
@@ -872,7 +928,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data); i {
+			switch v := v.(*SIMCard); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -908,7 +964,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SimData); i {
+			switch v := v.(*SIMPayload); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -920,7 +976,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UnknownMessage); i {
+			switch v := v.(*SIMData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -932,7 +988,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NoClue); i {
+			switch v := v.(*UnknownMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -944,7 +1000,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SomeData); i {
+			switch v := v.(*SIMParticipant); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -956,7 +1012,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RCSSettings); i {
+			switch v := v.(*SomeData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -968,7 +1024,7 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BooleanFields2); i {
+			switch v := v.(*RCSSettings); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -980,6 +1036,18 @@ func file_settings_proto_init() {
 			}
 		}
 		file_settings_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BooleanFields2); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_settings_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*BooleanFields3); i {
 			case 0:
 				return &v.state
@@ -992,13 +1060,14 @@ func file_settings_proto_init() {
 			}
 		}
 	}
+	file_settings_proto_msgTypes[1].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_settings_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

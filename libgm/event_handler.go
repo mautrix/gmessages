@@ -186,7 +186,9 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			c.triggerEvent(evt.UserAlertEvent)
 
 		case *gmproto.UpdateEvents_SettingsEvent:
-			c.logContent(msg, "", nil)
+			c.Logger.Debug().
+				Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+				Msg("Got settings event")
 			c.triggerEvent(evt.SettingsEvent)
 
 		case *gmproto.UpdateEvents_ConversationEvent:

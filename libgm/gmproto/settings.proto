@@ -5,9 +5,9 @@ option go_package = "../gmproto";
 
 
 message Settings {
-    Data data = 2;
+    repeated SIMCard SIMCards = 2;
     SomeData opCodeData = 3;
-    RCSSettings rcsSettings = 4;
+    RCSSettings RCSSettings = 4;
     string bugleVersion = 5;
     bool bool1 = 7;
     BooleanFields2 boolFields2 = 8;
@@ -15,11 +15,11 @@ message Settings {
     BooleanFields3 boolFields3 = 10;
 }
 
-message Data { // i think its simdata? no clue
-    RCSChats rcsChats = 3;
-    SimData simData = 5;
+message SIMCard {
+    optional RCSChats RCSChats = 3;
+    SIMData SIMData = 5;
     bool bool1 = 6;
-    NoClue noClue = 7;
+    SIMParticipant SIMParticipant = 7;
 }
 
 message RCSChats {
@@ -30,8 +30,13 @@ message BoolMsg {
     bool bool1 = 1;
 }
 
-message SimData {
-    UnknownMessage unknownMessage = 1;
+message SIMPayload {
+    int32 two = 1;
+    int32 SIMNumber = 2;
+}
+
+message SIMData {
+    SIMPayload SIMPayload = 1;
     bool bool1 = 2;
     string carrierName = 3;
     string hexHash = 4;
@@ -43,8 +48,8 @@ message UnknownMessage {
     int64 int2 = 2;
 }
 
-message NoClue { // just a guess lol
-    string count = 1;
+message SIMParticipant {
+    string ID = 1;
 }
 
 message SomeData {

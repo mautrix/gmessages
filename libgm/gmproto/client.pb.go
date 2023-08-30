@@ -2419,6 +2419,7 @@ type SendMessageRequest struct {
 
 	ConversationID string          `protobuf:"bytes,2,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
 	MessagePayload *MessagePayload `protobuf:"bytes,3,opt,name=messagePayload,proto3" json:"messagePayload,omitempty"`
+	SIMPayload     *SIMPayload     `protobuf:"bytes,4,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
 	TmpID          string          `protobuf:"bytes,5,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
 	IsReply        bool            `protobuf:"varint,6,opt,name=isReply,proto3" json:"isReply,omitempty"` // not sure
 	Reply          *ReplyPayload   `protobuf:"bytes,8,opt,name=reply,proto3" json:"reply,omitempty"`
@@ -2466,6 +2467,13 @@ func (x *SendMessageRequest) GetConversationID() string {
 func (x *SendMessageRequest) GetMessagePayload() *MessagePayload {
 	if x != nil {
 		return x.MessagePayload
+	}
+	return nil
+}
+
+func (x *SendMessageRequest) GetSIMPayload() *SIMPayload {
+	if x != nil {
+		return x.SIMPayload
 	}
 	return nil
 }
@@ -3204,9 +3212,10 @@ var file_client_proto_goTypes = []interface{}{
 	(*Conversation)(nil),                               // 63: conversations.Conversation
 	(*ContactNumber)(nil),                              // 64: conversations.ContactNumber
 	(ConversationStatus)(0),                            // 65: conversations.ConversationStatus
-	(*MessageInfo)(nil),                                // 66: conversations.MessageInfo
-	(*MessageContent)(nil),                             // 67: conversations.MessageContent
-	(*ReactionData)(nil),                               // 68: conversations.ReactionData
+	(*SIMPayload)(nil),                                 // 66: settings.SIMPayload
+	(*MessageInfo)(nil),                                // 67: conversations.MessageInfo
+	(*MessageContent)(nil),                             // 68: conversations.MessageContent
+	(*ReactionData)(nil),                               // 69: conversations.ReactionData
 }
 var file_client_proto_depIdxs = []int32{
 	57, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
@@ -3241,20 +3250,21 @@ var file_client_proto_depIdxs = []int32{
 	1,  // 29: client.UpdateConversationData.mute:type_name -> client.ConversationMuteStatus
 	63, // 30: client.GetConversationResponse.conversation:type_name -> conversations.Conversation
 	46, // 31: client.SendMessageRequest.messagePayload:type_name -> client.MessagePayload
-	45, // 32: client.SendMessageRequest.reply:type_name -> client.ReplyPayload
-	47, // 33: client.MessagePayload.messagePayloadContent:type_name -> client.MessagePayloadContent
-	66, // 34: client.MessagePayload.messageInfo:type_name -> conversations.MessageInfo
-	67, // 35: client.MessagePayloadContent.messageContent:type_name -> conversations.MessageContent
-	68, // 36: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
-	4,  // 37: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
-	56, // 38: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
-	53, // 39: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
-	59, // 40: client.AckMessageRequest.Message.device:type_name -> authentication.Device
-	41, // [41:41] is the sub-list for method output_type
-	41, // [41:41] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	66, // 32: client.SendMessageRequest.SIMPayload:type_name -> settings.SIMPayload
+	45, // 33: client.SendMessageRequest.reply:type_name -> client.ReplyPayload
+	47, // 34: client.MessagePayload.messagePayloadContent:type_name -> client.MessagePayloadContent
+	67, // 35: client.MessagePayload.messageInfo:type_name -> conversations.MessageInfo
+	68, // 36: client.MessagePayloadContent.messageContent:type_name -> conversations.MessageContent
+	69, // 37: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
+	4,  // 38: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
+	56, // 39: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
+	53, // 40: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	59, // 41: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	42, // [42:42] is the sub-list for method output_type
+	42, // [42:42] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_client_proto_init() }
@@ -3264,6 +3274,7 @@ func file_client_proto_init() {
 	}
 	file_conversations_proto_init()
 	file_authentication_proto_init()
+	file_settings_proto_init()
 	file_util_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_client_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {

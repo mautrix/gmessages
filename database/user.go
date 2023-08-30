@@ -29,6 +29,7 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type UserQuery struct {
@@ -46,19 +47,19 @@ func (uq *UserQuery) getDB() *Database {
 }
 
 func (uq *UserQuery) GetAllWithSession(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE session IS NOT NULL`)
+	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE session IS NOT NULL`)
 }
 
 func (uq *UserQuery) GetAllWithDoublePuppet(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
+	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
 }
 
 func (uq *UserQuery) GetByRowID(ctx context.Context, rowID int) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
 }
 
 func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
 }
 
 type User struct {
@@ -75,13 +76,16 @@ type User struct {
 	SelfParticipantIDs     []string
 	selfParticipantIDsLock sync.RWMutex
 
+	simMetadata     map[string]*gmproto.SIMCard
+	simMetadataLock sync.RWMutex
+
 	AccessToken string
 }
 
 func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 	var phoneID, session, managementRoom, spaceRoom, accessToken sql.NullString
-	var selfParticipantIDs string
-	err := row.Scan(&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &managementRoom, &spaceRoom, &accessToken)
+	var selfParticipantIDs, simMetadata string
+	err := row.Scan(&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &simMetadata, &managementRoom, &spaceRoom, &accessToken)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -100,6 +104,12 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 	user.selfParticipantIDsLock.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse self participant IDs: %w", err)
+	}
+	user.simMetadataLock.Lock()
+	err = json.Unmarshal([]byte(simMetadata), &user.simMetadata)
+	user.simMetadataLock.Unlock()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SIM metadata: %w", err)
 	}
 	user.PhoneID = phoneID.String
 	user.AccessToken = accessToken.String
@@ -130,13 +140,83 @@ func (user *User) sqlVariables() []any {
 	user.selfParticipantIDsLock.RLock()
 	selfParticipantIDs, _ := json.Marshal(user.SelfParticipantIDs)
 	user.selfParticipantIDsLock.RUnlock()
-	return []any{user.MXID, phoneID, session, string(selfParticipantIDs), managementRoom, spaceRoom, accessToken}
+	user.simMetadataLock.RLock()
+	simMetadata, err := json.Marshal(user.simMetadata)
+	if err != nil {
+		panic(err)
+	}
+	user.simMetadataLock.RUnlock()
+	return []any{user.MXID, phoneID, session, string(selfParticipantIDs), string(simMetadata), managementRoom, spaceRoom, accessToken}
 }
 
 func (user *User) IsSelfParticipantID(id string) bool {
 	user.selfParticipantIDsLock.RLock()
 	defer user.selfParticipantIDsLock.RUnlock()
 	return slices.Contains(user.SelfParticipantIDs, id)
+}
+
+type bridgeStateSIMMeta struct {
+	CarrierName   string `json:"carrier_name"`
+	ColorHex      string `json:"color_hex"`
+	ParticipantID string `json:"participant_id"`
+	RCSEnabled    bool   `json:"rcs_enabled"`
+}
+
+func (user *User) GetSIMsForBridgeState() []bridgeStateSIMMeta {
+	user.simMetadataLock.RLock()
+	data := make([]bridgeStateSIMMeta, 0, len(user.simMetadata))
+	for _, sim := range user.simMetadata {
+		data = append(data, bridgeStateSIMMeta{
+			CarrierName:   sim.GetSIMData().GetCarrierName(),
+			ColorHex:      sim.GetSIMData().GetHexHash(),
+			ParticipantID: sim.GetSIMParticipant().GetID(),
+			RCSEnabled:    sim.GetRCSChats().GetEnabled(),
+		})
+	}
+	user.simMetadataLock.RUnlock()
+	return data
+}
+
+func (user *User) GetSIM(participantID string) *gmproto.SIMCard {
+	user.simMetadataLock.Lock()
+	defer user.simMetadataLock.Unlock()
+	return user.simMetadata[participantID]
+}
+
+func simsAreEqualish(a, b *gmproto.SIMCard) bool {
+	return a.GetRCSChats().GetEnabled() != b.GetRCSChats().GetEnabled() ||
+		a.GetSIMData().GetCarrierName() != b.GetSIMData().GetCarrierName() ||
+		a.GetSIMData().GetSIMPayload().GetSIMNumber() != b.GetSIMData().GetSIMPayload().GetSIMNumber() ||
+		a.GetSIMData().GetSIMPayload().GetTwo() != b.GetSIMData().GetSIMPayload().GetTwo()
+}
+
+func (user *User) SetSIMs(sims []*gmproto.SIMCard) bool {
+	user.simMetadataLock.Lock()
+	defer user.simMetadataLock.Unlock()
+	user.selfParticipantIDsLock.Lock()
+	defer user.selfParticipantIDsLock.Unlock()
+	newMap := make(map[string]*gmproto.SIMCard)
+	participantIDsChanged := false
+	for _, sim := range sims {
+		participantID := sim.GetSIMParticipant().GetID()
+		newMap[sim.GetSIMParticipant().GetID()] = sim
+		if !slices.Contains(user.SelfParticipantIDs, participantID) {
+			user.SelfParticipantIDs = append(user.SelfParticipantIDs, participantID)
+			participantIDsChanged = true
+		}
+	}
+	oldMap := user.simMetadata
+	user.simMetadata = newMap
+	if participantIDsChanged || len(newMap) != len(oldMap) {
+		return true
+	}
+	for participantID, sim := range newMap {
+		existing, ok := oldMap[participantID]
+		if !ok || !simsAreEqualish(existing, sim) {
+			return true
+		}
+	}
+	return false
 }
 
 func (user *User) AddSelfParticipantID(ctx context.Context, id string) error {
@@ -153,12 +233,12 @@ func (user *User) AddSelfParticipantID(ctx context.Context, id string) error {
 
 func (user *User) Insert(ctx context.Context) error {
 	err := user.db.Conn(ctx).
-		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING rowid`, user.sqlVariables()...).
+		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING rowid`, user.sqlVariables()...).
 		Scan(&user.RowID)
 	return err
 }
 
 func (user *User) Update(ctx context.Context) error {
-	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone_id=$2, session=$3, self_participant_ids=$4, management_room=$5, space_room=$6, access_token=$7 WHERE mxid=$1`, user.sqlVariables()...)
+	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone_id=$2, session=$3, self_participant_ids=$4, sim_metadata=$5, management_room=$6, space_room=$7, access_token=$8 WHERE mxid=$1`, user.sqlVariables()...)
 	return err
 }

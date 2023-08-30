@@ -617,6 +617,8 @@ func (user *User) syncHandleEvent(event any) {
 		portal.messages <- PortalMessage{evt: v.Message, source: user, raw: v.Data}
 	case *gmproto.UserAlertEvent:
 		user.handleUserAlert(v)
+	case *gmproto.Settings:
+		user.handleSettings(v)
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
@@ -735,11 +737,26 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 }
 
+func (user *User) handleSettings(settings *gmproto.Settings) {
+	if settings.SIMCards == nil {
+		return
+	}
+	ctx := context.TODO()
+	if user.SetSIMs(settings.SIMCards) {
+		err := user.Update(ctx)
+		if err != nil {
+			user.zlog.Err(err).Msg("Failed to save SIM details")
+		}
+		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	}
+}
+
 func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 	if state.Info == nil {
 		state.Info = make(map[string]any)
 	}
 	if state.StateEvent == status.StateConnected {
+		state.Info["sims"] = user.GetSIMsForBridgeState()
 		state.Info["battery_low"] = user.batteryLow
 		state.Info["mobile_data"] = user.mobileData
 		state.Info["browser_active"] = user.browserInactiveType == ""

@@ -1628,6 +1628,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 			TmpID2:         txnID,
 			ParticipantID:  portal.OutgoingID,
 		},
+		SIMPayload: sender.GetSIM(portal.OutgoingID).GetSIMData().GetSIMPayload(),
 	}
 
 	replyToMXID := content.RelatesTo.GetReplyTo()
