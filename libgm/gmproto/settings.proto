@@ -64,7 +64,7 @@ message RCSSettings {
     bool isEnabled = 1;
     bool sendReadReceipts = 2;
     bool showTypingIndicators = 3;
-    bool bool4 = 4;
+    bool isDefaultSMSApp = 4; // uncertain, but this field seems to disappear when gmessages is un-defaulted
 }
 
 message BooleanFields2 {

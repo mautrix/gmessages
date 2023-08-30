@@ -742,7 +742,21 @@ func (user *User) handleSettings(settings *gmproto.Settings) {
 		return
 	}
 	ctx := context.TODO()
-	if user.SetSIMs(settings.SIMCards) {
+	changed := user.SetSIMs(settings.SIMCards)
+	newRCSSettings := settings.GetRCSSettings()
+	if user.Settings.RCSEnabled != newRCSSettings.GetIsEnabled() ||
+		user.Settings.ReadReceipts != newRCSSettings.GetSendReadReceipts() ||
+		user.Settings.TypingNotifications != newRCSSettings.GetShowTypingIndicators() ||
+		user.Settings.IsDefaultSMSApp != newRCSSettings.GetIsDefaultSMSApp() {
+		user.Settings = database.Settings{
+			RCSEnabled:          newRCSSettings.GetIsEnabled(),
+			ReadReceipts:        newRCSSettings.GetSendReadReceipts(),
+			TypingNotifications: newRCSSettings.GetShowTypingIndicators(),
+			IsDefaultSMSApp:     newRCSSettings.GetIsDefaultSMSApp(),
+		}
+		changed = true
+	}
+	if changed {
 		err := user.Update(ctx)
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to save SIM details")
@@ -757,6 +771,7 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 	}
 	if state.StateEvent == status.StateConnected {
 		state.Info["sims"] = user.GetSIMsForBridgeState()
+		state.Info["settings"] = user.Settings
 		state.Info["battery_low"] = user.batteryLow
 		state.Info["mobile_data"] = user.mobileData
 		state.Info["browser_active"] = user.browserInactiveType == ""

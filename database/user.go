@@ -47,19 +47,26 @@ func (uq *UserQuery) getDB() *Database {
 }
 
 func (uq *UserQuery) GetAllWithSession(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE session IS NOT NULL`)
+	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE session IS NOT NULL`)
 }
 
 func (uq *UserQuery) GetAllWithDoublePuppet(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
+	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
 }
 
 func (uq *UserQuery) GetByRowID(ctx context.Context, rowID int) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
 }
 
 func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
+	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
+}
+
+type Settings struct {
+	RCSEnabled          bool `json:"rcs_enabled"`
+	ReadReceipts        bool `json:"read_receipts"`
+	TypingNotifications bool `json:"typing_notifications"`
+	IsDefaultSMSApp     bool `json:"is_default_sms_app"`
 }
 
 type User struct {
@@ -79,13 +86,15 @@ type User struct {
 	simMetadata     map[string]*gmproto.SIMCard
 	simMetadataLock sync.RWMutex
 
+	Settings Settings
+
 	AccessToken string
 }
 
 func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 	var phoneID, session, managementRoom, spaceRoom, accessToken sql.NullString
-	var selfParticipantIDs, simMetadata string
-	err := row.Scan(&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &simMetadata, &managementRoom, &spaceRoom, &accessToken)
+	var selfParticipantIDs, simMetadata, settings string
+	err := row.Scan(&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &simMetadata, &settings, &managementRoom, &spaceRoom, &accessToken)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -110,6 +119,10 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 	user.simMetadataLock.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse SIM metadata: %w", err)
+	}
+	err = json.Unmarshal([]byte(settings), &user.Settings)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse settings: %w", err)
 	}
 	user.PhoneID = phoneID.String
 	user.AccessToken = accessToken.String
@@ -146,7 +159,11 @@ func (user *User) sqlVariables() []any {
 		panic(err)
 	}
 	user.simMetadataLock.RUnlock()
-	return []any{user.MXID, phoneID, session, string(selfParticipantIDs), string(simMetadata), managementRoom, spaceRoom, accessToken}
+	settings, err := json.Marshal(&user.Settings)
+	if err != nil {
+		panic(err)
+	}
+	return []any{user.MXID, phoneID, session, string(selfParticipantIDs), string(simMetadata), string(settings), managementRoom, spaceRoom, accessToken}
 }
 
 func (user *User) IsSelfParticipantID(id string) bool {
@@ -233,12 +250,12 @@ func (user *User) AddSelfParticipantID(ctx context.Context, id string) error {
 
 func (user *User) Insert(ctx context.Context) error {
 	err := user.db.Conn(ctx).
-		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, sim_metadata, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING rowid`, user.sqlVariables()...).
+		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING rowid`, user.sqlVariables()...).
 		Scan(&user.RowID)
 	return err
 }
 
 func (user *User) Update(ctx context.Context) error {
-	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone_id=$2, session=$3, self_participant_ids=$4, sim_metadata=$5, management_room=$6, space_room=$7, access_token=$8 WHERE mxid=$1`, user.sqlVariables()...)
+	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone_id=$2, session=$3, self_participant_ids=$4, sim_metadata=$5, settings=$6, management_room=$7, space_room=$8, access_token=$9 WHERE mxid=$1`, user.sqlVariables()...)
 	return err
 }

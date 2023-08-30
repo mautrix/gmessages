@@ -613,7 +613,7 @@ type RCSSettings struct {
 	IsEnabled            bool `protobuf:"varint,1,opt,name=isEnabled,proto3" json:"isEnabled,omitempty"`
 	SendReadReceipts     bool `protobuf:"varint,2,opt,name=sendReadReceipts,proto3" json:"sendReadReceipts,omitempty"`
 	ShowTypingIndicators bool `protobuf:"varint,3,opt,name=showTypingIndicators,proto3" json:"showTypingIndicators,omitempty"`
-	Bool4                bool `protobuf:"varint,4,opt,name=bool4,proto3" json:"bool4,omitempty"`
+	IsDefaultSMSApp      bool `protobuf:"varint,4,opt,name=isDefaultSMSApp,proto3" json:"isDefaultSMSApp,omitempty"` // uncertain, but this field seems to disappear when gmessages is un-defaulted
 }
 
 func (x *RCSSettings) Reset() {
@@ -669,9 +669,9 @@ func (x *RCSSettings) GetShowTypingIndicators() bool {
 	return false
 }
 
-func (x *RCSSettings) GetBool4() bool {
+func (x *RCSSettings) GetIsDefaultSMSApp() bool {
 	if x != nil {
-		return x.Bool4
+		return x.IsDefaultSMSApp
 	}
 	return false
 }

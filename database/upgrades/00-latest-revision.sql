@@ -1,4 +1,4 @@
--- v0 -> v5: Latest revision
+-- v0 -> v6: Latest revision
 
 CREATE TABLE "user" (
     -- only: postgres
@@ -12,6 +12,7 @@ CREATE TABLE "user" (
 
     self_participant_ids jsonb NOT NULL DEFAULT '[]',
     sim_metadata         jsonb NOT NULL DEFAULT '{}',
+    settings             jsonb NOT NULL DEFAULT '{}',
 
     management_room TEXT,
     space_room      TEXT,
