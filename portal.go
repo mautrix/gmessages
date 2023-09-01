@@ -427,8 +427,37 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	log := *zerolog.Ctx(ctx)
 	newStatus := evt.GetMessageStatus().GetStatus()
 	chatIDChanged := dbMsg.Chat.ID != portal.ID
-	if dbMsg.Status.Type == newStatus && !chatIDChanged && !(dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt)) {
-		log.Debug().Msg("Nothing changed in message update, just syncing reactions")
+	hasPendingMedia := dbMsg.Status.HasPendingMediaParts()
+	updatedMediaIsComplete := !hasInProgressMedia(evt)
+	if dbMsg.Status.Type == newStatus && !chatIDChanged && !(hasPendingMedia && updatedMediaIsComplete) {
+		logEvt := log.Debug().
+			Str("old_status", dbMsg.Status.Type.String()).
+			Bool("has_pending_media", hasPendingMedia).
+			Bool("updated_media_is_complete", updatedMediaIsComplete)
+		if hasPendingMedia {
+			debugData := zerolog.Dict()
+			for _, part := range evt.MessageInfo {
+				media, ok := part.GetData().(*gmproto.MessageInfo_MediaContent)
+				if ok {
+					debugData.Dict(
+						part.GetActionMessageID(),
+						zerolog.Dict().
+							Str("media_id_1", media.MediaContent.GetMediaID()).
+							Str("media_id_2", media.MediaContent.GetMediaID2()).
+							Int64("size", media.MediaContent.GetSize()).
+							Int64("width", media.MediaContent.GetDimensions().GetWidth()).
+							Int64("height", media.MediaContent.GetDimensions().GetHeight()).
+							Bool("has_key_1", len(media.MediaContent.GetDecryptionKey()) > 0).
+							Bool("has_key_2", len(media.MediaContent.GetDecryptionKey2()) > 0).
+							Bool("has_unknown_fields", len(media.MediaContent.ProtoReflect().GetUnknown()) > 0),
+					)
+				} else {
+					debugData.Str(part.GetActionMessageID(), "not media")
+				}
+			}
+			logEvt = logEvt.Dict("pending_media_debug_data", debugData)
+		}
+		logEvt.Msg("Nothing changed in message update, just syncing reactions")
 		portal.syncReactions(ctx, source, dbMsg, evt.Reactions)
 		return
 	}
@@ -463,7 +492,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		return
 	case chatIDChanged,
 		dbMsg.Status.MediaStatus != downloadPendingStatusMessage(newStatus),
-		dbMsg.Status.HasPendingMediaParts() && !hasInProgressMedia(evt),
+		hasPendingMedia && updatedMediaIsComplete,
 		dbMsg.Status.PartCount != len(evt.MessageInfo):
 		converted := portal.convertGoogleMessage(ctx, source, evt, false, raw)
 		dbMsg.Status.MediaStatus = converted.MediaStatus
