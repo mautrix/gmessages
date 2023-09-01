@@ -274,7 +274,14 @@ message MessagePayloadContent {
 }
 
 message SendMessageResponse {
-    int64 type = 3;
+    enum Status {
+        UNKNOWN = 0;
+        SUCCESS = 1;
+        FAILURE_2 = 2;
+        FAILURE_3 = 3;
+        FAILURE_4 = 4;
+    }
+    Status status = 3;
 }
 
 message SendReactionRequest {

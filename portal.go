@@ -1731,12 +1731,11 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		Msg("Sending Matrix message to Google Messages")
 	start = time.Now()
 	resp, err := sender.Client.SendMessage(req)
-	if resp != nil {
-		ms.responseType = resp.Type
-	}
 	timings.send = time.Since(start)
 	if err != nil {
 		go ms.sendMessageMetrics(evt, err, "Error sending", true)
+	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
+		go ms.sendMessageMetrics(evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
 	} else {
 		go ms.sendMessageMetrics(evt, nil, "", true)
 	}
