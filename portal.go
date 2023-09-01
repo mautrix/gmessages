@@ -1722,7 +1722,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	req, err := portal.convertMatrixMessage(ctx, sender, content, txnID)
 	timings.convert = time.Since(start)
 	if err != nil {
-		go ms.sendMessageMetrics(evt, err, "Error converting", true)
+		go ms.sendMessageMetrics(sender, evt, err, "Error converting", true)
 		return
 	}
 	log.Debug().
@@ -1733,11 +1733,11 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	resp, err := sender.Client.SendMessage(req)
 	timings.send = time.Since(start)
 	if err != nil {
-		go ms.sendMessageMetrics(evt, err, "Error sending", true)
+		go ms.sendMessageMetrics(sender, evt, err, "Error sending", true)
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
-		go ms.sendMessageMetrics(evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
+		go ms.sendMessageMetrics(sender, evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
 	} else {
-		go ms.sendMessageMetrics(evt, nil, "", true)
+		go ms.sendMessageMetrics(sender, evt, nil, "", true)
 	}
 }
 
@@ -1778,7 +1778,7 @@ func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.Eve
 
 func (portal *Portal) HandleMatrixReaction(sender *User, evt *event.Event) {
 	err := portal.handleMatrixReaction(sender, evt)
-	go portal.sendMessageMetrics(evt, err, "Error sending", nil)
+	go portal.sendMessageMetrics(sender, evt, err, "Error sending", nil)
 }
 
 func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error {
@@ -1850,7 +1850,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 
 func (portal *Portal) HandleMatrixRedaction(sender *User, evt *event.Event) {
 	err := portal.handleMatrixRedaction(sender, evt)
-	go portal.sendMessageMetrics(evt, err, "Error sending", nil)
+	go portal.sendMessageMetrics(sender, evt, err, "Error sending", nil)
 }
 
 func (portal *Portal) handleMatrixMessageRedaction(ctx context.Context, sender *User, redacts id.EventID) error {

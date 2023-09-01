@@ -191,7 +191,7 @@ func (portal *Portal) sendDeliveryReceipt(eventID id.EventID) {
 	}
 }
 
-func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part string, ms *metricSender) {
+func (portal *Portal) sendMessageMetrics(user *User, evt *event.Event, err error, part string, ms *metricSender) {
 	var msgType string
 	switch evt.Type {
 	case event.EventMessage:
@@ -220,7 +220,12 @@ func (portal *Portal) sendMessageMetrics(evt *event.Event, err error, part strin
 			Msg("Failed to handle Matrix event")
 		reason, statusCode, isCertain, sendNotice, _ := errorToStatusReason(err)
 		checkpointStatus := status.ReasonToCheckpointStatus(reason, statusCode)
-		portal.bridge.SendMessageCheckpoint(evt, status.MsgStepRemote, err, checkpointStatus, ms.getRetryNum())
+		checkpointErr := err
+		// This is very hacky and should be removed once we find what the error statuses mean
+		if strings.HasPrefix(err.Error(), "response status ") {
+			checkpointErr = fmt.Errorf("%w (default:%t,rcs:%t,sims:%d)", err, user.Settings.IsDefaultSMSApp, user.Settings.RCSEnabled, user.SIMCount())
+		}
+		portal.bridge.SendMessageCheckpoint(evt, status.MsgStepRemote, checkpointErr, checkpointStatus, ms.getRetryNum())
 		if sendNotice {
 			ms.setNoticeID(portal.sendErrorMessage(evt, err, msgType, isCertain, ms.getNoticeID()))
 		}
@@ -303,13 +308,13 @@ func (ms *metricSender) setNoticeID(evtID id.EventID) {
 	}
 }
 
-func (ms *metricSender) sendMessageMetrics(evt *event.Event, err error, part string, completed bool) {
+func (ms *metricSender) sendMessageMetrics(user *User, evt *event.Event, err error, part string, completed bool) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 	if !completed && ms.completed {
 		return
 	}
-	ms.portal.sendMessageMetrics(evt, err, part, ms)
+	ms.portal.sendMessageMetrics(user, evt, err, part, ms)
 	ms.retryNum++
 	ms.completed = completed
 }

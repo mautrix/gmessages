@@ -179,6 +179,12 @@ type bridgeStateSIMMeta struct {
 	RCSEnabled    bool   `json:"rcs_enabled"`
 }
 
+func (user *User) SIMCount() int {
+	user.simMetadataLock.RLock()
+	defer user.simMetadataLock.RUnlock()
+	return len(user.simMetadata)
+}
+
 func (user *User) GetSIMsForBridgeState() []bridgeStateSIMMeta {
 	user.simMetadataLock.RLock()
 	data := make([]bridgeStateSIMMeta, 0, len(user.simMetadata))
