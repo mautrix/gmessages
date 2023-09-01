@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -477,8 +478,14 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 				isEdit = false
 			} else if i == 0 {
 				part.Content.SetEdit(dbMsg.MXID)
+				part.Extra = map[string]any{
+					"m.new_content": part.Extra,
+				}
 			} else if existingPart, ok := dbMsg.Status.MediaParts[part.ID]; ok {
 				part.Content.SetEdit(existingPart.EventID)
+				part.Extra = map[string]any{
+					"m.new_content": part.Extra,
+				}
 			} else {
 				ts = converted.Timestamp.UnixMilli()
 				isEdit = false
@@ -937,6 +944,9 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 			},
 		})
 	}
+	if portal.bridge.Config.Bridge.BeeperGalleries {
+		cm.MergeGallery()
+	}
 	if portal.bridge.Config.Bridge.CaptionInMessage {
 		cm.MergeCaption()
 	}
@@ -949,6 +959,81 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 		cm.Parts[0].Extra = extra
 	}
 	return &cm
+}
+
+func (msg *ConvertedMessage) MergeGallery() {
+	var textPart *ConvertedMessagePart
+	var pendingImageParts, pendingImagePartsHTML []string
+	var imageParts []*event.MessageEventContent
+	var pendingMedia bool
+
+	for _, part := range msg.Parts {
+		pendingMedia = pendingMedia || part.PendingMedia
+		switch part.Content.MsgType {
+		case event.MsgText:
+			textPart = &part
+		case event.MsgNotice:
+			// TODO this doesn't handle formatted bodies in pending/failed media parts
+			pendingImageParts = append(pendingImageParts, part.Content.Body)
+			pendingImagePartsHTML = append(pendingImagePartsHTML, fmt.Sprintf("<p>%s</p>", event.TextToHTML(part.Content.Body)))
+		case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
+			// TODO this ignores extra content in media parts
+			imageParts = append(imageParts, part.Content)
+		default:
+			return
+		}
+	}
+
+	if len(imageParts)+len(pendingImageParts) < 2 {
+		return
+	}
+
+	var caption, captionHTML string
+	if textPart != nil {
+		caption = textPart.Content.Body
+		captionHTML = textPart.Content.FormattedBody
+		if captionHTML == "" {
+			captionHTML = event.TextToHTML(caption)
+		}
+		if len(pendingImageParts) > 0 {
+			caption = fmt.Sprintf("%s\n\n%s", caption, strings.Join(pendingImageParts, "\n\n"))
+			captionHTML = fmt.Sprintf("%s%s", ensureParagraph(captionHTML), strings.Join(pendingImagePartsHTML, ""))
+		}
+	}
+
+	if len(imageParts) == 0 {
+		msg.Parts = []ConvertedMessagePart{{
+			ID:           msg.Parts[0].ID,
+			PendingMedia: pendingMedia,
+			Content: &event.MessageEventContent{
+				MsgType:       event.MsgText,
+				Body:          caption,
+				Format:        event.FormatHTML,
+				FormattedBody: captionHTML,
+			},
+		}}
+	} else {
+		msg.Parts = []ConvertedMessagePart{{
+			ID:           msg.Parts[0].ID,
+			PendingMedia: pendingMedia,
+			Content: &event.MessageEventContent{
+				MsgType: "com.beeper.gallery",
+				Body:    "Sent a gallery",
+			},
+			Extra: map[string]any{
+				"com.beeper.gallery.images":       imageParts,
+				"com.beeper.gallery.caption":      caption,
+				"com.beeper.gallery.caption_html": captionHTML,
+			},
+		}}
+	}
+}
+
+func ensureParagraph(html string) string {
+	if !strings.HasPrefix(html, "<p>") {
+		return fmt.Sprintf("<p>%s</p>", html)
+	}
+	return html
 }
 
 func (msg *ConvertedMessage) MergeCaption() {
@@ -977,10 +1062,7 @@ func (msg *ConvertedMessage) MergeCaption() {
 	case event.MsgNotice: // If it's a notice, the media failed or is pending
 		if textPart.Content.Format == event.FormatHTML {
 			filePart.Content.Format = event.FormatHTML
-			if !strings.HasPrefix(textPart.Content.FormattedBody, "<p>") {
-				textPart.Content.FormattedBody = fmt.Sprintf("<p>%s</p>", textPart.Content.FormattedBody)
-			}
-			filePart.Content.FormattedBody = fmt.Sprintf("<p>%s</p>%s", event.TextToHTML(filePart.Content.Body), textPart.Content.FormattedBody)
+			filePart.Content.FormattedBody = fmt.Sprintf("<p>%s</p>%s", event.TextToHTML(filePart.Content.Body), ensureParagraph(textPart.Content.FormattedBody))
 		}
 		filePart.Content.Body = fmt.Sprintf("%s\n\n%s", filePart.Content.Body, textPart.Content.Body)
 		filePart.Content.MsgType = event.MsgText
@@ -1617,7 +1699,13 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 	return nil
 }
 
-func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*gmproto.SendMessageRequest, error) {
+type beeperGalleryContent struct {
+	Caption     string                       `json:"com.beeper.gallery.caption,omitempty"`
+	CaptionHTML string                       `json:"com.beeper.gallery.caption_html,omitempty"`
+	Images      []*event.MessageEventContent `json:"com.beeper.gallery.images,omitempty"`
+}
+
+func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, evt *event.Event, txnID string) (*gmproto.SendMessageRequest, error) {
 	log := zerolog.Ctx(ctx)
 	req := &gmproto.SendMessageRequest{
 		ConversationID: portal.ID,
@@ -1656,43 +1744,73 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 			}},
 		}}
 	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
-		var url id.ContentURI
-		if content.File != nil {
-			url = content.File.URL.ParseOrIgnore()
-		} else {
-			url = content.URL.ParseOrIgnore()
-		}
-		if url.IsEmpty() {
-			return nil, errMissingMediaURL
-		}
-		data, err := portal.MainIntent().DownloadBytesContext(ctx, url)
+		resp, err := portal.reuploadMedia(ctx, sender, content)
 		if err != nil {
-			return nil, exerrors.NewDualError(errMediaDownloadFailed, err)
-		}
-		if content.File != nil {
-			err = content.File.DecryptInPlace(data)
-			if err != nil {
-				return nil, exerrors.NewDualError(errMediaDecryptFailed, err)
-			}
-		}
-		if content.Info.MimeType == "" {
-			content.Info.MimeType = mimetype.Detect(data).String()
-		}
-		fileName := content.Body
-		if content.FileName != "" {
-			fileName = content.FileName
-		}
-		resp, err := sender.Client.UploadMedia(data, fileName, content.Info.MimeType)
-		if err != nil {
-			return nil, exerrors.NewDualError(errMediaReuploadFailed, err)
+			return nil, err
 		}
 		req.MessagePayload.MessageInfo = []*gmproto.MessageInfo{{
 			Data: &gmproto.MessageInfo_MediaContent{MediaContent: resp},
 		}}
+	case "com.beeper.gallery":
+		var parsed beeperGalleryContent
+		err := json.Unmarshal(evt.Content.VeryRaw, &parsed)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse gallery: %w", err)
+		}
+		for i, part := range parsed.Images {
+			convertedPart, err := portal.reuploadMedia(ctx, sender, part)
+			if err != nil {
+				return nil, fmt.Errorf("failed to reupload gallery image #%d: %w", i+1, err)
+			}
+			req.MessagePayload.MessageInfo = append(req.MessagePayload.MessageInfo, &gmproto.MessageInfo{
+				Data: &gmproto.MessageInfo_MediaContent{MediaContent: convertedPart},
+			})
+		}
+		if parsed.Caption != "" {
+			req.MessagePayload.MessageInfo = append(req.MessagePayload.MessageInfo, &gmproto.MessageInfo{
+				Data: &gmproto.MessageInfo_MessageContent{MessageContent: &gmproto.MessageContent{
+					Content: parsed.Caption,
+				}},
+			})
+		}
 	default:
 		return nil, fmt.Errorf("%w %s", errUnknownMsgType, content.MsgType)
 	}
 	return req, nil
+}
+
+func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *event.MessageEventContent) (*gmproto.MediaContent, error) {
+	var url id.ContentURI
+	if content.File != nil {
+		url = content.File.URL.ParseOrIgnore()
+	} else {
+		url = content.URL.ParseOrIgnore()
+	}
+	if url.IsEmpty() {
+		return nil, errMissingMediaURL
+	}
+	data, err := portal.MainIntent().DownloadBytesContext(ctx, url)
+	if err != nil {
+		return nil, exerrors.NewDualError(errMediaDownloadFailed, err)
+	}
+	if content.File != nil {
+		err = content.File.DecryptInPlace(data)
+		if err != nil {
+			return nil, exerrors.NewDualError(errMediaDecryptFailed, err)
+		}
+	}
+	if content.Info.MimeType == "" {
+		content.Info.MimeType = mimetype.Detect(data).String()
+	}
+	fileName := content.Body
+	if content.FileName != "" {
+		fileName = content.FileName
+	}
+	resp, err := sender.Client.UploadMedia(data, fileName, content.Info.MimeType)
+	if err != nil {
+		return nil, exerrors.NewDualError(errMediaReuploadFailed, err)
+	}
+	return resp, nil
 }
 
 func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timings messageTimings) {
@@ -1719,7 +1837,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	}
 
 	start := time.Now()
-	req, err := portal.convertMatrixMessage(ctx, sender, content, txnID)
+	req, err := portal.convertMatrixMessage(ctx, sender, content, evt, txnID)
 	timings.convert = time.Since(start)
 	if err != nil {
 		go ms.sendMessageMetrics(sender, evt, err, "Error converting", true)

@@ -178,6 +178,8 @@ bridge:
     # Send captions in the same message as images. This will send data compatible with both MSC2530 and MSC3552.
     # This is currently not supported in most clients.
     caption_in_message: false
+    # Send galleries as a single event? This is not an MSC (yet).
+    beeper_galleries: false
 
     # The prefix for commands. Only required in non-management rooms.
     command_prefix: "!gm"

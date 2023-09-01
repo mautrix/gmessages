@@ -55,6 +55,7 @@ type BridgeConfig struct {
 	TagOnlyOnCreate       bool   `yaml:"tag_only_on_create"`
 	FederateRooms         bool   `yaml:"federate_rooms"`
 	CaptionInMessage      bool   `yaml:"caption_in_message"`
+	BeeperGalleries       bool   `yaml:"beeper_galleries"`
 
 	DisableBridgeAlerts bool `yaml:"disable_bridge_alerts"`
 
