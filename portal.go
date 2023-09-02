@@ -341,7 +341,7 @@ func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) *database.Message 
 func hasInProgressMedia(msg *gmproto.Message) bool {
 	for _, part := range msg.MessageInfo {
 		media, ok := part.GetData().(*gmproto.MessageInfo_MediaContent)
-		if ok && media.MediaContent.GetMediaID() == "" {
+		if ok && media.MediaContent.GetMediaID() == "" && media.MediaContent.GetMediaID2() == "" {
 			return true
 		}
 	}
@@ -926,7 +926,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 				downloadStatus = ""
 			}
 		case *gmproto.MessageInfo_MediaContent:
-			if data.MediaContent.MediaID == "" {
+			if data.MediaContent.MediaID == "" && data.MediaContent.MediaID2 == "" {
 				pendingMedia = true
 				content = event.MessageEventContent{
 					MsgType: event.MsgNotice,
@@ -1104,7 +1104,13 @@ func (msg *ConvertedMessage) MergeCaption() {
 func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, error) {
 	var data []byte
 	var err error
-	data, err = source.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
+	if msg.MediaID != "" {
+		data, err = source.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
+	} else if msg.MediaID2 != "" {
+		data, err = source.Client.DownloadMedia(msg.MediaID2, msg.DecryptionKey2)
+	} else {
+		err = fmt.Errorf("no media ID found")
+	}
 	if err != nil {
 		return nil, err
 	}
