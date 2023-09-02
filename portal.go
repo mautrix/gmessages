@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -480,6 +479,8 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	}
 	log.Debug().
 		Str("old_status", dbMsg.Status.Type.String()).
+		Bool("has_pending_media", hasPendingMedia).
+		Bool("updated_media_is_complete", updatedMediaIsComplete).
 		Msg("Message status changed")
 	switch {
 	case newStatus == gmproto.MessageStatusType_MESSAGE_DELETED:
@@ -1046,13 +1047,12 @@ func (msg *ConvertedMessage) MergeGallery() {
 			ID:           msg.Parts[0].ID,
 			PendingMedia: pendingMedia,
 			Content: &event.MessageEventContent{
-				MsgType: "com.beeper.gallery",
+				MsgType: event.MsgBeeperGallery,
 				Body:    "Sent a gallery",
-			},
-			Extra: map[string]any{
-				"com.beeper.gallery.images":       imageParts,
-				"com.beeper.gallery.caption":      caption,
-				"com.beeper.gallery.caption_html": captionHTML,
+
+				BeeperGalleryImages:      imageParts,
+				BeeperGalleryCaption:     caption,
+				BeeperGalleryCaptionHTML: captionHTML,
 			},
 		}}
 	}
@@ -1734,13 +1734,7 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 	return nil
 }
 
-type beeperGalleryContent struct {
-	Caption     string                       `json:"com.beeper.gallery.caption,omitempty"`
-	CaptionHTML string                       `json:"com.beeper.gallery.caption_html,omitempty"`
-	Images      []*event.MessageEventContent `json:"com.beeper.gallery.images,omitempty"`
-}
-
-func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, evt *event.Event, txnID string) (*gmproto.SendMessageRequest, error) {
+func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*gmproto.SendMessageRequest, error) {
 	log := zerolog.Ctx(ctx)
 	req := &gmproto.SendMessageRequest{
 		ConversationID: portal.ID,
@@ -1786,13 +1780,8 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		req.MessagePayload.MessageInfo = []*gmproto.MessageInfo{{
 			Data: &gmproto.MessageInfo_MediaContent{MediaContent: resp},
 		}}
-	case "com.beeper.gallery":
-		var parsed beeperGalleryContent
-		err := json.Unmarshal(evt.Content.VeryRaw, &parsed)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse gallery: %w", err)
-		}
-		for i, part := range parsed.Images {
+	case event.MsgBeeperGallery:
+		for i, part := range content.BeeperGalleryImages {
 			convertedPart, err := portal.reuploadMedia(ctx, sender, part)
 			if err != nil {
 				return nil, fmt.Errorf("failed to reupload gallery image #%d: %w", i+1, err)
@@ -1801,10 +1790,10 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 				Data: &gmproto.MessageInfo_MediaContent{MediaContent: convertedPart},
 			})
 		}
-		if parsed.Caption != "" {
+		if content.BeeperGalleryCaption != "" {
 			req.MessagePayload.MessageInfo = append(req.MessagePayload.MessageInfo, &gmproto.MessageInfo{
 				Data: &gmproto.MessageInfo_MessageContent{MessageContent: &gmproto.MessageContent{
-					Content: parsed.Caption,
+					Content: content.BeeperGalleryCaption,
 				}},
 			})
 		}
@@ -1872,7 +1861,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	}
 
 	start := time.Now()
-	req, err := portal.convertMatrixMessage(ctx, sender, content, evt, txnID)
+	req, err := portal.convertMatrixMessage(ctx, sender, content, txnID)
 	timings.convert = time.Since(start)
 	if err != nil {
 		go ms.sendMessageMetrics(sender, evt, err, "Error converting", true)
