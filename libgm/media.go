@@ -143,7 +143,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
 	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", upload.MimeType, "")
-	req, reqErr := http.NewRequest("POST", upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
+	req, reqErr := http.NewRequest(http.MethodPost, upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
 	if reqErr != nil {
 		return nil, reqErr
 	}
@@ -190,7 +190,7 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 		return nil, buildPayloadErr
 	}
 
-	req, reqErr := http.NewRequest("POST", util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
+	req, reqErr := http.NewRequest(http.MethodPost, util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
 	if reqErr != nil {
 		return nil, reqErr
 	}
@@ -265,7 +265,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
-	req, err := http.NewRequest("GET", util.UploadMediaURL, nil)
+	req, err := http.NewRequest(http.MethodGet, util.UploadMediaURL, nil)
 	if err != nil {
 		return nil, err
 	}
