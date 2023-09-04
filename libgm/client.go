@@ -89,7 +89,10 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 		pingShortCircuit: make(chan struct{}),
 	}
 	sessionHandler.client = cli
-	cli.FetchConfigVersion()
+	err := cli.FetchConfigVersion()
+	if err != nil {
+		cli.Logger.Warn().Err(err).Msg("Failed to fetch latest web version")
+	}
 	return cli
 }
 
@@ -197,25 +200,25 @@ func (c *Client) triggerEvent(evt interface{}) {
 	}
 }
 
-func (c *Client) FetchConfigVersion() {
-	req, bErr := http.NewRequest("GET", util.ConfigUrl, nil)
-	if bErr != nil {
-		panic(bErr)
+func (c *Client) FetchConfigVersion() error {
+	req, err := http.NewRequest(http.MethodGet, util.ConfigURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to prepare request: %w", err)
 	}
 
-	configRes, requestErr := c.http.Do(req)
-	if requestErr != nil {
-		panic(requestErr)
+	configRes, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	responseBody, readErr := io.ReadAll(configRes.Body)
-	if readErr != nil {
-		panic(readErr)
+	responseBody, err := io.ReadAll(configRes.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	version, parseErr := util.ParseConfigVersion(responseBody)
 	if parseErr != nil {
-		panic(parseErr)
+		return fmt.Errorf("failed to parse response body: %w", err)
 	}
 
 	currVersion := util.ConfigMessage
@@ -225,6 +228,7 @@ func (c *Client) FetchConfigVersion() {
 	} else {
 		c.Logger.Debug().Any("version", currVersion).Msg("Using latest messages for web version")
 	}
+	return nil
 }
 
 func (c *Client) diffVersionFormat(curr *gmproto.ConfigVersion, latest *gmproto.ConfigVersion) string {

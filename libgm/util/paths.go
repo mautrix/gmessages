@@ -23,4 +23,4 @@ const AckMessagesURL = messagingBaseURL + "/AckMessages"
 const registrationBaseURL = instantMessangingBaseURL + "/$rpc/google.internal.communications.instantmessaging.v1.Registration"
 const RegisterRefreshURL = registrationBaseURL + "/RegisterRefresh"
 
-const ConfigUrl = "https://messages.google.com/web/config"
+const ConfigURL = "https://messages.google.com/web/config"
