@@ -57,6 +57,7 @@ type GMBridge struct {
 	managementRoomsLock sync.Mutex
 	portalsByMXID       map[id.RoomID]*Portal
 	portalsByKey        map[database.Key]*Portal
+	portalsByOtherUser  map[database.Key]*Portal
 	portalsLock         sync.Mutex
 	puppetsByKey        map[database.Key]*Puppet
 	puppetsLock         sync.Mutex
@@ -153,12 +154,13 @@ func (br *GMBridge) GetConfigPtr() interface{} {
 
 func main() {
 	br := &GMBridge{
-		usersByMXID:     make(map[id.UserID]*User),
-		spaceRooms:      make(map[id.RoomID]*User),
-		managementRooms: make(map[id.RoomID]*User),
-		portalsByMXID:   make(map[id.RoomID]*Portal),
-		portalsByKey:    make(map[database.Key]*Portal),
-		puppetsByKey:    make(map[database.Key]*Puppet),
+		usersByMXID:        make(map[id.UserID]*User),
+		spaceRooms:         make(map[id.RoomID]*User),
+		managementRooms:    make(map[id.RoomID]*User),
+		portalsByMXID:      make(map[id.RoomID]*Portal),
+		portalsByKey:       make(map[database.Key]*Portal),
+		portalsByOtherUser: make(map[database.Key]*Portal),
+		puppetsByKey:       make(map[database.Key]*Puppet),
 	}
 	br.Bridge = bridge.Bridge{
 		Name:              "mautrix-gmessages",
@@ -166,8 +168,8 @@ func main() {
 		Description:       "A Matrix-Google Messages puppeting bridge.",
 		Version:           "0.1.0",
 		ProtocolName:      "Google Messages",
-		BeeperServiceName: "googlesms",
-		BeeperNetworkName: "googlesms",
+		BeeperServiceName: "gmessages",
+		BeeperNetworkName: "gmessages",
 
 		CryptoPickleKey: "go.mau.fi/mautrix-gmessages",
 

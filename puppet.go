@@ -214,7 +214,8 @@ func (puppet *Puppet) UpdateAvatar(source *User) bool {
 	}
 	puppet.AvatarUpdateTS = time.Now()
 	if len(resp.Thumbnail) == 0 {
-		if puppet.AvatarHash == [32]byte{} {
+		if puppet.AvatarHash == [32]byte{} && puppet.AvatarMXC.IsEmpty() {
+			puppet.AvatarSet = true
 			return true
 		}
 		puppet.AvatarHash = [32]byte{}
@@ -223,7 +224,7 @@ func (puppet *Puppet) UpdateAvatar(source *User) bool {
 	} else {
 		thumbData := resp.Thumbnail[0].GetData()
 		hash := sha256.Sum256(thumbData.GetImageBuffer())
-		if hash == puppet.AvatarHash {
+		if hash == puppet.AvatarHash && puppet.AvatarSet {
 			return true
 		}
 		puppet.AvatarHash = hash
@@ -249,6 +250,22 @@ func (puppet *Puppet) UpdateAvatar(source *User) bool {
 	return true
 }
 
+func (puppet *Puppet) updatePortalAvatar() {
+	portal := puppet.bridge.GetPortalByOtherUser(puppet.Key)
+	if portal == nil {
+		return
+	}
+	portal.roomCreateLock.Lock()
+	defer portal.roomCreateLock.Unlock()
+	if portal.MXID == "" || !portal.shouldSetDMRoomMetadata() {
+		return
+	}
+	_, err := portal.MainIntent().SetRoomAvatar(portal.MXID, puppet.AvatarMXC)
+	if err != nil {
+		puppet.log.Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to update DM room avatar")
+	}
+}
+
 func (puppet *Puppet) UpdateName(formattedPhone, fullName, firstName string) bool {
 	newName := puppet.bridge.Config.Bridge.FormatDisplayname(formattedPhone, fullName, firstName)
 	if puppet.Name != newName || !puppet.NameSet {
@@ -259,7 +276,6 @@ func (puppet *Puppet) UpdateName(formattedPhone, fullName, firstName string) boo
 		if err == nil {
 			puppet.log.Debug().Str("old_name", oldName).Str("new_name", newName).Msg("Updated displayname")
 			puppet.NameSet = true
-			go puppet.updatePortalName()
 		} else {
 			puppet.log.Warn().Err(err).Msg("Failed to set displayname")
 		}
@@ -294,14 +310,6 @@ func (puppet *Puppet) UpdateContactInfo() bool {
 		puppet.ContactInfoSet = true
 		return true
 	}
-}
-
-func (puppet *Puppet) updatePortalAvatar() {
-	// TODO implement
-}
-
-func (puppet *Puppet) updatePortalName() {
-	// TODO implement
 }
 
 func (puppet *Puppet) Sync(source *User, contact *gmproto.Participant) {

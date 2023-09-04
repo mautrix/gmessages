@@ -55,6 +55,10 @@ func (pq *PortalQuery) GetByKey(ctx context.Context, key Key) (*Portal, error) {
 	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
 }
 
+func (pq *PortalQuery) GetByOtherUser(ctx context.Context, key Key) (*Portal, error) {
+	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE other_user=$1 AND receiver=$2", key.ID, key.Receiver)
+}
+
 func (pq *PortalQuery) GetByMXID(ctx context.Context, mxid id.RoomID) (*Portal, error) {
 	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE mxid=$1", mxid)
 }

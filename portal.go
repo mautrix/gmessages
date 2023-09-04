@@ -106,6 +106,27 @@ func (br *GMBridge) GetPortalByKey(key database.Key) *Portal {
 	return portal
 }
 
+func (br *GMBridge) GetPortalByOtherUser(key database.Key) *Portal {
+	br.portalsLock.Lock()
+	defer br.portalsLock.Unlock()
+	portal, ok := br.portalsByOtherUser[key]
+	if !ok {
+		dbPortal, err := br.DB.Portal.GetByKey(context.TODO(), key)
+		if err != nil {
+			br.ZLog.Err(err).Object("portal_key", key).Msg("Failed to get portal from database")
+			return nil
+		}
+		if dbPortal != nil {
+			existingPortal, ok := br.portalsByKey[dbPortal.Key]
+			if ok {
+				return existingPortal
+			}
+		}
+		return br.loadDBPortal(dbPortal, nil)
+	}
+	return portal
+}
+
 func (br *GMBridge) GetExistingPortalByKey(key database.Key) *Portal {
 	br.portalsLock.Lock()
 	defer br.portalsLock.Unlock()
@@ -179,6 +200,9 @@ func (br *GMBridge) loadDBPortal(dbPortal *database.Portal, key *database.Key) *
 	br.portalsByKey[portal.Key] = portal
 	if len(portal.MXID) > 0 {
 		br.portalsByMXID[portal.MXID] = portal
+	}
+	if len(portal.OtherUserID) > 0 {
+		br.portalsByOtherUser[database.Key{ID: portal.OtherUserID, Receiver: portal.Receiver}] = portal
 	}
 	return portal
 }
@@ -1241,6 +1265,12 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 			Str("new_other_user_id", firstParticipant.ID.ParticipantID).
 			Msg("Found other user ID in DM")
 		portal.OtherUserID = firstParticipant.ID.ParticipantID
+		portal.bridge.portalsLock.Lock()
+		portal.bridge.portalsByOtherUser[database.Key{
+			ID:       portal.OtherUserID,
+			Receiver: portal.Receiver,
+		}] = portal
+		portal.bridge.portalsLock.Unlock()
 		changed = true
 	}
 	if portal.MXID != "" {
@@ -1486,10 +1516,17 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 	}
 
 	members := portal.UpdateMetadata(user, conv)
+	var avatarURL id.ContentURI
 
-	if portal.IsPrivateChat() && portal.GetDMPuppet() == nil {
-		portal.zlog.Error().Msg("Didn't find ghost of other user in DM :(")
-		return fmt.Errorf("ghost not found")
+	if portal.IsPrivateChat() {
+		puppet := portal.GetDMPuppet()
+		if puppet == nil {
+			portal.zlog.Error().Msg("Didn't find ghost of other user in DM :(")
+			return fmt.Errorf("ghost not found")
+		}
+		if portal.shouldSetDMRoomMetadata() {
+			avatarURL = puppet.AvatarMXC
+		}
 	}
 
 	intent := portal.MainIntent()
@@ -1529,6 +1566,14 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 		if portal.IsPrivateChat() {
 			invite = append(invite, portal.bridge.Bot.UserID)
 		}
+	}
+	if !avatarURL.IsEmpty() {
+		initialState = append(initialState, &event.Event{
+			Type: event.StateRoomAvatar,
+			Content: event.Content{
+				Parsed: &event.RoomAvatarEventContent{URL: avatarURL},
+			},
+		})
 	}
 
 	creationContent := make(map[string]interface{})

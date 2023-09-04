@@ -1,4 +1,4 @@
--- v0 -> v6: Latest revision
+-- v0 -> v8: Latest revision
 
 CREATE TABLE "user" (
     -- only: postgres
@@ -54,6 +54,7 @@ CREATE TABLE portal (
     CONSTRAINT portal_user_fkey   FOREIGN KEY (receiver) REFERENCES "user"(rowid) ON DELETE CASCADE,
     CONSTRAINT portal_puppet_fkey FOREIGN KEY (other_user, receiver) REFERENCES puppet(id, receiver) ON DELETE CASCADE
 );
+CREATE INDEX ON portal(receiver, other_user);
 
 CREATE TABLE message (
     conv_id       TEXT   NOT NULL,
