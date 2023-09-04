@@ -45,9 +45,9 @@ func (re RequestError) Error() string {
 }
 
 func (re RequestError) Is(other error) bool {
-	otherRe, ok := other.(RequestError)
-	if !ok {
-		return errors.Is(*re.HTTP, other)
+	var otherRe RequestError
+	if !errors.As(other, &otherRe) {
+		return re.HTTP != nil && errors.Is(*re.HTTP, other)
 	}
 	return otherRe.Data.GetType() == re.Data.GetType() &&
 		otherRe.Data.GetMessage() == re.Data.GetMessage()

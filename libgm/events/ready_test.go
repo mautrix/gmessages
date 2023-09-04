@@ -2,6 +2,7 @@ package events_test
 
 import (
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,7 @@ func TestRequestError_Is(t *testing.T) {
 	err := pblite.Unmarshal(dat, &errResp)
 	require.NoError(t, err)
 	assert.ErrorIs(t, events.RequestError{Data: &errResp}, events.ErrRequestedEntityNotFound)
+	assert.ErrorIs(t, events.RequestError{Data: &errResp}, fmt.Errorf("meow: %w", events.ErrRequestedEntityNotFound))
 	assert.NotErrorIs(t, events.RequestError{Data: &errResp}, events.RequestError{
 		Data: &gmproto.ErrorResponse{
 			Type:    5,
