@@ -97,5 +97,16 @@ func typedHTTPResponse[T proto.Message](resp *http.Response, err error) (parsed 
 	}
 	parsed = parsed.ProtoReflect().New().Interface().(T)
 	retErr = decodeProtoResp(body, resp.Header.Get("Content-Type"), parsed)
+	successEvt := zerolog.Ctx(resp.Request.Context()).Trace()
+	if successEvt.Enabled() {
+		successEvt.
+			Int("status_code", resp.StatusCode).
+			Str("url", resp.Request.URL.String()).
+			Str("response_body", base64.StdEncoding.EncodeToString(body)).
+			Bool("parsed_has_unknown_fields", len(parsed.ProtoReflect().GetUnknown()) > 0).
+			Type("parsed_data_type", parsed).
+			Any("parsed_data", parsed).
+			Msg("HTTP request to Google Messages succeeded")
+	}
 	return
 }
