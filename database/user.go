@@ -63,6 +63,7 @@ func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, er
 }
 
 type Settings struct {
+	SettingsReceived    bool `json:"settings_received"`
 	RCSEnabled          bool `json:"rcs_enabled"`
 	ReadReceipts        bool `json:"read_receipts"`
 	TypingNotifications bool `json:"typing_notifications"`

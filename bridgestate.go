@@ -32,6 +32,7 @@ const (
 	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed status.BridgeStateErrorCode = "gm-connection-failed"
 	GMPingFailed       status.BridgeStateErrorCode = "gm-ping-failed"
+	GMNotDefaultSMSApp status.BridgeStateErrorCode = "gm-not-default-sms-app"
 
 	GMBrowserInactive           status.BridgeStateErrorCode = "gm-browser-inactive"
 	GMBrowserInactiveTimeout    status.BridgeStateErrorCode = "gm-browser-inactive-timeout"
@@ -46,6 +47,7 @@ func init() {
 		GMFatalError:                "Fatal error polling messages from Google Messages server, please re-link the bridge",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",

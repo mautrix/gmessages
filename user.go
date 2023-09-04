@@ -773,8 +773,10 @@ func (user *User) handleSettings(settings *gmproto.Settings) {
 	if user.Settings.RCSEnabled != newRCSSettings.GetIsEnabled() ||
 		user.Settings.ReadReceipts != newRCSSettings.GetSendReadReceipts() ||
 		user.Settings.TypingNotifications != newRCSSettings.GetShowTypingIndicators() ||
-		user.Settings.IsDefaultSMSApp != newRCSSettings.GetIsDefaultSMSApp() {
+		user.Settings.IsDefaultSMSApp != newRCSSettings.GetIsDefaultSMSApp() ||
+		!user.Settings.SettingsReceived {
 		user.Settings = database.Settings{
+			SettingsReceived:    true,
 			RCSEnabled:          newRCSSettings.GetIsEnabled(),
 			ReadReceipts:        newRCSSettings.GetSendReadReceipts(),
 			TypingNotifications: newRCSSettings.GetShowTypingIndicators(),
@@ -801,6 +803,10 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 		state.Info["battery_low"] = user.batteryLow
 		state.Info["mobile_data"] = user.mobileData
 		state.Info["browser_active"] = user.browserInactiveType == ""
+		if user.Settings.SettingsReceived && !user.Settings.IsDefaultSMSApp {
+			state.StateEvent = status.StateBadCredentials
+			state.Error = GMNotDefaultSMSApp
+		}
 		if !user.ready {
 			state.StateEvent = status.StateConnecting
 			state.Error = GMConnecting
