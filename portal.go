@@ -507,15 +507,9 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 			if chatIDChanged {
 				isEdit = false
 			} else if i == 0 {
-				part.Content.SetEdit(dbMsg.MXID)
-				part.Extra = map[string]any{
-					"m.new_content": part.Extra,
-				}
+				part.SetEdit(dbMsg.MXID)
 			} else if existingPart, ok := dbMsg.Status.MediaParts[part.ID]; ok {
-				part.Content.SetEdit(existingPart.EventID)
-				part.Extra = map[string]any{
-					"m.new_content": part.Extra,
-				}
+				part.SetEdit(existingPart.EventID)
 			} else {
 				ts = converted.Timestamp.UnixMilli()
 				isEdit = false
@@ -788,6 +782,15 @@ type ConvertedMessagePart struct {
 	PendingMedia bool
 	Content      *event.MessageEventContent
 	Extra        map[string]any
+}
+
+func (cmp *ConvertedMessagePart) SetEdit(eventID id.EventID) {
+	cmp.Content.SetEdit(eventID)
+	if cmp.Extra != nil {
+		cmp.Extra = map[string]any{
+			"m.new_content": cmp.Extra,
+		}
+	}
 }
 
 type ConvertedMessage struct {
