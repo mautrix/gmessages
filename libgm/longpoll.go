@@ -216,7 +216,7 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 		}
 		accumulatedData = append(accumulatedData, chunk...)
 		if !json.Valid(accumulatedData) {
-			log.Trace().Bytes("data", chunk).Msg("Invalid JSON, reading next chunk")
+			log.Trace().Msg("Invalid JSON, reading next chunk")
 			continue
 		}
 		currentBlock := accumulatedData
