@@ -23,7 +23,7 @@ import (
 
 const phoneNotRespondingTimeout = 30 * time.Second
 
-func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, stopPinger chan struct{}) {
+func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing <-chan struct{}, stopPinger <-chan struct{}) {
 	notResponding := false
 	exit := false
 	onRespond := func() {
@@ -37,6 +37,9 @@ func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, sto
 		pingChan, err := c.NotifyDittoActivity()
 		if err != nil {
 			log.Err(err).Msg("Error notifying ditto activity")
+			c.triggerEvent(&events.PingFailed{
+				Error: fmt.Errorf("failed to notify ditto activity: %w", err),
+			})
 			return
 		}
 		select {
@@ -71,6 +74,12 @@ func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing chan struct{}, sto
 			return
 		}
 	}
+}
+
+func tryReadBody(resp io.ReadCloser) []byte {
+	data, _ := io.ReadAll(resp)
+	_ = resp.Close()
+	return data
 }
 
 func (c *Client) doLongPoll(loggedIn bool) {
@@ -123,14 +132,20 @@ func (c *Client) doLongPoll(loggedIn bool) {
 			continue
 		}
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			log.Error().Int("status_code", resp.StatusCode).Msg("Error making listen request")
+			body := tryReadBody(resp.Body)
+			log.Error().
+				Int("status_code", resp.StatusCode).
+				Bytes("resp_body", body).
+				Msg("Error making listen request")
 			if loggedIn {
-				c.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp}})
+				c.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp, Body: body}})
 			}
 			return
 		} else if resp.StatusCode >= 400 {
 			if loggedIn {
-				c.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp}})
+				c.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp, Body: tryReadBody(resp.Body)}})
+			} else {
+				_ = resp.Body.Close()
 			}
 			errorCount++
 			sleepSeconds := (errorCount + 1) * 5

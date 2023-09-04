@@ -998,6 +998,69 @@ func (x *WebEncryptionKeyResponse) GetKey() []byte {
 	return nil
 }
 
+type ErrorResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Type    int64                       `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"` // 5?
+	Message string                      `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Class   []*ErrorResponse_ErrorClass `protobuf:"bytes,3,rep,name=class,proto3" json:"class,omitempty"`
+}
+
+func (x *ErrorResponse) Reset() {
+	*x = ErrorResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrorResponse) ProtoMessage() {}
+
+func (x *ErrorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrorResponse.ProtoReflect.Descriptor instead.
+func (*ErrorResponse) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ErrorResponse) GetType() int64 {
+	if x != nil {
+		return x.Type
+	}
+	return 0
+}
+
+func (x *ErrorResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ErrorResponse) GetClass() []*ErrorResponse_ErrorClass {
+	if x != nil {
+		return x.Class
+	}
+	return nil
+}
+
 type ECDSAKeys struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1010,7 +1073,7 @@ type ECDSAKeys struct {
 func (x *ECDSAKeys) Reset() {
 	*x = ECDSAKeys{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[13]
+		mi := &file_authentication_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1023,7 +1086,7 @@ func (x *ECDSAKeys) String() string {
 func (*ECDSAKeys) ProtoMessage() {}
 
 func (x *ECDSAKeys) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[13]
+	mi := &file_authentication_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1036,7 +1099,7 @@ func (x *ECDSAKeys) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ECDSAKeys.ProtoReflect.Descriptor instead.
 func (*ECDSAKeys) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{13}
+	return file_authentication_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ECDSAKeys) GetField1() int64 {
@@ -1064,7 +1127,7 @@ type CurrentDeviceData struct {
 func (x *CurrentDeviceData) Reset() {
 	*x = CurrentDeviceData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[14]
+		mi := &file_authentication_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1077,7 +1140,7 @@ func (x *CurrentDeviceData) String() string {
 func (*CurrentDeviceData) ProtoMessage() {}
 
 func (x *CurrentDeviceData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[14]
+	mi := &file_authentication_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1090,7 +1153,7 @@ func (x *CurrentDeviceData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentDeviceData.ProtoReflect.Descriptor instead.
 func (*CurrentDeviceData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{14}
+	return file_authentication_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CurrentDeviceData) GetBrowser() *Device {
@@ -1114,7 +1177,7 @@ type KeyData struct {
 func (x *KeyData) Reset() {
 	*x = KeyData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[15]
+		mi := &file_authentication_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1127,7 +1190,7 @@ func (x *KeyData) String() string {
 func (*KeyData) ProtoMessage() {}
 
 func (x *KeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[15]
+	mi := &file_authentication_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1140,7 +1203,7 @@ func (x *KeyData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyData.ProtoReflect.Descriptor instead.
 func (*KeyData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{15}
+	return file_authentication_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *KeyData) GetMobile() *Device {
@@ -1183,7 +1246,7 @@ type WebAuthKey struct {
 func (x *WebAuthKey) Reset() {
 	*x = WebAuthKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[16]
+		mi := &file_authentication_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1196,7 +1259,7 @@ func (x *WebAuthKey) String() string {
 func (*WebAuthKey) ProtoMessage() {}
 
 func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[16]
+	mi := &file_authentication_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1209,7 +1272,7 @@ func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebAuthKey.ProtoReflect.Descriptor instead.
 func (*WebAuthKey) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{16}
+	return file_authentication_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *WebAuthKey) GetWebAuthKey() []byte {
@@ -1239,7 +1302,7 @@ type URLData struct {
 func (x *URLData) Reset() {
 	*x = URLData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[17]
+		mi := &file_authentication_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1252,7 +1315,7 @@ func (x *URLData) String() string {
 func (*URLData) ProtoMessage() {}
 
 func (x *URLData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[17]
+	mi := &file_authentication_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1265,7 +1328,7 @@ func (x *URLData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use URLData.ProtoReflect.Descriptor instead.
 func (*URLData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{17}
+	return file_authentication_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *URLData) GetPairingKey() []byte {
@@ -1301,7 +1364,7 @@ type TokenData struct {
 func (x *TokenData) Reset() {
 	*x = TokenData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[18]
+		mi := &file_authentication_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1314,7 +1377,7 @@ func (x *TokenData) String() string {
 func (*TokenData) ProtoMessage() {}
 
 func (x *TokenData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[18]
+	mi := &file_authentication_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1327,7 +1390,7 @@ func (x *TokenData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenData.ProtoReflect.Descriptor instead.
 func (*TokenData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{18}
+	return file_authentication_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *TokenData) GetTachyonAuthToken() []byte {
@@ -1357,7 +1420,7 @@ type PairedData struct {
 func (x *PairedData) Reset() {
 	*x = PairedData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[19]
+		mi := &file_authentication_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1370,7 +1433,7 @@ func (x *PairedData) String() string {
 func (*PairedData) ProtoMessage() {}
 
 func (x *PairedData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[19]
+	mi := &file_authentication_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1383,7 +1446,7 @@ func (x *PairedData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PairedData.ProtoReflect.Descriptor instead.
 func (*PairedData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{19}
+	return file_authentication_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PairedData) GetMobile() *Device {
@@ -1418,7 +1481,7 @@ type RevokePairData struct {
 func (x *RevokePairData) Reset() {
 	*x = RevokePairData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[20]
+		mi := &file_authentication_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1431,7 +1494,7 @@ func (x *RevokePairData) String() string {
 func (*RevokePairData) ProtoMessage() {}
 
 func (x *RevokePairData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[20]
+	mi := &file_authentication_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1444,7 +1507,7 @@ func (x *RevokePairData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokePairData.ProtoReflect.Descriptor instead.
 func (*RevokePairData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{20}
+	return file_authentication_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RevokePairData) GetRevokedDevice() *Device {
@@ -1465,7 +1528,7 @@ type RegisterRefreshRequest_NestedEmptyArr struct {
 func (x *RegisterRefreshRequest_NestedEmptyArr) Reset() {
 	*x = RegisterRefreshRequest_NestedEmptyArr{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[21]
+		mi := &file_authentication_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1478,7 +1541,7 @@ func (x *RegisterRefreshRequest_NestedEmptyArr) String() string {
 func (*RegisterRefreshRequest_NestedEmptyArr) ProtoMessage() {}
 
 func (x *RegisterRefreshRequest_NestedEmptyArr) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[21]
+	mi := &file_authentication_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1513,7 +1576,7 @@ type RegisterRefreshResponse_AuthKeyData struct {
 func (x *RegisterRefreshResponse_AuthKeyData) Reset() {
 	*x = RegisterRefreshResponse_AuthKeyData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[22]
+		mi := &file_authentication_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1526,7 +1589,7 @@ func (x *RegisterRefreshResponse_AuthKeyData) String() string {
 func (*RegisterRefreshResponse_AuthKeyData) ProtoMessage() {}
 
 func (x *RegisterRefreshResponse_AuthKeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[22]
+	mi := &file_authentication_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1568,7 +1631,7 @@ type RegisterPhoneRelayResponse_AuthKeyData struct {
 func (x *RegisterPhoneRelayResponse_AuthKeyData) Reset() {
 	*x = RegisterPhoneRelayResponse_AuthKeyData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[23]
+		mi := &file_authentication_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1581,7 +1644,7 @@ func (x *RegisterPhoneRelayResponse_AuthKeyData) String() string {
 func (*RegisterPhoneRelayResponse_AuthKeyData) ProtoMessage() {}
 
 func (x *RegisterPhoneRelayResponse_AuthKeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[23]
+	mi := &file_authentication_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1611,6 +1674,53 @@ func (x *RegisterPhoneRelayResponse_AuthKeyData) GetValidFor() int64 {
 	return 0
 }
 
+type ErrorResponse_ErrorClass struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Class string `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"` // 2: {1: 1}
+}
+
+func (x *ErrorResponse_ErrorClass) Reset() {
+	*x = ErrorResponse_ErrorClass{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[25]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ErrorResponse_ErrorClass) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrorResponse_ErrorClass) ProtoMessage() {}
+
+func (x *ErrorResponse_ErrorClass) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[25]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrorResponse_ErrorClass.ProtoReflect.Descriptor instead.
+func (*ErrorResponse_ErrorClass) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{13, 0}
+}
+
+func (x *ErrorResponse_ErrorClass) GetClass() string {
+	if x != nil {
+		return x.Class
+	}
+	return ""
+}
+
 var File_authentication_proto protoreflect.FileDescriptor
 
 //go:embed authentication.pb.raw
@@ -1629,7 +1739,7 @@ func file_authentication_proto_rawDescGZIP() []byte {
 }
 
 var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_authentication_proto_goTypes = []interface{}{
 	(BrowserType)(0),                               // 0: authentication.BrowserType
 	(DeviceType)(0),                                // 1: authentication.DeviceType
@@ -1646,53 +1756,56 @@ var file_authentication_proto_goTypes = []interface{}{
 	(*CoordinateMessage)(nil),                      // 12: authentication.CoordinateMessage
 	(*RefreshPhoneRelayResponse)(nil),              // 13: authentication.RefreshPhoneRelayResponse
 	(*WebEncryptionKeyResponse)(nil),               // 14: authentication.WebEncryptionKeyResponse
-	(*ECDSAKeys)(nil),                              // 15: authentication.ECDSAKeys
-	(*CurrentDeviceData)(nil),                      // 16: authentication.CurrentDeviceData
-	(*KeyData)(nil),                                // 17: authentication.KeyData
-	(*WebAuthKey)(nil),                             // 18: authentication.WebAuthKey
-	(*URLData)(nil),                                // 19: authentication.URLData
-	(*TokenData)(nil),                              // 20: authentication.TokenData
-	(*PairedData)(nil),                             // 21: authentication.PairedData
-	(*RevokePairData)(nil),                         // 22: authentication.RevokePairData
-	(*RegisterRefreshRequest_NestedEmptyArr)(nil),  // 23: authentication.RegisterRefreshRequest.NestedEmptyArr
-	(*RegisterRefreshResponse_AuthKeyData)(nil),    // 24: authentication.RegisterRefreshResponse.AuthKeyData
-	(*RegisterPhoneRelayResponse_AuthKeyData)(nil), // 25: authentication.RegisterPhoneRelayResponse.AuthKeyData
-	(*EmptyArr)(nil),                               // 26: util.EmptyArr
+	(*ErrorResponse)(nil),                          // 15: authentication.ErrorResponse
+	(*ECDSAKeys)(nil),                              // 16: authentication.ECDSAKeys
+	(*CurrentDeviceData)(nil),                      // 17: authentication.CurrentDeviceData
+	(*KeyData)(nil),                                // 18: authentication.KeyData
+	(*WebAuthKey)(nil),                             // 19: authentication.WebAuthKey
+	(*URLData)(nil),                                // 20: authentication.URLData
+	(*TokenData)(nil),                              // 21: authentication.TokenData
+	(*PairedData)(nil),                             // 22: authentication.PairedData
+	(*RevokePairData)(nil),                         // 23: authentication.RevokePairData
+	(*RegisterRefreshRequest_NestedEmptyArr)(nil),  // 24: authentication.RegisterRefreshRequest.NestedEmptyArr
+	(*RegisterRefreshResponse_AuthKeyData)(nil),    // 25: authentication.RegisterRefreshResponse.AuthKeyData
+	(*RegisterPhoneRelayResponse_AuthKeyData)(nil), // 26: authentication.RegisterPhoneRelayResponse.AuthKeyData
+	(*ErrorResponse_ErrorClass)(nil),               // 27: authentication.ErrorResponse.ErrorClass
+	(*EmptyArr)(nil),                               // 28: util.EmptyArr
 }
 var file_authentication_proto_depIdxs = []int32{
 	0,  // 0: authentication.BrowserDetails.browserType:type_name -> authentication.BrowserType
 	1,  // 1: authentication.BrowserDetails.deviceType:type_name -> authentication.DeviceType
 	6,  // 2: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
 	2,  // 3: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
-	17, // 4: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
-	16, // 5: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
+	18, // 4: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
+	17, // 5: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
 	4,  // 6: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
 	6,  // 7: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
 	3,  // 8: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
 	6,  // 9: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
 	3,  // 10: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
-	23, // 11: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
-	24, // 12: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.RegisterRefreshResponse.AuthKeyData
+	24, // 11: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
+	25, // 12: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.RegisterRefreshResponse.AuthKeyData
 	12, // 13: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
 	3,  // 14: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
-	25, // 15: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.RegisterPhoneRelayResponse.AuthKeyData
+	26, // 15: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.RegisterPhoneRelayResponse.AuthKeyData
 	12, // 16: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
 	12, // 17: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
-	3,  // 18: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
-	3,  // 19: authentication.KeyData.mobile:type_name -> authentication.Device
-	15, // 20: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
-	18, // 21: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
-	3,  // 22: authentication.KeyData.browser:type_name -> authentication.Device
-	3,  // 23: authentication.PairedData.mobile:type_name -> authentication.Device
-	20, // 24: authentication.PairedData.tokenData:type_name -> authentication.TokenData
-	3,  // 25: authentication.PairedData.browser:type_name -> authentication.Device
-	3,  // 26: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
-	26, // 27: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
-	28, // [28:28] is the sub-list for method output_type
-	28, // [28:28] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	27, // 18: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
+	3,  // 19: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
+	3,  // 20: authentication.KeyData.mobile:type_name -> authentication.Device
+	16, // 21: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
+	19, // 22: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
+	3,  // 23: authentication.KeyData.browser:type_name -> authentication.Device
+	3,  // 24: authentication.PairedData.mobile:type_name -> authentication.Device
+	21, // 25: authentication.PairedData.tokenData:type_name -> authentication.TokenData
+	3,  // 26: authentication.PairedData.browser:type_name -> authentication.Device
+	3,  // 27: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
+	28, // 28: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
+	29, // [29:29] is the sub-list for method output_type
+	29, // [29:29] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_authentication_proto_init() }
@@ -1859,7 +1972,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ECDSAKeys); i {
+			switch v := v.(*ErrorResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1871,7 +1984,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CurrentDeviceData); i {
+			switch v := v.(*ECDSAKeys); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1883,7 +1996,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KeyData); i {
+			switch v := v.(*CurrentDeviceData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1895,7 +2008,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebAuthKey); i {
+			switch v := v.(*KeyData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1907,7 +2020,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*URLData); i {
+			switch v := v.(*WebAuthKey); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1919,7 +2032,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TokenData); i {
+			switch v := v.(*URLData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1931,7 +2044,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PairedData); i {
+			switch v := v.(*TokenData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1943,7 +2056,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RevokePairData); i {
+			switch v := v.(*PairedData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1955,7 +2068,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterRefreshRequest_NestedEmptyArr); i {
+			switch v := v.(*RevokePairData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1967,7 +2080,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterRefreshResponse_AuthKeyData); i {
+			switch v := v.(*RegisterRefreshRequest_NestedEmptyArr); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1979,7 +2092,31 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterRefreshResponse_AuthKeyData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RegisterPhoneRelayResponse_AuthKeyData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ErrorResponse_ErrorClass); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2002,7 +2139,7 @@ func file_authentication_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_authentication_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   24,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -30,6 +30,7 @@ const (
 	GMNotConnected     status.BridgeStateErrorCode = "gm-not-connected"
 	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed status.BridgeStateErrorCode = "gm-connection-failed"
+	GMPingFailed       status.BridgeStateErrorCode = "gm-ping-failed"
 
 	GMBrowserInactive           status.BridgeStateErrorCode = "gm-browser-inactive"
 	GMBrowserInactiveTimeout    status.BridgeStateErrorCode = "gm-browser-inactive-timeout"

@@ -121,6 +121,17 @@ message WebEncryptionKeyResponse {
     bytes key = 2;
 }
 
+message ErrorResponse {
+    int64 type = 1; // 5?
+    string message = 2;
+    repeated ErrorClass class = 3;
+
+    message ErrorClass {
+        string class = 1;
+        // 2: {1: 1}
+    }
+}
+
 message ECDSAKeys {
     int64 field1 = 1; // idk?
     bytes encryptedKeys = 2;

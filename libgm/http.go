@@ -2,14 +2,18 @@ package libgm
 
 import (
 	"bytes"
+	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/libgm/events"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/libgm/pblite"
 	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
@@ -31,7 +35,8 @@ func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, content
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	ctx := c.Logger.WithContext(context.TODO())
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -43,34 +48,54 @@ func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, content
 	return res, nil
 }
 
+func decodeProtoResp(body []byte, contentType string, into proto.Message) error {
+	contentType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return fmt.Errorf("failed to parse content-type: %w", err)
+	}
+	switch contentType {
+	case ContentTypeProtobuf:
+		return proto.Unmarshal(body, into)
+	case ContentTypePBLite:
+		return pblite.Unmarshal(body, into)
+	default:
+		return fmt.Errorf("unknown content type %s in response", contentType)
+	}
+}
+
 func typedHTTPResponse[T proto.Message](resp *http.Response, err error) (parsed T, retErr error) {
 	if err != nil {
 		retErr = err
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		retErr = events.HTTPError{Resp: resp}
-		return
-	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		retErr = fmt.Errorf("failed to read response body: %w", err)
 		return
 	}
-	contentType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-	if err != nil {
-		retErr = fmt.Errorf("failed to parse content-type: %w", err)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		logEvt := zerolog.Ctx(resp.Request.Context()).Debug().
+			Int("status_code", resp.StatusCode).
+			Str("url", resp.Request.URL.String()).
+			Str("response_body", base64.StdEncoding.EncodeToString(body))
+		httpErr := events.HTTPError{Resp: resp, Body: body}
+		retErr = httpErr
+		var errorResp gmproto.ErrorResponse
+		errErr := decodeProtoResp(body, resp.Header.Get("Content-Type"), &errorResp)
+		if errErr == nil && errorResp.Message != "" {
+			logEvt = logEvt.Any("response_proto_err", &errorResp)
+			retErr = events.RequestError{
+				HTTP: &httpErr,
+				Data: &errorResp,
+			}
+		} else {
+			logEvt = logEvt.AnErr("proto_parse_err", errErr)
+		}
+		logEvt.Msg("HTTP request to Google Messages failed")
 		return
 	}
 	parsed = parsed.ProtoReflect().New().Interface().(T)
-	switch contentType {
-	case ContentTypeProtobuf:
-		retErr = proto.Unmarshal(body, parsed)
-	case ContentTypePBLite:
-		retErr = pblite.Unmarshal(body, parsed)
-	default:
-		retErr = fmt.Errorf("unknown content type %s in response", contentType)
-	}
+	retErr = decodeProtoResp(body, resp.Header.Get("Content-Type"), parsed)
 	return
 }

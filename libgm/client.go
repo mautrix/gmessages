@@ -142,6 +142,9 @@ func (c *Client) postConnect() {
 	err := c.SetActiveSession()
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to set active session")
+		c.triggerEvent(&events.PingFailed{
+			Error: fmt.Errorf("failed to set active session: %w", err),
+		})
 		return
 	}
 

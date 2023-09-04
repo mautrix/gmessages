@@ -471,13 +471,23 @@ func (user *User) Connect() bool {
 	err := user.Client.Connect()
 	if err != nil {
 		user.zlog.Err(err).Msg("Error connecting to Google Messages")
-		user.BridgeState.Send(status.BridgeState{
-			StateEvent: status.StateUnknownError,
-			Error:      GMConnectionFailed,
-			Info: map[string]interface{}{
-				"go_error": err.Error(),
-			},
-		})
+		if errors.Is(err, events.ErrRequestedEntityNotFound) {
+			go user.Logout(status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpaired,
+				Info: map[string]any{
+					"go_error": err.Error(),
+				},
+			}, false)
+		} else {
+			user.BridgeState.Send(status.BridgeState{
+				StateEvent: status.StateUnknownError,
+				Error:      GMConnectionFailed,
+				Info: map[string]interface{}{
+					"go_error": err.Error(),
+				},
+			})
+		}
 		return false
 	}
 	return true
@@ -569,6 +579,22 @@ func (user *User) syncHandleEvent(event any) {
 	case *events.PhoneRespondingAgain:
 		user.phoneResponding = true
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	case *events.PingFailed:
+		if errors.Is(v.Error, events.ErrRequestedEntityNotFound) {
+			go user.Logout(status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpaired,
+				Info: map[string]any{
+					"go_error": v.Error.Error(),
+				},
+			}, false)
+		} else {
+			user.BridgeState.Send(status.BridgeState{
+				StateEvent: status.StateUnknownError,
+				Error:      GMPingFailed,
+				Info:       map[string]any{"go_error": v.Error.Error()},
+			})
+		}
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
 		if user.PhoneID != "" && user.PhoneID != v.GetMobile().GetSourceID() {

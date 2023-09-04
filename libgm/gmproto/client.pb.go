@@ -228,7 +228,7 @@ const (
 	SendMessageResponse_SUCCESS   SendMessageResponse_Status = 1
 	SendMessageResponse_FAILURE_2 SendMessageResponse_Status = 2
 	SendMessageResponse_FAILURE_3 SendMessageResponse_Status = 3
-	SendMessageResponse_FAILURE_4 SendMessageResponse_Status = 4
+	SendMessageResponse_FAILURE_4 SendMessageResponse_Status = 4 // not default sms app?
 )
 
 // Enum value maps for SendMessageResponse_Status.
