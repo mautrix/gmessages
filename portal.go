@@ -111,7 +111,7 @@ func (br *GMBridge) GetPortalByOtherUser(key database.Key) *Portal {
 	defer br.portalsLock.Unlock()
 	portal, ok := br.portalsByOtherUser[key]
 	if !ok {
-		dbPortal, err := br.DB.Portal.GetByKey(context.TODO(), key)
+		dbPortal, err := br.DB.Portal.GetByOtherUser(context.TODO(), key)
 		if err != nil {
 			br.ZLog.Err(err).Object("portal_key", key).Msg("Failed to get portal from database")
 			return nil
