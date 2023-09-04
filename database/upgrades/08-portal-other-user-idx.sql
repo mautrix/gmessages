@@ -1,2 +1,2 @@
 -- v8: Add index for DM portals
-CREATE INDEX ON portal(receiver, other_user);
+CREATE INDEX portal_other_user_idx ON portal(receiver, other_user);
