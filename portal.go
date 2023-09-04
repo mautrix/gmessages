@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/gif"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -312,12 +313,29 @@ func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
 
 func (portal *Portal) handleMessageLoop() {
 	for {
-		select {
-		case msg := <-portal.messages:
-			portal.handleMessageLoopItem(msg)
-		case msg := <-portal.matrixMessages:
-			portal.handleMatrixMessageLoopItem(msg)
+		portal.handleOneMessageLoopItem()
+	}
+}
+
+func (portal *Portal) handleOneMessageLoopItem() {
+	defer func() {
+		if err := recover(); err != nil {
+			logEvt := portal.zlog.WithLevel(zerolog.FatalLevel).
+				Str(zerolog.ErrorStackFieldName, string(debug.Stack()))
+			actualErr, ok := err.(error)
+			if ok {
+				logEvt = logEvt.Err(actualErr)
+			} else {
+				logEvt = logEvt.Any(zerolog.ErrorFieldName, err)
+			}
+			logEvt.Msg("Portal message handler panicked")
 		}
+	}()
+	select {
+	case msg := <-portal.messages:
+		portal.handleMessageLoopItem(msg)
+	case msg := <-portal.matrixMessages:
+		portal.handleMatrixMessageLoopItem(msg)
 	}
 }
 
