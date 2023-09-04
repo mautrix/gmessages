@@ -474,7 +474,7 @@ func (user *User) Connect() bool {
 		if errors.Is(err, events.ErrRequestedEntityNotFound) {
 			go user.Logout(status.BridgeState{
 				StateEvent: status.StateBadCredentials,
-				Error:      GMUnpaired,
+				Error:      GMUnpaired404,
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},
@@ -583,7 +583,7 @@ func (user *User) syncHandleEvent(event any) {
 		if errors.Is(v.Error, events.ErrRequestedEntityNotFound) {
 			go user.Logout(status.BridgeState{
 				StateEvent: status.StateBadCredentials,
-				Error:      GMUnpaired,
+				Error:      GMUnpaired404,
 				Info: map[string]any{
 					"go_error": v.Error.Error(),
 				},

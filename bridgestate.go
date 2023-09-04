@@ -27,6 +27,7 @@ const (
 	GMListenError      status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError       status.BridgeStateErrorCode = "gm-listen-fatal-error"
 	GMUnpaired         status.BridgeStateErrorCode = "gm-unpaired"
+	GMUnpaired404      status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
 	GMNotConnected     status.BridgeStateErrorCode = "gm-not-connected"
 	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed status.BridgeStateErrorCode = "gm-connection-failed"
@@ -44,6 +45,7 @@ func init() {
 		GMListenError:               "Error polling messages from Google Messages server, the bridge will try to reconnect",
 		GMFatalError:                "Fatal error polling messages from Google Messages server, please re-link the bridge",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
