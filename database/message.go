@@ -63,9 +63,24 @@ const (
 		SELECT conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status FROM message
 		WHERE mxid=$1
 	`
-	deleteAllInChat = `
+	deleteAllMessagesInChatQuery = `
 		DELETE FROM message WHERE conv_id=$1 AND conv_receiver=$2
 	`
+	insertMessageQuery = `
+		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+	massInsertMessageQueryPrefix = `
+		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
+		VALUES
+	`
+	updateMessageQuery = `
+		UPDATE message
+		SET conv_id=$1, mxid=$4, mx_room=$5, sender=$6, timestamp=$7, status=$8
+		WHERE conv_receiver=$2 AND id=$3
+	`
+	updateMessageStatusQuery = "UPDATE message SET status=$1, timestamp=$2 WHERE conv_receiver=$3 AND id=$4"
+	deleteMessageQuery       = "DELETE FROM message WHERE conv_id=$1 AND conv_receiver=$2 AND id=$3"
 )
 
 func (mq *MessageQuery) GetByID(ctx context.Context, receiver int, messageID string) (*Message, error) {
@@ -85,7 +100,7 @@ func (mq *MessageQuery) GetLastInChatWithMXID(ctx context.Context, chat Key) (*M
 }
 
 func (mq *MessageQuery) DeleteAllInChat(ctx context.Context, chat Key) error {
-	_, err := mq.db.Conn(ctx).ExecContext(ctx, deleteAllInChat, chat.ID, chat.Receiver)
+	_, err := mq.db.Conn(ctx).ExecContext(ctx, deleteAllMessagesInChatQuery, chat.ID, chat.Receiver)
 	return err
 }
 
@@ -147,10 +162,7 @@ func (msg *Message) sqlVariables() []any {
 }
 
 func (msg *Message) Insert(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, `
-		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, msg.sqlVariables()...)
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, insertMessageQuery, msg.sqlVariables()...)
 	return err
 }
 
@@ -173,30 +185,23 @@ func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) err
 		params[baseIndex+4] = dbutil.JSON{Data: &msg.Status}
 		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4, baseIndex+5)
 	}
-	query := `
-		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
-		VALUES
-	` + strings.Join(placeholders, ",")
+	query := massInsertMessageQueryPrefix + strings.Join(placeholders, ",")
 	_, err := mq.db.Conn(ctx).ExecContext(ctx, query, params...)
 	return err
 }
 
 func (msg *Message) Update(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, `
-		UPDATE message
-		SET conv_id=$1, mxid=$4, mx_room=$5, sender=$6, timestamp=$7, status=$8
-		WHERE conv_receiver=$2 AND id=$3
-	`, msg.sqlVariables()...)
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, updateMessageQuery, msg.sqlVariables()...)
 	return err
 }
 
 func (msg *Message) UpdateStatus(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, "UPDATE message SET status=$1, timestamp=$2 WHERE conv_receiver=$3 AND id=$4", dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.Receiver, msg.ID)
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, updateMessageStatusQuery, dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.Receiver, msg.ID)
 	return err
 }
 
 func (msg *Message) Delete(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, "DELETE FROM message WHERE conv_id=$1 AND conv_receiver=$2 AND id=$3", msg.Chat.ID, msg.Chat.Receiver, msg.ID)
+	_, err := msg.db.Conn(ctx).ExecContext(ctx, deleteMessageQuery, msg.Chat.ID, msg.Chat.Receiver, msg.ID)
 	return err
 }
 

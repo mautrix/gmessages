@@ -43,24 +43,42 @@ func (pq *PortalQuery) getDB() *Database {
 	return pq.db
 }
 
+const (
+	getAllPortalsQuery        = "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal"
+	getAllPortalsForUserQuery = getAllPortalsQuery + " WHERE receiver=$1"
+	getPortalByKeyQuery       = getAllPortalsQuery + " WHERE id=$1 AND receiver=$2"
+	getPortalByOtherUserQuery = getAllPortalsQuery + " WHERE other_user=$1 AND receiver=$2"
+	getPortalByMXIDQuery      = getAllPortalsQuery + " WHERE mxid=$1"
+	insertPortalQuery         = `
+		INSERT INTO portal (id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`
+	updatePortalQuery = `
+		UPDATE portal
+		SET self_user=$3, other_user=$4, type=$5, mxid=$6, name=$7, name_set=$8, encrypted=$9, in_space=$10
+		WHERE id=$1 AND receiver=$2
+	`
+	deletePortalQuery = "DELETE FROM portal WHERE id=$1 AND receiver=$2"
+)
+
 func (pq *PortalQuery) GetAll(ctx context.Context) ([]*Portal, error) {
-	return getAll[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal")
+	return getAll[*Portal](pq, ctx, getAllPortalsQuery)
 }
 
 func (pq *PortalQuery) GetAllForUser(ctx context.Context, receiver int) ([]*Portal, error) {
-	return getAll[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE receiver=$1", receiver)
+	return getAll[*Portal](pq, ctx, getAllPortalsForUserQuery, receiver)
 }
 
 func (pq *PortalQuery) GetByKey(ctx context.Context, key Key) (*Portal, error) {
-	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
+	return get[*Portal](pq, ctx, getPortalByKeyQuery, key.ID, key.Receiver)
 }
 
 func (pq *PortalQuery) GetByOtherUser(ctx context.Context, key Key) (*Portal, error) {
-	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE other_user=$1 AND receiver=$2", key.ID, key.Receiver)
+	return get[*Portal](pq, ctx, getPortalByOtherUserQuery, key.ID, key.Receiver)
 }
 
 func (pq *PortalQuery) GetByMXID(ctx context.Context, mxid id.RoomID) (*Portal, error) {
-	return get[*Portal](pq, ctx, "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal WHERE mxid=$1", mxid)
+	return get[*Portal](pq, ctx, getPortalByMXIDQuery, mxid)
 }
 
 type Key struct {
@@ -125,23 +143,16 @@ func (portal *Portal) sqlVariables() []any {
 }
 
 func (portal *Portal) Insert(ctx context.Context) error {
-	_, err := portal.db.Conn(ctx).ExecContext(ctx, `
-		INSERT INTO portal (id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, portal.sqlVariables()...)
+	_, err := portal.db.Conn(ctx).ExecContext(ctx, insertPortalQuery, portal.sqlVariables()...)
 	return err
 }
 
 func (portal *Portal) Update(ctx context.Context) error {
-	_, err := portal.db.Conn(ctx).ExecContext(ctx, `
-		UPDATE portal
-		SET self_user=$3, other_user=$4, type=$5, mxid=$6, name=$7, name_set=$8, encrypted=$9, in_space=$10
-		WHERE id=$1 AND receiver=$2
-	`, portal.sqlVariables()...)
+	_, err := portal.db.Conn(ctx).ExecContext(ctx, updatePortalQuery, portal.sqlVariables()...)
 	return err
 }
 
 func (portal *Portal) Delete(ctx context.Context) error {
-	_, err := portal.db.Conn(ctx).ExecContext(ctx, "DELETE FROM portal WHERE id=$1 AND receiver=$2", portal.ID, portal.Receiver)
+	_, err := portal.db.Conn(ctx).ExecContext(ctx, deletePortalQuery, portal.ID, portal.Receiver)
 	return err
 }

@@ -120,10 +120,6 @@ func (puppet *Puppet) GetMXID() id.UserID {
 	return puppet.MXID
 }
 
-func (br *GMBridge) GetAllPuppets() []*Puppet {
-	return br.loadManyPuppets(br.DB.Puppet.GetAll)
-}
-
 func (br *GMBridge) loadManyPuppets(query func(ctx context.Context) ([]*database.Puppet, error)) []*Puppet {
 	br.puppetsLock.Lock()
 	defer br.puppetsLock.Unlock()

@@ -58,12 +58,13 @@ const (
 		SELECT conv_id, conv_receiver, msg_id, sender, reaction, mxid FROM reaction
 		WHERE conv_id=$1 AND conv_receiver=$2 AND msg_id=$3
 	`
-	insertReaction = `
+	insertReactionQuery = `
 		INSERT INTO reaction (conv_id, conv_receiver, msg_id, sender, reaction, mxid)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (conv_receiver, msg_id, sender)
 		DO UPDATE SET reaction=excluded.reaction, mxid=excluded.mxid
 	`
+	deleteReactionQuery = "DELETE FROM reaction WHERE conv_id=$1 AND conv_receiver=$2 AND msg_id=$3 AND sender=$4"
 )
 
 func (rq *ReactionQuery) GetByID(ctx context.Context, receiver int, messageID, sender string) (*Reaction, error) {
@@ -104,7 +105,7 @@ func (r *Reaction) Scan(row dbutil.Scannable) (*Reaction, error) {
 }
 
 func (r *Reaction) Insert(ctx context.Context) error {
-	_, err := r.db.Conn(ctx).ExecContext(ctx, insertReaction, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender, r.Reaction, r.MXID)
+	_, err := r.db.Conn(ctx).ExecContext(ctx, insertReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender, r.Reaction, r.MXID)
 	return err
 }
 
@@ -125,12 +126,12 @@ func (rq *ReactionQuery) MassInsert(ctx context.Context, reactions []*Reaction) 
 		params[baseIndex+3] = msg.MXID
 		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4)
 	}
-	query := strings.Replace(insertReaction, "($1, $2, $3, $4, $5, $6)", strings.Join(placeholders, ","), 1)
+	query := strings.Replace(insertReactionQuery, "($1, $2, $3, $4, $5, $6)", strings.Join(placeholders, ","), 1)
 	_, err := rq.db.Conn(ctx).ExecContext(ctx, query, params...)
 	return err
 }
 
 func (r *Reaction) Delete(ctx context.Context) error {
-	_, err := r.db.Conn(ctx).ExecContext(ctx, "DELETE FROM reaction WHERE conv_id=$1 AND conv_receiver=$2 AND msg_id=$3 AND sender=$4", r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender)
+	_, err := r.db.Conn(ctx).ExecContext(ctx, deleteReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender)
 	return err
 }

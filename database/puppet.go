@@ -36,21 +36,31 @@ func (pq *PuppetQuery) New() *Puppet {
 	}
 }
 
+const (
+	deleteAllPuppetsForUserQuery = "DELETE FROM puppet WHERE receiver=$1"
+	getPuppetQuery               = "SELECT id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set FROM puppet WHERE id=$1 AND receiver=$2"
+	insertPuppetQuery            = `
+		INSERT INTO puppet (id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`
+	updatePuppetQuery = `
+		UPDATE puppet
+		SET phone=$3, contact_id=$4, name=$5, name_set=$6, avatar_hash=$7, avatar_mxc=$8, avatar_set=$9, avatar_update_ts=$10, contact_info_set=$11
+		WHERE id=$1 AND receiver=$2
+	`
+)
+
 func (pq *PuppetQuery) getDB() *Database {
 	return pq.db
 }
 
-func (pq *PuppetQuery) GetAll(ctx context.Context) ([]*Puppet, error) {
-	return getAll[*Puppet](pq, ctx, "SELECT id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set FROM puppet")
-}
-
 func (pq *PuppetQuery) DeleteAllForUser(ctx context.Context, userID int) error {
-	_, err := pq.db.Conn(ctx).ExecContext(ctx, "DELETE FROM puppet WHERE receiver=$1", userID)
+	_, err := pq.db.Conn(ctx).ExecContext(ctx, deleteAllPuppetsForUserQuery, userID)
 	return err
 }
 
 func (pq *PuppetQuery) Get(ctx context.Context, key Key) (*Puppet, error) {
-	return get[*Puppet](pq, ctx, "SELECT id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set FROM puppet WHERE id=$1 AND receiver=$2", key.ID, key.Receiver)
+	return get[*Puppet](pq, ctx, getPuppetQuery, key.ID, key.Receiver)
 }
 
 type Puppet struct {
@@ -89,18 +99,11 @@ func (puppet *Puppet) sqlVariables() []any {
 }
 
 func (puppet *Puppet) Insert(ctx context.Context) error {
-	_, err := puppet.db.Conn(ctx).ExecContext(ctx, `
-		INSERT INTO puppet (id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, puppet.sqlVariables()...)
+	_, err := puppet.db.Conn(ctx).ExecContext(ctx, insertPuppetQuery, puppet.sqlVariables()...)
 	return err
 }
 
 func (puppet *Puppet) Update(ctx context.Context) error {
-	_, err := puppet.db.Conn(ctx).ExecContext(ctx, `
-		UPDATE puppet
-		SET phone=$3, contact_id=$4, name=$5, name_set=$6, avatar_hash=$7, avatar_mxc=$8, avatar_set=$9, avatar_update_ts=$10, contact_info_set=$11
-		WHERE id=$1 AND receiver=$2
-	`, puppet.sqlVariables()...)
+	_, err := puppet.db.Conn(ctx).ExecContext(ctx, updatePuppetQuery, puppet.sqlVariables()...)
 	return err
 }

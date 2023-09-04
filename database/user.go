@@ -46,20 +46,39 @@ func (uq *UserQuery) getDB() *Database {
 	return uq.db
 }
 
+const (
+	getUserBaseQuery                 = `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user"`
+	getAllUsersWithSessionQuery      = getUserBaseQuery + " WHERE session IS NOT NULL"
+	getAllUsersWithDoublePuppetQuery = getUserBaseQuery + " WHERE access_token<>''"
+	getUserByRowIDQuery              = getUserBaseQuery + " WHERE rowid=$1"
+	getUserByMXIDQuery               = getUserBaseQuery + " WHERE mxid=$1"
+
+	insertUserQuery = `
+		INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING rowid
+	`
+	updateUserQuery = `
+		UPDATE "user"
+		SET phone_id=$2, session=$3, self_participant_ids=$4, sim_metadata=$5, settings=$6,
+		    management_room=$7, space_room=$8, access_token=$9
+		WHERE mxid=$1
+	`
+)
+
 func (uq *UserQuery) GetAllWithSession(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE session IS NOT NULL`)
+	return getAll[*User](uq, ctx, getAllUsersWithSessionQuery)
 }
 
 func (uq *UserQuery) GetAllWithDoublePuppet(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE access_token<>''`)
+	return getAll[*User](uq, ctx, getAllUsersWithDoublePuppetQuery)
 }
 
 func (uq *UserQuery) GetByRowID(ctx context.Context, rowID int) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE rowid=$1`, rowID)
+	return get[*User](uq, ctx, getUserByRowIDQuery, rowID)
 }
 
 func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, error) {
-	return get[*User](uq, ctx, `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user" WHERE mxid=$1`, userID)
+	return get[*User](uq, ctx, getUserByMXIDQuery, userID)
 }
 
 type Settings struct {
@@ -257,12 +276,12 @@ func (user *User) AddSelfParticipantID(ctx context.Context, id string) error {
 
 func (user *User) Insert(ctx context.Context) error {
 	err := user.db.Conn(ctx).
-		QueryRowContext(ctx, `INSERT INTO "user" (mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING rowid`, user.sqlVariables()...).
+		QueryRowContext(ctx, insertUserQuery, user.sqlVariables()...).
 		Scan(&user.RowID)
 	return err
 }
 
 func (user *User) Update(ctx context.Context) error {
-	_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET phone_id=$2, session=$3, self_participant_ids=$4, sim_metadata=$5, settings=$6, management_room=$7, space_room=$8, access_token=$9 WHERE mxid=$1`, user.sqlVariables()...)
+	_, err := user.db.Conn(ctx).ExecContext(ctx, updateUserQuery, user.sqlVariables()...)
 	return err
 }
