@@ -67,27 +67,29 @@ message UploadedMedia {
     int64 mediaNumber = 2;
 }
 
-message GetParticipantThumbnailRequest {
-    string conversationID = 1;
+message GetThumbnailRequest {
+    repeated string identifiers = 1;
 }
 
-message GetParticipantThumbnailResponse {
-    repeated ParticipantThumbnail thumbnail = 1;
-}
+message GetThumbnailResponse {
+    message Thumbnail {
+        // ID depends on request, it's always the same as the input.
+        string identifier = 1;
+        ThumbnailData data = 2;
+    }
 
-message ParticipantThumbnail {
-    string participantID = 1;
-    ThumbnailData data = 2;
-}
-
-message GetContactsThumbnailRequest {
-    repeated string avatarIDs = 1;
+    repeated Thumbnail thumbnail = 1;
 }
 
 message ThumbnailData {
+    message MysteriousData {
+        fixed64 maybeAHash = 13;
+    }
+    // 2 -> 13: 16 mysterious bytes
     bytes imageBuffer = 3;
     int32 someInt = 4;
     conversations.Dimensions dimensions = 5;
+    MysteriousData mysteriousData = 2;
 }
 
 message Cursor {

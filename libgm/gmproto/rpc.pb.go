@@ -791,6 +791,7 @@ type OutgoingRPCResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	SomeIdentifier *OutgoingRPCResponse_SomeIdentifier `protobuf:"bytes,1,opt,name=someIdentifier,proto3" json:"someIdentifier,omitempty"`
 	// This is not present for AckMessage responses, only for SendMessage
 	Timestamp *string `protobuf:"bytes,2,opt,name=timestamp,proto3,oneof" json:"timestamp,omitempty"`
 }
@@ -825,6 +826,13 @@ func (x *OutgoingRPCResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use OutgoingRPCResponse.ProtoReflect.Descriptor instead.
 func (*OutgoingRPCResponse) Descriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *OutgoingRPCResponse) GetSomeIdentifier() *OutgoingRPCResponse_SomeIdentifier {
+	if x != nil {
+		return x.SomeIdentifier
+	}
+	return nil
 }
 
 func (x *OutgoingRPCResponse) GetTimestamp() string {
@@ -1125,16 +1133,17 @@ var file_rpc_proto_depIdxs = []int32{
 	10, // 11: rpc.OutgoingRPCMessage.auth:type_name -> rpc.OutgoingRPCMessage.Auth
 	14, // 12: rpc.OutgoingRPCMessage.emptyArr:type_name -> util.EmptyArr
 	1,  // 13: rpc.OutgoingRPCData.action:type_name -> rpc.ActionType
-	16, // 14: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
-	0,  // 15: rpc.OutgoingRPCMessage.Data.bugleRoute:type_name -> rpc.BugleRoute
-	12, // 16: rpc.OutgoingRPCMessage.Data.messageTypeData:type_name -> rpc.OutgoingRPCMessage.Data.Type
-	14, // 17: rpc.OutgoingRPCMessage.Data.Type.emptyArr:type_name -> util.EmptyArr
-	2,  // 18: rpc.OutgoingRPCMessage.Data.Type.messageType:type_name -> rpc.MessageType
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	13, // 14: rpc.OutgoingRPCResponse.someIdentifier:type_name -> rpc.OutgoingRPCResponse.SomeIdentifier
+	16, // 15: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
+	0,  // 16: rpc.OutgoingRPCMessage.Data.bugleRoute:type_name -> rpc.BugleRoute
+	12, // 17: rpc.OutgoingRPCMessage.Data.messageTypeData:type_name -> rpc.OutgoingRPCMessage.Data.Type
+	14, // 18: rpc.OutgoingRPCMessage.Data.Type.emptyArr:type_name -> util.EmptyArr
+	2,  // 19: rpc.OutgoingRPCMessage.Data.Type.messageType:type_name -> rpc.MessageType
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_rpc_proto_init() }

@@ -70,10 +70,16 @@ func (c *Client) SendMessage(payload *gmproto.SendMessageRequest) (*gmproto.Send
 	return typedResponse[*gmproto.SendMessageResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
-func (c *Client) GetParticipantThumbnail(convID string) (*gmproto.GetParticipantThumbnailResponse, error) {
-	payload := &gmproto.GetParticipantThumbnailRequest{ConversationID: convID}
+func (c *Client) GetParticipantThumbnail(participantIDs ...string) (*gmproto.GetThumbnailResponse, error) {
+	payload := &gmproto.GetThumbnailRequest{Identifiers: participantIDs}
 	actionType := gmproto.ActionType_GET_PARTICIPANTS_THUMBNAIL
-	return typedResponse[*gmproto.GetParticipantThumbnailResponse](c.sessionHandler.sendMessage(actionType, payload))
+	return typedResponse[*gmproto.GetThumbnailResponse](c.sessionHandler.sendMessage(actionType, payload))
+}
+
+func (c *Client) GetContactThumbnail(contactIDs ...string) (*gmproto.GetThumbnailResponse, error) {
+	payload := &gmproto.GetThumbnailRequest{Identifiers: contactIDs}
+	actionType := gmproto.ActionType_GET_CONTACTS_THUMBNAIL
+	return typedResponse[*gmproto.GetThumbnailResponse](c.sessionHandler.sendMessage(actionType, payload))
 }
 
 func (c *Client) UpdateConversation(payload *gmproto.UpdateConversationRequest) (*gmproto.UpdateConversationResponse, error) {

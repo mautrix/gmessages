@@ -4,12 +4,12 @@ package conversations;
 option go_package = "../gmproto";
 
 message Contact {
-    string ID = 1;
+    string participantID = 1;
     string name = 2;
     ContactNumber number = 3;
     string avatarHexColor = 7;
     bool unknownBool = 10;
-    string avatarID = 11;
+    string contactID = 11;
 }
 
 message ContactNumber {
@@ -153,7 +153,7 @@ message Participant {
     bool isMe = 6;
     Muted muted = 7;
     int64 someInt = 8;
-    string avatarID = 10;
+    string contactID = 10;
     int64 bs = 14;
     string formattedNumber = 15;
     int64 someInt1 = 19;

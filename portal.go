@@ -1423,7 +1423,6 @@ func (portal *Portal) getBridgeInfo() (string, event.BridgeEventContent) {
 		Channel: event.BridgeInfoSection{
 			ID:          portal.ID,
 			DisplayName: portal.Name,
-			AvatarURL:   portal.AvatarMXC.CUString(),
 		},
 	}
 	if portal.Type == gmproto.ConversationType_SMS {
@@ -1530,17 +1529,6 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 		if portal.IsPrivateChat() {
 			invite = append(invite, portal.bridge.Bot.UserID)
 		}
-	}
-	if !portal.AvatarMXC.IsEmpty() && portal.shouldSetDMRoomMetadata() {
-		initialState = append(initialState, &event.Event{
-			Type: event.StateRoomAvatar,
-			Content: event.Content{
-				Parsed: event.RoomAvatarEventContent{URL: portal.AvatarMXC},
-			},
-		})
-		portal.AvatarSet = true
-	} else {
-		portal.AvatarSet = false
 	}
 
 	creationContent := make(map[string]interface{})
@@ -2103,7 +2091,6 @@ func (portal *Portal) RemoveMXID(ctx context.Context) {
 	delete(portal.bridge.portalsByMXID, portal.MXID)
 	portal.MXID = ""
 	portal.NameSet = false
-	portal.AvatarSet = false
 	portal.InSpace = false
 	portal.Encrypted = false
 	portal.bridge.portalsLock.Unlock()

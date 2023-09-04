@@ -714,12 +714,12 @@ type Contact struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ID             string         `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	ParticipantID  string         `protobuf:"bytes,1,opt,name=participantID,proto3" json:"participantID,omitempty"`
 	Name           string         `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Number         *ContactNumber `protobuf:"bytes,3,opt,name=number,proto3" json:"number,omitempty"`
 	AvatarHexColor string         `protobuf:"bytes,7,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
 	UnknownBool    bool           `protobuf:"varint,10,opt,name=unknownBool,proto3" json:"unknownBool,omitempty"`
-	AvatarID       string         `protobuf:"bytes,11,opt,name=avatarID,proto3" json:"avatarID,omitempty"`
+	ContactID      string         `protobuf:"bytes,11,opt,name=contactID,proto3" json:"contactID,omitempty"`
 }
 
 func (x *Contact) Reset() {
@@ -754,9 +754,9 @@ func (*Contact) Descriptor() ([]byte, []int) {
 	return file_conversations_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Contact) GetID() string {
+func (x *Contact) GetParticipantID() string {
 	if x != nil {
-		return x.ID
+		return x.ParticipantID
 	}
 	return ""
 }
@@ -789,9 +789,9 @@ func (x *Contact) GetUnknownBool() bool {
 	return false
 }
 
-func (x *Contact) GetAvatarID() string {
+func (x *Contact) GetContactID() string {
 	if x != nil {
-		return x.AvatarID
+		return x.ContactID
 	}
 	return ""
 }
@@ -1947,7 +1947,7 @@ type Participant struct {
 	IsMe            bool       `protobuf:"varint,6,opt,name=isMe,proto3" json:"isMe,omitempty"`
 	Muted           *Muted     `protobuf:"bytes,7,opt,name=muted,proto3" json:"muted,omitempty"`
 	SomeInt         int64      `protobuf:"varint,8,opt,name=someInt,proto3" json:"someInt,omitempty"`
-	AvatarID        string     `protobuf:"bytes,10,opt,name=avatarID,proto3" json:"avatarID,omitempty"`
+	ContactID       string     `protobuf:"bytes,10,opt,name=contactID,proto3" json:"contactID,omitempty"`
 	Bs              int64      `protobuf:"varint,14,opt,name=bs,proto3" json:"bs,omitempty"`
 	FormattedNumber string     `protobuf:"bytes,15,opt,name=formattedNumber,proto3" json:"formattedNumber,omitempty"`
 	SomeInt1        int64      `protobuf:"varint,19,opt,name=someInt1,proto3" json:"someInt1,omitempty"`
@@ -2035,9 +2035,9 @@ func (x *Participant) GetSomeInt() int64 {
 	return 0
 }
 
-func (x *Participant) GetAvatarID() string {
+func (x *Participant) GetContactID() string {
 	if x != nil {
-		return x.AvatarID
+		return x.ContactID
 	}
 	return ""
 }

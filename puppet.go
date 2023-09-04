@@ -18,9 +18,12 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix"
@@ -198,20 +201,47 @@ func (puppet *Puppet) DefaultIntent() *appservice.IntentAPI {
 	return puppet.bridge.AS.Intent(puppet.MXID)
 }
 
-func (puppet *Puppet) UpdateAvatar(source *User, avatarID string) bool {
-	if puppet.AvatarID == avatarID && puppet.AvatarSet {
+const MinAvatarUpdateInterval = 24 * time.Hour
+
+func (puppet *Puppet) UpdateAvatar(source *User) bool {
+	if (puppet.AvatarSet && time.Since(puppet.AvatarUpdateTS) < MinAvatarUpdateInterval) || puppet.ContactID == "" {
 		return false
 	}
-	puppet.AvatarID = avatarID
-	puppet.AvatarMXC = id.ContentURI{}
-	puppet.AvatarSet = false
-	// TODO bridge avatar
-	if puppet.AvatarMXC.IsEmpty() {
-		return false
-	}
-	err := puppet.DefaultIntent().SetAvatarURL(puppet.AvatarMXC)
+	resp, err := source.Client.GetParticipantThumbnail(puppet.ID)
 	if err != nil {
-		puppet.log.Warn().Err(err).Msg("Failed to set avatar")
+		puppet.log.Err(err).Msg("Failed to get avatar thumbnail")
+		return false
+	}
+	puppet.AvatarUpdateTS = time.Now()
+	if len(resp.Thumbnail) == 0 {
+		if puppet.AvatarHash == [32]byte{} {
+			return true
+		}
+		puppet.AvatarHash = [32]byte{}
+		puppet.AvatarMXC = id.ContentURI{}
+		puppet.AvatarSet = false
+	} else {
+		thumbData := resp.Thumbnail[0].GetData()
+		hash := sha256.Sum256(thumbData.GetImageBuffer())
+		if hash == puppet.AvatarHash {
+			return true
+		}
+		puppet.AvatarHash = hash
+		puppet.AvatarSet = false
+		avatarBytes := thumbData.GetImageBuffer()
+		uploadResp, err := puppet.DefaultIntent().UploadMedia(mautrix.ReqUploadMedia{
+			ContentBytes: avatarBytes,
+			ContentType:  http.DetectContentType(avatarBytes),
+		})
+		if err != nil {
+			puppet.log.Err(err).Msg("Failed to upload avatar")
+			return true
+		}
+		puppet.AvatarMXC = uploadResp.ContentURI
+	}
+	err = puppet.DefaultIntent().SetAvatarURL(puppet.AvatarMXC)
+	if err != nil {
+		puppet.log.Err(err).Msg("Failed to set avatar")
 	} else {
 		puppet.AvatarSet = true
 	}
@@ -250,6 +280,7 @@ func (puppet *Puppet) UpdateContactInfo() bool {
 	contactInfo := map[string]any{
 		"com.beeper.bridge.identifiers": []string{
 			fmt.Sprintf("tel:%s", puppet.Phone),
+			fmt.Sprintf("gmsg-contact:%s", puppet.ContactID),
 		},
 		"com.beeper.bridge.remote_id": puppet.Key.String(),
 		"com.beeper.bridge.service":   "gmessages",
@@ -280,14 +311,16 @@ func (puppet *Puppet) Sync(source *User, contact *gmproto.Participant) {
 	}
 
 	update := false
-	if contact != nil {
-		if contact.ID.Number != "" && puppet.Phone != contact.ID.Number {
-			puppet.Phone = contact.ID.Number
-			update = true
-		}
-		update = puppet.UpdateName(contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName()) || update
-		update = puppet.UpdateAvatar(source, contact.GetAvatarID()) || update
+	if contact.ID.Number != "" && puppet.Phone != contact.ID.Number {
+		puppet.Phone = contact.ID.Number
+		update = true
 	}
+	if contact.ContactID != puppet.ContactID {
+		puppet.ContactID = contact.ContactID
+		update = true
+	}
+	update = puppet.UpdateName(contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName()) || update
+	update = puppet.UpdateAvatar(source) || update
 	update = puppet.UpdateContactInfo() || update
 	if update {
 		err = puppet.Update(context.TODO())

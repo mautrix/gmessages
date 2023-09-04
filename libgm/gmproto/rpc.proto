@@ -91,6 +91,7 @@ message OutgoingRPCResponse {
         string someNumber = 2;
     }
 
+    SomeIdentifier someIdentifier = 1;
     // This is not present for AckMessage responses, only for SendMessage
     optional string timestamp = 2;
 }
