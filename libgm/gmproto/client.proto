@@ -279,7 +279,7 @@ message SendMessageResponse {
         SUCCESS = 1;
         FAILURE_2 = 2;
         FAILURE_3 = 3;
-        FAILURE_4 = 4;
+        FAILURE_4 = 4; // not default sms app?
     }
     Status status = 3;
 }
