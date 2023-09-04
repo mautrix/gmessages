@@ -803,10 +803,6 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 		state.Info["battery_low"] = user.batteryLow
 		state.Info["mobile_data"] = user.mobileData
 		state.Info["browser_active"] = user.browserInactiveType == ""
-		if user.Settings.SettingsReceived && !user.Settings.IsDefaultSMSApp {
-			state.StateEvent = status.StateBadCredentials
-			state.Error = GMNotDefaultSMSApp
-		}
 		if !user.ready {
 			state.StateEvent = status.StateConnecting
 			state.Error = GMConnecting
