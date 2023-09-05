@@ -1025,7 +1025,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	if portal.bridge.Config.Bridge.CaptionInMessage {
 		cm.MergeCaption()
 	}
-	if raw != nil && base64.StdEncoding.EncodedLen(len(raw)) < 8192 {
+	if raw != nil && base64.StdEncoding.EncodedLen(len(raw)) < 8192 && len(cm.Parts) > 0 {
 		extra := cm.Parts[0].Extra
 		if extra == nil {
 			extra = make(map[string]any)
