@@ -444,6 +444,24 @@ func isFailSendStatus(status gmproto.MessageStatusType) bool {
 	}
 }
 
+func downloadStatusRank(status gmproto.MessageStatusType) int {
+	switch status {
+	case gmproto.MessageStatusType_INCOMING_AUTO_DOWNLOADING:
+		return 0
+	case gmproto.MessageStatusType_INCOMING_MANUAL_DOWNLOADING,
+		gmproto.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD,
+		gmproto.MessageStatusType_INCOMING_DOWNLOAD_FAILED,
+		gmproto.MessageStatusType_INCOMING_YET_TO_MANUAL_DOWNLOAD,
+		gmproto.MessageStatusType_INCOMING_RETRYING_MANUAL_DOWNLOAD,
+		gmproto.MessageStatusType_INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA,
+		gmproto.MessageStatusType_INCOMING_DOWNLOAD_FAILED_TOO_LARGE,
+		gmproto.MessageStatusType_INCOMING_DOWNLOAD_CANCELED:
+		return 1
+	default:
+		return 100
+	}
+}
+
 func (portal *Portal) redactMessage(ctx context.Context, msg *database.Message) {
 	if msg.IsFakeMXID() {
 		return
@@ -474,6 +492,15 @@ func (portal *Portal) redactMessage(ctx context.Context, msg *database.Message) 
 func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *User, dbMsg *database.Message, evt *gmproto.Message, raw []byte) {
 	log := *zerolog.Ctx(ctx)
 	newStatus := evt.GetMessageStatus().GetStatus()
+	// Messages in different portals may have race conditions, ignore the most common case
+	// (group MMS event happens in DM after group).
+	if downloadStatusRank(newStatus) < downloadStatusRank(dbMsg.Status.Type) {
+		log.Debug().
+			Str("old_status", dbMsg.Status.Type.String()).
+			Str("new_status", newStatus.String()).
+			Msg("Ignoring message status change as it's a downgrade")
+		return
+	}
 	chatIDChanged := dbMsg.Chat.ID != portal.ID
 	hasPendingMedia := dbMsg.Status.HasPendingMediaParts()
 	updatedMediaIsComplete := !hasInProgressMedia(evt)
