@@ -638,6 +638,7 @@ func (user *User) syncHandleEvent(event any) {
 			Str("message_status", v.GetMessageStatus().GetStatus().String()).
 			Int64("message_ts", v.GetTimestamp()).
 			Str("tmp_id", v.GetTmpID()).
+			Bool("is_old", v.IsOld).
 			Msg("Received message")
 		portal := user.GetPortalByID(v.GetConversationID())
 		portal.messages <- PortalMessage{evt: v.Message, source: user, raw: v.Data}

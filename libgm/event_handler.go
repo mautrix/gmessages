@@ -13,6 +13,8 @@ import (
 type IncomingRPCMessage struct {
 	*gmproto.IncomingRPCMessage
 
+	IsOld bool
+
 	Pair *gmproto.RPCPairData
 
 	Message          *gmproto.RPCMessageData
@@ -105,7 +107,7 @@ func (c *Client) deduplicateHash(id string, hash [32]byte) bool {
 
 func (c *Client) logContent(res *IncomingRPCMessage, thingID string, contentHash []byte) {
 	if c.Logger.Trace().Enabled() && (res.DecryptedData != nil || res.DecryptedMessage != nil) {
-		evt := c.Logger.Trace()
+		evt := c.Logger.Trace().Bool("is_old", res.IsOld)
 		if res.DecryptedMessage != nil {
 			evt.Str("proto_name", string(res.DecryptedMessage.ProtoReflect().Descriptor().FullName()))
 		}
@@ -126,7 +128,11 @@ func (c *Client) deduplicateUpdate(id string, msg *IncomingRPCMessage) bool {
 	if msg.DecryptedData != nil {
 		contentHash := sha256.Sum256(msg.DecryptedData)
 		if c.deduplicateHash(id, contentHash) {
-			c.Logger.Trace().Str("thing_id", id).Hex("data_hash", contentHash[:]).Msg("Ignoring duplicate update")
+			c.Logger.Trace().
+				Str("thing_id", id).
+				Hex("data_hash", contentHash[:]).
+				Bool("is_old", msg.IsOld).
+				Msg("Ignoring duplicate update")
 			return true
 		}
 		c.logContent(msg, id, contentHash[:])
@@ -151,17 +157,7 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	case gmproto.BugleRoute_DataEvent:
 		if c.skipCount > 0 {
 			c.skipCount--
-			c.Logger.Debug().
-				Any("action", msg.Message.GetAction()).
-				Int("remaining_skip_count", c.skipCount).
-				Msg("Skipped DataEvent")
-			if msg.DecryptedMessage != nil {
-				c.Logger.Trace().
-					Str("proto_name", string(msg.DecryptedMessage.ProtoReflect().Descriptor().FullName())).
-					Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
-					Msg("Skipped event data")
-			}
-			return
+			msg.IsOld = true
 		}
 		c.handleUpdatesEvent(msg)
 	}
@@ -169,7 +165,8 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 
 type WrappedMessage struct {
 	*gmproto.Message
-	Data []byte
+	IsOld bool
+	Data  []byte
 }
 
 func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
@@ -177,18 +174,25 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 	case gmproto.ActionType_GET_UPDATES:
 		data, ok := msg.DecryptedMessage.(*gmproto.UpdateEvents)
 		if !ok {
-			c.Logger.Error().Type("data_type", msg.DecryptedMessage).Msg("Unexpected data type in GET_UPDATES event")
+			c.Logger.Error().
+				Type("data_type", msg.DecryptedMessage).
+				Bool("is_old", msg.IsOld).
+				Msg("Unexpected data type in GET_UPDATES event")
 			return
 		}
 
 		switch evt := data.Event.(type) {
 		case *gmproto.UpdateEvents_UserAlertEvent:
 			c.logContent(msg, "", nil)
+			if msg.IsOld {
+				return
+			}
 			c.triggerEvent(evt.UserAlertEvent)
 
 		case *gmproto.UpdateEvents_SettingsEvent:
 			c.Logger.Debug().
 				Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+				Bool("is_old", msg.IsOld).
 				Msg("Got settings event")
 			c.triggerEvent(evt.SettingsEvent)
 
@@ -196,6 +200,9 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			for _, part := range evt.ConversationEvent.GetData() {
 				if c.deduplicateUpdate(part.GetConversationID(), msg) {
 					return
+				} else if msg.IsOld {
+					c.Logger.Debug().Str("conv_id", part.ConversationID).Msg("Ignoring old conversation event")
+					continue
 				}
 				c.triggerEvent(part)
 			}
@@ -207,12 +214,16 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 				}
 				c.triggerEvent(&WrappedMessage{
 					Message: part,
+					IsOld:   msg.IsOld,
 					Data:    msg.DecryptedData,
 				})
 			}
 
 		case *gmproto.UpdateEvents_TypingEvent:
 			c.logContent(msg, "", nil)
+			if msg.IsOld {
+				return
+			}
 			c.triggerEvent(evt.TypingEvent.GetData())
 
 		default:
@@ -224,6 +235,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 		c.Logger.Debug().
 			Str("request_id", msg.Message.SessionID).
 			Str("action_type", msg.Message.Action.String()).
+			Bool("is_old", msg.IsOld).
 			Msg("Got unexpected response")
 	}
 }
