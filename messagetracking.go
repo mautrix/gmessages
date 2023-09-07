@@ -46,6 +46,9 @@ var (
 	errMediaDecryptFailed          = errors.New("failed to decrypt media")
 	errMediaReuploadFailed         = errors.New("failed to upload media to google")
 
+	errIncorrectUser = errors.New("incorrect user")
+	errNotLoggedIn   = errors.New("not logged in")
+
 	errMessageTakingLong = errors.New("bridging the message is taking longer than usual")
 )
 
@@ -84,6 +87,8 @@ func errorToStatusReason(err error) (reason event.MessageStatusReason, status ev
 	case errors.Is(err, errUnexpectedParsedContentType),
 		errors.Is(err, errUnknownMsgType):
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, true, ""
+	case errors.Is(err, errIncorrectUser), errors.Is(err, errNotLoggedIn):
+		return event.MessageStatusUnsupported, event.MessageStatusFail, true, true, err.Error()
 	case errors.Is(err, errMNoticeDisabled):
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, false, ""
 	case errors.Is(err, errMediaUnsupportedType):

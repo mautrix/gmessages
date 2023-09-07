@@ -312,6 +312,13 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 }
 
 func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
+	if msg.user.RowID != portal.Receiver {
+		go portal.sendMessageMetrics(msg.user, msg.evt, errIncorrectUser, "Ignoring", nil)
+		return
+	} else if msg.user.Client == nil {
+		go portal.sendMessageMetrics(msg.user, msg.evt, errNotLoggedIn, "Ignoring", nil)
+		return
+	}
 	portal.forwardBackfillLock.Lock()
 	defer portal.forwardBackfillLock.Unlock()
 	evtTS := time.UnixMilli(msg.evt.Timestamp)
