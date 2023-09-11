@@ -9,11 +9,11 @@ require (
 	github.com/rs/zerolog v1.30.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.1.0
-	go.mau.fi/util v0.0.0-20230805171708-199bf3eec776
-	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
+	go.mau.fi/util v0.0.0-20230906154548-ffc399173e21
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	google.golang.org/protobuf v1.31.0
 	maunium.net/go/maulogger/v2 v2.4.1
-	maunium.net/go/mautrix v0.16.1-0.20230902092631-691b96adc291
+	maunium.net/go/mautrix v0.16.1-0.20230911145245-b2a54de015fa
 )
 
 require (
@@ -30,11 +30,11 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/yuin/goldmark v1.5.5 // indirect
+	github.com/yuin/goldmark v1.5.6 // indirect
 	go.mau.fi/zeroconfig v0.1.2 // indirect
-	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/crypto v0.13.0 // indirect
+	golang.org/x/net v0.15.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
