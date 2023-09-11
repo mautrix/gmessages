@@ -572,6 +572,10 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		hasPendingMedia && updatedMediaIsComplete,
 		dbMsg.Status.PartCount != len(evt.MessageInfo):
 		converted := portal.convertGoogleMessage(ctx, source, evt, false, raw)
+		if converted == nil {
+			log.Warn().Msg("Didn't get converted parts for updated event")
+			return
+		}
 		dbMsg.Status.MediaStatus = converted.MediaStatus
 		if dbMsg.Status.MediaParts == nil {
 			dbMsg.Status.MediaParts = make(map[string]database.MediaPart)
