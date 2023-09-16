@@ -8,18 +8,18 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/rs/zerolog v1.30.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	go.mau.fi/mautrix-gmessages/libgm v0.1.0
-	go.mau.fi/util v0.0.0-20230906154548-ffc399173e21
+	go.mau.fi/mautrix-gmessages/libgm v0.2.0
+	go.mau.fi/util v0.1.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	google.golang.org/protobuf v1.31.0
 	maunium.net/go/maulogger/v2 v2.4.1
-	maunium.net/go/mautrix v0.16.1-0.20230911145245-b2a54de015fa
+	maunium.net/go/mautrix v0.16.1
 )
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

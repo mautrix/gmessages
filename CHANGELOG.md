@@ -1,4 +1,4 @@
-# v0.2.0 (unreleased)
+# v0.2.0 (2023-09-16)
 
 * Added support for double puppeting with arbitrary `as_token`s.
   See [docs](https://docs.mau.fi/bridges/general/double-puppeting.html#appservice-method-new) for more info.
@@ -9,6 +9,7 @@
     type in the bridge config.
   * Existing users will have to log out and re-pair the bridge to switch to
     tablet mode.
+* Added bridging for user avatars from phone.
 * Fixed sending messages not working for some users with dual SIMs.
 * Fixed message send error status codes from phone not being handled as errors.
 * Fixed incoming message and conversation data sometimes going into the wrong
@@ -16,6 +17,8 @@
 * Fixed bridge sometimes getting immediately logged out after pairing.
 * Fixed some cases of attachments getting stuck in the "Waiting for file" state.
 * Fixed reactions not being saved to the database.
+* Fixed various panics.
+* Fixed race conditions when handling messages moving between chats.
 * Fixed Postgres connector not being imported when bridge is compiled without
   encryption.
 
