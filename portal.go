@@ -597,6 +597,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 			resp, err := portal.sendMessage(converted.Intent, event.EventMessage, part.Content, part.Extra, ts)
 			if err != nil {
 				log.Err(err).Msg("Failed to send message")
+				continue
 			} else {
 				eventIDs = append(eventIDs, resp.EventID)
 			}
