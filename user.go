@@ -68,15 +68,16 @@ type User struct {
 
 	spaceMembershipChecked bool
 
-	longPollingError    error
-	browserInactiveType status.BridgeStateErrorCode
-	batteryLow          bool
-	mobileData          bool
-	phoneResponding     bool
-	ready               bool
-	sessionID           string
-	batteryLowAlertSent time.Time
-	pollErrorAlertSent  bool
+	longPollingError            error
+	browserInactiveType         status.BridgeStateErrorCode
+	batteryLow                  bool
+	mobileData                  bool
+	phoneResponding             bool
+	ready                       bool
+	sessionID                   string
+	batteryLowAlertSent         time.Time
+	pollErrorAlertSent          bool
+	phoneNotRespondingAlertSent bool
 
 	loginInProgress   atomic.Bool
 	pairSuccessChan   chan struct{}
@@ -576,9 +577,18 @@ func (user *User) syncHandleEvent(event any) {
 	case *events.PhoneNotResponding:
 		user.phoneResponding = false
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		// TODO make this properly configurable
+		if user.zlog.Trace().Enabled() && !user.phoneNotRespondingAlertSent {
+			go user.sendMarkdownBridgeAlert(false, "Phone is not responding")
+			user.phoneNotRespondingAlertSent = true
+		}
 	case *events.PhoneRespondingAgain:
 		user.phoneResponding = true
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		if user.phoneNotRespondingAlertSent {
+			go user.sendMarkdownBridgeAlert(false, "Phone is responding again")
+			user.phoneNotRespondingAlertSent = false
+		}
 	case *events.PingFailed:
 		if errors.Is(v.Error, events.ErrRequestedEntityNotFound) {
 			go user.Logout(status.BridgeState{
