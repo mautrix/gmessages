@@ -2003,12 +2003,14 @@ func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.Eve
 		targetMessage = lastMessage
 	}
 	log = log.With().Str("message_id", targetMessage.ID).Logger()
-	err = user.Client.MarkRead(portal.ID, targetMessage.ID)
-	if err != nil {
-		log.Err(err).Msg("Failed to mark message as read")
-	} else {
-		log.Debug().Msg("Marked message as read after Matrix read receipt")
-	}
+	go func() {
+		err = user.Client.MarkRead(portal.ID, targetMessage.ID)
+		if err != nil {
+			log.Err(err).Msg("Failed to mark message as read")
+		} else {
+			log.Debug().Msg("Marked message as read after Matrix read receipt")
+		}
+	}()
 }
 
 func (portal *Portal) HandleMatrixReaction(sender *User, evt *event.Event) {
