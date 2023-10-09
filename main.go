@@ -18,6 +18,7 @@ package main
 
 import (
 	_ "embed"
+	"net/url"
 	"sync"
 
 	"go.mau.fi/util/configupgrade"
@@ -81,13 +82,18 @@ func (br *GMBridge) Init() {
 		util.BrowserDetailsMessage.DeviceType = gmproto.DeviceType(deviceVal)
 	}
 
-	Segment.log = br.ZLog.With().Str("component", "segment").Logger()
-	Segment.key = br.Config.SegmentKey
-	Segment.userID = br.Config.SegmentUserID
-	if Segment.IsEnabled() {
-		Segment.log.Info().Msg("Segment metrics are enabled")
-		if Segment.userID != "" {
-			Segment.log.Info().Str("user_id", Segment.userID).Msg("Overriding Segment user ID")
+	Analytics.log = br.ZLog.With().Str("component", "segment").Logger()
+	Analytics.url = (&url.URL{
+		Scheme: "https",
+		Host:   br.Config.Analytics.Host,
+		Path:   "/v1/track",
+	}).String()
+	Analytics.key = br.Config.Analytics.Token
+	Analytics.userID = br.Config.Analytics.UserID
+	if Analytics.IsEnabled() {
+		Analytics.log.Info().Msg("Analytics are enabled")
+		if Analytics.userID != "" {
+			Analytics.log.Info().Str("user_id", Analytics.userID).Msg("Overriding Analytics user ID")
 		}
 	}
 
