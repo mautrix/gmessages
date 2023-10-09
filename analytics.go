@@ -53,7 +53,7 @@ func (ac *AnalyticsClient) trackSync(userID id.UserID, event string, properties 
 		return err
 	}
 
-	req, err := http.NewRequest("POST", ac.url, &buf)
+	req, err := http.NewRequest(http.MethodPost, ac.url, &buf)
 	if err != nil {
 		return err
 	}
