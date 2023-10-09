@@ -26,27 +26,26 @@ import (
 	"maunium.net/go/mautrix/id"
 )
 
-const SegmentURL = "https://api.segment.io/v1/track"
-
-type SegmentClient struct {
+type AnalyticsClient struct {
+	url    string
 	key    string
 	userID string
 	log    zerolog.Logger
 	client http.Client
 }
 
-var Segment SegmentClient
+var Analytics AnalyticsClient
 
-func (sc *SegmentClient) trackSync(userID id.UserID, event string, properties map[string]interface{}) error {
+func (ac *AnalyticsClient) trackSync(userID id.UserID, event string, properties map[string]interface{}) error {
 	var buf bytes.Buffer
-	var segmentUserID string
-	if Segment.userID != "" {
-		segmentUserID = Segment.userID
+	var analyticsUserId string
+	if Analytics.userID != "" {
+		analyticsUserId = Analytics.userID
 	} else {
-		segmentUserID = userID.String()
+		analyticsUserId = userID.String()
 	}
 	err := json.NewEncoder(&buf).Encode(map[string]interface{}{
-		"userId":     segmentUserID,
+		"userId":     analyticsUserId,
 		"event":      event,
 		"properties": properties,
 	})
@@ -54,12 +53,12 @@ func (sc *SegmentClient) trackSync(userID id.UserID, event string, properties ma
 		return err
 	}
 
-	req, err := http.NewRequest("POST", SegmentURL, &buf)
+	req, err := http.NewRequest("POST", ac.url, &buf)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(sc.key, "")
-	resp, err := sc.client.Do(req)
+	req.SetBasicAuth(ac.key, "")
+	resp, err := ac.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -70,12 +69,12 @@ func (sc *SegmentClient) trackSync(userID id.UserID, event string, properties ma
 	return nil
 }
 
-func (sc *SegmentClient) IsEnabled() bool {
-	return len(sc.key) > 0
+func (ac *AnalyticsClient) IsEnabled() bool {
+	return len(ac.key) > 0
 }
 
-func (sc *SegmentClient) Track(userID id.UserID, event string, properties ...map[string]interface{}) {
-	if !sc.IsEnabled() {
+func (ac *AnalyticsClient) Track(userID id.UserID, event string, properties ...map[string]interface{}) {
+	if !ac.IsEnabled() {
 		return
 	} else if len(properties) > 1 {
 		panic("Track should be called with at most one property map")
@@ -87,11 +86,11 @@ func (sc *SegmentClient) Track(userID id.UserID, event string, properties ...map
 			props = properties[0]
 		}
 		props["bridge"] = "gmessages"
-		err := sc.trackSync(userID, event, props)
+		err := ac.trackSync(userID, event, props)
 		if err != nil {
-			sc.log.Err(err).Str("event", event).Msg("Error tracking event")
+			ac.log.Err(err).Str("event", event).Msg("Error tracking event")
 		} else {
-			sc.log.Debug().Str("event", event).Msg("Tracked event")
+			ac.log.Debug().Str("event", event).Msg("Tracked event")
 		}
 	}()
 }

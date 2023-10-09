@@ -403,7 +403,7 @@ func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 		user.loginInProgress.Store(false)
 		return nil, fmt.Errorf("failed to connect to Google Messages: %w", err)
 	}
-	Segment.Track(user.MXID, "$login_start")
+	Analytics.Track(user.MXID, "$login_start")
 	ch := make(chan qrChannelItem, maxAttempts+2)
 	ctx, cancel := context.WithCancel(context.Background())
 	user.cancelLogin = cancel

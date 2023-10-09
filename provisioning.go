@@ -359,11 +359,11 @@ Loop:
 	switch {
 	case item.qr != "":
 		log.Debug().Msg("Got code in QR channel")
-		Segment.Track(user.MXID, "$qrcode_retrieved")
+		Analytics.Track(user.MXID, "$qrcode_retrieved")
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "qr", Code: item.qr})
 	case item.err != nil:
 		log.Err(item.err).Msg("Got error in QR channel")
-		Segment.Track(user.MXID, "$login_failure")
+		Analytics.Track(user.MXID, "$login_failure")
 		var resp LoginResponse
 		switch {
 		case errors.Is(item.err, ErrLoginTimeout):
@@ -375,7 +375,7 @@ Loop:
 		jsonResponse(w, http.StatusOK, resp)
 	case item.success:
 		log.Debug().Msg("Got pair success in QR channel")
-		Segment.Track(user.MXID, "$login_success")
+		Analytics.Track(user.MXID, "$login_success")
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 	default:
 		log.Error().Any("item_data", item).Msg("Unknown item in QR channel")
