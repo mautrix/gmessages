@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/rs/zerolog v1.31.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	go.mau.fi/mautrix-gmessages/libgm v0.2.0
+	go.mau.fi/mautrix-gmessages/libgm v0.2.1
 	go.mau.fi/util v0.2.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	google.golang.org/protobuf v1.31.0

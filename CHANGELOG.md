@@ -1,3 +1,9 @@
+# v0.2.1 (2023-10-16)
+
+* Added notice messages to management room if phone stops responding.
+* Fixed all Matrix event handling getting blocked by read receipts in some cases.
+* Fixed panic if editing Matrix message fails.
+
 # v0.2.0 (2023-09-16)
 
 * Added support for double puppeting with arbitrary `as_token`s.
