@@ -30,11 +30,6 @@ type Config struct {
 		UserID string `yaml:"user_id"`
 	}
 
-	Metrics struct {
-		Enabled bool   `yaml:"enabled"`
-		Listen  string `yaml:"listen"`
-	} `yaml:"metrics"`
-
 	GoogleMessages struct {
 		OS      string `yaml:"os"`
 		Browser string `yaml:"browser"`

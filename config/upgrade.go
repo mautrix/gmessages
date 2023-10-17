@@ -29,9 +29,6 @@ func DoUpgrade(helper *up.Helper) {
 	helper.Copy(up.Str|up.Null, "analytics", "token")
 	helper.Copy(up.Str|up.Null, "analytics", "user_id")
 
-	helper.Copy(up.Bool, "metrics", "enabled")
-	helper.Copy(up.Str, "metrics", "listen")
-
 	helper.Copy(up.Str, "google_messages", "os")
 	helper.Copy(up.Str, "google_messages", "browser")
 	helper.Copy(up.Bool, "google_messages", "aggressive_reconnect")
@@ -106,7 +103,6 @@ var SpacedBlocks = [][]string{
 	{"appservice", "id"},
 	{"appservice", "as_token"},
 	{"analytics"},
-	{"metrics"},
 	{"google_messages"},
 	{"bridge"},
 	{"bridge", "command_prefix"},

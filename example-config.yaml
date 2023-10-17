@@ -85,13 +85,6 @@ analytics:
     # Optional user ID for tracking events. If null, defaults to using Matrix user ID.
     user_id: null
 
-# Prometheus config.
-metrics:
-    # Enable prometheus metrics?
-    enabled: false
-    # IP and port where the metrics listener should be. The path is always /metrics
-    listen: 127.0.0.1:8001
-
 google_messages:
     # OS name to tell the phone. This is the name that shows up in the paired devices list.
     os: mautrix-gmessages
