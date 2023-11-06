@@ -11,3 +11,4 @@
 *.log.gz
 
 /mautrix-gmessages
+/start
