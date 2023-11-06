@@ -25,28 +25,29 @@ const phoneNotRespondingTimeout = 30 * time.Second
 
 func (c *Client) doDittoPinger(log *zerolog.Logger, dittoPing <-chan struct{}, stopPinger <-chan struct{}) {
 	notResponding := false
-	pingFailed := false
+	pingFails := 0
 	exit := false
 	onRespond := func() {
 		if notResponding {
 			log.Debug().Msg("Ditto ping succeeded, phone is back online")
 			c.triggerEvent(&events.PhoneRespondingAgain{})
 			notResponding = false
-			pingFailed = false
-		} else if pingFailed {
+			pingFails = 0
+		} else if pingFails > 0 {
 			// TODO separate event?
 			c.triggerEvent(&events.PhoneRespondingAgain{})
-			pingFailed = false
+			pingFails = 0
 		}
 	}
 	doPing := func() {
 		pingChan, err := c.NotifyDittoActivity()
 		if err != nil {
 			log.Err(err).Msg("Error notifying ditto activity")
+			pingFails++
 			c.triggerEvent(&events.PingFailed{
-				Error: fmt.Errorf("failed to notify ditto activity: %w", err),
+				Error:      fmt.Errorf("failed to notify ditto activity: %w", err),
+				ErrorCount: pingFails,
 			})
-			pingFailed = true
 			return
 		}
 		select {

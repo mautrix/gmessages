@@ -598,12 +598,14 @@ func (user *User) syncHandleEvent(event any) {
 					"go_error": v.Error.Error(),
 				},
 			}, false)
-		} else {
+		} else if v.ErrorCount > 1 {
 			user.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,
 				Error:      GMPingFailed,
 				Info:       map[string]any{"go_error": v.Error.Error()},
 			})
+		} else {
+			user.zlog.Debug().Msg("Not sending unknown error for first ping fail")
 		}
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
