@@ -1,3 +1,7 @@
+# v0.2.2 (2023-11-16)
+
+No notable changes.
+
 # v0.2.1 (2023-10-16)
 
 * Added notice messages to management room if phone stops responding.
