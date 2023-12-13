@@ -21,7 +21,13 @@ message UpdateEvents {
         //RecentStickerEvent recentStickerEvent = 11;
         //CloudStoreInfoEvent cloudStoreInfoEvent = 12;
         //BlobForAttachmentProgressUpdate blobForAttachmentProgressUpdate = 13;
+        AccountChangeOrSomethingEvent accountChange = 15;
     }
+}
+
+message AccountChangeOrSomethingEvent {
+    string account = 1;
+    bool enabled = 2;
 }
 
 message ConversationEvent {

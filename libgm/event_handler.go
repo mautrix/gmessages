@@ -226,6 +226,10 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			}
 			c.triggerEvent(evt.TypingEvent.GetData())
 
+		case *gmproto.UpdateEvents_AccountChange:
+			c.logContent(msg, "", nil)
+			c.triggerEvent(evt.AccountChange)
+
 		default:
 			c.Logger.Warn().
 				Str("evt_data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
