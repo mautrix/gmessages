@@ -44,6 +44,7 @@ message RPCMessageData {
     bool bool2 = 7;
     bytes encryptedData = 8;
     bool bool3 = 9;
+    bytes encryptedData2 = 11;
 }
 
 message OutgoingRPCMessage {

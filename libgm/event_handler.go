@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
 
+	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
@@ -81,6 +83,26 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 						Msg("Errored decrypted data event content")
 					return nil, fmt.Errorf("failed to decode decrypted data event: %w", err)
 				}
+			}
+		} else if msg.Message.EncryptedData2 != nil {
+			msg.DecryptedData, err = c.AuthData.RequestCrypto.Decrypt(msg.Message.EncryptedData2)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decrypt field 2 in data event: %w", err)
+			}
+			var ed2c gmproto.EncryptedData2Container
+			err = proto.Unmarshal(msg.DecryptedData, &ed2c)
+			if err != nil {
+				c.Logger.Trace().
+					Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+					Msg("Errored decrypted data event content")
+				return nil, fmt.Errorf("failed to decode decrypted field 2 data event: %w", err)
+			}
+			// Hacky hack to have User.handleAccountChange do the right-ish thing on startup
+			if strings.ContainsRune(ed2c.GetAccountChange().GetAccount(), '@') {
+				c.triggerEvent(&events.AccountChange{
+					AccountChangeOrSomethingEvent: ed2c.GetAccountChange(),
+					IsFake:                        true,
+				})
 			}
 		}
 	default:
@@ -228,7 +250,9 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 
 		case *gmproto.UpdateEvents_AccountChange:
 			c.logContent(msg, "", nil)
-			c.triggerEvent(evt.AccountChange)
+			c.triggerEvent(&events.AccountChange{
+				AccountChangeOrSomethingEvent: evt.AccountChange,
+			})
 
 		default:
 			c.Logger.Warn().

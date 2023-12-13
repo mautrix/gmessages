@@ -25,6 +25,10 @@ message UpdateEvents {
     }
 }
 
+message EncryptedData2Container {
+    AccountChangeOrSomethingEvent accountChange = 2;
+}
+
 message AccountChangeOrSomethingEvent {
     string account = 1;
     bool enabled = 2;

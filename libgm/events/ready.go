@@ -15,6 +15,11 @@ type ClientReady struct {
 
 type AuthTokenRefreshed struct{}
 
+type AccountChange struct {
+	*gmproto.AccountChangeOrSomethingEvent
+	IsFake bool
+}
+
 var ErrRequestedEntityNotFound = RequestError{
 	Data: &gmproto.ErrorResponse{
 		Type:    5,

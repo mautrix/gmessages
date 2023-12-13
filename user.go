@@ -659,7 +659,7 @@ func (user *User) syncHandleEvent(event any) {
 		user.handleUserAlert(v)
 	case *gmproto.Settings:
 		user.handleSettings(v)
-	case *gmproto.AccountChangeOrSomethingEvent:
+	case *events.AccountChange:
 		user.handleAccountChange(v)
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
@@ -718,16 +718,19 @@ func (user *User) fetchAndSyncConversations() {
 	}
 }
 
-func (user *User) handleAccountChange(v *gmproto.AccountChangeOrSomethingEvent) {
+func (user *User) handleAccountChange(v *events.AccountChange) {
 	user.zlog.Debug().
 		Str("account", v.GetAccount()).
 		Bool("enabled", v.GetEnabled()).
+		Bool("fake", v.IsFake).
 		Msg("Got account change event")
-	user.switchedToGoogleLogin = v.GetEnabled()
-	if user.switchedToGoogleLogin {
-		go user.sendMarkdownBridgeAlert(true, "The bridge will not work when the account-based pairing method is enabled in the Google Messages app. Unlink other devices and switch back to the QR code method to continue using the bridge.")
-	} else {
-		go user.sendMarkdownBridgeAlert(false, "Switched back to QR pairing, bridge should work now")
+	user.switchedToGoogleLogin = v.GetEnabled() || v.IsFake
+	if !v.IsFake {
+		if user.switchedToGoogleLogin {
+			go user.sendMarkdownBridgeAlert(true, "The bridge will not work when the account-based pairing method is enabled in the Google Messages app. Unlink other devices and switch back to the QR code method to continue using the bridge.")
+		} else {
+			go user.sendMarkdownBridgeAlert(false, "Switched back to QR pairing, bridge should work now")
+		}
 	}
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 }

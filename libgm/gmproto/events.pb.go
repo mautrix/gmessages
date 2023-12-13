@@ -319,6 +319,53 @@ func (*UpdateEvents_BrowserPresenceCheckEvent) isUpdateEvents_Event() {}
 
 func (*UpdateEvents_AccountChange) isUpdateEvents_Event() {}
 
+type EncryptedData2Container struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AccountChange *AccountChangeOrSomethingEvent `protobuf:"bytes,2,opt,name=accountChange,proto3" json:"accountChange,omitempty"`
+}
+
+func (x *EncryptedData2Container) Reset() {
+	*x = EncryptedData2Container{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_events_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *EncryptedData2Container) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EncryptedData2Container) ProtoMessage() {}
+
+func (x *EncryptedData2Container) ProtoReflect() protoreflect.Message {
+	mi := &file_events_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EncryptedData2Container.ProtoReflect.Descriptor instead.
+func (*EncryptedData2Container) Descriptor() ([]byte, []int) {
+	return file_events_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *EncryptedData2Container) GetAccountChange() *AccountChangeOrSomethingEvent {
+	if x != nil {
+		return x.AccountChange
+	}
+	return nil
+}
+
 type AccountChangeOrSomethingEvent struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -331,7 +378,7 @@ type AccountChangeOrSomethingEvent struct {
 func (x *AccountChangeOrSomethingEvent) Reset() {
 	*x = AccountChangeOrSomethingEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[1]
+		mi := &file_events_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -344,7 +391,7 @@ func (x *AccountChangeOrSomethingEvent) String() string {
 func (*AccountChangeOrSomethingEvent) ProtoMessage() {}
 
 func (x *AccountChangeOrSomethingEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[1]
+	mi := &file_events_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -357,7 +404,7 @@ func (x *AccountChangeOrSomethingEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountChangeOrSomethingEvent.ProtoReflect.Descriptor instead.
 func (*AccountChangeOrSomethingEvent) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{1}
+	return file_events_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AccountChangeOrSomethingEvent) GetAccount() string {
@@ -385,7 +432,7 @@ type ConversationEvent struct {
 func (x *ConversationEvent) Reset() {
 	*x = ConversationEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[2]
+		mi := &file_events_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -398,7 +445,7 @@ func (x *ConversationEvent) String() string {
 func (*ConversationEvent) ProtoMessage() {}
 
 func (x *ConversationEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[2]
+	mi := &file_events_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +458,7 @@ func (x *ConversationEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationEvent.ProtoReflect.Descriptor instead.
 func (*ConversationEvent) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{2}
+	return file_events_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ConversationEvent) GetData() []*Conversation {
@@ -432,7 +479,7 @@ type TypingEvent struct {
 func (x *TypingEvent) Reset() {
 	*x = TypingEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[3]
+		mi := &file_events_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -445,7 +492,7 @@ func (x *TypingEvent) String() string {
 func (*TypingEvent) ProtoMessage() {}
 
 func (x *TypingEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[3]
+	mi := &file_events_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -458,7 +505,7 @@ func (x *TypingEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypingEvent.ProtoReflect.Descriptor instead.
 func (*TypingEvent) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{3}
+	return file_events_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TypingEvent) GetData() *TypingData {
@@ -479,7 +526,7 @@ type MessageEvent struct {
 func (x *MessageEvent) Reset() {
 	*x = MessageEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[4]
+		mi := &file_events_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -492,7 +539,7 @@ func (x *MessageEvent) String() string {
 func (*MessageEvent) ProtoMessage() {}
 
 func (x *MessageEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[4]
+	mi := &file_events_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -505,7 +552,7 @@ func (x *MessageEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageEvent.ProtoReflect.Descriptor instead.
 func (*MessageEvent) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{4}
+	return file_events_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *MessageEvent) GetData() []*Message {
@@ -526,7 +573,7 @@ type UserAlertEvent struct {
 func (x *UserAlertEvent) Reset() {
 	*x = UserAlertEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[5]
+		mi := &file_events_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -539,7 +586,7 @@ func (x *UserAlertEvent) String() string {
 func (*UserAlertEvent) ProtoMessage() {}
 
 func (x *UserAlertEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[5]
+	mi := &file_events_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +599,7 @@ func (x *UserAlertEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserAlertEvent.ProtoReflect.Descriptor instead.
 func (*UserAlertEvent) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{5}
+	return file_events_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UserAlertEvent) GetAlertType() AlertType {
@@ -571,7 +618,7 @@ type BrowserPresenceCheckEvent struct {
 func (x *BrowserPresenceCheckEvent) Reset() {
 	*x = BrowserPresenceCheckEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[6]
+		mi := &file_events_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -584,7 +631,7 @@ func (x *BrowserPresenceCheckEvent) String() string {
 func (*BrowserPresenceCheckEvent) ProtoMessage() {}
 
 func (x *BrowserPresenceCheckEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[6]
+	mi := &file_events_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -597,7 +644,7 @@ func (x *BrowserPresenceCheckEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BrowserPresenceCheckEvent.ProtoReflect.Descriptor instead.
 func (*BrowserPresenceCheckEvent) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{6}
+	return file_events_proto_rawDescGZIP(), []int{7}
 }
 
 type TypingData struct {
@@ -613,7 +660,7 @@ type TypingData struct {
 func (x *TypingData) Reset() {
 	*x = TypingData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[7]
+		mi := &file_events_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -626,7 +673,7 @@ func (x *TypingData) String() string {
 func (*TypingData) ProtoMessage() {}
 
 func (x *TypingData) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[7]
+	mi := &file_events_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +686,7 @@ func (x *TypingData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypingData.ProtoReflect.Descriptor instead.
 func (*TypingData) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{7}
+	return file_events_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TypingData) GetConversationID() string {
@@ -675,7 +722,7 @@ type User struct {
 func (x *User) Reset() {
 	*x = User{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[8]
+		mi := &file_events_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -688,7 +735,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[8]
+	mi := &file_events_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -701,7 +748,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{8}
+	return file_events_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *User) GetField1() int64 {
@@ -733,7 +780,7 @@ type RPCPairData struct {
 func (x *RPCPairData) Reset() {
 	*x = RPCPairData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_events_proto_msgTypes[9]
+		mi := &file_events_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -746,7 +793,7 @@ func (x *RPCPairData) String() string {
 func (*RPCPairData) ProtoMessage() {}
 
 func (x *RPCPairData) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[9]
+	mi := &file_events_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +806,7 @@ func (x *RPCPairData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCPairData.ProtoReflect.Descriptor instead.
 func (*RPCPairData) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{9}
+	return file_events_proto_rawDescGZIP(), []int{10}
 }
 
 func (m *RPCPairData) GetEvent() isRPCPairData_Event {
@@ -817,47 +864,49 @@ func file_events_proto_rawDescGZIP() []byte {
 }
 
 var file_events_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_events_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_events_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_events_proto_goTypes = []interface{}{
 	(AlertType)(0),                        // 0: events.AlertType
 	(TypingTypes)(0),                      // 1: events.TypingTypes
 	(*UpdateEvents)(nil),                  // 2: events.UpdateEvents
-	(*AccountChangeOrSomethingEvent)(nil), // 3: events.AccountChangeOrSomethingEvent
-	(*ConversationEvent)(nil),             // 4: events.ConversationEvent
-	(*TypingEvent)(nil),                   // 5: events.TypingEvent
-	(*MessageEvent)(nil),                  // 6: events.MessageEvent
-	(*UserAlertEvent)(nil),                // 7: events.UserAlertEvent
-	(*BrowserPresenceCheckEvent)(nil),     // 8: events.BrowserPresenceCheckEvent
-	(*TypingData)(nil),                    // 9: events.TypingData
-	(*User)(nil),                          // 10: events.User
-	(*RPCPairData)(nil),                   // 11: events.RPCPairData
-	(*Settings)(nil),                      // 12: settings.Settings
-	(*Conversation)(nil),                  // 13: conversations.Conversation
-	(*Message)(nil),                       // 14: conversations.Message
-	(*PairedData)(nil),                    // 15: authentication.PairedData
-	(*RevokePairData)(nil),                // 16: authentication.RevokePairData
+	(*EncryptedData2Container)(nil),       // 3: events.EncryptedData2Container
+	(*AccountChangeOrSomethingEvent)(nil), // 4: events.AccountChangeOrSomethingEvent
+	(*ConversationEvent)(nil),             // 5: events.ConversationEvent
+	(*TypingEvent)(nil),                   // 6: events.TypingEvent
+	(*MessageEvent)(nil),                  // 7: events.MessageEvent
+	(*UserAlertEvent)(nil),                // 8: events.UserAlertEvent
+	(*BrowserPresenceCheckEvent)(nil),     // 9: events.BrowserPresenceCheckEvent
+	(*TypingData)(nil),                    // 10: events.TypingData
+	(*User)(nil),                          // 11: events.User
+	(*RPCPairData)(nil),                   // 12: events.RPCPairData
+	(*Settings)(nil),                      // 13: settings.Settings
+	(*Conversation)(nil),                  // 14: conversations.Conversation
+	(*Message)(nil),                       // 15: conversations.Message
+	(*PairedData)(nil),                    // 16: authentication.PairedData
+	(*RevokePairData)(nil),                // 17: authentication.RevokePairData
 }
 var file_events_proto_depIdxs = []int32{
-	4,  // 0: events.UpdateEvents.conversationEvent:type_name -> events.ConversationEvent
-	6,  // 1: events.UpdateEvents.messageEvent:type_name -> events.MessageEvent
-	5,  // 2: events.UpdateEvents.typingEvent:type_name -> events.TypingEvent
-	12, // 3: events.UpdateEvents.settingsEvent:type_name -> settings.Settings
-	7,  // 4: events.UpdateEvents.userAlertEvent:type_name -> events.UserAlertEvent
-	8,  // 5: events.UpdateEvents.browserPresenceCheckEvent:type_name -> events.BrowserPresenceCheckEvent
-	3,  // 6: events.UpdateEvents.accountChange:type_name -> events.AccountChangeOrSomethingEvent
-	13, // 7: events.ConversationEvent.data:type_name -> conversations.Conversation
-	9,  // 8: events.TypingEvent.data:type_name -> events.TypingData
-	14, // 9: events.MessageEvent.data:type_name -> conversations.Message
-	0,  // 10: events.UserAlertEvent.alertType:type_name -> events.AlertType
-	10, // 11: events.TypingData.user:type_name -> events.User
-	1,  // 12: events.TypingData.type:type_name -> events.TypingTypes
-	15, // 13: events.RPCPairData.paired:type_name -> authentication.PairedData
-	16, // 14: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	5,  // 0: events.UpdateEvents.conversationEvent:type_name -> events.ConversationEvent
+	7,  // 1: events.UpdateEvents.messageEvent:type_name -> events.MessageEvent
+	6,  // 2: events.UpdateEvents.typingEvent:type_name -> events.TypingEvent
+	13, // 3: events.UpdateEvents.settingsEvent:type_name -> settings.Settings
+	8,  // 4: events.UpdateEvents.userAlertEvent:type_name -> events.UserAlertEvent
+	9,  // 5: events.UpdateEvents.browserPresenceCheckEvent:type_name -> events.BrowserPresenceCheckEvent
+	4,  // 6: events.UpdateEvents.accountChange:type_name -> events.AccountChangeOrSomethingEvent
+	4,  // 7: events.EncryptedData2Container.accountChange:type_name -> events.AccountChangeOrSomethingEvent
+	14, // 8: events.ConversationEvent.data:type_name -> conversations.Conversation
+	10, // 9: events.TypingEvent.data:type_name -> events.TypingData
+	15, // 10: events.MessageEvent.data:type_name -> conversations.Message
+	0,  // 11: events.UserAlertEvent.alertType:type_name -> events.AlertType
+	11, // 12: events.TypingData.user:type_name -> events.User
+	1,  // 13: events.TypingData.type:type_name -> events.TypingTypes
+	16, // 14: events.RPCPairData.paired:type_name -> authentication.PairedData
+	17, // 15: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_events_proto_init() }
@@ -882,7 +931,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AccountChangeOrSomethingEvent); i {
+			switch v := v.(*EncryptedData2Container); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -894,7 +943,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConversationEvent); i {
+			switch v := v.(*AccountChangeOrSomethingEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -906,7 +955,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TypingEvent); i {
+			switch v := v.(*ConversationEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -918,7 +967,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageEvent); i {
+			switch v := v.(*TypingEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -930,7 +979,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UserAlertEvent); i {
+			switch v := v.(*MessageEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -942,7 +991,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BrowserPresenceCheckEvent); i {
+			switch v := v.(*UserAlertEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -954,7 +1003,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TypingData); i {
+			switch v := v.(*BrowserPresenceCheckEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -966,7 +1015,7 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*User); i {
+			switch v := v.(*TypingData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -978,6 +1027,18 @@ func file_events_proto_init() {
 			}
 		}
 		file_events_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*User); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_events_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RPCPairData); i {
 			case 0:
 				return &v.state
@@ -999,7 +1060,7 @@ func file_events_proto_init() {
 		(*UpdateEvents_BrowserPresenceCheckEvent)(nil),
 		(*UpdateEvents_AccountChange)(nil),
 	}
-	file_events_proto_msgTypes[9].OneofWrappers = []interface{}{
+	file_events_proto_msgTypes[10].OneofWrappers = []interface{}{
 		(*RPCPairData_Paired)(nil),
 		(*RPCPairData_Revoked)(nil),
 	}
@@ -1009,7 +1070,7 @@ func file_events_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_events_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

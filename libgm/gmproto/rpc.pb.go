@@ -546,13 +546,14 @@ type RPCMessageData struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SessionID     string     `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
-	Timestamp     int64      `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Action        ActionType `protobuf:"varint,4,opt,name=action,proto3,enum=rpc.ActionType" json:"action,omitempty"`
-	Bool1         bool       `protobuf:"varint,6,opt,name=bool1,proto3" json:"bool1,omitempty"`
-	Bool2         bool       `protobuf:"varint,7,opt,name=bool2,proto3" json:"bool2,omitempty"`
-	EncryptedData []byte     `protobuf:"bytes,8,opt,name=encryptedData,proto3" json:"encryptedData,omitempty"`
-	Bool3         bool       `protobuf:"varint,9,opt,name=bool3,proto3" json:"bool3,omitempty"`
+	SessionID      string     `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	Timestamp      int64      `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Action         ActionType `protobuf:"varint,4,opt,name=action,proto3,enum=rpc.ActionType" json:"action,omitempty"`
+	Bool1          bool       `protobuf:"varint,6,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	Bool2          bool       `protobuf:"varint,7,opt,name=bool2,proto3" json:"bool2,omitempty"`
+	EncryptedData  []byte     `protobuf:"bytes,8,opt,name=encryptedData,proto3" json:"encryptedData,omitempty"`
+	Bool3          bool       `protobuf:"varint,9,opt,name=bool3,proto3" json:"bool3,omitempty"`
+	EncryptedData2 []byte     `protobuf:"bytes,11,opt,name=encryptedData2,proto3" json:"encryptedData2,omitempty"`
 }
 
 func (x *RPCMessageData) Reset() {
@@ -634,6 +635,13 @@ func (x *RPCMessageData) GetBool3() bool {
 		return x.Bool3
 	}
 	return false
+}
+
+func (x *RPCMessageData) GetEncryptedData2() []byte {
+	if x != nil {
+		return x.EncryptedData2
+	}
+	return nil
 }
 
 type OutgoingRPCMessage struct {
