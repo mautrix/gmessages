@@ -730,6 +730,8 @@ func (user *User) handleAccountChange(v *events.AccountChange) {
 			go user.sendMarkdownBridgeAlert(true, "The bridge will not work when the account-based pairing method is enabled in the Google Messages app. Unlink other devices and switch back to the QR code method to continue using the bridge.")
 		} else {
 			go user.sendMarkdownBridgeAlert(false, "Switched back to QR pairing, bridge should work now")
+			// Assume connection is ready now even if it wasn't before
+			user.ready = true
 		}
 	}
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
