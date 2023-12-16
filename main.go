@@ -172,7 +172,7 @@ func main() {
 		Name:              "mautrix-gmessages",
 		URL:               "https://github.com/mautrix/gmessages",
 		Description:       "A Matrix-Google Messages puppeting bridge.",
-		Version:           "0.2.2",
+		Version:           "0.2.3",
 		ProtocolName:      "Google Messages",
 		BeeperServiceName: "gmessages",
 		BeeperNetworkName: "gmessages",

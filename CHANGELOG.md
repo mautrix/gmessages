@@ -1,3 +1,7 @@
+# v0.2.3 (2023-12-16)
+
+* Added error notice if user switches to google account pairing.
+
 # v0.2.2 (2023-11-16)
 
 No notable changes.
