@@ -1983,6 +1983,10 @@ func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.Eve
 		Time("receipt_ts", receipt.Timestamp).
 		Str("action", "handle matrix read receipt").
 		Logger()
+	if user.Client == nil {
+		log.Debug().Msg("User is not connected, ignoring read receipt")
+		return
+	}
 	ctx := log.WithContext(context.TODO())
 	log.Debug().Msg("Handling Matrix read receipt")
 	targetMessage, err := portal.bridge.DB.Message.GetByMXID(ctx, eventID)
