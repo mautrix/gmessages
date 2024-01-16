@@ -510,6 +510,10 @@ func (user *User) DeleteConnection() {
 	user.unlockedDeleteConnection()
 	user.longPollingError = errors.New("not connected")
 	user.phoneResponding = true
+	user.batteryLow = false
+	user.switchedToGoogleLogin = false
+	user.ready = false
+	user.browserInactiveType = ""
 }
 
 func (user *User) HasSession() bool {
