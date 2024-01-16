@@ -1,4 +1,4 @@
-# v0.2.4 (unreleased)
+# v0.2.4 (2024-01-16)
 
 * Fixed panic handling read receipts if the user isn't connected.
 * Fixed some error states being persisted and not being cleared properly
