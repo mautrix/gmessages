@@ -1,3 +1,9 @@
+# v0.2.4 (unreleased)
+
+* Fixed panic handling read receipts if the user isn't connected.
+* Fixed some error states being persisted and not being cleared properly
+  if the user logs out and back in.
+
 # v0.2.3 (2023-12-16)
 
 * Added error notice if user switches to google account pairing.
