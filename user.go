@@ -35,6 +35,7 @@ import (
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
 	"maunium.net/go/mautrix/bridge/bridgeconfig"
+	"maunium.net/go/mautrix/bridge/commands"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/format"
@@ -64,7 +65,8 @@ type User struct {
 	spaceCreateLock sync.Mutex
 	connLock        sync.Mutex
 
-	BridgeState *bridge.BridgeStateQueue
+	BridgeState  *bridge.BridgeStateQueue
+	CommandState *commands.CommandState
 
 	spaceMembershipChecked bool
 
@@ -80,15 +82,24 @@ type User struct {
 	pollErrorAlertSent          bool
 	phoneNotRespondingAlertSent bool
 
-	loginInProgress   atomic.Bool
-	pairSuccessChan   chan struct{}
-	ongoingLoginChan  <-chan qrChannelItem
-	loginChanReadLock sync.Mutex
-	lastQRCode        string
-	cancelLogin       func()
+	loginInProgress  atomic.Bool
+	pairSuccessChan  chan struct{}
+	ongoingLoginChan <-chan qrChannelItem
+	lastQRCode       string
+	cancelLogin      func()
 
 	DoublePuppetIntent *appservice.IntentAPI
 }
+
+func (user *User) GetCommandState() *commands.CommandState {
+	return user.CommandState
+}
+
+func (user *User) SetCommandState(state *commands.CommandState) {
+	user.CommandState = state
+}
+
+var _ commands.CommandingUser = (*User)(nil)
 
 func (br *GMBridge) getUserByMXID(userID id.UserID, onlyIfExists bool) *User {
 	_, isPuppet := br.ParsePuppetMXID(userID)
@@ -153,10 +164,6 @@ func (user *User) GetManagementRoomID() id.RoomID {
 
 func (user *User) GetMXID() id.UserID {
 	return user.MXID
-}
-
-func (user *User) GetCommandState() map[string]interface{} {
-	return nil
 }
 
 func (br *GMBridge) GetUserByMXIDIfExists(userID id.UserID) *User {
@@ -454,6 +461,33 @@ func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 		}
 	}()
 	return ch, nil
+}
+
+func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(string)) error {
+	user.connLock.Lock()
+	defer user.connLock.Unlock()
+	if user.Session != nil {
+		return ErrAlreadyLoggedIn
+	} else if !user.loginInProgress.CompareAndSwap(false, true) {
+		return ErrLoginInProgress
+	}
+	if user.Client != nil {
+		user.unlockedDeleteConnection()
+	}
+	pairSuccessChan := make(chan struct{})
+	user.pairSuccessChan = pairSuccessChan
+	authData := libgm.NewAuthData()
+	authData.Cookies = cookies
+	user.createClient(authData)
+	Analytics.Track(user.MXID, "$login_start")
+	err := user.Client.DoGaiaPairing(emojiCallback)
+	if err != nil {
+		user.unlockedDeleteConnection()
+		user.pairSuccessChan = nil
+		user.loginInProgress.Store(false)
+		return fmt.Errorf("failed to connect to Google Messages: %w", err)
+	}
+	return nil
 }
 
 func (user *User) Connect() bool {
