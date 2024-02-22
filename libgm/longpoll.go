@@ -128,7 +128,12 @@ func (c *Client) doLongPoll(loggedIn bool) {
 				Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject1{},
 			},
 		}
-		resp, err := c.makeProtobufHTTPRequest(util.ReceiveMessagesURL, payload, ContentTypePBLite)
+		url := util.ReceiveMessagesURL
+		if c.AuthData.Cookies != nil {
+			url = util.ReceiveMessagesURLGoogle
+			payload.Auth.Network = util.GoogleNetwork
+		}
+		resp, err := c.makeProtobufHTTPRequest(url, payload, ContentTypePBLite)
 		if err != nil {
 			if loggedIn {
 				c.triggerEvent(&events.ListenTemporaryError{Error: err})

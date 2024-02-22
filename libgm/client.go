@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +33,9 @@ type AuthData struct {
 	TachyonTTL       int64     `json:"tachyon_ttl,omitempty"`
 	// Unknown encryption key, not used for anything
 	WebEncryptionKey []byte `json:"web_encryption_key,omitempty"`
+
+	SessionID uuid.UUID         `json:"session_id,omitempty"`
+	Cookies   map[string]string `json:"cookies,omitempty"`
 }
 
 const RefreshTachyonBuffer = 1 * time.Hour
@@ -64,6 +66,7 @@ type Client struct {
 	conversationsFetchedOnce bool
 
 	AuthData *AuthData
+	cfg      *gmproto.Config
 
 	proxy Proxy
 	http  *http.Client
@@ -89,9 +92,15 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 		pingShortCircuit: make(chan struct{}),
 	}
 	sessionHandler.client = cli
-	err := cli.FetchConfigVersion()
+	var err error
+	cli.cfg, err = cli.FetchConfig()
 	if err != nil {
-		cli.Logger.Warn().Err(err).Msg("Failed to fetch latest web version")
+		cli.Logger.Err(err).Msg("Failed to fetch web config")
+	} else if deviceID := cli.cfg.GetDeviceInfo().GetDeviceID(); deviceID != "" {
+		authData.SessionID, err = uuid.Parse(deviceID)
+		if err != nil {
+			cli.Logger.Err(err).Str("device_id", deviceID).Msg("Failed to parse device ID")
+		}
 	}
 	return cli
 }
@@ -130,11 +139,11 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to refresh auth token: %w", err)
 	}
 
-	webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
-	if err != nil {
-		return fmt.Errorf("failed to get web encryption key: %w", err)
-	}
-	c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
+	//webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
+	//if err != nil {
+	//	return fmt.Errorf("failed to get web encryption key: %w", err)
+	//}
+	//c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
 	go c.doLongPoll(true)
 	c.sessionHandler.startAckInterval()
 	go c.postConnect()
@@ -148,6 +157,10 @@ func (c *Client) postConnect() {
 		c.triggerEvent(&events.PingFailed{
 			Error: fmt.Errorf("failed to set active session: %w", err),
 		})
+		return
+	}
+	if c.AuthData.Mobile.Network != util.QRNetwork {
+		// Don't check bugle default unless using bugle
 		return
 	}
 
@@ -166,7 +179,6 @@ func (c *Client) postConnect() {
 		return
 	}
 	c.Logger.Debug().Bool("bugle_default", bugleRes.Success).Msg("Got is bugle default response on connect")
-
 }
 
 func (c *Client) Disconnect() {
@@ -200,25 +212,25 @@ func (c *Client) triggerEvent(evt interface{}) {
 	}
 }
 
-func (c *Client) FetchConfigVersion() error {
+func (c *Client) FetchConfig() (*gmproto.Config, error) {
 	req, err := http.NewRequest(http.MethodGet, util.ConfigURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to prepare request: %w", err)
+		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
+	util.BuildRelayHeaders(req, "", "*/*")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Del("x-user-agent")
+	req.Header.Del("origin")
+	c.AddCookieHeaders(req)
 
-	configRes, err := c.http.Do(req)
+	config, err := typedHTTPResponse[*gmproto.Config](c.http.Do(req))
 	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
+		return nil, err
 	}
 
-	responseBody, err := io.ReadAll(configRes.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	version, parseErr := util.ParseConfigVersion(responseBody)
+	version, parseErr := config.ParsedClientVersion()
 	if parseErr != nil {
-		return fmt.Errorf("failed to parse response body: %w", err)
+		return nil, fmt.Errorf("failed to parse client version: %w", err)
 	}
 
 	currVersion := util.ConfigMessage
@@ -228,7 +240,8 @@ func (c *Client) FetchConfigVersion() error {
 	} else {
 		c.Logger.Debug().Any("version", currVersion).Msg("Using latest messages for web version")
 	}
-	return nil
+
+	return config, nil
 }
 
 func (c *Client) diffVersionFormat(curr *gmproto.ConfigVersion, latest *gmproto.ConfigVersion) string {
@@ -240,17 +253,17 @@ func (c *Client) updateWebEncryptionKey(key []byte) {
 	c.AuthData.WebEncryptionKey = key
 }
 
-func (c *Client) updateTachyonAuthToken(t []byte, validFor int64) {
-	c.AuthData.TachyonAuthToken = t
-	validForDuration := time.Duration(validFor) * time.Microsecond
+func (c *Client) updateTachyonAuthToken(data *gmproto.TokenData) {
+	c.AuthData.TachyonAuthToken = data.GetTachyonAuthToken()
+	validForDuration := time.Duration(data.GetTTL()) * time.Microsecond
 	if validForDuration == 0 {
 		validForDuration = 24 * time.Hour
 	}
-	c.AuthData.TachyonExpiry = time.Now().UTC().Add(time.Microsecond * time.Duration(validFor))
+	c.AuthData.TachyonExpiry = time.Now().UTC().Add(validForDuration)
 	c.AuthData.TachyonTTL = validForDuration.Microseconds()
 	c.Logger.Debug().
 		Time("tachyon_expiry", c.AuthData.TachyonExpiry).
-		Int64("valid_for", validFor).
+		Int64("valid_for", data.GetTTL()).
 		Msg("Updated tachyon token")
 }
 
@@ -291,14 +304,11 @@ func (c *Client) refreshAuthToken() error {
 		return err
 	}
 
-	token := resp.GetTokenData().GetTachyonAuthToken()
-	if token == nil {
+	if resp.GetTokenData().GetTachyonAuthToken() == nil {
 		return fmt.Errorf("no tachyon auth token in refresh response")
 	}
 
-	validFor, _ := strconv.ParseInt(resp.GetTokenData().GetValidFor(), 10, 64)
-
-	c.updateTachyonAuthToken(token, validFor)
+	c.updateTachyonAuthToken(resp.GetTokenData())
 	c.triggerEvent(&events.AuthTokenRefreshed{})
 	return nil
 }

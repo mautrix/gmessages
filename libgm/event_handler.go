@@ -18,6 +18,7 @@ type IncomingRPCMessage struct {
 	IsOld bool
 
 	Pair *gmproto.RPCPairData
+	Gaia *gmproto.RPCGaiaData
 
 	Message          *gmproto.RPCMessageData
 	DecryptedData    []byte
@@ -56,6 +57,15 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 				Str("data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
 				Msg("Errored pair event content")
 			return nil, fmt.Errorf("failed to decode pair event: %w", err)
+		}
+	case gmproto.BugleRoute_GaiaEvent:
+		msg.Gaia = &gmproto.RPCGaiaData{}
+		err := proto.Unmarshal(data.GetMessageData(), msg.Gaia)
+		if err != nil {
+			c.Logger.Trace().
+				Str("data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
+				Msg("Errored gaia event content")
+			return nil, fmt.Errorf("failed to decode gaia event: %w", err)
 		}
 	case gmproto.BugleRoute_DataEvent:
 		msg.Message = &gmproto.RPCMessageData{}
@@ -176,6 +186,8 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	switch msg.BugleRoute {
 	case gmproto.BugleRoute_PairEvent:
 		c.handlePairingEvent(msg)
+	case gmproto.BugleRoute_GaiaEvent:
+		c.handleGaiaPairingEvent(msg)
 	case gmproto.BugleRoute_DataEvent:
 		if c.skipCount > 0 {
 			c.skipCount--
@@ -256,11 +268,13 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 
 		default:
 			c.Logger.Warn().
-				Str("evt_data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+				Str("evt_data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
+				Str("decrypted_data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
 				Msg("Got unknown event type")
 		}
 	default:
 		c.Logger.Debug().
+			Str("evt_data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
 			Str("request_id", msg.Message.SessionID).
 			Str("action_type", msg.Message.Action.String()).
 			Bool("is_old", msg.IsOld).

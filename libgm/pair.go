@@ -19,7 +19,7 @@ func (c *Client) StartLogin() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	c.AuthData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
+	c.updateTachyonAuthToken(registered.GetAuthKeyData())
 	go c.doLongPoll(false)
 	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *Client) handlePairingEvent(msg *IncomingRPCMessage) {
 }
 
 func (c *Client) completePairing(data *gmproto.PairedData) {
-	c.updateTachyonAuthToken(data.GetTokenData().GetTachyonAuthToken(), data.GetTokenData().GetTTL())
+	c.updateTachyonAuthToken(data.GetTokenData())
 	c.AuthData.Mobile = data.Mobile
 	c.AuthData.Browser = data.Browser
 
@@ -81,7 +81,7 @@ func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, erro
 	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:     uuid.NewString(),
-			Network:       &util.Network,
+			Network:       util.QRNetwork,
 			ConfigVersion: util.ConfigMessage,
 		},
 		BrowserDetails: util.BrowserDetailsMessage,
@@ -103,7 +103,7 @@ func (c *Client) RefreshPhoneRelay() (string, error) {
 	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
-			Network:          &util.Network,
+			Network:          util.QRNetwork,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},

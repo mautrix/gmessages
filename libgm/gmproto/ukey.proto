@@ -1,0 +1,117 @@
+syntax = "proto3";
+package ukey;
+
+option go_package = "../gmproto";
+
+message Ukey2Message {
+    enum Type {
+        UNKNOWN_DO_NOT_USE = 0;
+        ALERT = 1;
+        CLIENT_INIT = 2;
+        SERVER_INIT = 3;
+        CLIENT_FINISH = 4;
+    }
+
+    Type message_type = 1;   // Identifies message type
+    bytes message_data = 2;  // Actual message, to be parsed according to message_type
+}
+
+message Ukey2Alert {
+    enum AlertType {
+        UNKNOWN_ALERT_TYPE = 0;
+        // Framing errors
+        BAD_MESSAGE = 1;             // The message could not be deserialized
+        BAD_MESSAGE_TYPE = 2;        // message_type has an undefined value
+        INCORRECT_MESSAGE = 3;       // message_type received does not correspond to expected type at this stage of the protocol
+        BAD_MESSAGE_DATA = 4;        // Could not deserialize message_data as per value in message_type
+
+        // ClientInit and ServerInit errors
+        BAD_VERSION = 100;           // version is invalid; server cannot find suitable version to speak with client.
+        BAD_RANDOM = 101;            // Random data is missing or of incorrect length
+        BAD_HANDSHAKE_CIPHER = 102;  // No suitable handshake ciphers were found
+        BAD_NEXT_PROTOCOL = 103;     // The next protocol is missing, unknown, or unsupported
+        BAD_PUBLIC_KEY = 104;        // The public key could not be parsed
+
+        // Other errors
+        INTERNAL_ERROR = 200;       // An internal error has occurred.  error_message may contain additional details for logging and debugging.
+    }
+
+    AlertType type = 1;
+    string error_message = 2;
+}
+
+enum Ukey2HandshakeCipher {
+    RESERVED = 0;
+    P256_SHA512 = 100;        // NIST P-256 used for ECDH, SHA512 used for commitment
+    CURVE25519_SHA512 = 200;  // Curve 25519 used for ECDH, SHA512 used for commitment
+}
+
+message Ukey2ClientInit {
+    int32 version = 1;  // highest supported version for rollback protection
+    bytes random = 2;   // random bytes for replay/reuse protection
+
+    // One commitment (hash of ClientFinished containing public key) per supported cipher
+    message CipherCommitment {
+        Ukey2HandshakeCipher handshake_cipher = 1;
+        bytes commitment = 2;
+    }
+    repeated CipherCommitment cipher_commitments = 3;
+
+    // Next protocol that the client wants to speak.
+    string next_protocol = 4;
+}
+
+message Ukey2ServerInit {
+    int32 version = 1;  // highest supported version for rollback protection
+    bytes random = 2;   // random bytes for replay/reuse protection
+
+    // Selected Cipher and corresponding public key
+    Ukey2HandshakeCipher handshake_cipher = 3;
+    GenericPublicKey public_key = 4;
+}
+
+message Ukey2ClientFinished {
+    GenericPublicKey public_key = 1;  // public key matching selected handshake cipher
+}
+
+// A list of supported public key types
+enum PublicKeyType {
+    UNKNOWN_PUBLIC_KEY_TYPE = 0;
+    EC_P256 = 1;
+    RSA2048 = 2;
+    // 2048-bit MODP group 14, from RFC 3526
+    DH2048_MODP = 3;
+}
+
+// A convenience proto for encoding NIST P-256 elliptic curve public keys
+message EcP256PublicKey {
+    // x and y are encoded in big-endian two's complement (slightly wasteful)
+    // Client MUST verify (x,y) is a valid point on NIST P256
+    bytes x = 1;
+    bytes y = 2;
+}
+
+// A convenience proto for encoding RSA public keys with small exponents
+message SimpleRsaPublicKey {
+    // Encoded in big-endian two's complement
+    bytes n = 1;
+    int32 e = 2;
+}
+
+// A convenience proto for encoding Diffie-Hellman public keys,
+// for use only when Elliptic Curve based key exchanges are not possible.
+// (Note that the group parameters must be specified separately)
+message DhPublicKey {
+    // Big-endian two's complement encoded group element
+    bytes y = 1;
+}
+
+message GenericPublicKey {
+    PublicKeyType type = 1;
+    oneof public_key {
+        EcP256PublicKey ec_p256_public_key = 2;
+        SimpleRsaPublicKey rsa2048_public_key = 3;
+        // Use only as a last resort
+        DhPublicKey dh2048_public_key = 4;
+    }
+}

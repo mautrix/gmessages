@@ -82,11 +82,19 @@ func serializeOneOrList(fieldDescriptor protoreflect.FieldDescriptor, fieldValue
 func serializeOne(fieldDescriptor protoreflect.FieldDescriptor, fieldValue protoreflect.Value) (any, error) {
 	switch fieldDescriptor.Kind() {
 	case protoreflect.MessageKind:
-		serializedMsg, err := SerializeToSlice(fieldValue.Message().Interface())
-		if err != nil {
-			return nil, err
+		if isPbliteBinary(fieldDescriptor) {
+			serializedMsg, err := proto.Marshal(fieldValue.Message().Interface())
+			if err != nil {
+				return nil, err
+			}
+			return base64.StdEncoding.EncodeToString(serializedMsg), nil
+		} else {
+			serializedMsg, err := SerializeToSlice(fieldValue.Message().Interface())
+			if err != nil {
+				return nil, err
+			}
+			return serializedMsg, nil
 		}
-		return serializedMsg, nil
 	case protoreflect.BytesKind:
 		return base64.StdEncoding.EncodeToString(fieldValue.Bytes()), nil
 	case protoreflect.Int32Kind, protoreflect.Int64Kind:
@@ -100,7 +108,11 @@ func serializeOne(fieldDescriptor protoreflect.FieldDescriptor, fieldValue proto
 	case protoreflect.BoolKind:
 		return fieldValue.Bool(), nil
 	case protoreflect.StringKind:
-		return fieldValue.String(), nil
+		if isPbliteBinary(fieldDescriptor) {
+			return base64.StdEncoding.EncodeToString([]byte(fieldValue.String())), nil
+		} else {
+			return fieldValue.String(), nil
+		}
 	default:
 		return nil, fmt.Errorf("unsupported field type %s in %s", fieldDescriptor.Kind(), fieldDescriptor.FullName())
 	}
