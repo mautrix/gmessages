@@ -48,6 +48,7 @@ func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, content
 	if reqErr != nil {
 		return res, reqErr
 	}
+	c.HandleCookieUpdates(res)
 	return res, nil
 }
 
@@ -61,6 +62,15 @@ func (c *Client) AddCookieHeaders(req *http.Request) {
 	sapisid, ok := c.AuthData.Cookies["SAPISID"]
 	if ok {
 		req.Header.Set("Authorization", sapisidHash(util.MessagesBaseURL, sapisid))
+	}
+}
+
+func (c *Client) HandleCookieUpdates(resp *http.Response) {
+	if c.AuthData.Cookies == nil {
+		return
+	}
+	for _, cookie := range resp.Cookies() {
+		c.AuthData.Cookies[cookie.Name] = cookie.Value
 	}
 }
 

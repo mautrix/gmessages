@@ -223,7 +223,11 @@ func (c *Client) FetchConfig() (*gmproto.Config, error) {
 	req.Header.Del("origin")
 	c.AddCookieHeaders(req)
 
-	config, err := typedHTTPResponse[*gmproto.Config](c.http.Do(req))
+	resp, err := c.http.Do(req)
+	if resp != nil {
+		c.HandleCookieUpdates(resp)
+	}
+	config, err := typedHTTPResponse[*gmproto.Config](resp, err)
 	if err != nil {
 		return nil, err
 	}
