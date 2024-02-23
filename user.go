@@ -88,6 +88,8 @@ type User struct {
 	lastQRCode       string
 	cancelLogin      func()
 
+	googleAsyncPairErrChan atomic.Pointer[chan error]
+
 	DoublePuppetIntent *appservice.IntentAPI
 }
 
@@ -461,6 +463,44 @@ func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 		}
 	}()
 	return ch, nil
+}
+
+func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji string, outErr error) {
+	errChan := make(chan error, 1)
+	if !user.googleAsyncPairErrChan.CompareAndSwap(nil, &errChan) {
+		close(errChan)
+		outErr = fmt.Errorf("login already in progress")
+		return
+	}
+	var callbackDone bool
+	var initialWait sync.WaitGroup
+	initialWait.Add(1)
+	callback := func(emoji string) {
+		callbackDone = true
+		outEmoji = emoji
+		initialWait.Done()
+	}
+	go func() {
+		err := user.LoginGoogle(cookies, callback)
+		if !callbackDone {
+			initialWait.Done()
+			outErr = err
+			close(errChan)
+			user.googleAsyncPairErrChan.Store(nil)
+		} else {
+			errChan <- err
+		}
+	}()
+	initialWait.Wait()
+	return
+}
+
+func (user *User) AsyncLoginGoogleWait() error {
+	ch := user.googleAsyncPairErrChan.Swap(nil)
+	if ch == nil {
+		return fmt.Errorf("no login in progress")
+	}
+	return <-*ch
 }
 
 func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(string)) error {
