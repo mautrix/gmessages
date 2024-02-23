@@ -21,11 +21,11 @@ message LongPollingPayload {
 message IncomingRPCMessage {
     string responseID = 1;
     BugleRoute bugleRoute = 2;
-    string startExecute = 3;
+    uint64 startExecute = 3;
 
     MessageType messageType = 5;
-    string finishExecute = 6;
-    string microsecondsTaken = 7;
+    uint64 finishExecute = 6;
+    uint64 microsecondsTaken = 7;
     authentication.Device mobile = 8;
     authentication.Device browser = 9;
 
@@ -35,6 +35,13 @@ message IncomingRPCMessage {
     string signatureID = 17;
 
     string timestamp = 21;
+
+    message GDittoSource {
+        int32 deviceID = 2;
+    }
+
+    // Completely unsure about this, but it seems to be present for weird intermediate responses
+    GDittoSource gdittoSource = 23;
 }
 
 message RPCMessageData {

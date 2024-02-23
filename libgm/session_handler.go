@@ -76,7 +76,7 @@ func typedResponse[T proto.Message](resp *IncomingRPCMessage, err error) (casted
 	var ok bool
 	casted, ok = resp.DecryptedMessage.(T)
 	if !ok {
-		retErr = fmt.Errorf("unexpected response type %T, expected %T", resp.DecryptedMessage, casted)
+		retErr = fmt.Errorf("unexpected response type %T for %s, expected %T", resp.DecryptedMessage, resp.ResponseID, casted)
 	}
 	return
 }
@@ -99,6 +99,17 @@ func (s *SessionHandler) cancelResponse(requestID string, ch chan *IncomingRPCMe
 func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	if msg.Message == nil {
 		return false
+	}
+	if s.client.AuthData.Cookies != nil {
+		switch msg.Message.Action {
+		case gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED:
+		default:
+			// Very hacky way to ignore weird messages that come before real responses
+			// TODO figure out how to properly handle these
+			if msg.Message.UnencryptedData != nil && msg.Message.EncryptedData == nil {
+				return false
+			}
+		}
 	}
 	requestID := msg.Message.SessionID
 	s.responseWaitersLock.Lock()
