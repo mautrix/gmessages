@@ -94,13 +94,12 @@ func (c *Client) signInGaiaGetToken() (*gmproto.SignInGaiaResponse, error) {
 type PairingSession struct {
 	UUID          uuid.UUID
 	Start         time.Time
-	DestRegID     uuid.UUID
 	PairingKeyDSA *ecdsa.PrivateKey
 	InitPayload   []byte
 	NextKey       []byte
 }
 
-func NewPairingSession(destRegID uuid.UUID) PairingSession {
+func NewPairingSession() PairingSession {
 	ec, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		panic(err)
@@ -108,7 +107,6 @@ func NewPairingSession(destRegID uuid.UUID) PairingSession {
 	return PairingSession{
 		UUID:          uuid.New(),
 		Start:         time.Now(),
-		DestRegID:     destRegID,
 		PairingKeyDSA: ec,
 	}
 }
@@ -255,7 +253,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	// TODO multiple devices?
 	var destRegID string
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
-		if dev.GetDestOrSourceUUID() != sigResp.GetMaybeBrowserUUID() {
+		if dev.GetUnknownInt4() == 1 {
 			destRegID = dev.GetDestOrSourceUUID()
 			break
 		}
@@ -269,7 +267,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	}
 	c.AuthData.DestRegID = destRegUUID
 	go c.doLongPoll(false)
-	ps := NewPairingSession(destRegUUID)
+	ps := NewPairingSession()
 	clientInit, clientFinish, err := ps.PreparePayloads()
 	if err != nil {
 		return fmt.Errorf("failed to prepare pairing payloads: %w", err)
@@ -327,8 +325,7 @@ func (c *Client) sendGaiaPairingMessage(sess PairingSession, action gmproto.Acti
 		CustomTTL:   (300 * time.Second).Microseconds(),
 		MessageType: gmproto.MessageType_GAIA_2,
 
-		DestRegistrationIDs: []string{sess.DestRegID.String()},
-		NoPingOnTimeout:     true,
+		NoPingOnTimeout: true,
 	})
 	if err != nil {
 		return nil, err
@@ -347,7 +344,6 @@ func (c *Client) UnpairGaia() error {
 		Data: &gmproto.RevokeGaiaPairingRequest{
 			PairingAttemptID: c.AuthData.PairingID.String(),
 		},
-		DestRegistrationIDs: []string{c.AuthData.DestRegID.String()},
-		NoPingOnTimeout:     true,
+		NoPingOnTimeout: true,
 	})
 }

@@ -316,7 +316,8 @@ type ReqGoogleLoginStart struct {
 }
 
 type RespGoogleLoginStart struct {
-	Emoji string
+	Status string `json:"status"`
+	Emoji  string `json:"emoji"`
 }
 
 func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Request) {
@@ -346,7 +347,7 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 		})
 		return
 	}
-	jsonResponse(w, http.StatusOK, &RespGoogleLoginStart{Emoji: emoji})
+	jsonResponse(w, http.StatusOK, &RespGoogleLoginStart{Status: "emoji", Emoji: emoji})
 }
 
 func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Request) {

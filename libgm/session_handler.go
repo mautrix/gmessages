@@ -176,8 +176,7 @@ type SendMessageParams struct {
 	DontEncrypt bool
 	MessageType gmproto.MessageType
 
-	DestRegistrationIDs []string
-	NoPingOnTimeout     bool
+	NoPingOnTimeout bool
 }
 
 func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.Message, error) {
@@ -191,9 +190,6 @@ func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.M
 
 	if params.MessageType == 0 {
 		params.MessageType = gmproto.MessageType_BUGLE_MESSAGE
-	}
-	if params.DestRegistrationIDs == nil {
-		params.DestRegistrationIDs = make([]string, 0)
 	}
 
 	message := &gmproto.OutgoingRPCMessage{
@@ -211,7 +207,10 @@ func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.M
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
-		DestRegistrationIDs: params.DestRegistrationIDs,
+		DestRegistrationIDs: []string{},
+	}
+	if s.client.AuthData != nil && s.client.AuthData.DestRegID != uuid.Nil {
+		message.DestRegistrationIDs = append(message.DestRegistrationIDs, s.client.AuthData.DestRegID.String())
 	}
 	if params.CustomTTL != 0 {
 		message.TTL = params.CustomTTL
