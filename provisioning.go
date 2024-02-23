@@ -356,10 +356,6 @@ func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Requ
 
 	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
 
-	if user.IsLoggedIn() {
-		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success", ErrCode: "already logged in"})
-		return
-	}
 	err := user.AsyncLoginGoogleWait()
 	if err != nil {
 		log.Err(err).Msg("Failed to start login")

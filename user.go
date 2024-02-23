@@ -478,6 +478,7 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 	var initialWait sync.WaitGroup
 	initialWait.Add(1)
 	callback := func(emoji string) {
+		user.zlog.Info().Msg("Async google login got emoji")
 		callbackDone = true
 		outEmoji = emoji
 		initialWait.Done()
@@ -485,11 +486,17 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 	go func() {
 		err := user.LoginGoogle(cookies, callback)
 		if !callbackDone {
+			user.zlog.Err(err).Msg("Async google login failed before callback")
 			initialWait.Done()
 			outErr = err
 			close(errChan)
 			user.googleAsyncPairErrChan.Store(nil)
 		} else {
+			if err != nil {
+				user.zlog.Err(err).Msg("Async google login failed after callback")
+			} else {
+				user.zlog.Info().Msg("Async google login succeeded")
+			}
 			errChan <- err
 		}
 	}()
