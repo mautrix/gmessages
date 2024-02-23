@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.8.4
-	go.mau.fi/util v0.2.1
+	go.mau.fi/util v0.4.1-0.20240222202553-953608f657a3
 	golang.org/x/crypto v0.19.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	google.golang.org/protobuf v1.32.0

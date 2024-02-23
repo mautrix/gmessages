@@ -104,7 +104,7 @@ func errorToStatusReason(err error) (reason event.MessageStatusReason, status ev
 	}
 }
 
-func (portal *Portal) sendErrorMessage(evt *event.Event, err error, msgType string, confirmed bool, editID id.EventID) id.EventID {
+func (portal *Portal) sendErrorMessage(ctx context.Context, evt *event.Event, err error, msgType string, confirmed bool, editID id.EventID) id.EventID {
 	if !portal.bridge.Config.Bridge.MessageErrorNotices {
 		return ""
 	}
@@ -125,7 +125,7 @@ func (portal *Portal) sendErrorMessage(evt *event.Event, err error, msgType stri
 	} else {
 		content.SetReply(evt)
 	}
-	resp, err := portal.sendMainIntentMessage(content)
+	resp, err := portal.sendMainIntentMessage(ctx, content)
 	if err != nil {
 		portal.zlog.Warn().Err(err).Str("event_id", evt.ID.String()).Msg("Failed to send bridging error message")
 		return ""
@@ -153,7 +153,7 @@ func (portal *Portal) sendCheckpoint(dbMsg *database.Message, err error, deliver
 	go portal.bridge.SendRawMessageCheckpoint(&checkpoint)
 }
 
-func (portal *Portal) sendStatusEvent(evtID, lastRetry id.EventID, err error, deliveredTo *[]id.UserID) {
+func (portal *Portal) sendStatusEvent(ctx context.Context, evtID, lastRetry id.EventID, err error, deliveredTo *[]id.UserID) {
 	if !portal.bridge.Config.Bridge.MessageStatusEvents {
 		return
 	}
@@ -181,22 +181,22 @@ func (portal *Portal) sendStatusEvent(evtID, lastRetry id.EventID, err error, de
 		content.Reason, content.Status, _, _, content.Message = errorToStatusReason(err)
 		content.Error = err.Error()
 	}
-	_, err = intent.SendMessageEvent(portal.MXID, event.BeeperMessageStatus, &content)
+	_, err = intent.SendMessageEvent(ctx, portal.MXID, event.BeeperMessageStatus, &content)
 	if err != nil {
 		portal.zlog.Warn().Err(err).Str("event_id", evtID.String()).Msg("Failed to send message status event")
 	}
 }
 
-func (portal *Portal) sendDeliveryReceipt(eventID id.EventID) {
+func (portal *Portal) sendDeliveryReceipt(ctx context.Context, eventID id.EventID) {
 	if portal.bridge.Config.Bridge.DeliveryReceipts {
-		err := portal.bridge.Bot.SendReceipt(portal.MXID, eventID, event.ReceiptTypeRead, nil)
+		err := portal.bridge.Bot.SendReceipt(ctx, portal.MXID, eventID, event.ReceiptTypeRead, nil)
 		if err != nil {
 			portal.zlog.Warn().Err(err).Str("event_id", eventID.String()).Msg("Failed to send delivery receipt")
 		}
 	}
 }
 
-func (portal *Portal) sendMessageMetrics(user *User, evt *event.Event, err error, part string, ms *metricSender) {
+func (portal *Portal) sendMessageMetrics(ctx context.Context, user *User, evt *event.Event, err error, part string, ms *metricSender) {
 	var msgType string
 	switch evt.Type {
 	case event.EventMessage:
@@ -232,21 +232,21 @@ func (portal *Portal) sendMessageMetrics(user *User, evt *event.Event, err error
 		}
 		portal.bridge.SendMessageCheckpoint(evt, status.MsgStepRemote, checkpointErr, checkpointStatus, ms.getRetryNum())
 		if sendNotice {
-			ms.setNoticeID(portal.sendErrorMessage(evt, err, msgType, isCertain, ms.getNoticeID()))
+			ms.setNoticeID(portal.sendErrorMessage(ctx, evt, err, msgType, isCertain, ms.getNoticeID()))
 		}
-		portal.sendStatusEvent(origEvtID, evt.ID, err, nil)
+		portal.sendStatusEvent(ctx, origEvtID, evt.ID, err, nil)
 	} else {
 		portal.zlog.Debug().
 			Str("event_id", evt.ID.String()).
 			Str("event_type", evt.Type.Type).
 			Msg("Handled Matrix event")
-		portal.sendDeliveryReceipt(evt.ID)
+		portal.sendDeliveryReceipt(ctx, evt.ID)
 		if msgType != "message" {
 			portal.bridge.SendMessageSuccessCheckpoint(evt, status.MsgStepRemote, ms.getRetryNum())
-			portal.sendStatusEvent(origEvtID, evt.ID, nil, nil)
+			portal.sendStatusEvent(ctx, origEvtID, evt.ID, nil, nil)
 		}
 		if prevNotice := ms.popNoticeID(); prevNotice != "" {
-			_, _ = portal.MainIntent().RedactEvent(portal.MXID, prevNotice, mautrix.ReqRedact{
+			_, _ = portal.MainIntent().RedactEvent(ctx, portal.MXID, prevNotice, mautrix.ReqRedact{
 				Reason: "error resolved",
 			})
 		}
@@ -313,13 +313,13 @@ func (ms *metricSender) setNoticeID(evtID id.EventID) {
 	}
 }
 
-func (ms *metricSender) sendMessageMetrics(user *User, evt *event.Event, err error, part string, completed bool) {
+func (ms *metricSender) sendMessageMetrics(ctx context.Context, user *User, evt *event.Event, err error, part string, completed bool) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 	if !completed && ms.completed {
 		return
 	}
-	ms.portal.sendMessageMetrics(user, evt, err, part, ms)
+	ms.portal.sendMessageMetrics(ctx, user, evt, err, part, ms)
 	ms.retryNum++
 	ms.completed = completed
 }

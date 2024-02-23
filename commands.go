@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -188,7 +189,7 @@ func (user *User) sendQREdit(ce *WrappedCommandEvent, content *event.MessageEven
 	if len(prevEvent) != 0 {
 		content.SetEdit(prevEvent)
 	}
-	resp, err := ce.Bot.SendMessageEvent(ce.RoomID, event.EventMessage, &content)
+	resp, err := ce.Bot.SendMessageEvent(ce.Ctx, ce.RoomID, event.EventMessage, &content)
 	if err != nil {
 		ce.ZLog.Err(err).Msg("Failed to send edited QR code")
 	} else if len(prevEvent) == 0 {
@@ -199,7 +200,7 @@ func (user *User) sendQREdit(ce *WrappedCommandEvent, content *event.MessageEven
 
 func (user *User) sendQR(ce *WrappedCommandEvent, code string, prevEvent id.EventID) id.EventID {
 	var content event.MessageEventContent
-	url, err := user.uploadQR(code)
+	url, err := user.uploadQR(ce.Ctx, code)
 	if err != nil {
 		ce.ZLog.Err(err).Msg("Failed to upload QR code")
 		content = event.MessageEventContent{
@@ -216,12 +217,12 @@ func (user *User) sendQR(ce *WrappedCommandEvent, code string, prevEvent id.Even
 	return user.sendQREdit(ce, &content, prevEvent)
 }
 
-func (user *User) uploadQR(code string) (id.ContentURI, error) {
+func (user *User) uploadQR(ctx context.Context, code string) (id.ContentURI, error) {
 	qrCode, err := qrcode.Encode(code, qrcode.Low, 256)
 	if err != nil {
 		return id.ContentURI{}, err
 	}
-	resp, err := user.bridge.Bot.UploadBytes(qrCode, "image/png")
+	resp, err := user.bridge.Bot.UploadBytes(ctx, qrCode, "image/png")
 	if err != nil {
 		return id.ContentURI{}, err
 	}
@@ -415,7 +416,7 @@ func fnPM(ce *WrappedCommandEvent) {
 		ce.Reply("Failed to start chat: no conversation in response")
 	} else if portal := ce.User.GetPortalByID(resp.Conversation.ConversationID); portal.MXID != "" {
 		ce.Reply("Chat already exists at [%s](https://matrix.to/#/%s)", portal.MXID, portal.MXID)
-	} else if err = portal.CreateMatrixRoom(ce.User, resp.Conversation, false); err != nil {
+	} else if err = portal.CreateMatrixRoom(ce.Ctx, ce.User, resp.Conversation, false); err != nil {
 		ce.ZLog.Err(err).Msg("Failed to create matrix room")
 		ce.Reply("Failed to create portal room for conversation")
 	} else {
@@ -440,8 +441,8 @@ func fnDeletePortal(ce *WrappedCommandEvent) {
 	}
 
 	ce.ZLog.Info().Str("conversation_id", ce.Portal.ID).Msg("Deleting portal from command")
-	ce.Portal.Delete()
-	ce.Portal.Cleanup()
+	ce.Portal.Delete(ce.Ctx)
+	ce.Portal.Cleanup(ce.Ctx)
 }
 
 var cmdDeleteAllPortals = &commands.FullHandler{
@@ -462,7 +463,7 @@ func fnDeleteAllPortals(ce *WrappedCommandEvent) {
 
 	leave := func(portal *Portal) {
 		if len(portal.MXID) > 0 {
-			_, _ = portal.MainIntent().KickUser(portal.MXID, &mautrix.ReqKickUser{
+			_, _ = portal.MainIntent().KickUser(ce.Ctx, portal.MXID, &mautrix.ReqKickUser{
 				Reason: "Deleting portal",
 				UserID: ce.User.MXID,
 			})
@@ -472,27 +473,27 @@ func fnDeleteAllPortals(ce *WrappedCommandEvent) {
 	if intent != nil {
 		leave = func(portal *Portal) {
 			if len(portal.MXID) > 0 {
-				_, _ = intent.LeaveRoom(portal.MXID)
-				_, _ = intent.ForgetRoom(portal.MXID)
+				_, _ = intent.LeaveRoom(ce.Ctx, portal.MXID)
+				_, _ = intent.ForgetRoom(ce.Ctx, portal.MXID)
 			}
 		}
 	}
 	roomYeeting := ce.Bridge.SpecVersions.Supports(mautrix.BeeperFeatureRoomYeeting)
 	if roomYeeting {
 		leave = func(portal *Portal) {
-			portal.Cleanup()
+			portal.Cleanup(ce.Ctx)
 		}
 	}
 	ce.Reply("Found %d portals, deleting...", len(portals))
 	for _, portal := range portals {
-		portal.Delete()
+		portal.Delete(ce.Ctx)
 		leave(portal)
 	}
 	if !roomYeeting {
 		ce.Reply("Finished deleting portal info. Now cleaning up rooms in background.")
 		go func() {
 			for _, portal := range portals {
-				portal.Cleanup()
+				portal.Cleanup(ce.Ctx)
 			}
 			ce.Reply("Finished background cleanup of deleted portal rooms.")
 		}()

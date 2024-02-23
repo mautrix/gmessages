@@ -51,7 +51,7 @@ func (user *User) ClearCustomMXID() {
 }
 
 func (user *User) StartCustomMXID(reloginOnFail bool) error {
-	newIntent, newAccessToken, err := user.bridge.DoublePuppet.Setup(user.MXID, user.AccessToken, reloginOnFail)
+	newIntent, newAccessToken, err := user.bridge.DoublePuppet.Setup(context.TODO(), user.MXID, user.AccessToken, reloginOnFail)
 	if err != nil {
 		user.ClearCustomMXID()
 		return err

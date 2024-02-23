@@ -199,7 +199,7 @@ func (puppet *Puppet) DefaultIntent() *appservice.IntentAPI {
 
 const MinAvatarUpdateInterval = 24 * time.Hour
 
-func (puppet *Puppet) UpdateAvatar(source *User) bool {
+func (puppet *Puppet) UpdateAvatar(ctx context.Context, source *User) bool {
 	if (puppet.AvatarSet && time.Since(puppet.AvatarUpdateTS) < MinAvatarUpdateInterval) || puppet.ContactID == "" {
 		return false
 	}
@@ -226,7 +226,7 @@ func (puppet *Puppet) UpdateAvatar(source *User) bool {
 		puppet.AvatarHash = hash
 		puppet.AvatarSet = false
 		avatarBytes := thumbData.GetImageBuffer()
-		uploadResp, err := puppet.DefaultIntent().UploadMedia(mautrix.ReqUploadMedia{
+		uploadResp, err := puppet.DefaultIntent().UploadMedia(ctx, mautrix.ReqUploadMedia{
 			ContentBytes: avatarBytes,
 			ContentType:  http.DetectContentType(avatarBytes),
 		})
@@ -236,17 +236,17 @@ func (puppet *Puppet) UpdateAvatar(source *User) bool {
 		}
 		puppet.AvatarMXC = uploadResp.ContentURI
 	}
-	err = puppet.DefaultIntent().SetAvatarURL(puppet.AvatarMXC)
+	err = puppet.DefaultIntent().SetAvatarURL(ctx, puppet.AvatarMXC)
 	if err != nil {
 		puppet.log.Err(err).Msg("Failed to set avatar")
 	} else {
 		puppet.AvatarSet = true
 	}
-	go puppet.updatePortalAvatar()
+	go puppet.updatePortalAvatar(ctx)
 	return true
 }
 
-func (puppet *Puppet) updatePortalAvatar() {
+func (puppet *Puppet) updatePortalAvatar(ctx context.Context) {
 	portal := puppet.bridge.GetPortalByOtherUser(puppet.Key)
 	if portal == nil {
 		return
@@ -256,19 +256,19 @@ func (puppet *Puppet) updatePortalAvatar() {
 	if portal.MXID == "" || !portal.shouldSetDMRoomMetadata() {
 		return
 	}
-	_, err := portal.MainIntent().SetRoomAvatar(portal.MXID, puppet.AvatarMXC)
+	_, err := portal.MainIntent().SetRoomAvatar(ctx, portal.MXID, puppet.AvatarMXC)
 	if err != nil {
 		puppet.log.Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to update DM room avatar")
 	}
 }
 
-func (puppet *Puppet) UpdateName(formattedPhone, fullName, firstName string) bool {
+func (puppet *Puppet) UpdateName(ctx context.Context, formattedPhone, fullName, firstName string) bool {
 	newName := puppet.bridge.Config.Bridge.FormatDisplayname(formattedPhone, fullName, firstName)
 	if puppet.Name != newName || !puppet.NameSet {
 		oldName := puppet.Name
 		puppet.Name = newName
 		puppet.NameSet = false
-		err := puppet.DefaultIntent().SetDisplayName(newName)
+		err := puppet.DefaultIntent().SetDisplayName(ctx, newName)
 		if err == nil {
 			puppet.log.Debug().Str("old_name", oldName).Str("new_name", newName).Msg("Updated displayname")
 			puppet.NameSet = true
@@ -280,7 +280,7 @@ func (puppet *Puppet) UpdateName(formattedPhone, fullName, firstName string) boo
 	return false
 }
 
-func (puppet *Puppet) UpdateContactInfo() bool {
+func (puppet *Puppet) UpdateContactInfo(ctx context.Context) bool {
 	if !puppet.bridge.SpecVersions.Supports(mautrix.BeeperFeatureArbitraryProfileMeta) {
 		return false
 	}
@@ -298,7 +298,7 @@ func (puppet *Puppet) UpdateContactInfo() bool {
 		"com.beeper.bridge.service":   "gmessages",
 		"com.beeper.bridge.network":   "gmessages",
 	}
-	err := puppet.DefaultIntent().BeeperUpdateProfile(contactInfo)
+	err := puppet.DefaultIntent().BeeperUpdateProfile(ctx, contactInfo)
 	if err != nil {
 		puppet.log.Warn().Err(err).Msg("Failed to store custom contact info in profile")
 		return false
@@ -308,8 +308,8 @@ func (puppet *Puppet) UpdateContactInfo() bool {
 	}
 }
 
-func (puppet *Puppet) Sync(source *User, contact *gmproto.Participant) {
-	err := puppet.DefaultIntent().EnsureRegistered()
+func (puppet *Puppet) Sync(ctx context.Context, source *User, contact *gmproto.Participant) {
+	err := puppet.DefaultIntent().EnsureRegistered(ctx)
 	if err != nil {
 		puppet.log.Err(err).Msg("Failed to ensure registered")
 	}
@@ -323,11 +323,11 @@ func (puppet *Puppet) Sync(source *User, contact *gmproto.Participant) {
 		puppet.ContactID = contact.ContactID
 		update = true
 	}
-	update = puppet.UpdateName(contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName()) || update
-	update = puppet.UpdateAvatar(source) || update
-	update = puppet.UpdateContactInfo() || update
+	update = puppet.UpdateName(ctx, contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName()) || update
+	update = puppet.UpdateAvatar(ctx, source) || update
+	update = puppet.UpdateContactInfo(ctx) || update
 	if update {
-		err = puppet.Update(context.TODO())
+		err = puppet.Update(ctx)
 		if err != nil {
 			puppet.log.Err(err).Msg("Failed to save puppet to database after sync")
 		}

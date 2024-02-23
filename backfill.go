@@ -51,10 +51,10 @@ type pendingBackfill struct {
 	lastMessageTS time.Time
 }
 
-func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time, lastMessageID string, markRead, markReadIfNoBackfill bool) {
+func (portal *Portal) missedForwardBackfill(ctx context.Context, user *User, lastMessageTS time.Time, lastMessageID string, markRead, markReadIfNoBackfill bool) {
 	if portal.bridge.Config.Bridge.Backfill.MissedLimit == 0 {
 		if markRead && markReadIfNoBackfill {
-			user.markSelfReadFull(portal, lastMessageID)
+			user.markSelfReadFull(ctx, portal, lastMessageID)
 		}
 		return
 	}
@@ -62,7 +62,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 		Str("action", "missed forward backfill").
 		Str("latest_message_id", lastMessageID).
 		Logger()
-	ctx := log.WithContext(context.TODO())
+	ctx = log.WithContext(ctx)
 	if portal.hasSyncedThisRun && !lastMessageTS.IsZero() && time.Since(lastMessageTS) < 5*time.Minute && portal.lastMessageTS.Before(lastMessageTS) {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithCancel(ctx)
@@ -101,7 +101,7 @@ func (portal *Portal) missedForwardBackfill(user *User, lastMessageTS time.Time,
 				Time("last_bridged_ts", portal.lastMessageTS).
 				Msg("Nothing to backfill")
 			if markRead && markReadIfNoBackfill {
-				user.markSelfReadFull(portal, lastMessageID)
+				user.markSelfReadFull(ctx, portal, lastMessageID)
 			}
 			return
 		}
@@ -172,7 +172,7 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 	} else {
 		lastEventID := portal.backfillSendLegacy(ctx, converted)
 		if markRead && user.DoublePuppetIntent != nil {
-			err = user.DoublePuppetIntent.MarkRead(portal.MXID, lastEventID)
+			err = user.DoublePuppetIntent.MarkRead(ctx, portal.MXID, lastEventID)
 			if err != nil {
 				log.Err(err).Msg("Failed to mark room as read after backfill")
 			}
@@ -212,7 +212,7 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 			}
 			eventType := event.EventMessage
 			var err error
-			eventType, err = portal.encrypt(msg.Intent, &content, eventType)
+			eventType, err = portal.encrypt(ctx, msg.Intent, &content, eventType)
 			if err != nil {
 				log.Err(err).Str("message_id", msg.ID).Int("part", i).Msg("Failed to encrypt event")
 				continue
@@ -258,7 +258,7 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 		Bool("mark_read", markReadBy != "").
 		Bool("notify", markReadBy == "").
 		Msg("Sending batch of messages")
-	_, err := portal.MainIntent().BeeperBatchSend(portal.MXID, &mautrix.ReqBeeperBatchSend{
+	_, err := portal.MainIntent().BeeperBatchSend(ctx, portal.MXID, &mautrix.ReqBeeperBatchSend{
 		Forward:          forward,
 		MarkReadBy:       markReadBy,
 		SendNotification: forward && markReadBy == "" && allowNotify,

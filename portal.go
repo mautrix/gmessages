@@ -313,10 +313,10 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 
 func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
 	if msg.user.RowID != portal.Receiver {
-		go portal.sendMessageMetrics(msg.user, msg.evt, errIncorrectUser, "Ignoring", nil)
+		go portal.sendMessageMetrics(context.TODO(), msg.user, msg.evt, errIncorrectUser, "Ignoring", nil)
 		return
 	} else if msg.user.Client == nil {
-		go portal.sendMessageMetrics(msg.user, msg.evt, errNotLoggedIn, "Ignoring", nil)
+		go portal.sendMessageMetrics(context.TODO(), msg.user, msg.evt, errNotLoggedIn, "Ignoring", nil)
 		return
 	}
 	portal.forwardBackfillLock.Lock()
@@ -476,14 +476,14 @@ func (portal *Portal) redactMessage(ctx context.Context, msg *database.Message) 
 	}
 	for partID, part := range msg.Status.MediaParts {
 		if part.EventID != "" {
-			if _, err := intent.RedactEvent(msg.RoomID, part.EventID); err != nil {
+			if _, err := intent.RedactEvent(ctx, msg.RoomID, part.EventID); err != nil {
 				log.Err(err).Str("part_id", partID).Msg("Failed to redact part of message")
 			}
 			part.EventID = ""
 			msg.Status.MediaParts[partID] = part
 		}
 	}
-	if _, err := intent.RedactEvent(msg.RoomID, msg.MXID); err != nil {
+	if _, err := intent.RedactEvent(ctx, msg.RoomID, msg.MXID); err != nil {
 		log.Err(err).Msg("Failed to redact message")
 	}
 	msg.MXID = ""
@@ -594,7 +594,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 				ts = converted.Timestamp.UnixMilli()
 				isEdit = false
 			}
-			resp, err := portal.sendMessage(converted.Intent, event.EventMessage, part.Content, part.Extra, ts)
+			resp, err := portal.sendMessage(ctx, converted.Intent, event.EventMessage, part.Content, part.Extra, ts)
 			if err != nil {
 				log.Err(err).Msg("Failed to send message")
 				continue
@@ -611,7 +611,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 			}
 		}
 		if len(eventIDs) > 0 {
-			portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
+			portal.sendDeliveryReceipt(ctx, eventIDs[len(eventIDs)-1])
 			log.Debug().Interface("event_ids", eventIDs).Msg("Handled update to message")
 		}
 	case !dbMsg.Status.ReadReceiptSent && portal.IsPrivateChat() && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED:
@@ -622,10 +622,10 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		if !dbMsg.Status.MSSDeliverySent {
 			dbMsg.Status.MSSDeliverySent = true
 			dbMsg.Status.MSSSent = true
-			go portal.sendStatusEvent(dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
+			go portal.sendStatusEvent(ctx, dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
 			portal.sendCheckpoint(dbMsg, nil, true)
 		}
-		err := portal.MainIntent().MarkRead(portal.MXID, dbMsg.MXID)
+		err := portal.MainIntent().MarkRead(ctx, portal.MXID, dbMsg.MXID)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to mark message as read")
 		}
@@ -636,7 +636,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		portal.sendCheckpoint(dbMsg, nil, true)
 		dbMsg.Status.MSSDeliverySent = true
 		dbMsg.Status.MSSSent = true
-		go portal.sendStatusEvent(dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
+		go portal.sendStatusEvent(ctx, dbMsg.MXID, "", nil, &[]id.UserID{portal.MainIntent().UserID})
 	case !dbMsg.Status.MSSSent && isSuccessfullySentStatus(newStatus):
 		dbMsg.Status.MSSSent = true
 		var deliveredTo *[]id.UserID
@@ -644,10 +644,10 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		if portal.IsPrivateChat() && portal.Type == gmproto.ConversationType_RCS {
 			deliveredTo = &[]id.UserID{}
 		}
-		go portal.sendStatusEvent(dbMsg.MXID, "", nil, deliveredTo)
+		go portal.sendStatusEvent(ctx, dbMsg.MXID, "", nil, deliveredTo)
 		portal.sendCheckpoint(dbMsg, nil, false)
 	case !dbMsg.Status.MSSFailSent && !dbMsg.Status.MSSSent && isFailSendStatus(newStatus):
-		go portal.sendStatusEvent(dbMsg.MXID, "", OutgoingStatusError(newStatus), nil)
+		go portal.sendStatusEvent(ctx, dbMsg.MXID, "", OutgoingStatusError(newStatus), nil)
 		portal.sendCheckpoint(dbMsg, OutgoingStatusError(newStatus), false)
 		// TODO error notice
 	default:
@@ -735,7 +735,7 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message, raw []by
 	converted := portal.convertGoogleMessage(ctx, source, evt, false, raw)
 	eventIDs := portal.sendMessageParts(ctx, converted, nil)
 	if len(eventIDs) > 0 {
-		portal.sendDeliveryReceipt(eventIDs[len(eventIDs)-1])
+		portal.sendDeliveryReceipt(ctx, eventIDs[len(eventIDs)-1])
 		log.Debug().Interface("event_ids", eventIDs).Msg("Handled message")
 	}
 }
@@ -762,7 +762,7 @@ func (portal *Portal) sendMessageParts(ctx context.Context, converted *Converted
 				}
 			}
 		}
-		resp, err := portal.sendMessage(converted.Intent, event.EventMessage, part.Content, part.Extra, converted.Timestamp.UnixMilli())
+		resp, err := portal.sendMessage(ctx, converted.Intent, event.EventMessage, part.Content, part.Extra, converted.Timestamp.UnixMilli())
 		if err != nil {
 			zerolog.Ctx(ctx).Err(err).Int("part_index", i).Str("part_id", part.ID).Msg("Failed to send message")
 		} else {
@@ -817,7 +817,7 @@ func (portal *Portal) syncReactions(ctx context.Context, source *User, message *
 				continue
 			}
 			var resp *mautrix.RespSendEvent
-			resp, err = intent.SendMessageEvent(portal.MXID, event.EventReaction, &event.ReactionEventContent{
+			resp, err = intent.SendMessageEvent(ctx, portal.MXID, event.EventReaction, &event.ReactionEventContent{
 				RelatesTo: event.RelatesTo{
 					EventID: message.MXID,
 					Type:    event.RelAnnotation,
@@ -833,7 +833,7 @@ func (portal *Portal) syncReactions(ctx context.Context, source *User, message *
 				dbReaction.Chat = portal.Key
 				dbReaction.Sender = participant
 				dbReaction.MessageID = message.ID
-			} else if _, err = intent.RedactEvent(portal.MXID, dbReaction.MXID); err != nil {
+			} else if _, err = intent.RedactEvent(ctx, portal.MXID, dbReaction.MXID); err != nil {
 				log.Err(err).Str("reaction_sender_id", participant).Msg("Failed to redact old reaction after adding new one")
 			}
 			dbReaction.Reaction = emoji
@@ -849,7 +849,7 @@ func (portal *Portal) syncReactions(ctx context.Context, source *User, message *
 		if intent == nil {
 			continue
 		}
-		_, err = intent.RedactEvent(portal.MXID, reaction.MXID)
+		_, err = intent.RedactEvent(ctx, portal.MXID, reaction.MXID)
 		if err != nil {
 			log.Err(err).Str("reaction_sender_id", reaction.Sender).Msg("Failed to redact removed reaction")
 		} else if err = reaction.Delete(ctx); err != nil {
@@ -1017,7 +1017,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 					MsgType: event.MsgNotice,
 					Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 				}
-			} else if contentPtr, err := portal.convertGoogleMedia(source, cm.Intent, data.MediaContent); err != nil {
+			} else if contentPtr, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
 				pendingMedia = true
 				log.Err(err).Msg("Failed to copy attachment")
 				content = event.MessageEventContent{
@@ -1185,7 +1185,7 @@ func (msg *ConvertedMessage) MergeCaption() {
 	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
-func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, error) {
+func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, error) {
 	var data []byte
 	var err error
 	if msg.MediaID != "" {
@@ -1221,7 +1221,7 @@ func (portal *Portal) convertGoogleMedia(source *User, intent *appservice.Intent
 			Size:     len(data),
 		},
 	}
-	return content, portal.uploadMedia(intent, data, content)
+	return content, portal.uploadMedia(ctx, intent, data, content)
 }
 
 func (portal *Portal) isRecentlyHandled(id string) bool {
@@ -1261,12 +1261,12 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, medi
 	return msg
 }
 
-func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversation) (userIDs []id.UserID, changed bool) {
+func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metadata *gmproto.Conversation) (userIDs []id.UserID, changed bool) {
 	var firstParticipant *gmproto.Participant
 	var manyParticipants bool
 	for _, participant := range metadata.Participants {
 		if participant.IsMe {
-			err := source.AddSelfParticipantID(context.TODO(), participant.ID.ParticipantID)
+			err := source.AddSelfParticipantID(ctx, participant.ID.ParticipantID)
 			if err != nil {
 				portal.zlog.Warn().Err(err).
 					Str("participant_id", participant.ID.ParticipantID).
@@ -1288,9 +1288,9 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 			continue
 		}
 		userIDs = append(userIDs, puppet.MXID)
-		puppet.Sync(source, participant)
+		puppet.Sync(ctx, source, participant)
 		if portal.MXID != "" {
-			err := puppet.IntentFor(portal).EnsureJoined(portal.MXID)
+			err := puppet.IntentFor(portal).EnsureJoined(ctx, portal.MXID)
 			if err != nil {
 				portal.zlog.Err(err).
 					Str("user_id", puppet.MXID.String()).
@@ -1313,7 +1313,7 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 		changed = true
 	}
 	if portal.MXID != "" {
-		members, err := portal.MainIntent().JoinedMembers(portal.MXID)
+		members, err := portal.MainIntent().JoinedMembers(ctx, portal.MXID)
 		if err != nil {
 			portal.zlog.Warn().Err(err).Msg("Failed to get joined members")
 		} else {
@@ -1323,7 +1323,7 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 				delete(members.Joined, userID)
 			}
 			for userID := range members.Joined {
-				_, err = portal.MainIntent().KickUser(portal.MXID, &mautrix.ReqKickUser{
+				_, err = portal.MainIntent().KickUser(ctx, portal.MXID, &mautrix.ReqKickUser{
 					UserID: userID,
 					Reason: "User is not participating in chat",
 				})
@@ -1342,14 +1342,14 @@ func (portal *Portal) SyncParticipants(source *User, metadata *gmproto.Conversat
 	return userIDs, changed
 }
 
-func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
+func (portal *Portal) UpdateName(ctx context.Context, name string, updateInfo bool) bool {
 	if portal.Name != name || (!portal.NameSet && len(portal.MXID) > 0 && portal.shouldSetDMRoomMetadata()) {
 		portal.zlog.Debug().Str("old_name", portal.Name).Str("new_name", name).Msg("Updating name")
 		portal.Name = name
 		portal.NameSet = false
 		if updateInfo {
 			defer func() {
-				err := portal.Update(context.TODO())
+				err := portal.Update(ctx)
 				if err != nil {
 					portal.zlog.Err(err).Msg("Failed to save portal after updating name")
 				}
@@ -1357,17 +1357,17 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 		}
 
 		if len(portal.MXID) > 0 && !portal.shouldSetDMRoomMetadata() {
-			portal.UpdateBridgeInfo()
+			portal.UpdateBridgeInfo(ctx)
 		} else if len(portal.MXID) > 0 {
 			intent := portal.MainIntent()
-			_, err := intent.SetRoomName(portal.MXID, name)
+			_, err := intent.SetRoomName(ctx, portal.MXID, name)
 			if errors.Is(err, mautrix.MForbidden) && intent != portal.MainIntent() {
-				_, err = portal.MainIntent().SetRoomName(portal.MXID, name)
+				_, err = portal.MainIntent().SetRoomName(ctx, portal.MXID, name)
 			}
 			if err == nil {
 				portal.NameSet = true
 				if updateInfo {
-					portal.UpdateBridgeInfo()
+					portal.UpdateBridgeInfo(ctx)
 				}
 				return true
 			} else {
@@ -1378,8 +1378,8 @@ func (portal *Portal) UpdateName(name string, updateInfo bool) bool {
 	return false
 }
 
-func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []id.UserID {
-	participants, update := portal.SyncParticipants(user, info)
+func (portal *Portal) UpdateMetadata(ctx context.Context, user *User, info *gmproto.Conversation) []id.UserID {
+	participants, update := portal.SyncParticipants(ctx, user, info)
 	if portal.Type != info.Type {
 		portal.zlog.Debug().
 			Str("old_type", portal.Type.String()).
@@ -1397,17 +1397,17 @@ func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []i
 		update = true
 	}
 	if portal.MXID != "" {
-		update = portal.addToPersonalSpace(user, false) || update
+		update = portal.addToPersonalSpace(ctx, user, false) || update
 	}
 	if portal.shouldSetDMRoomMetadata() {
-		update = portal.UpdateName(info.Name, false) || update
+		update = portal.UpdateName(ctx, info.Name, false) || update
 	}
 	if portal.MXID != "" {
-		pls, err := portal.MainIntent().PowerLevels(portal.MXID)
+		pls, err := portal.MainIntent().PowerLevels(ctx, portal.MXID)
 		if err != nil {
 			portal.zlog.Warn().Err(err).Msg("Failed to get power levels")
 		} else if portal.updatePowerLevels(info, pls) {
-			resp, err := portal.MainIntent().SetPowerLevels(portal.MXID, pls)
+			resp, err := portal.MainIntent().SetPowerLevels(ctx, portal.MXID, pls)
 			if err != nil {
 				portal.zlog.Warn().Err(err).Msg("Failed to update power levels")
 			} else {
@@ -1418,19 +1418,19 @@ func (portal *Portal) UpdateMetadata(user *User, info *gmproto.Conversation) []i
 
 	// TODO avatar
 	if update {
-		err := portal.Update(context.TODO())
+		err := portal.Update(ctx)
 		if err != nil {
 			portal.zlog.Err(err).Msg("Failed to save portal after updating metadata")
 		}
 		if portal.MXID != "" {
-			portal.UpdateBridgeInfo()
+			portal.UpdateBridgeInfo(ctx)
 		}
 	}
 	return participants
 }
 
-func (portal *Portal) ensureUserInvited(user *User) bool {
-	return user.ensureInvited(portal.MainIntent(), portal.MXID, portal.IsPrivateChat())
+func (portal *Portal) ensureUserInvited(ctx context.Context, user *User) bool {
+	return user.ensureInvited(ctx, portal.MainIntent(), portal.MXID, portal.IsPrivateChat())
 }
 
 func (portal *Portal) GetBasePowerLevels() *event.PowerLevelsEventContent {
@@ -1504,19 +1504,19 @@ func (portal *Portal) getBridgeInfo() (string, event.BridgeEventContent) {
 	return portal.getBridgeInfoStateKey(), content
 }
 
-func (portal *Portal) UpdateBridgeInfo() {
+func (portal *Portal) UpdateBridgeInfo(ctx context.Context) {
 	if len(portal.MXID) == 0 {
 		portal.zlog.Debug().Msg("Not updating bridge info: no Matrix room created")
 		return
 	}
 	portal.zlog.Debug().Msg("Updating bridge info...")
 	stateKey, content := portal.getBridgeInfo()
-	_, err := portal.MainIntent().SendStateEvent(portal.MXID, event.StateBridge, stateKey, content)
+	_, err := portal.MainIntent().SendStateEvent(ctx, portal.MXID, event.StateBridge, stateKey, content)
 	if err != nil {
 		portal.zlog.Warn().Err(err).Msg("Failed to update m.bridge")
 	}
 	// TODO remove this once https://github.com/matrix-org/matrix-doc/pull/2346 is in spec
-	_, err = portal.MainIntent().SendStateEvent(portal.MXID, event.StateHalfShotBridge, stateKey, content)
+	_, err = portal.MainIntent().SendStateEvent(ctx, portal.MXID, event.StateHalfShotBridge, stateKey, content)
 	if err != nil {
 		portal.zlog.Warn().Err(err).Msg("Failed to update uk.half-shot.bridge")
 	}
@@ -1538,7 +1538,7 @@ func (portal *Portal) GetEncryptionEventContent() (evt *event.EncryptionEventCon
 	return
 }
 
-func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, isFromSync bool) error {
+func (portal *Portal) CreateMatrixRoom(ctx context.Context, user *User, conv *gmproto.Conversation, isFromSync bool) error {
 	portal.roomCreateLock.Lock()
 	defer portal.roomCreateLock.Unlock()
 	if len(portal.MXID) > 0 {
@@ -1554,7 +1554,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 		}
 	}
 
-	members := portal.UpdateMetadata(user, conv)
+	members := portal.UpdateMetadata(ctx, user, conv)
 	var avatarURL id.ContentURI
 
 	if portal.IsPrivateChat() {
@@ -1569,7 +1569,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 	}
 
 	intent := portal.MainIntent()
-	if err = intent.EnsureRegistered(); err != nil {
+	if err = intent.EnsureRegistered(ctx); err != nil {
 		return err
 	}
 
@@ -1639,7 +1639,7 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 	if !portal.shouldSetDMRoomMetadata() {
 		req.Name = ""
 	}
-	resp, err := intent.CreateRoom(req)
+	resp, err := intent.CreateRoom(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -1663,37 +1663,38 @@ func (portal *Portal) CreateMatrixRoom(user *User, conv *gmproto.Conversation, i
 		inviteMembership = event.MembershipJoin
 	}
 	for _, userID := range invite {
-		portal.bridge.StateStore.SetMembership(portal.MXID, userID, inviteMembership)
+		// TODO handle errors
+		portal.bridge.StateStore.SetMembership(ctx, portal.MXID, userID, inviteMembership)
 	}
 
 	if !autoJoinInvites {
 		if !portal.IsPrivateChat() {
-			portal.SyncParticipants(user, conv)
+			portal.SyncParticipants(ctx, user, conv)
 		} else {
 			if portal.bridge.Config.Bridge.Encryption.Default {
-				err = portal.bridge.Bot.EnsureJoined(portal.MXID)
+				err = portal.bridge.Bot.EnsureJoined(ctx, portal.MXID)
 				if err != nil {
 					portal.zlog.Err(err).Msg("Failed to join created portal with bridge bot for e2be")
 				}
 			}
 
-			user.UpdateDirectChats(map[id.UserID][]id.RoomID{portal.GetDMPuppet().MXID: {portal.MXID}})
+			user.UpdateDirectChats(ctx, map[id.UserID][]id.RoomID{portal.GetDMPuppet().MXID: {portal.MXID}})
 		}
-		portal.ensureUserInvited(user)
+		portal.ensureUserInvited(ctx, user)
 	}
-	user.syncChatDoublePuppetDetails(portal, conv, true)
+	user.syncChatDoublePuppetDetails(ctx, portal, conv, true)
 	allowNotify := !isFromSync
 	go portal.initialForwardBackfill(user, !conv.GetUnread(), allowNotify)
-	go portal.addToPersonalSpace(user, true)
+	go portal.addToPersonalSpace(context.TODO(), user, true)
 	return nil
 }
 
-func (portal *Portal) addToPersonalSpace(user *User, updateInfo bool) bool {
-	spaceID := user.GetSpaceRoom()
+func (portal *Portal) addToPersonalSpace(ctx context.Context, user *User, updateInfo bool) bool {
+	spaceID := user.GetSpaceRoom(ctx)
 	if len(spaceID) == 0 || portal.InSpace {
 		return false
 	}
-	_, err := portal.bridge.Bot.SendStateEvent(spaceID, event.StateSpaceChild, portal.MXID.String(), &event.SpaceChildEventContent{
+	_, err := portal.bridge.Bot.SendStateEvent(ctx, spaceID, event.StateSpaceChild, portal.MXID.String(), &event.SpaceChildEventContent{
 		Via: []string{portal.bridge.Config.Homeserver.Domain},
 	})
 	if err != nil {
@@ -1704,7 +1705,7 @@ func (portal *Portal) addToPersonalSpace(user *User, updateInfo bool) bool {
 		portal.InSpace = true
 	}
 	if updateInfo {
-		err = portal.Update(context.TODO())
+		err = portal.Update(ctx)
 		if err != nil {
 			portal.zlog.Err(err).Msg("Failed to update portal after adding to personal space")
 		}
@@ -1731,11 +1732,11 @@ func (portal *Portal) MainIntent() *appservice.IntentAPI {
 	return portal.bridge.Bot
 }
 
-func (portal *Portal) sendMainIntentMessage(content *event.MessageEventContent) (*mautrix.RespSendEvent, error) {
-	return portal.sendMessage(portal.MainIntent(), event.EventMessage, content, nil, 0)
+func (portal *Portal) sendMainIntentMessage(ctx context.Context, content *event.MessageEventContent) (*mautrix.RespSendEvent, error) {
+	return portal.sendMessage(ctx, portal.MainIntent(), event.EventMessage, content, nil, 0)
 }
 
-func (portal *Portal) encrypt(intent *appservice.IntentAPI, content *event.Content, eventType event.Type) (event.Type, error) {
+func (portal *Portal) encrypt(ctx context.Context, intent *appservice.IntentAPI, content *event.Content, eventType event.Type) (event.Type, error) {
 	if !portal.Encrypted || portal.bridge.Crypto == nil {
 		return eventType, nil
 	}
@@ -1743,26 +1744,26 @@ func (portal *Portal) encrypt(intent *appservice.IntentAPI, content *event.Conte
 	// TODO maybe the locking should be inside mautrix-go?
 	portal.encryptLock.Lock()
 	defer portal.encryptLock.Unlock()
-	err := portal.bridge.Crypto.Encrypt(portal.MXID, eventType, content)
+	err := portal.bridge.Crypto.Encrypt(ctx, portal.MXID, eventType, content)
 	if err != nil {
 		return eventType, fmt.Errorf("failed to encrypt event: %w", err)
 	}
 	return event.EventEncrypted, nil
 }
 
-func (portal *Portal) sendMessage(intent *appservice.IntentAPI, eventType event.Type, content *event.MessageEventContent, extraContent map[string]interface{}, timestamp int64) (*mautrix.RespSendEvent, error) {
+func (portal *Portal) sendMessage(ctx context.Context, intent *appservice.IntentAPI, eventType event.Type, content *event.MessageEventContent, extraContent map[string]interface{}, timestamp int64) (*mautrix.RespSendEvent, error) {
 	wrappedContent := event.Content{Parsed: content, Raw: extraContent}
 	var err error
-	eventType, err = portal.encrypt(intent, &wrappedContent, eventType)
+	eventType, err = portal.encrypt(ctx, intent, &wrappedContent, eventType)
 	if err != nil {
 		return nil, err
 	}
 
-	_, _ = intent.UserTyping(portal.MXID, false, 0)
+	_, _ = intent.UserTyping(ctx, portal.MXID, false, 0)
 	if timestamp == 0 {
-		return intent.SendMessageEvent(portal.MXID, eventType, &wrappedContent)
+		return intent.SendMessageEvent(ctx, portal.MXID, eventType, &wrappedContent)
 	} else {
-		return intent.SendMassagedMessageEvent(portal.MXID, eventType, &wrappedContent, timestamp)
+		return intent.SendMassagedMessageEvent(ctx, portal.MXID, eventType, &wrappedContent, timestamp)
 	}
 }
 
@@ -1779,7 +1780,7 @@ func (portal *Portal) encryptFileInPlace(data []byte, mimeType string) (string, 
 	return "application/octet-stream", file
 }
 
-func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, content *event.MessageEventContent) error {
+func (portal *Portal) uploadMedia(ctx context.Context, intent *appservice.IntentAPI, data []byte, content *event.MessageEventContent) error {
 	uploadMimeType, file := portal.encryptFileInPlace(data, content.Info.MimeType)
 
 	req := mautrix.ReqUploadMedia{
@@ -1788,13 +1789,13 @@ func (portal *Portal) uploadMedia(intent *appservice.IntentAPI, data []byte, con
 	}
 	var mxc id.ContentURI
 	if portal.bridge.Config.Homeserver.AsyncMedia {
-		uploaded, err := intent.UploadAsync(req)
+		uploaded, err := intent.UploadAsync(ctx, req)
 		if err != nil {
 			return err
 		}
 		mxc = uploaded.ContentURI
 	} else {
-		uploaded, err := intent.UploadMedia(req)
+		uploaded, err := intent.UploadMedia(ctx, req)
 		if err != nil {
 			return err
 		}
@@ -1906,7 +1907,7 @@ func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *
 	if url.IsEmpty() {
 		return nil, errMissingMediaURL
 	}
-	data, err := portal.MainIntent().DownloadBytesContext(ctx, url)
+	data, err := portal.MainIntent().DownloadBytes(ctx, url)
 	if err != nil {
 		return nil, exerrors.NewDualError(errMediaDownloadFailed, err)
 	}
@@ -1957,7 +1958,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	req, err := portal.convertMatrixMessage(ctx, sender, content, txnID)
 	timings.convert = time.Since(start)
 	if err != nil {
-		go ms.sendMessageMetrics(sender, evt, err, "Error converting", true)
+		go ms.sendMessageMetrics(ctx, sender, evt, err, "Error converting", true)
 		return
 	}
 	log.Debug().
@@ -1968,11 +1969,11 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	resp, err := sender.Client.SendMessage(req)
 	timings.send = time.Since(start)
 	if err != nil {
-		go ms.sendMessageMetrics(sender, evt, err, "Error sending", true)
+		go ms.sendMessageMetrics(ctx, sender, evt, err, "Error sending", true)
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
-		go ms.sendMessageMetrics(sender, evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
+		go ms.sendMessageMetrics(ctx, sender, evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
 	} else {
-		go ms.sendMessageMetrics(sender, evt, nil, "", true)
+		go ms.sendMessageMetrics(ctx, sender, evt, nil, "", true)
 	}
 }
 
@@ -2019,7 +2020,7 @@ func (portal *Portal) HandleMatrixReadReceipt(brUser bridge.User, eventID id.Eve
 
 func (portal *Portal) HandleMatrixReaction(sender *User, evt *event.Event) {
 	err := portal.handleMatrixReaction(sender, evt)
-	go portal.sendMessageMetrics(sender, evt, err, "Error sending", nil)
+	go portal.sendMessageMetrics(context.TODO(), sender, evt, err, "Error sending", nil)
 }
 
 func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error {
@@ -2070,12 +2071,12 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		existingReaction.MessageID = msg.ID
 		existingReaction.Sender = portal.OutgoingID
 	} else if sender.DoublePuppetIntent != nil {
-		_, err = sender.DoublePuppetIntent.RedactEvent(portal.MXID, existingReaction.MXID)
+		_, err = sender.DoublePuppetIntent.RedactEvent(ctx, portal.MXID, existingReaction.MXID)
 		if err != nil {
 			log.Err(err).Msg("Failed to redact old reaction with double puppet after new Matrix reaction")
 		}
 	} else {
-		_, err = portal.MainIntent().RedactEvent(portal.MXID, existingReaction.MXID)
+		_, err = portal.MainIntent().RedactEvent(ctx, portal.MXID, existingReaction.MXID)
 		if err != nil {
 			log.Err(err).Msg("Failed to redact old reaction with main intent after new Matrix reaction")
 		}
@@ -2091,7 +2092,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 
 func (portal *Portal) HandleMatrixRedaction(sender *User, evt *event.Event) {
 	err := portal.handleMatrixRedaction(sender, evt)
-	go portal.sendMessageMetrics(sender, evt, err, "Error sending", nil)
+	go portal.sendMessageMetrics(context.TODO(), sender, evt, err, "Error sending", nil)
 }
 
 func (portal *Portal) handleMatrixMessageRedaction(ctx context.Context, sender *User, redacts id.EventID) error {
@@ -2159,8 +2160,8 @@ func (portal *Portal) handleMatrixRedaction(sender *User, evt *event.Event) erro
 	return err
 }
 
-func (portal *Portal) Delete() {
-	err := portal.Portal.Delete(context.TODO())
+func (portal *Portal) Delete(ctx context.Context) {
+	err := portal.Portal.Delete(ctx)
 	if err != nil {
 		portal.zlog.Err(err).Msg("Failed to delete portal from database")
 	}
@@ -2194,7 +2195,7 @@ func (portal *Portal) RemoveMXID(ctx context.Context) {
 	}
 }
 
-func (portal *Portal) Cleanup() {
+func (portal *Portal) Cleanup(ctx context.Context) {
 	if len(portal.MXID) == 0 {
 		return
 	}
@@ -2206,13 +2207,13 @@ func (portal *Portal) Cleanup() {
 		}))
 	}
 	if portal.bridge.SpecVersions.Supports(mautrix.BeeperFeatureRoomYeeting) {
-		err := intent.BeeperDeleteRoom(portal.MXID)
+		err := intent.BeeperDeleteRoom(ctx, portal.MXID)
 		if err != nil && !errors.Is(err, mautrix.MNotFound) {
 			portal.zlog.Err(err).Msg("Failed to delete room using hungryserv yeet endpoint")
 		}
 		return
 	}
-	members, err := intent.JoinedMembers(portal.MXID)
+	members, err := intent.JoinedMembers(ctx, portal.MXID)
 	if err != nil {
 		portal.zlog.Err(err).Msg("Failed to get portal members for cleanup")
 		return
@@ -2222,18 +2223,18 @@ func (portal *Portal) Cleanup() {
 			continue
 		}
 		if portal.bridge.IsGhost(member) {
-			_, err = portal.bridge.AS.Intent(member).LeaveRoom(portal.MXID)
+			_, err = portal.bridge.AS.Intent(member).LeaveRoom(ctx, portal.MXID)
 			if err != nil {
 				portal.zlog.Err(err).Msg("Failed to leave as puppet while cleaning up portal")
 			}
 		} else {
-			_, err = intent.KickUser(portal.MXID, &mautrix.ReqKickUser{UserID: member, Reason: "Deleting portal"})
+			_, err = intent.KickUser(ctx, portal.MXID, &mautrix.ReqKickUser{UserID: member, Reason: "Deleting portal"})
 			if err != nil {
 				portal.zlog.Err(err).Msg("Failed to kick user while cleaning up portal")
 			}
 		}
 	}
-	_, err = intent.LeaveRoom(portal.MXID)
+	_, err = intent.LeaveRoom(ctx, portal.MXID)
 	if err != nil {
 		portal.zlog.Err(err).Msg("Failed to leave with main intent while cleaning up portal")
 	}

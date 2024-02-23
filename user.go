@@ -239,7 +239,7 @@ func (br *GMBridge) NewUser(dbUser *database.User) *User {
 	return user
 }
 
-func (user *User) ensureInvited(intent *appservice.IntentAPI, roomID id.RoomID, isDirect bool) (ok bool) {
+func (user *User) ensureInvited(ctx context.Context, intent *appservice.IntentAPI, roomID id.RoomID, isDirect bool) (ok bool) {
 	extraContent := make(map[string]any)
 	if isDirect {
 		extraContent["is_direct"] = true
@@ -247,10 +247,11 @@ func (user *User) ensureInvited(intent *appservice.IntentAPI, roomID id.RoomID, 
 	if user.DoublePuppetIntent != nil {
 		extraContent["fi.mau.will_auto_accept"] = true
 	}
-	_, err := intent.InviteUser(roomID, &mautrix.ReqInviteUser{UserID: user.MXID}, extraContent)
+	_, err := intent.InviteUser(ctx, roomID, &mautrix.ReqInviteUser{UserID: user.MXID}, extraContent)
 	var httpErr mautrix.HTTPError
 	if err != nil && errors.As(err, &httpErr) && httpErr.RespError != nil && strings.Contains(httpErr.RespError.Err, "is already in the room") {
-		user.bridge.StateStore.SetMembership(roomID, user.MXID, event.MembershipJoin)
+		// TODO log errors from SetMembership
+		user.bridge.StateStore.SetMembership(ctx, roomID, user.MXID, event.MembershipJoin)
 		ok = true
 		return
 	} else if err != nil {
@@ -260,7 +261,7 @@ func (user *User) ensureInvited(intent *appservice.IntentAPI, roomID id.RoomID, 
 	}
 
 	if user.DoublePuppetIntent != nil {
-		err = user.DoublePuppetIntent.EnsureJoined(roomID, appservice.EnsureJoinedParams{IgnoreCache: true})
+		err = user.DoublePuppetIntent.EnsureJoined(ctx, roomID, appservice.EnsureJoinedParams{IgnoreCache: true})
 		if err != nil {
 			user.zlog.Warn().Err(err).Str("room_id", roomID.String()).Msg("Failed to auto-join room")
 			ok = false
@@ -271,7 +272,7 @@ func (user *User) ensureInvited(intent *appservice.IntentAPI, roomID id.RoomID, 
 	return
 }
 
-func (user *User) GetSpaceRoom() id.RoomID {
+func (user *User) GetSpaceRoom(ctx context.Context) id.RoomID {
 	if !user.bridge.Config.Bridge.PersonalFilteringSpaces {
 		return ""
 	}
@@ -283,7 +284,7 @@ func (user *User) GetSpaceRoom() id.RoomID {
 			return user.SpaceRoom
 		}
 
-		resp, err := user.bridge.Bot.CreateRoom(&mautrix.ReqCreateRoom{
+		resp, err := user.bridge.Bot.CreateRoom(ctx, &mautrix.ReqCreateRoom{
 			Visibility: "private",
 			Name:       "Google Messages",
 			Topic:      "Your Google Messages bridged chats",
@@ -314,17 +315,17 @@ func (user *User) GetSpaceRoom() id.RoomID {
 			if err != nil {
 				user.zlog.Err(err).Msg("Failed to update database after creating space room")
 			}
-			user.ensureInvited(user.bridge.Bot, user.SpaceRoom, false)
+			user.ensureInvited(ctx, user.bridge.Bot, user.SpaceRoom, false)
 		}
-	} else if !user.spaceMembershipChecked && !user.bridge.StateStore.IsInRoom(user.SpaceRoom, user.MXID) {
-		user.ensureInvited(user.bridge.Bot, user.SpaceRoom, false)
+	} else if !user.spaceMembershipChecked && !user.bridge.StateStore.IsInRoom(ctx, user.SpaceRoom, user.MXID) {
+		user.ensureInvited(ctx, user.bridge.Bot, user.SpaceRoom, false)
 	}
 	user.spaceMembershipChecked = true
 
 	return user.SpaceRoom
 }
 
-func (user *User) GetManagementRoom() id.RoomID {
+func (user *User) GetManagementRoom(ctx context.Context) id.RoomID {
 	if len(user.ManagementRoom) == 0 {
 		user.mgmtCreateLock.Lock()
 		defer user.mgmtCreateLock.Unlock()
@@ -335,7 +336,7 @@ func (user *User) GetManagementRoom() id.RoomID {
 		if !user.bridge.Config.Bridge.FederateRooms {
 			creationContent["m.federate"] = false
 		}
-		resp, err := user.bridge.Bot.CreateRoom(&mautrix.ReqCreateRoom{
+		resp, err := user.bridge.Bot.CreateRoom(ctx, &mautrix.ReqCreateRoom{
 			Topic:           "Google Messages bridge notices",
 			IsDirect:        true,
 			CreationContent: creationContent,
@@ -354,10 +355,11 @@ func (user *User) SetManagementRoom(roomID id.RoomID) {
 		Str("management_room_id", roomID.String()).
 		Str("action", "SetManagementRoom").
 		Logger()
+	ctx := context.TODO()
 	existingUser, ok := user.bridge.managementRooms[roomID]
 	if ok {
 		existingUser.ManagementRoom = ""
-		err := existingUser.Update(context.TODO())
+		err := existingUser.Update(ctx)
 		if err != nil {
 			log.Err(err).
 				Str("prev_user_id", existingUser.MXID.String()).
@@ -367,7 +369,7 @@ func (user *User) SetManagementRoom(roomID id.RoomID) {
 
 	user.ManagementRoom = roomID
 	user.bridge.managementRooms[user.ManagementRoom] = user
-	err := user.Update(context.TODO())
+	err := user.Update(ctx)
 	if err != nil {
 		log.Err(err).Msg("Failed to update database with management room ID")
 	}
@@ -611,7 +613,7 @@ func (user *User) IsLoggedIn() bool {
 	return user.IsConnected() && user.Client.IsLoggedIn()
 }
 
-func (user *User) sendMarkdownBridgeAlert(important bool, formatString string, args ...interface{}) {
+func (user *User) sendMarkdownBridgeAlert(ctx context.Context, important bool, formatString string, args ...interface{}) {
 	if user.bridge.Config.Bridge.DisableBridgeAlerts {
 		return
 	}
@@ -620,13 +622,14 @@ func (user *User) sendMarkdownBridgeAlert(important bool, formatString string, a
 	if !important {
 		content.MsgType = event.MsgNotice
 	}
-	_, err := user.bridge.Bot.SendMessageEvent(user.GetManagementRoom(), event.EventMessage, content)
+	_, err := user.bridge.Bot.SendMessageEvent(ctx, user.GetManagementRoom(ctx), event.EventMessage, content)
 	if err != nil {
 		user.zlog.Warn().Err(err).Str("notice", notice).Msg("Failed to send bridge alert")
 	}
 }
 
 func (user *User) syncHandleEvent(event any) {
+	ctx := context.TODO()
 	switch v := event.(type) {
 	case *events.ListenFatalError:
 		go user.Logout(status.BridgeState{
@@ -634,7 +637,7 @@ func (user *User) syncHandleEvent(event any) {
 			Error:      GMFatalError,
 			Info:       map[string]any{"go_error": v.Error.Error()},
 		}, false)
-		go user.sendMarkdownBridgeAlert(true, "Fatal error while listening to Google Messages: %v - Log in again to continue using the bridge", v.Error)
+		go user.sendMarkdownBridgeAlert(ctx, true, "Fatal error while listening to Google Messages: %v - Log in again to continue using the bridge", v.Error)
 	case *events.ListenTemporaryError:
 		user.longPollingError = v.Error
 		user.BridgeState.Send(status.BridgeState{
@@ -643,14 +646,14 @@ func (user *User) syncHandleEvent(event any) {
 			Info:       map[string]any{"go_error": v.Error.Error()},
 		})
 		if !user.pollErrorAlertSent {
-			go user.sendMarkdownBridgeAlert(false, "Temporary error while listening to Google Messages: %v", v.Error)
+			go user.sendMarkdownBridgeAlert(ctx, false, "Temporary error while listening to Google Messages: %v", v.Error)
 			user.pollErrorAlertSent = true
 		}
 	case *events.ListenRecovered:
 		user.longPollingError = nil
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		if user.pollErrorAlertSent {
-			go user.sendMarkdownBridgeAlert(false, "Reconnected to Google Messages")
+			go user.sendMarkdownBridgeAlert(ctx, false, "Reconnected to Google Messages")
 			user.pollErrorAlertSent = false
 		}
 	case *events.PhoneNotResponding:
@@ -658,14 +661,14 @@ func (user *User) syncHandleEvent(event any) {
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		// TODO make this properly configurable
 		if user.zlog.Trace().Enabled() && !user.phoneNotRespondingAlertSent {
-			go user.sendMarkdownBridgeAlert(false, "Phone is not responding")
+			go user.sendMarkdownBridgeAlert(ctx, false, "Phone is not responding")
 			user.phoneNotRespondingAlertSent = true
 		}
 	case *events.PhoneRespondingAgain:
 		user.phoneResponding = true
 		user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		if user.phoneNotRespondingAlertSent {
-			go user.sendMarkdownBridgeAlert(false, "Phone is responding again")
+			go user.sendMarkdownBridgeAlert(ctx, false, "Phone is responding again")
 			user.phoneNotRespondingAlertSent = false
 		}
 	case *events.PingFailed:
@@ -710,14 +713,14 @@ func (user *User) syncHandleEvent(event any) {
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
 		}, false)
-		go user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
+		go user.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.GaiaLoggedOut:
 		user.zlog.Info().Msg("Got gaia logout event")
 		go user.Logout(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
 		}, false)
-		go user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
+		go user.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
 		go func() {
 			err := user.Update(context.TODO())
@@ -755,14 +758,14 @@ func (user *User) ResetState() {
 	portals := user.bridge.GetAllPortalsForUser(user.RowID)
 	user.zlog.Debug().Int("portal_count", len(portals)).Msg("Deleting portals")
 	for _, portal := range portals {
-		portal.Delete()
+		portal.Delete(context.TODO())
 	}
 	user.bridge.DeleteAllPuppetsForUser(user.RowID)
 	user.PhoneID = ""
 	go func() {
 		user.zlog.Debug().Msg("Cleaning up portal rooms in background")
 		for _, portal := range portals {
-			portal.Cleanup()
+			portal.Cleanup(context.TODO())
 		}
 		user.zlog.Debug().Msg("Finished cleaning up portals")
 	}()
@@ -810,11 +813,12 @@ func (user *User) handleAccountChange(v *events.AccountChange) {
 		Bool("fake", v.IsFake).
 		Msg("Got account change event")
 	user.switchedToGoogleLogin = v.GetEnabled() || v.IsFake
+	ctx := context.TODO()
 	if !v.IsFake {
 		if user.switchedToGoogleLogin {
-			go user.sendMarkdownBridgeAlert(true, "Switched to Google account pairing, please switch back or relogin with `login-google`.")
+			go user.sendMarkdownBridgeAlert(ctx, true, "Switched to Google account pairing, please switch back or relogin with `login-google`.")
 		} else {
-			go user.sendMarkdownBridgeAlert(false, "Switched back to QR pairing, bridge should be reconnected")
+			go user.sendMarkdownBridgeAlert(ctx, false, "Switched back to QR pairing, bridge should be reconnected")
 			// Assume connection is ready now even if it wasn't before
 			user.ready = true
 		}
@@ -823,6 +827,7 @@ func (user *User) handleAccountChange(v *events.AccountChange) {
 }
 
 func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
+	ctx := context.TODO()
 	user.zlog.Debug().Str("alert_type", v.GetAlertType().String()).Msg("Got user alert event")
 	becameInactive := false
 	switch v.GetAlertType() {
@@ -842,7 +847,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 				Msg("Session ID changed for browser active event, resyncing")
 			user.sessionID = newSessionID
 			go user.fetchAndSyncConversations()
-			go user.sendMarkdownBridgeAlert(false, "Connected to Google Messages")
+			go user.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
 		} else {
 			user.zlog.Debug().
 				Str("session_id", user.sessionID).
@@ -861,13 +866,13 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	case gmproto.AlertType_MOBILE_BATTERY_LOW:
 		user.batteryLow = true
 		if time.Since(user.batteryLowAlertSent) > 30*time.Minute {
-			go user.sendMarkdownBridgeAlert(true, "Your phone's battery is low")
+			go user.sendMarkdownBridgeAlert(ctx, true, "Your phone's battery is low")
 			user.batteryLowAlertSent = time.Now()
 		}
 	case gmproto.AlertType_MOBILE_BATTERY_RESTORED:
 		user.batteryLow = false
 		if !user.batteryLowAlertSent.IsZero() {
-			go user.sendMarkdownBridgeAlert(false, "Phone battery restored")
+			go user.sendMarkdownBridgeAlert(ctx, false, "Phone battery restored")
 			user.batteryLowAlertSent = time.Time{}
 		}
 	default:
@@ -877,7 +882,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		if user.bridge.Config.GoogleMessages.AggressiveReconnect {
 			go user.aggressiveSetActive()
 		} else {
-			go user.sendMarkdownBridgeAlert(true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
+			go user.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
 		}
 	}
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
@@ -1003,12 +1008,13 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		Str("data_source", source).
 		Interface("conversation_data", convCopy).
 		Logger()
+	ctx := log.WithContext(context.TODO())
 	if cancel := portal.cancelCreation.Load(); cancel != nil {
 		if updateType == gmproto.ConversationStatus_SPAM_FOLDER || updateType == gmproto.ConversationStatus_BLOCKED_FOLDER {
 			(*cancel)(fmt.Errorf("conversation was moved to spam"))
 		} else if updateType == gmproto.ConversationStatus_DELETED {
 			(*cancel)(fmt.Errorf("conversation was deleted"))
-			portal.Delete()
+			portal.Delete(ctx)
 		} else {
 			log.Debug().Msg("Conversation creation is still pending, ignoring new sync event")
 			return
@@ -1018,11 +1024,11 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		switch updateType {
 		case gmproto.ConversationStatus_DELETED:
 			log.Info().Msg("Got delete event, cleaning up portal")
-			portal.Delete()
-			portal.Cleanup()
+			portal.Delete(ctx)
+			portal.Cleanup(ctx)
 		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER:
 			log.Info().Msg("Got spam/block event, cleaning up portal")
-			portal.Cleanup()
+			portal.Cleanup(ctx)
 			portal.RemoveMXID(context.TODO())
 		default:
 			if v.Participants == nil {
@@ -1033,9 +1039,10 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 				return
 			}
 			log.Debug().Msg("Syncing existing portal")
-			portal.UpdateMetadata(user, v)
-			user.syncChatDoublePuppetDetails(portal, v, false)
+			portal.UpdateMetadata(ctx, user, v)
+			user.syncChatDoublePuppetDetails(ctx, portal, v, false)
 			go portal.missedForwardBackfill(
+				ctx,
 				user,
 				time.UnixMicro(v.LastMessageTimestamp),
 				v.LatestMessageID,
@@ -1064,14 +1071,14 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 					log.Debug().Err(ctx.Err()).Msg("Portal creation was cancelled")
 					return
 				}
-				err := portal.CreateMatrixRoom(user, v, source == "sync")
+				err := portal.CreateMatrixRoom(ctx, user, v, source == "sync")
 				if err != nil {
 					log.Err(err).Msg("Error creating Matrix room from conversation event")
 				}
 			}()
 		} else {
 			log.Debug().Msg("Creating portal for conversation")
-			err := portal.CreateMatrixRoom(user, v, source == "sync")
+			err := portal.CreateMatrixRoom(ctx, user, v, source == "sync")
 			if err != nil {
 				log.Err(err).Msg("Error creating Matrix room from conversation event")
 			}
@@ -1081,7 +1088,7 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 	}
 }
 
-func (user *User) updateChatMute(portal *Portal, mutedUntil time.Time) {
+func (user *User) updateChatMute(ctx context.Context, portal *Portal, mutedUntil time.Time) {
 	intent := user.DoublePuppetIntent
 	if intent == nil || len(portal.MXID) == 0 {
 		return
@@ -1089,10 +1096,10 @@ func (user *User) updateChatMute(portal *Portal, mutedUntil time.Time) {
 	var err error
 	if mutedUntil.IsZero() && mutedUntil.Before(time.Now()) {
 		user.log.Debugfln("Portal %s is muted until %s, unmuting...", portal.MXID, mutedUntil)
-		err = intent.DeletePushRule("global", pushrules.RoomRule, string(portal.MXID))
+		err = intent.DeletePushRule(ctx, "global", pushrules.RoomRule, string(portal.MXID))
 	} else {
 		user.log.Debugfln("Portal %s is muted until %s, muting...", portal.MXID, mutedUntil)
-		err = intent.PutPushRule("global", pushrules.RoomRule, string(portal.MXID), &mautrix.ReqPutPushRule{
+		err = intent.PutPushRule(ctx, "global", pushrules.RoomRule, string(portal.MXID), &mautrix.ReqPutPushRule{
 			Actions: []pushrules.PushActionType{pushrules.ActionDontNotify},
 		})
 	}
@@ -1110,16 +1117,16 @@ type CustomTagEventContent struct {
 	Tags map[string]CustomTagData `json:"tags"`
 }
 
-func (user *User) updateChatTag(portal *Portal, tag string, active bool, existingTags CustomTagEventContent) {
+func (user *User) updateChatTag(ctx context.Context, portal *Portal, tag string, active bool, existingTags CustomTagEventContent) {
 	var err error
 	currentTag, ok := existingTags.Tags[tag]
 	if active && !ok {
 		user.zlog.Debug().Str("tag", tag).Str("room_id", portal.MXID.String()).Msg("Adding room tag")
 		data := CustomTagData{Order: "0.5", DoublePuppet: user.bridge.Name}
-		err = user.DoublePuppetIntent.AddTagWithCustomData(portal.MXID, tag, &data)
+		err = user.DoublePuppetIntent.AddTagWithCustomData(ctx, portal.MXID, tag, &data)
 	} else if !active && ok && currentTag.DoublePuppet == user.bridge.Name {
 		user.zlog.Debug().Str("tag", tag).Str("room_id", portal.MXID.String()).Msg("Removing room tag")
-		err = user.DoublePuppetIntent.RemoveTag(portal.MXID, tag)
+		err = user.DoublePuppetIntent.RemoveTag(ctx, portal.MXID, tag)
 	} else {
 		err = nil
 	}
@@ -1139,11 +1146,10 @@ type CustomReadMarkers struct {
 	FullyReadExtra CustomReadReceipt `json:"com.beeper.fully_read.extra"`
 }
 
-func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
+func (user *User) markSelfReadFull(ctx context.Context, portal *Portal, lastMessageID string) {
 	if user.DoublePuppetIntent == nil || portal.lastUserReadID == lastMessageID {
 		return
 	}
-	ctx := context.TODO()
 	lastMessage, err := user.bridge.DB.Message.GetByID(ctx, portal.Receiver, lastMessageID)
 	if err == nil && lastMessage == nil || lastMessage.IsFakeMXID() {
 		lastMessage, err = user.bridge.DB.Message.GetLastInChatWithMXID(ctx, portal.Key)
@@ -1160,7 +1166,7 @@ func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
 		Str("room_id", portal.ID).
 		Str("event_id", lastMessage.MXID.String()).
 		Logger()
-	err = user.DoublePuppetIntent.SetReadMarkers(portal.MXID, &CustomReadMarkers{
+	err = user.DoublePuppetIntent.SetReadMarkers(ctx, portal.MXID, &CustomReadMarkers{
 		ReqSetReadMarkers: mautrix.ReqSetReadMarkers{
 			Read:      lastMessage.MXID,
 			FullyRead: lastMessage.MXID,
@@ -1176,22 +1182,22 @@ func (user *User) markSelfReadFull(portal *Portal, lastMessageID string) {
 	}
 }
 
-func (user *User) syncChatDoublePuppetDetails(portal *Portal, conv *gmproto.Conversation, justCreated bool) {
+func (user *User) syncChatDoublePuppetDetails(ctx context.Context, portal *Portal, conv *gmproto.Conversation, justCreated bool) {
 	if user.DoublePuppetIntent == nil || len(portal.MXID) == 0 {
 		return
 	}
 	if justCreated || !user.bridge.Config.Bridge.TagOnlyOnCreate {
 		var existingTags CustomTagEventContent
-		err := user.DoublePuppetIntent.GetTagsWithCustomData(portal.MXID, &existingTags)
+		err := user.DoublePuppetIntent.GetTagsWithCustomData(ctx, portal.MXID, &existingTags)
 		if err != nil && !errors.Is(err, mautrix.MNotFound) {
 			user.zlog.Warn().Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to get existing room tags")
 		}
-		user.updateChatTag(portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED, existingTags)
-		user.updateChatTag(portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned, existingTags)
+		user.updateChatTag(ctx, portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED, existingTags)
+		user.updateChatTag(ctx, portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned, existingTags)
 	}
 }
 
-func (user *User) UpdateDirectChats(chats map[id.UserID][]id.RoomID) {
+func (user *User) UpdateDirectChats(ctx context.Context, chats map[id.UserID][]id.RoomID) {
 	if !user.bridge.Config.Bridge.SyncDirectChatList || user.DoublePuppetIntent == nil {
 		return
 	}
@@ -1205,7 +1211,7 @@ func (user *User) UpdateDirectChats(chats map[id.UserID][]id.RoomID) {
 	var err error
 	if user.bridge.Config.Homeserver.Software == bridgeconfig.SoftwareAsmux {
 		urlPath := intent.BuildClientURL("unstable", "com.beeper.asmux", "dms")
-		_, err = intent.MakeFullRequest(mautrix.FullRequest{
+		_, err = intent.MakeFullRequest(ctx, mautrix.FullRequest{
 			Method:      method,
 			URL:         urlPath,
 			Headers:     http.Header{"X-Asmux-Auth": {user.bridge.AS.Registration.AppToken}},
@@ -1213,7 +1219,7 @@ func (user *User) UpdateDirectChats(chats map[id.UserID][]id.RoomID) {
 		})
 	} else {
 		existingChats := make(map[id.UserID][]id.RoomID)
-		err = intent.GetAccountData(event.AccountDataDirectChats.Type, &existingChats)
+		err = intent.GetAccountData(ctx, event.AccountDataDirectChats.Type, &existingChats)
 		if err != nil {
 			user.log.Warnln("Failed to get m.direct list to update it:", err)
 			return
@@ -1227,21 +1233,21 @@ func (user *User) UpdateDirectChats(chats map[id.UserID][]id.RoomID) {
 				chats[userID] = rooms
 			}
 		}
-		err = intent.SetAccountData(event.AccountDataDirectChats.Type, &chats)
+		err = intent.SetAccountData(ctx, event.AccountDataDirectChats.Type, &chats)
 	}
 	if err != nil {
 		user.log.Warnln("Failed to update m.direct list:", err)
 	}
 }
 
-func (user *User) markUnread(portal *Portal, unread bool) {
+func (user *User) markUnread(ctx context.Context, portal *Portal, unread bool) {
 	if user.DoublePuppetIntent == nil {
 		return
 	}
 
 	log := user.zlog.With().Str("room_id", portal.MXID.String()).Logger()
 
-	err := user.DoublePuppetIntent.SetRoomAccountData(portal.MXID, "m.marked_unread", map[string]bool{"unread": unread})
+	err := user.DoublePuppetIntent.SetRoomAccountData(ctx, portal.MXID, "m.marked_unread", map[string]bool{"unread": unread})
 	if err != nil {
 		log.Warn().Err(err).Str("event_type", "m.marked_unread").
 			Msg("Failed to mark room as unread")
@@ -1249,7 +1255,7 @@ func (user *User) markUnread(portal *Portal, unread bool) {
 		log.Debug().Str("event_type", "m.marked_unread").Msg("Marked room as unread")
 	}
 
-	err = user.DoublePuppetIntent.SetRoomAccountData(portal.MXID, "com.famedly.marked_unread", map[string]bool{"unread": unread})
+	err = user.DoublePuppetIntent.SetRoomAccountData(ctx, portal.MXID, "com.famedly.marked_unread", map[string]bool{"unread": unread})
 	if err != nil {
 		log.Warn().Err(err).Str("event_type", "com.famedly.marked_unread").
 			Msg("Failed to mark room as unread")
