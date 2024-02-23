@@ -534,7 +534,7 @@ func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(stri
 		user.unlockedDeleteConnection()
 		user.pairSuccessChan = nil
 		user.loginInProgress.Store(false)
-		return fmt.Errorf("failed to connect to Google Messages: %w", err)
+		return err
 	}
 	return nil
 }

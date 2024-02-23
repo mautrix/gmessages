@@ -168,6 +168,7 @@ func (c *Client) postConnect() {
 		})
 		return
 	}
+	c.Logger.Debug().Msg("Sent set active session/get updates request")
 	if c.AuthData.Mobile.Network != util.QRNetwork {
 		// Don't check bugle default unless using bugle
 		return
