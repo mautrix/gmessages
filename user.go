@@ -812,9 +812,9 @@ func (user *User) handleAccountChange(v *events.AccountChange) {
 	user.switchedToGoogleLogin = v.GetEnabled() || v.IsFake
 	if !v.IsFake {
 		if user.switchedToGoogleLogin {
-			go user.sendMarkdownBridgeAlert(true, "The bridge will not work when the account-based pairing method is enabled in the Google Messages app. Unlink other devices and switch back to the QR code method to continue using the bridge.")
+			go user.sendMarkdownBridgeAlert(true, "Switched to Google account pairing, please switch back or relogin with `login-google`.")
 		} else {
-			go user.sendMarkdownBridgeAlert(false, "Switched back to QR pairing, bridge should work now")
+			go user.sendMarkdownBridgeAlert(false, "Switched back to QR pairing, bridge should be reconnected")
 			// Assume connection is ready now even if it wasn't before
 			user.ready = true
 		}
