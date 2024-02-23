@@ -35,6 +35,8 @@ type AuthData struct {
 	WebEncryptionKey []byte `json:"web_encryption_key,omitempty"`
 
 	SessionID uuid.UUID         `json:"session_id,omitempty"`
+	DestRegID uuid.UUID         `json:"dest_reg_id,omitempty"`
+	PairingID uuid.UUID         `json:"pairing_id,omitempty"`
 	Cookies   map[string]string `json:"cookies,omitempty"`
 }
 

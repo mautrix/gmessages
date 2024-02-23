@@ -498,10 +498,10 @@ type GaiaPairingRequestContainer struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	PairingUUID    string          `protobuf:"bytes,1,opt,name=pairingUUID,proto3" json:"pairingUUID,omitempty"`
-	BrowserDetails *BrowserDetails `protobuf:"bytes,2,opt,name=browserDetails,proto3" json:"browserDetails,omitempty"`
-	StartTimestamp int64           `protobuf:"varint,3,opt,name=startTimestamp,proto3" json:"startTimestamp,omitempty"`
-	Data           []byte          `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	PairingAttemptID string          `protobuf:"bytes,1,opt,name=pairingAttemptID,proto3" json:"pairingAttemptID,omitempty"`
+	BrowserDetails   *BrowserDetails `protobuf:"bytes,2,opt,name=browserDetails,proto3" json:"browserDetails,omitempty"`
+	StartTimestamp   int64           `protobuf:"varint,3,opt,name=startTimestamp,proto3" json:"startTimestamp,omitempty"`
+	Data             []byte          `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (x *GaiaPairingRequestContainer) Reset() {
@@ -536,9 +536,9 @@ func (*GaiaPairingRequestContainer) Descriptor() ([]byte, []int) {
 	return file_authentication_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GaiaPairingRequestContainer) GetPairingUUID() string {
+func (x *GaiaPairingRequestContainer) GetPairingAttemptID() string {
 	if x != nil {
-		return x.PairingUUID
+		return x.PairingAttemptID
 	}
 	return ""
 }
@@ -643,6 +643,53 @@ func (x *GaiaPairingResponseContainer) GetData() []byte {
 	return nil
 }
 
+type RevokeGaiaPairingRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PairingAttemptID string `protobuf:"bytes,1,opt,name=pairingAttemptID,proto3" json:"pairingAttemptID,omitempty"`
+}
+
+func (x *RevokeGaiaPairingRequest) Reset() {
+	*x = RevokeGaiaPairingRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authentication_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RevokeGaiaPairingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeGaiaPairingRequest) ProtoMessage() {}
+
+func (x *RevokeGaiaPairingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeGaiaPairingRequest.ProtoReflect.Descriptor instead.
+func (*RevokeGaiaPairingRequest) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RevokeGaiaPairingRequest) GetPairingAttemptID() string {
+	if x != nil {
+		return x.PairingAttemptID
+	}
+	return ""
+}
+
 type RPCGaiaData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -655,7 +702,7 @@ type RPCGaiaData struct {
 func (x *RPCGaiaData) Reset() {
 	*x = RPCGaiaData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[7]
+		mi := &file_authentication_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -668,7 +715,7 @@ func (x *RPCGaiaData) String() string {
 func (*RPCGaiaData) ProtoMessage() {}
 
 func (x *RPCGaiaData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[7]
+	mi := &file_authentication_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -681,7 +728,7 @@ func (x *RPCGaiaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCGaiaData.ProtoReflect.Descriptor instead.
 func (*RPCGaiaData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7}
+	return file_authentication_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RPCGaiaData) GetCommand() int32 {
@@ -715,7 +762,7 @@ type AuthenticationContainer struct {
 func (x *AuthenticationContainer) Reset() {
 	*x = AuthenticationContainer{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[8]
+		mi := &file_authentication_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -728,7 +775,7 @@ func (x *AuthenticationContainer) String() string {
 func (*AuthenticationContainer) ProtoMessage() {}
 
 func (x *AuthenticationContainer) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[8]
+	mi := &file_authentication_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -741,7 +788,7 @@ func (x *AuthenticationContainer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticationContainer.ProtoReflect.Descriptor instead.
 func (*AuthenticationContainer) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{8}
+	return file_authentication_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AuthenticationContainer) GetAuthMessage() *AuthMessage {
@@ -809,7 +856,7 @@ type AuthMessage struct {
 func (x *AuthMessage) Reset() {
 	*x = AuthMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[9]
+		mi := &file_authentication_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -822,7 +869,7 @@ func (x *AuthMessage) String() string {
 func (*AuthMessage) ProtoMessage() {}
 
 func (x *AuthMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[9]
+	mi := &file_authentication_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -835,7 +882,7 @@ func (x *AuthMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthMessage.ProtoReflect.Descriptor instead.
 func (*AuthMessage) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{9}
+	return file_authentication_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AuthMessage) GetRequestID() string {
@@ -878,7 +925,7 @@ type RevokeRelayPairingRequest struct {
 func (x *RevokeRelayPairingRequest) Reset() {
 	*x = RevokeRelayPairingRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[10]
+		mi := &file_authentication_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -891,7 +938,7 @@ func (x *RevokeRelayPairingRequest) String() string {
 func (*RevokeRelayPairingRequest) ProtoMessage() {}
 
 func (x *RevokeRelayPairingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[10]
+	mi := &file_authentication_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +951,7 @@ func (x *RevokeRelayPairingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeRelayPairingRequest.ProtoReflect.Descriptor instead.
 func (*RevokeRelayPairingRequest) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{10}
+	return file_authentication_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RevokeRelayPairingRequest) GetAuthMessage() *AuthMessage {
@@ -930,7 +977,7 @@ type RevokeRelayPairingResponse struct {
 func (x *RevokeRelayPairingResponse) Reset() {
 	*x = RevokeRelayPairingResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[11]
+		mi := &file_authentication_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -943,7 +990,7 @@ func (x *RevokeRelayPairingResponse) String() string {
 func (*RevokeRelayPairingResponse) ProtoMessage() {}
 
 func (x *RevokeRelayPairingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[11]
+	mi := &file_authentication_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -956,7 +1003,7 @@ func (x *RevokeRelayPairingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeRelayPairingResponse.ProtoReflect.Descriptor instead.
 func (*RevokeRelayPairingResponse) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{11}
+	return file_authentication_proto_rawDescGZIP(), []int{12}
 }
 
 type RegisterRefreshRequest struct {
@@ -975,7 +1022,7 @@ type RegisterRefreshRequest struct {
 func (x *RegisterRefreshRequest) Reset() {
 	*x = RegisterRefreshRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[12]
+		mi := &file_authentication_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -988,7 +1035,7 @@ func (x *RegisterRefreshRequest) String() string {
 func (*RegisterRefreshRequest) ProtoMessage() {}
 
 func (x *RegisterRefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[12]
+	mi := &file_authentication_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1001,7 +1048,7 @@ func (x *RegisterRefreshRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterRefreshRequest.ProtoReflect.Descriptor instead.
 func (*RegisterRefreshRequest) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{12}
+	return file_authentication_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RegisterRefreshRequest) GetMessageAuth() *AuthMessage {
@@ -1057,7 +1104,7 @@ type RegisterRefreshResponse struct {
 func (x *RegisterRefreshResponse) Reset() {
 	*x = RegisterRefreshResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[13]
+		mi := &file_authentication_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1070,7 +1117,7 @@ func (x *RegisterRefreshResponse) String() string {
 func (*RegisterRefreshResponse) ProtoMessage() {}
 
 func (x *RegisterRefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[13]
+	mi := &file_authentication_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1083,7 +1130,7 @@ func (x *RegisterRefreshResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterRefreshResponse.ProtoReflect.Descriptor instead.
 func (*RegisterRefreshResponse) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{13}
+	return file_authentication_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RegisterRefreshResponse) GetTokenData() *TokenData {
@@ -1109,7 +1156,7 @@ type RegisterPhoneRelayResponse struct {
 func (x *RegisterPhoneRelayResponse) Reset() {
 	*x = RegisterPhoneRelayResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[14]
+		mi := &file_authentication_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1122,7 +1169,7 @@ func (x *RegisterPhoneRelayResponse) String() string {
 func (*RegisterPhoneRelayResponse) ProtoMessage() {}
 
 func (x *RegisterPhoneRelayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[14]
+	mi := &file_authentication_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1135,7 +1182,7 @@ func (x *RegisterPhoneRelayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterPhoneRelayResponse.ProtoReflect.Descriptor instead.
 func (*RegisterPhoneRelayResponse) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{14}
+	return file_authentication_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RegisterPhoneRelayResponse) GetCoordinates() *CoordinateMessage {
@@ -1191,7 +1238,7 @@ type CoordinateMessage struct {
 func (x *CoordinateMessage) Reset() {
 	*x = CoordinateMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[15]
+		mi := &file_authentication_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1204,7 +1251,7 @@ func (x *CoordinateMessage) String() string {
 func (*CoordinateMessage) ProtoMessage() {}
 
 func (x *CoordinateMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[15]
+	mi := &file_authentication_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1217,7 +1264,7 @@ func (x *CoordinateMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoordinateMessage.ProtoReflect.Descriptor instead.
 func (*CoordinateMessage) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{15}
+	return file_authentication_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CoordinateMessage) GetCoord1() int64 {
@@ -1240,7 +1287,7 @@ type RefreshPhoneRelayResponse struct {
 func (x *RefreshPhoneRelayResponse) Reset() {
 	*x = RefreshPhoneRelayResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[16]
+		mi := &file_authentication_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1253,7 +1300,7 @@ func (x *RefreshPhoneRelayResponse) String() string {
 func (*RefreshPhoneRelayResponse) ProtoMessage() {}
 
 func (x *RefreshPhoneRelayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[16]
+	mi := &file_authentication_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1266,7 +1313,7 @@ func (x *RefreshPhoneRelayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshPhoneRelayResponse.ProtoReflect.Descriptor instead.
 func (*RefreshPhoneRelayResponse) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{16}
+	return file_authentication_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RefreshPhoneRelayResponse) GetCoordinates() *CoordinateMessage {
@@ -1302,7 +1349,7 @@ type WebEncryptionKeyResponse struct {
 func (x *WebEncryptionKeyResponse) Reset() {
 	*x = WebEncryptionKeyResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[17]
+		mi := &file_authentication_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1315,7 +1362,7 @@ func (x *WebEncryptionKeyResponse) String() string {
 func (*WebEncryptionKeyResponse) ProtoMessage() {}
 
 func (x *WebEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[17]
+	mi := &file_authentication_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1328,7 +1375,7 @@ func (x *WebEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebEncryptionKeyResponse.ProtoReflect.Descriptor instead.
 func (*WebEncryptionKeyResponse) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{17}
+	return file_authentication_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *WebEncryptionKeyResponse) GetCoordinates() *CoordinateMessage {
@@ -1358,7 +1405,7 @@ type ErrorResponse struct {
 func (x *ErrorResponse) Reset() {
 	*x = ErrorResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[18]
+		mi := &file_authentication_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1371,7 +1418,7 @@ func (x *ErrorResponse) String() string {
 func (*ErrorResponse) ProtoMessage() {}
 
 func (x *ErrorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[18]
+	mi := &file_authentication_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1384,7 +1431,7 @@ func (x *ErrorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorResponse.ProtoReflect.Descriptor instead.
 func (*ErrorResponse) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{18}
+	return file_authentication_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ErrorResponse) GetType() int64 {
@@ -1420,7 +1467,7 @@ type ECDSAKeys struct {
 func (x *ECDSAKeys) Reset() {
 	*x = ECDSAKeys{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[19]
+		mi := &file_authentication_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1433,7 +1480,7 @@ func (x *ECDSAKeys) String() string {
 func (*ECDSAKeys) ProtoMessage() {}
 
 func (x *ECDSAKeys) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[19]
+	mi := &file_authentication_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1446,7 +1493,7 @@ func (x *ECDSAKeys) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ECDSAKeys.ProtoReflect.Descriptor instead.
 func (*ECDSAKeys) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{19}
+	return file_authentication_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ECDSAKeys) GetField1() int64 {
@@ -1474,7 +1521,7 @@ type CurrentDeviceData struct {
 func (x *CurrentDeviceData) Reset() {
 	*x = CurrentDeviceData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[20]
+		mi := &file_authentication_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1487,7 +1534,7 @@ func (x *CurrentDeviceData) String() string {
 func (*CurrentDeviceData) ProtoMessage() {}
 
 func (x *CurrentDeviceData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[20]
+	mi := &file_authentication_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1500,7 +1547,7 @@ func (x *CurrentDeviceData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentDeviceData.ProtoReflect.Descriptor instead.
 func (*CurrentDeviceData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{20}
+	return file_authentication_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CurrentDeviceData) GetBrowser() *Device {
@@ -1524,7 +1571,7 @@ type KeyData struct {
 func (x *KeyData) Reset() {
 	*x = KeyData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[21]
+		mi := &file_authentication_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1537,7 +1584,7 @@ func (x *KeyData) String() string {
 func (*KeyData) ProtoMessage() {}
 
 func (x *KeyData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[21]
+	mi := &file_authentication_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1550,7 +1597,7 @@ func (x *KeyData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyData.ProtoReflect.Descriptor instead.
 func (*KeyData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{21}
+	return file_authentication_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *KeyData) GetMobile() *Device {
@@ -1593,7 +1640,7 @@ type WebAuthKey struct {
 func (x *WebAuthKey) Reset() {
 	*x = WebAuthKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[22]
+		mi := &file_authentication_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1606,7 +1653,7 @@ func (x *WebAuthKey) String() string {
 func (*WebAuthKey) ProtoMessage() {}
 
 func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[22]
+	mi := &file_authentication_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1619,7 +1666,7 @@ func (x *WebAuthKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebAuthKey.ProtoReflect.Descriptor instead.
 func (*WebAuthKey) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{22}
+	return file_authentication_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *WebAuthKey) GetWebAuthKey() []byte {
@@ -1649,7 +1696,7 @@ type URLData struct {
 func (x *URLData) Reset() {
 	*x = URLData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[23]
+		mi := &file_authentication_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1662,7 +1709,7 @@ func (x *URLData) String() string {
 func (*URLData) ProtoMessage() {}
 
 func (x *URLData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[23]
+	mi := &file_authentication_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1675,7 +1722,7 @@ func (x *URLData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use URLData.ProtoReflect.Descriptor instead.
 func (*URLData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{23}
+	return file_authentication_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *URLData) GetPairingKey() []byte {
@@ -1711,7 +1758,7 @@ type TokenData struct {
 func (x *TokenData) Reset() {
 	*x = TokenData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[24]
+		mi := &file_authentication_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1724,7 +1771,7 @@ func (x *TokenData) String() string {
 func (*TokenData) ProtoMessage() {}
 
 func (x *TokenData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[24]
+	mi := &file_authentication_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1737,7 +1784,7 @@ func (x *TokenData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenData.ProtoReflect.Descriptor instead.
 func (*TokenData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{24}
+	return file_authentication_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *TokenData) GetTachyonAuthToken() []byte {
@@ -1767,7 +1814,7 @@ type PairedData struct {
 func (x *PairedData) Reset() {
 	*x = PairedData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[25]
+		mi := &file_authentication_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1780,7 +1827,7 @@ func (x *PairedData) String() string {
 func (*PairedData) ProtoMessage() {}
 
 func (x *PairedData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[25]
+	mi := &file_authentication_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1793,7 +1840,7 @@ func (x *PairedData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PairedData.ProtoReflect.Descriptor instead.
 func (*PairedData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{25}
+	return file_authentication_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *PairedData) GetMobile() *Device {
@@ -1828,7 +1875,7 @@ type RevokePairData struct {
 func (x *RevokePairData) Reset() {
 	*x = RevokePairData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[26]
+		mi := &file_authentication_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1841,7 +1888,7 @@ func (x *RevokePairData) String() string {
 func (*RevokePairData) ProtoMessage() {}
 
 func (x *RevokePairData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[26]
+	mi := &file_authentication_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1854,7 +1901,7 @@ func (x *RevokePairData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokePairData.ProtoReflect.Descriptor instead.
 func (*RevokePairData) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{26}
+	return file_authentication_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RevokePairData) GetRevokedDevice() *Device {
@@ -1876,7 +1923,7 @@ type SignInGaiaRequest_Inner struct {
 func (x *SignInGaiaRequest_Inner) Reset() {
 	*x = SignInGaiaRequest_Inner{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[27]
+		mi := &file_authentication_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1889,7 +1936,7 @@ func (x *SignInGaiaRequest_Inner) String() string {
 func (*SignInGaiaRequest_Inner) ProtoMessage() {}
 
 func (x *SignInGaiaRequest_Inner) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[27]
+	mi := &file_authentication_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1931,7 +1978,7 @@ type SignInGaiaRequest_Inner_DeviceID struct {
 func (x *SignInGaiaRequest_Inner_DeviceID) Reset() {
 	*x = SignInGaiaRequest_Inner_DeviceID{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[28]
+		mi := &file_authentication_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1944,7 +1991,7 @@ func (x *SignInGaiaRequest_Inner_DeviceID) String() string {
 func (*SignInGaiaRequest_Inner_DeviceID) ProtoMessage() {}
 
 func (x *SignInGaiaRequest_Inner_DeviceID) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[28]
+	mi := &file_authentication_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1985,7 +2032,7 @@ type SignInGaiaRequest_Inner_Data struct {
 func (x *SignInGaiaRequest_Inner_Data) Reset() {
 	*x = SignInGaiaRequest_Inner_Data{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[29]
+		mi := &file_authentication_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1998,7 +2045,7 @@ func (x *SignInGaiaRequest_Inner_Data) String() string {
 func (*SignInGaiaRequest_Inner_Data) ProtoMessage() {}
 
 func (x *SignInGaiaRequest_Inner_Data) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[29]
+	mi := &file_authentication_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2033,7 +2080,7 @@ type SignInGaiaResponse_Header struct {
 func (x *SignInGaiaResponse_Header) Reset() {
 	*x = SignInGaiaResponse_Header{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[30]
+		mi := &file_authentication_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2046,7 +2093,7 @@ func (x *SignInGaiaResponse_Header) String() string {
 func (*SignInGaiaResponse_Header) ProtoMessage() {}
 
 func (x *SignInGaiaResponse_Header) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[30]
+	mi := &file_authentication_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2089,7 +2136,7 @@ type SignInGaiaResponse_DeviceData struct {
 func (x *SignInGaiaResponse_DeviceData) Reset() {
 	*x = SignInGaiaResponse_DeviceData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[31]
+		mi := &file_authentication_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2102,7 +2149,7 @@ func (x *SignInGaiaResponse_DeviceData) String() string {
 func (*SignInGaiaResponse_DeviceData) ProtoMessage() {}
 
 func (x *SignInGaiaResponse_DeviceData) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[31]
+	mi := &file_authentication_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2150,7 +2197,7 @@ type SignInGaiaResponse_DeviceData_DeviceWrapper struct {
 func (x *SignInGaiaResponse_DeviceData_DeviceWrapper) Reset() {
 	*x = SignInGaiaResponse_DeviceData_DeviceWrapper{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[32]
+		mi := &file_authentication_proto_msgTypes[33]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2163,7 +2210,7 @@ func (x *SignInGaiaResponse_DeviceData_DeviceWrapper) String() string {
 func (*SignInGaiaResponse_DeviceData_DeviceWrapper) ProtoMessage() {}
 
 func (x *SignInGaiaResponse_DeviceData_DeviceWrapper) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[32]
+	mi := &file_authentication_proto_msgTypes[33]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2199,7 +2246,7 @@ type RPCGaiaData_UnknownContainer struct {
 func (x *RPCGaiaData_UnknownContainer) Reset() {
 	*x = RPCGaiaData_UnknownContainer{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[33]
+		mi := &file_authentication_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2212,7 +2259,7 @@ func (x *RPCGaiaData_UnknownContainer) String() string {
 func (*RPCGaiaData_UnknownContainer) ProtoMessage() {}
 
 func (x *RPCGaiaData_UnknownContainer) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[33]
+	mi := &file_authentication_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2225,7 +2272,7 @@ func (x *RPCGaiaData_UnknownContainer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCGaiaData_UnknownContainer.ProtoReflect.Descriptor instead.
 func (*RPCGaiaData_UnknownContainer) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7, 0}
+	return file_authentication_proto_rawDescGZIP(), []int{8, 0}
 }
 
 func (x *RPCGaiaData_UnknownContainer) GetItem2() *RPCGaiaData_UnknownContainer_Item2 {
@@ -2260,7 +2307,7 @@ type RPCGaiaData_UnknownContainer_Item2 struct {
 func (x *RPCGaiaData_UnknownContainer_Item2) Reset() {
 	*x = RPCGaiaData_UnknownContainer_Item2{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[34]
+		mi := &file_authentication_proto_msgTypes[35]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2273,7 +2320,7 @@ func (x *RPCGaiaData_UnknownContainer_Item2) String() string {
 func (*RPCGaiaData_UnknownContainer_Item2) ProtoMessage() {}
 
 func (x *RPCGaiaData_UnknownContainer_Item2) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[34]
+	mi := &file_authentication_proto_msgTypes[35]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2286,7 +2333,7 @@ func (x *RPCGaiaData_UnknownContainer_Item2) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RPCGaiaData_UnknownContainer_Item2.ProtoReflect.Descriptor instead.
 func (*RPCGaiaData_UnknownContainer_Item2) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7, 0, 0}
+	return file_authentication_proto_rawDescGZIP(), []int{8, 0, 0}
 }
 
 func (x *RPCGaiaData_UnknownContainer_Item2) GetItem1() []*RPCGaiaData_UnknownContainer_Item2_Item1 {
@@ -2311,7 +2358,7 @@ type RPCGaiaData_UnknownContainer_Item4 struct {
 func (x *RPCGaiaData_UnknownContainer_Item4) Reset() {
 	*x = RPCGaiaData_UnknownContainer_Item4{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[35]
+		mi := &file_authentication_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2324,7 +2371,7 @@ func (x *RPCGaiaData_UnknownContainer_Item4) String() string {
 func (*RPCGaiaData_UnknownContainer_Item4) ProtoMessage() {}
 
 func (x *RPCGaiaData_UnknownContainer_Item4) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[35]
+	mi := &file_authentication_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2337,7 +2384,7 @@ func (x *RPCGaiaData_UnknownContainer_Item4) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RPCGaiaData_UnknownContainer_Item4.ProtoReflect.Descriptor instead.
 func (*RPCGaiaData_UnknownContainer_Item4) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7, 0, 1}
+	return file_authentication_proto_rawDescGZIP(), []int{8, 0, 1}
 }
 
 func (x *RPCGaiaData_UnknownContainer_Item4) GetDestOrSourceUUID() string {
@@ -2389,7 +2436,7 @@ type RPCGaiaData_UnknownContainer_Item2_Item1 struct {
 func (x *RPCGaiaData_UnknownContainer_Item2_Item1) Reset() {
 	*x = RPCGaiaData_UnknownContainer_Item2_Item1{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[36]
+		mi := &file_authentication_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2402,7 +2449,7 @@ func (x *RPCGaiaData_UnknownContainer_Item2_Item1) String() string {
 func (*RPCGaiaData_UnknownContainer_Item2_Item1) ProtoMessage() {}
 
 func (x *RPCGaiaData_UnknownContainer_Item2_Item1) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[36]
+	mi := &file_authentication_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2415,7 +2462,7 @@ func (x *RPCGaiaData_UnknownContainer_Item2_Item1) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RPCGaiaData_UnknownContainer_Item2_Item1.ProtoReflect.Descriptor instead.
 func (*RPCGaiaData_UnknownContainer_Item2_Item1) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7, 0, 0, 0}
+	return file_authentication_proto_rawDescGZIP(), []int{8, 0, 0, 0}
 }
 
 func (x *RPCGaiaData_UnknownContainer_Item2_Item1) GetDestOrSourceUUID() string {
@@ -2459,7 +2506,7 @@ type RPCGaiaData_UnknownContainer_Item4_Item8 struct {
 func (x *RPCGaiaData_UnknownContainer_Item4_Item8) Reset() {
 	*x = RPCGaiaData_UnknownContainer_Item4_Item8{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[37]
+		mi := &file_authentication_proto_msgTypes[38]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2472,7 +2519,7 @@ func (x *RPCGaiaData_UnknownContainer_Item4_Item8) String() string {
 func (*RPCGaiaData_UnknownContainer_Item4_Item8) ProtoMessage() {}
 
 func (x *RPCGaiaData_UnknownContainer_Item4_Item8) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[37]
+	mi := &file_authentication_proto_msgTypes[38]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2485,7 +2532,7 @@ func (x *RPCGaiaData_UnknownContainer_Item4_Item8) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RPCGaiaData_UnknownContainer_Item4_Item8.ProtoReflect.Descriptor instead.
 func (*RPCGaiaData_UnknownContainer_Item4_Item8) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{7, 0, 1, 0}
+	return file_authentication_proto_rawDescGZIP(), []int{8, 0, 1, 0}
 }
 
 func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownInt1() int32 {
@@ -2520,7 +2567,7 @@ type RegisterRefreshRequest_NestedEmptyArr struct {
 func (x *RegisterRefreshRequest_NestedEmptyArr) Reset() {
 	*x = RegisterRefreshRequest_NestedEmptyArr{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[38]
+		mi := &file_authentication_proto_msgTypes[39]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2533,7 +2580,7 @@ func (x *RegisterRefreshRequest_NestedEmptyArr) String() string {
 func (*RegisterRefreshRequest_NestedEmptyArr) ProtoMessage() {}
 
 func (x *RegisterRefreshRequest_NestedEmptyArr) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[38]
+	mi := &file_authentication_proto_msgTypes[39]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2546,7 +2593,7 @@ func (x *RegisterRefreshRequest_NestedEmptyArr) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RegisterRefreshRequest_NestedEmptyArr.ProtoReflect.Descriptor instead.
 func (*RegisterRefreshRequest_NestedEmptyArr) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{12, 0}
+	return file_authentication_proto_rawDescGZIP(), []int{13, 0}
 }
 
 func (x *RegisterRefreshRequest_NestedEmptyArr) GetEmptyArr() *EmptyArr {
@@ -2567,7 +2614,7 @@ type ErrorResponse_ErrorClass struct {
 func (x *ErrorResponse_ErrorClass) Reset() {
 	*x = ErrorResponse_ErrorClass{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authentication_proto_msgTypes[39]
+		mi := &file_authentication_proto_msgTypes[40]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2580,7 +2627,7 @@ func (x *ErrorResponse_ErrorClass) String() string {
 func (*ErrorResponse_ErrorClass) ProtoMessage() {}
 
 func (x *ErrorResponse_ErrorClass) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[39]
+	mi := &file_authentication_proto_msgTypes[40]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2593,7 +2640,7 @@ func (x *ErrorResponse_ErrorClass) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorResponse_ErrorClass.ProtoReflect.Descriptor instead.
 func (*ErrorResponse_ErrorClass) Descriptor() ([]byte, []int) {
-	return file_authentication_proto_rawDescGZIP(), []int{18, 0}
+	return file_authentication_proto_rawDescGZIP(), []int{19, 0}
 }
 
 func (x *ErrorResponse_ErrorClass) GetClass() string {
@@ -2621,7 +2668,7 @@ func file_authentication_proto_rawDescGZIP() []byte {
 }
 
 var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_authentication_proto_goTypes = []interface{}{
 	(BrowserType)(0),                                    // 0: authentication.BrowserType
 	(DeviceType)(0),                                     // 1: authentication.DeviceType
@@ -2632,88 +2679,89 @@ var file_authentication_proto_goTypes = []interface{}{
 	(*SignInGaiaResponse)(nil),                          // 6: authentication.SignInGaiaResponse
 	(*GaiaPairingRequestContainer)(nil),                 // 7: authentication.GaiaPairingRequestContainer
 	(*GaiaPairingResponseContainer)(nil),                // 8: authentication.GaiaPairingResponseContainer
-	(*RPCGaiaData)(nil),                                 // 9: authentication.RPCGaiaData
-	(*AuthenticationContainer)(nil),                     // 10: authentication.AuthenticationContainer
-	(*AuthMessage)(nil),                                 // 11: authentication.AuthMessage
-	(*RevokeRelayPairingRequest)(nil),                   // 12: authentication.RevokeRelayPairingRequest
-	(*RevokeRelayPairingResponse)(nil),                  // 13: authentication.RevokeRelayPairingResponse
-	(*RegisterRefreshRequest)(nil),                      // 14: authentication.RegisterRefreshRequest
-	(*RegisterRefreshResponse)(nil),                     // 15: authentication.RegisterRefreshResponse
-	(*RegisterPhoneRelayResponse)(nil),                  // 16: authentication.RegisterPhoneRelayResponse
-	(*CoordinateMessage)(nil),                           // 17: authentication.CoordinateMessage
-	(*RefreshPhoneRelayResponse)(nil),                   // 18: authentication.RefreshPhoneRelayResponse
-	(*WebEncryptionKeyResponse)(nil),                    // 19: authentication.WebEncryptionKeyResponse
-	(*ErrorResponse)(nil),                               // 20: authentication.ErrorResponse
-	(*ECDSAKeys)(nil),                                   // 21: authentication.ECDSAKeys
-	(*CurrentDeviceData)(nil),                           // 22: authentication.CurrentDeviceData
-	(*KeyData)(nil),                                     // 23: authentication.KeyData
-	(*WebAuthKey)(nil),                                  // 24: authentication.WebAuthKey
-	(*URLData)(nil),                                     // 25: authentication.URLData
-	(*TokenData)(nil),                                   // 26: authentication.TokenData
-	(*PairedData)(nil),                                  // 27: authentication.PairedData
-	(*RevokePairData)(nil),                              // 28: authentication.RevokePairData
-	(*SignInGaiaRequest_Inner)(nil),                     // 29: authentication.SignInGaiaRequest.Inner
-	(*SignInGaiaRequest_Inner_DeviceID)(nil),            // 30: authentication.SignInGaiaRequest.Inner.DeviceID
-	(*SignInGaiaRequest_Inner_Data)(nil),                // 31: authentication.SignInGaiaRequest.Inner.Data
-	(*SignInGaiaResponse_Header)(nil),                   // 32: authentication.SignInGaiaResponse.Header
-	(*SignInGaiaResponse_DeviceData)(nil),               // 33: authentication.SignInGaiaResponse.DeviceData
-	(*SignInGaiaResponse_DeviceData_DeviceWrapper)(nil), // 34: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
-	(*RPCGaiaData_UnknownContainer)(nil),                // 35: authentication.RPCGaiaData.UnknownContainer
-	(*RPCGaiaData_UnknownContainer_Item2)(nil),          // 36: authentication.RPCGaiaData.UnknownContainer.Item2
-	(*RPCGaiaData_UnknownContainer_Item4)(nil),          // 37: authentication.RPCGaiaData.UnknownContainer.Item4
-	(*RPCGaiaData_UnknownContainer_Item2_Item1)(nil),    // 38: authentication.RPCGaiaData.UnknownContainer.Item2.Item1
-	(*RPCGaiaData_UnknownContainer_Item4_Item8)(nil),    // 39: authentication.RPCGaiaData.UnknownContainer.Item4.Item8
-	(*RegisterRefreshRequest_NestedEmptyArr)(nil),       // 40: authentication.RegisterRefreshRequest.NestedEmptyArr
-	(*ErrorResponse_ErrorClass)(nil),                    // 41: authentication.ErrorResponse.ErrorClass
-	(*EmptyArr)(nil),                                    // 42: util.EmptyArr
+	(*RevokeGaiaPairingRequest)(nil),                    // 9: authentication.RevokeGaiaPairingRequest
+	(*RPCGaiaData)(nil),                                 // 10: authentication.RPCGaiaData
+	(*AuthenticationContainer)(nil),                     // 11: authentication.AuthenticationContainer
+	(*AuthMessage)(nil),                                 // 12: authentication.AuthMessage
+	(*RevokeRelayPairingRequest)(nil),                   // 13: authentication.RevokeRelayPairingRequest
+	(*RevokeRelayPairingResponse)(nil),                  // 14: authentication.RevokeRelayPairingResponse
+	(*RegisterRefreshRequest)(nil),                      // 15: authentication.RegisterRefreshRequest
+	(*RegisterRefreshResponse)(nil),                     // 16: authentication.RegisterRefreshResponse
+	(*RegisterPhoneRelayResponse)(nil),                  // 17: authentication.RegisterPhoneRelayResponse
+	(*CoordinateMessage)(nil),                           // 18: authentication.CoordinateMessage
+	(*RefreshPhoneRelayResponse)(nil),                   // 19: authentication.RefreshPhoneRelayResponse
+	(*WebEncryptionKeyResponse)(nil),                    // 20: authentication.WebEncryptionKeyResponse
+	(*ErrorResponse)(nil),                               // 21: authentication.ErrorResponse
+	(*ECDSAKeys)(nil),                                   // 22: authentication.ECDSAKeys
+	(*CurrentDeviceData)(nil),                           // 23: authentication.CurrentDeviceData
+	(*KeyData)(nil),                                     // 24: authentication.KeyData
+	(*WebAuthKey)(nil),                                  // 25: authentication.WebAuthKey
+	(*URLData)(nil),                                     // 26: authentication.URLData
+	(*TokenData)(nil),                                   // 27: authentication.TokenData
+	(*PairedData)(nil),                                  // 28: authentication.PairedData
+	(*RevokePairData)(nil),                              // 29: authentication.RevokePairData
+	(*SignInGaiaRequest_Inner)(nil),                     // 30: authentication.SignInGaiaRequest.Inner
+	(*SignInGaiaRequest_Inner_DeviceID)(nil),            // 31: authentication.SignInGaiaRequest.Inner.DeviceID
+	(*SignInGaiaRequest_Inner_Data)(nil),                // 32: authentication.SignInGaiaRequest.Inner.Data
+	(*SignInGaiaResponse_Header)(nil),                   // 33: authentication.SignInGaiaResponse.Header
+	(*SignInGaiaResponse_DeviceData)(nil),               // 34: authentication.SignInGaiaResponse.DeviceData
+	(*SignInGaiaResponse_DeviceData_DeviceWrapper)(nil), // 35: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
+	(*RPCGaiaData_UnknownContainer)(nil),                // 36: authentication.RPCGaiaData.UnknownContainer
+	(*RPCGaiaData_UnknownContainer_Item2)(nil),          // 37: authentication.RPCGaiaData.UnknownContainer.Item2
+	(*RPCGaiaData_UnknownContainer_Item4)(nil),          // 38: authentication.RPCGaiaData.UnknownContainer.Item4
+	(*RPCGaiaData_UnknownContainer_Item2_Item1)(nil),    // 39: authentication.RPCGaiaData.UnknownContainer.Item2.Item1
+	(*RPCGaiaData_UnknownContainer_Item4_Item8)(nil),    // 40: authentication.RPCGaiaData.UnknownContainer.Item4.Item8
+	(*RegisterRefreshRequest_NestedEmptyArr)(nil),       // 41: authentication.RegisterRefreshRequest.NestedEmptyArr
+	(*ErrorResponse_ErrorClass)(nil),                    // 42: authentication.ErrorResponse.ErrorClass
+	(*EmptyArr)(nil),                                    // 43: util.EmptyArr
 }
 var file_authentication_proto_depIdxs = []int32{
 	0,  // 0: authentication.BrowserDetails.browserType:type_name -> authentication.BrowserType
 	1,  // 1: authentication.BrowserDetails.deviceType:type_name -> authentication.DeviceType
-	11, // 2: authentication.SignInGaiaRequest.authMessage:type_name -> authentication.AuthMessage
-	29, // 3: authentication.SignInGaiaRequest.inner:type_name -> authentication.SignInGaiaRequest.Inner
-	32, // 4: authentication.SignInGaiaResponse.header:type_name -> authentication.SignInGaiaResponse.Header
-	33, // 5: authentication.SignInGaiaResponse.deviceData:type_name -> authentication.SignInGaiaResponse.DeviceData
-	26, // 6: authentication.SignInGaiaResponse.tokenData:type_name -> authentication.TokenData
+	12, // 2: authentication.SignInGaiaRequest.authMessage:type_name -> authentication.AuthMessage
+	30, // 3: authentication.SignInGaiaRequest.inner:type_name -> authentication.SignInGaiaRequest.Inner
+	33, // 4: authentication.SignInGaiaResponse.header:type_name -> authentication.SignInGaiaResponse.Header
+	34, // 5: authentication.SignInGaiaResponse.deviceData:type_name -> authentication.SignInGaiaResponse.DeviceData
+	27, // 6: authentication.SignInGaiaResponse.tokenData:type_name -> authentication.TokenData
 	2,  // 7: authentication.GaiaPairingRequestContainer.browserDetails:type_name -> authentication.BrowserDetails
-	35, // 8: authentication.RPCGaiaData.maybeServerData:type_name -> authentication.RPCGaiaData.UnknownContainer
-	11, // 9: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
+	36, // 8: authentication.RPCGaiaData.maybeServerData:type_name -> authentication.RPCGaiaData.UnknownContainer
+	12, // 9: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
 	2,  // 10: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
-	23, // 11: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
-	22, // 12: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
+	24, // 11: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
+	23, // 12: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
 	4,  // 13: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
-	11, // 14: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
+	12, // 14: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
 	3,  // 15: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
-	11, // 16: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
+	12, // 16: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
 	3,  // 17: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
-	40, // 18: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
-	26, // 19: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.TokenData
-	17, // 20: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	41, // 18: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
+	27, // 19: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.TokenData
+	18, // 20: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
 	3,  // 21: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
-	26, // 22: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.TokenData
-	17, // 23: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
-	17, // 24: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
-	41, // 25: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
+	27, // 22: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.TokenData
+	18, // 23: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	18, // 24: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
+	42, // 25: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
 	3,  // 26: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
 	3,  // 27: authentication.KeyData.mobile:type_name -> authentication.Device
-	21, // 28: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
-	24, // 29: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
+	22, // 28: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
+	25, // 29: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
 	3,  // 30: authentication.KeyData.browser:type_name -> authentication.Device
 	3,  // 31: authentication.PairedData.mobile:type_name -> authentication.Device
-	26, // 32: authentication.PairedData.tokenData:type_name -> authentication.TokenData
+	27, // 32: authentication.PairedData.tokenData:type_name -> authentication.TokenData
 	3,  // 33: authentication.PairedData.browser:type_name -> authentication.Device
 	3,  // 34: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
-	30, // 35: authentication.SignInGaiaRequest.Inner.deviceID:type_name -> authentication.SignInGaiaRequest.Inner.DeviceID
-	31, // 36: authentication.SignInGaiaRequest.Inner.someData:type_name -> authentication.SignInGaiaRequest.Inner.Data
-	34, // 37: authentication.SignInGaiaResponse.DeviceData.deviceWrapper:type_name -> authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
-	38, // 38: authentication.SignInGaiaResponse.DeviceData.unknownItems2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
-	37, // 39: authentication.SignInGaiaResponse.DeviceData.unknownItems3:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
+	31, // 35: authentication.SignInGaiaRequest.Inner.deviceID:type_name -> authentication.SignInGaiaRequest.Inner.DeviceID
+	32, // 36: authentication.SignInGaiaRequest.Inner.someData:type_name -> authentication.SignInGaiaRequest.Inner.Data
+	35, // 37: authentication.SignInGaiaResponse.DeviceData.deviceWrapper:type_name -> authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
+	39, // 38: authentication.SignInGaiaResponse.DeviceData.unknownItems2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
+	38, // 39: authentication.SignInGaiaResponse.DeviceData.unknownItems3:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
 	3,  // 40: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper.device:type_name -> authentication.Device
-	36, // 41: authentication.RPCGaiaData.UnknownContainer.item2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2
-	37, // 42: authentication.RPCGaiaData.UnknownContainer.item4:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
-	38, // 43: authentication.RPCGaiaData.UnknownContainer.Item2.item1:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
-	39, // 44: authentication.RPCGaiaData.UnknownContainer.Item4.item8:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4.Item8
-	42, // 45: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
+	37, // 41: authentication.RPCGaiaData.UnknownContainer.item2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2
+	38, // 42: authentication.RPCGaiaData.UnknownContainer.item4:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
+	39, // 43: authentication.RPCGaiaData.UnknownContainer.Item2.item1:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
+	40, // 44: authentication.RPCGaiaData.UnknownContainer.Item4.item8:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4.Item8
+	43, // 45: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
 	46, // [46:46] is the sub-list for method output_type
 	46, // [46:46] is the sub-list for method input_type
 	46, // [46:46] is the sub-list for extension type_name
@@ -2814,7 +2862,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RPCGaiaData); i {
+			switch v := v.(*RevokeGaiaPairingRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2826,7 +2874,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AuthenticationContainer); i {
+			switch v := v.(*RPCGaiaData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2838,7 +2886,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AuthMessage); i {
+			switch v := v.(*AuthenticationContainer); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2850,7 +2898,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RevokeRelayPairingRequest); i {
+			switch v := v.(*AuthMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2862,7 +2910,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RevokeRelayPairingResponse); i {
+			switch v := v.(*RevokeRelayPairingRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2874,7 +2922,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterRefreshRequest); i {
+			switch v := v.(*RevokeRelayPairingResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2886,7 +2934,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterRefreshResponse); i {
+			switch v := v.(*RegisterRefreshRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2898,7 +2946,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterPhoneRelayResponse); i {
+			switch v := v.(*RegisterRefreshResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2910,7 +2958,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CoordinateMessage); i {
+			switch v := v.(*RegisterPhoneRelayResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2922,7 +2970,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RefreshPhoneRelayResponse); i {
+			switch v := v.(*CoordinateMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2934,7 +2982,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebEncryptionKeyResponse); i {
+			switch v := v.(*RefreshPhoneRelayResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2946,7 +2994,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ErrorResponse); i {
+			switch v := v.(*WebEncryptionKeyResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2958,7 +3006,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ECDSAKeys); i {
+			switch v := v.(*ErrorResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2970,7 +3018,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CurrentDeviceData); i {
+			switch v := v.(*ECDSAKeys); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2982,7 +3030,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KeyData); i {
+			switch v := v.(*CurrentDeviceData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2994,7 +3042,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WebAuthKey); i {
+			switch v := v.(*KeyData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3006,7 +3054,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*URLData); i {
+			switch v := v.(*WebAuthKey); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3018,7 +3066,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TokenData); i {
+			switch v := v.(*URLData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3030,7 +3078,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PairedData); i {
+			switch v := v.(*TokenData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3042,7 +3090,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RevokePairData); i {
+			switch v := v.(*PairedData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3054,7 +3102,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignInGaiaRequest_Inner); i {
+			switch v := v.(*RevokePairData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3066,7 +3114,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignInGaiaRequest_Inner_DeviceID); i {
+			switch v := v.(*SignInGaiaRequest_Inner); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3078,7 +3126,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignInGaiaRequest_Inner_Data); i {
+			switch v := v.(*SignInGaiaRequest_Inner_DeviceID); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3090,7 +3138,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignInGaiaResponse_Header); i {
+			switch v := v.(*SignInGaiaRequest_Inner_Data); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3102,7 +3150,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignInGaiaResponse_DeviceData); i {
+			switch v := v.(*SignInGaiaResponse_Header); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3114,7 +3162,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignInGaiaResponse_DeviceData_DeviceWrapper); i {
+			switch v := v.(*SignInGaiaResponse_DeviceData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3126,7 +3174,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RPCGaiaData_UnknownContainer); i {
+			switch v := v.(*SignInGaiaResponse_DeviceData_DeviceWrapper); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3138,7 +3186,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RPCGaiaData_UnknownContainer_Item2); i {
+			switch v := v.(*RPCGaiaData_UnknownContainer); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3150,7 +3198,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RPCGaiaData_UnknownContainer_Item4); i {
+			switch v := v.(*RPCGaiaData_UnknownContainer_Item2); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3162,7 +3210,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RPCGaiaData_UnknownContainer_Item2_Item1); i {
+			switch v := v.(*RPCGaiaData_UnknownContainer_Item4); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3174,7 +3222,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RPCGaiaData_UnknownContainer_Item4_Item8); i {
+			switch v := v.(*RPCGaiaData_UnknownContainer_Item2_Item1); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3186,7 +3234,7 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RegisterRefreshRequest_NestedEmptyArr); i {
+			switch v := v.(*RPCGaiaData_UnknownContainer_Item4_Item8); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3198,6 +3246,18 @@ func file_authentication_proto_init() {
 			}
 		}
 		file_authentication_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RegisterRefreshRequest_NestedEmptyArr); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authentication_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ErrorResponse_ErrorClass); i {
 			case 0:
 				return &v.state
@@ -3210,7 +3270,7 @@ func file_authentication_proto_init() {
 			}
 		}
 	}
-	file_authentication_proto_msgTypes[8].OneofWrappers = []interface{}{
+	file_authentication_proto_msgTypes[9].OneofWrappers = []interface{}{
 		(*AuthenticationContainer_KeyData)(nil),
 		(*AuthenticationContainer_DeviceData)(nil),
 	}
@@ -3220,7 +3280,7 @@ func file_authentication_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_authentication_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   40,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

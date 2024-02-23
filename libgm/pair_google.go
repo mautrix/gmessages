@@ -267,6 +267,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse destination UUID: %w", err)
 	}
+	c.AuthData.DestRegID = destRegUUID
 	go c.doLongPoll(false)
 	ps := NewPairingSession(destRegUUID)
 	clientInit, clientFinish, err := ps.PreparePayloads()
@@ -297,6 +298,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	}
 	c.AuthData.RequestCrypto.AESKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))
 	c.AuthData.RequestCrypto.HMACKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("server"))
+	c.AuthData.PairingID = ps.UUID
 	c.triggerEvent(&events.PairSuccessful{})
 
 	go func() {
@@ -316,10 +318,10 @@ func (c *Client) sendGaiaPairingMessage(sess PairingSession, action gmproto.Acti
 	resp, err := c.sessionHandler.sendMessageWithParams(SendMessageParams{
 		Action: action,
 		Data: &gmproto.GaiaPairingRequestContainer{
-			PairingUUID:    sess.UUID.String(),
-			BrowserDetails: util.BrowserDetailsMessage,
-			StartTimestamp: sess.Start.UnixMilli(),
-			Data:           msg,
+			PairingAttemptID: sess.UUID.String(),
+			BrowserDetails:   util.BrowserDetailsMessage,
+			StartTimestamp:   sess.Start.UnixMilli(),
+			Data:             msg,
 		},
 		DontEncrypt: true,
 		CustomTTL:   (300 * time.Second).Microseconds(),
@@ -337,4 +339,15 @@ func (c *Client) sendGaiaPairingMessage(sess PairingSession, action gmproto.Acti
 		return nil, err
 	}
 	return &respDat, nil
+}
+
+func (c *Client) UnpairGaia() error {
+	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action: gmproto.ActionType_UNPAIR_GAIA_PAIRING,
+		Data: &gmproto.RevokeGaiaPairingRequest{
+			PairingAttemptID: c.AuthData.PairingID.String(),
+		},
+		DestRegistrationIDs: []string{c.AuthData.DestRegID.String()},
+		NoPingOnTimeout:     true,
+	})
 }

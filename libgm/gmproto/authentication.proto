@@ -84,7 +84,7 @@ message SignInGaiaResponse {
 }
 
 message GaiaPairingRequestContainer {
-    string pairingUUID = 1;
+    string pairingAttemptID = 1;
     BrowserDetails browserDetails = 2;
     int64 startTimestamp = 3;
     bytes data = 4;
@@ -96,6 +96,10 @@ message GaiaPairingResponseContainer {
     int32 unknownInt3 = 3; // For init, 1
     string sessionUUID = 4;
     bytes data = 5;
+}
+
+message RevokeGaiaPairingRequest {
+    string pairingAttemptID = 1;
 }
 
 message RPCGaiaData {

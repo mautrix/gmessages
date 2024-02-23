@@ -54,7 +54,6 @@ func main() {
 	}
 	_ = file.Close()
 	cli = libgm.NewClient(&sess, log)
-	log.Info().Str("device_id", sess.SessionID.String()).Msg("meow")
 	cli.SetEventHandler(evtHandler)
 	if doLogin {
 		err = cli.DoGaiaPairing(func(emoji string) {

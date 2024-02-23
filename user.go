@@ -948,7 +948,7 @@ func (user *User) FillBridgeState(state status.BridgeState) status.BridgeState {
 
 func (user *User) Logout(state status.BridgeState, unpair bool) (logoutOK bool) {
 	if user.Client != nil && unpair {
-		_, err := user.Client.Unpair()
+		err := user.Client.Unpair()
 		if err != nil {
 			user.zlog.Debug().Err(err).Msg("Error sending unpair request")
 		} else {

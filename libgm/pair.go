@@ -134,7 +134,7 @@ func (c *Client) GetWebEncryptionKey() (*gmproto.WebEncryptionKeyResponse, error
 	)
 }
 
-func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
+func (c *Client) UnpairBugle() (*gmproto.RevokeRelayPairingResponse, error) {
 	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
@@ -149,4 +149,13 @@ func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
 	return typedHTTPResponse[*gmproto.RevokeRelayPairingResponse](
 		c.makeProtobufHTTPRequest(util.RevokeRelayPairingURL, payload, ContentTypeProtobuf),
 	)
+}
+
+func (c *Client) Unpair() (err error) {
+	if c.AuthData.Cookies != nil {
+		err = c.UnpairGaia()
+	} else {
+		_, err = c.UnpairBugle()
+	}
+	return
 }
