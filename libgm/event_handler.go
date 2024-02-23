@@ -1,6 +1,7 @@
 package libgm
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
@@ -203,9 +204,15 @@ type WrappedMessage struct {
 	Data  []byte
 }
 
+var hackyLoggedOutBytes = []byte{0x72, 0x00}
+
 func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 	switch msg.Message.Action {
 	case gmproto.ActionType_GET_UPDATES:
+		if msg.DecryptedData == nil && bytes.Equal(msg.Message.UnencryptedData, hackyLoggedOutBytes) {
+			c.triggerEvent(&events.GaiaLoggedOut{})
+			return
+		}
 		data, ok := msg.DecryptedMessage.(*gmproto.UpdateEvents)
 		if !ok {
 			c.Logger.Error().

@@ -711,6 +711,13 @@ func (user *User) syncHandleEvent(event any) {
 			Error:      GMUnpaired,
 		}, false)
 		go user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
+	case *events.GaiaLoggedOut:
+		user.zlog.Info().Msg("Got gaia logout event")
+		go user.Logout(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMUnpaired,
+		}, false)
+		go user.sendMarkdownBridgeAlert(true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
 		go func() {
 			err := user.Update(context.TODO())
