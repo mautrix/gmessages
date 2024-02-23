@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/mdp/qrterminal/v3"
 	"github.com/rs/zerolog"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
@@ -46,6 +46,8 @@ func main() {
 		}
 		sess = *libgm.NewAuthData()
 		doLogin = true
+		cookies := mustReturn(os.Open("cookies.json"))
+		must(json.NewDecoder(cookies).Decode(&sess.Cookies))
 	} else {
 		must(json.NewDecoder(file).Decode(&sess))
 		log.Info().Msg("Loaded session?")
@@ -54,19 +56,12 @@ func main() {
 	cli = libgm.NewClient(&sess, log)
 	cli.SetEventHandler(evtHandler)
 	if doLogin {
-		qr := mustReturn(cli.StartLogin())
-		qrterminal.GenerateHalfBlock(qr, qrterminal.L, os.Stdout)
-		go func() {
-			ticker := time.NewTicker(30 * time.Second)
-			defer ticker.Stop()
-			for range ticker.C {
-				if sess.Browser != nil {
-					return
-				}
-				qr := mustReturn(cli.RefreshPhoneRelay())
-				qrterminal.GenerateHalfBlock(qr, qrterminal.L, os.Stdout)
-			}
-		}()
+		err = cli.DoGaiaPairing(func(emoji string) {
+			fmt.Println(emoji)
+		})
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to pair")
+		}
 	} else {
 		must(cli.Connect())
 	}

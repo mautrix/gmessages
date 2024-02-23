@@ -1,0 +1,10 @@
+syntax = "proto3";
+package pblite;
+
+option go_package = "../gmproto";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+    optional bool pblite_binary = 50000;
+}

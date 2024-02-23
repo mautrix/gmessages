@@ -4,6 +4,7 @@ package authentication;
 option go_package = "../gmproto";
 
 import "util.proto";
+import "pblite.proto";
 
 enum BrowserType {
     UNKNOWN_BROWSER_TYPE = 0;
@@ -44,6 +45,95 @@ message ConfigVersion {
     int32 V2 = 9;
 }
 
+message SignInGaiaRequest {
+    message Inner {
+        message DeviceID {
+            int32 unknownInt1 = 1; // 3
+            string deviceID = 2; // messages-web-{uuid without dashes}
+        }
+        message Data {
+            bytes someData = 3; // maybe an encryption key?
+        }
+        DeviceID deviceID = 1;
+        Data someData = 36 [(pblite.pblite_binary) = true];
+    }
+    AuthMessage authMessage = 1;
+    Inner inner = 2;
+    int32 unknownInt3 = 3;
+    string network = 4;
+}
+
+message SignInGaiaResponse {
+    message Header {
+        uint64 unknownInt2 = 2;
+        int64 unknownTimestamp = 4;
+    }
+    message DeviceData {
+        message DeviceWrapper {
+            Device device = 1;
+        }
+        DeviceWrapper deviceWrapper = 1;
+        repeated RPCGaiaData.UnknownContainer.Item2.Item1 unknownItems2 = 2;
+        repeated RPCGaiaData.UnknownContainer.Item4 unknownItems3 = 3;
+        // index 4 is some unknown field with no real data
+    }
+    Header header = 1;
+    string maybeBrowserUUID = 2 [(pblite.pblite_binary) = true];
+    DeviceData deviceData = 3;
+    TokenData tokenData = 4;
+}
+
+message GaiaPairingRequestContainer {
+    string pairingAttemptID = 1;
+    BrowserDetails browserDetails = 2;
+    int64 startTimestamp = 3;
+    bytes data = 4;
+}
+
+message GaiaPairingResponseContainer {
+    int32 finishErrorType = 1;
+    int32 finishErrorCode = 2;
+    int32 unknownInt3 = 3; // For init, 1
+    string sessionUUID = 4;
+    bytes data = 5;
+}
+
+message RevokeGaiaPairingRequest {
+    string pairingAttemptID = 1;
+}
+
+message RPCGaiaData {
+    message UnknownContainer {
+        message Item2 {
+            message Item1 {
+                string destOrSourceUUID = 1 [(pblite.pblite_binary) = true];
+                int32 unknownInt4 = 4; // 1 for destination device, 6 for local device?
+                string languageCode = 5;
+                uint64 unknownBigInt7 = 7;
+            }
+            repeated Item1 item1 = 1;
+        }
+        message Item4 {
+            message Item8 {
+                int32 unknownInt1 = 1; // present for destination device?
+                int32 unknownTimestamp = 2; // present for destination device?
+                bytes unknownBytes = 3; // present for local device?
+            }
+            string destOrSourceUUID = 1 [(pblite.pblite_binary) = true];
+            int32 unknownInt3 = 3; // 1 for destination device, 6 for local device?
+            int32 unknownInt4 = 4; // always 6?
+            int64 unknownTimestampMicroseconds = 7; // maybe device creation ts?
+            Item8 item8 = 8 [(pblite.pblite_binary) = true];
+        }
+        Item2 item2 = 2;
+        int64 unknownTimestampMicroseconds = 3; // pairing timestamp?
+        repeated Item4 item4 = 4;
+    }
+
+    int32 command = 1; // 9
+    UnknownContainer maybeServerData = 108;
+}
+
 message AuthenticationContainer {
     AuthMessage authMessage = 1;
     BrowserDetails browserDetails = 3;
@@ -56,8 +146,8 @@ message AuthenticationContainer {
 
 message AuthMessage {
     string requestID = 1;
-    optional string network = 3;
-    optional bytes tachyonAuthToken = 6;
+    string network = 3;
+    bytes tachyonAuthToken = 6;
     ConfigVersion configVersion = 7;
 }
 
@@ -84,25 +174,15 @@ message RegisterRefreshRequest {
 }
 
 message RegisterRefreshResponse {
-    message AuthKeyData {
-        bytes tachyonAuthToken = 1;
-        string validFor = 2;
-    }
-
-    AuthKeyData tokenData = 2;
+    TokenData tokenData = 2;
 }
 
 message RegisterPhoneRelayResponse {
-    message AuthKeyData {
-        bytes tachyonAuthToken = 1;
-        int64 validFor = 2;
-    }
-
     CoordinateMessage coordinates = 1;
     Device browser = 2;
     bytes pairingKey = 3;
     int64 validFor = 4;
-    AuthKeyData authKeyData = 5;
+    TokenData authKeyData = 5;
     string responseID = 6;
 }
 

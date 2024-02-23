@@ -19,7 +19,7 @@ func (c *Client) StartLogin() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	c.AuthData.TachyonAuthToken = registered.AuthKeyData.TachyonAuthToken
+	c.updateTachyonAuthToken(registered.GetAuthKeyData())
 	go c.doLongPoll(false)
 	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *Client) handlePairingEvent(msg *IncomingRPCMessage) {
 }
 
 func (c *Client) completePairing(data *gmproto.PairedData) {
-	c.updateTachyonAuthToken(data.GetTokenData().GetTachyonAuthToken(), data.GetTokenData().GetTTL())
+	c.updateTachyonAuthToken(data.GetTokenData())
 	c.AuthData.Mobile = data.Mobile
 	c.AuthData.Browser = data.Browser
 
@@ -81,7 +81,7 @@ func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, erro
 	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:     uuid.NewString(),
-			Network:       &util.Network,
+			Network:       util.QRNetwork,
 			ConfigVersion: util.ConfigMessage,
 		},
 		BrowserDetails: util.BrowserDetailsMessage,
@@ -103,7 +103,7 @@ func (c *Client) RefreshPhoneRelay() (string, error) {
 	payload := &gmproto.AuthenticationContainer{
 		AuthMessage: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
-			Network:          &util.Network,
+			Network:          util.QRNetwork,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
@@ -134,7 +134,7 @@ func (c *Client) GetWebEncryptionKey() (*gmproto.WebEncryptionKeyResponse, error
 	)
 }
 
-func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
+func (c *Client) UnpairBugle() (*gmproto.RevokeRelayPairingResponse, error) {
 	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
@@ -149,4 +149,13 @@ func (c *Client) Unpair() (*gmproto.RevokeRelayPairingResponse, error) {
 	return typedHTTPResponse[*gmproto.RevokeRelayPairingResponse](
 		c.makeProtobufHTTPRequest(util.RevokeRelayPairingURL, payload, ContentTypeProtobuf),
 	)
+}
+
+func (c *Client) Unpair() (err error) {
+	if c.AuthData.Cookies != nil {
+		err = c.UnpairGaia()
+	} else {
+		_, err = c.UnpairBugle()
+	}
+	return
 }

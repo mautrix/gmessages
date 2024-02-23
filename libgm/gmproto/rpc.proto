@@ -5,6 +5,7 @@ option go_package = "../gmproto";
 
 import "authentication.proto";
 import "util.proto";
+import "pblite.proto";
 
 message StartAckMessage {
     optional int32 count = 1;
@@ -20,11 +21,11 @@ message LongPollingPayload {
 message IncomingRPCMessage {
     string responseID = 1;
     BugleRoute bugleRoute = 2;
-    string startExecute = 3;
+    uint64 startExecute = 3;
 
     MessageType messageType = 5;
-    string finishExecute = 6;
-    string millisecondsTaken = 7;
+    uint64 finishExecute = 6;
+    uint64 microsecondsTaken = 7;
     authentication.Device mobile = 8;
     authentication.Device browser = 9;
 
@@ -34,12 +35,20 @@ message IncomingRPCMessage {
     string signatureID = 17;
 
     string timestamp = 21;
+
+    message GDittoSource {
+        int32 deviceID = 2;
+    }
+
+    // Completely unsure about this, but it seems to be present for weird intermediate responses
+    GDittoSource gdittoSource = 23;
 }
 
 message RPCMessageData {
     string sessionID = 1;
     int64 timestamp = 3;
     ActionType action = 4;
+    bytes unencryptedData = 5;
     bool bool1 = 6;
     bool bool2 = 7;
     bytes encryptedData = 8;
@@ -76,12 +85,13 @@ message OutgoingRPCMessage {
 
     int64 TTL = 5;
 
-    util.EmptyArr emptyArr = 9;
+    repeated string destRegistrationIDs = 9 [(pblite.pblite_binary) = true];
 }
 
 message OutgoingRPCData {
     string requestID = 1;
     ActionType action = 2;
+    bytes unencryptedProtoData = 3;
     bytes encryptedProtoData = 5;
     string sessionID = 6;
 }
@@ -101,6 +111,7 @@ enum BugleRoute {
     Unknown = 0;
     DataEvent = 19;
     PairEvent = 14;
+    GaiaEvent = 7;
 }
 
 enum ActionType {
@@ -149,10 +160,13 @@ enum ActionType {
     CREATE_GAIA_PAIRING_CLIENT_INIT = 44;
     CREATE_GAIA_PAIRING_CLIENT_FINISHED = 45;
     UNPAIR_GAIA_PAIRING = 46;
+    CANCEL_GAIA_PAIRING = 47;
 }
 
 enum MessageType {
     UNKNOWN_MESSAGE_TYPE = 0;
     BUGLE_MESSAGE = 2;
+    GAIA_1 = 3;
     BUGLE_ANNOTATION = 16;
+    GAIA_2 = 20;
 }

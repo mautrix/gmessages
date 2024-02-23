@@ -4,9 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
+
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func Unmarshal(data []byte, m proto.Message) error {
@@ -19,6 +23,12 @@ func Unmarshal(data []byte, m proto.Message) error {
 		return fmt.Errorf("expected array in JSON, got %T", anyData)
 	}
 	return deserializeFromSlice(anyDataArr, m.ProtoReflect())
+}
+
+func isPbliteBinary(descriptor protoreflect.FieldDescriptor) bool {
+	opts := descriptor.Options().(*descriptorpb.FieldOptions)
+	pbliteBinary, ok := proto.GetExtension(opts, gmproto.E_PbliteBinary).(bool)
+	return ok && pbliteBinary
 }
 
 func deserializeOne(val any, index int, ref protoreflect.Message, insideList protoreflect.List, fieldDescriptor protoreflect.FieldDescriptor) (protoreflect.Value, error) {
@@ -45,18 +55,33 @@ func deserializeOne(val any, index int, ref protoreflect.Message, insideList pro
 	switch fieldDescriptor.Kind() {
 	case protoreflect.MessageKind:
 		ok = true
-		nestedData, ok := val.([]any)
-		if !ok {
-			return outputVal, fmt.Errorf("expected untyped array at index %d for field %s, got %T", index, fieldDescriptor.FullName(), val)
-		}
 		var nestedMessage protoreflect.Message
 		if insideList != nil {
 			nestedMessage = insideList.NewElement().Message()
 		} else {
 			nestedMessage = ref.NewField(fieldDescriptor).Message()
 		}
-		if err := deserializeFromSlice(nestedData, nestedMessage); err != nil {
-			return outputVal, err
+		if isPbliteBinary(fieldDescriptor) {
+			bytesBase64, ok := val.(string)
+			if !ok {
+				return outputVal, fmt.Errorf("expected string at index %d for field %s, got %T", index, fieldDescriptor.FullName(), val)
+			}
+			bytes, err := base64.StdEncoding.DecodeString(bytesBase64)
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to decode base64 at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+			err = proto.Unmarshal(bytes, nestedMessage.Interface())
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to unmarshal binary protobuf at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+		} else {
+			nestedData, ok := val.([]any)
+			if !ok {
+				return outputVal, fmt.Errorf("expected untyped array at index %d for field %s, got %T", index, fieldDescriptor.FullName(), val)
+			}
+			if err := deserializeFromSlice(nestedData, nestedMessage); err != nil {
+				return outputVal, err
+			}
 		}
 		outputVal = protoreflect.ValueOfMessage(nestedMessage)
 	case protoreflect.BytesKind:
@@ -76,21 +101,53 @@ func deserializeOne(val any, index int, ref protoreflect.Message, insideList pro
 		expectedKind = "float64"
 		outputVal = protoreflect.ValueOfEnum(protoreflect.EnumNumber(int32(num)))
 	case protoreflect.Int32Kind:
-		num, ok = val.(float64)
-		expectedKind = "float64"
-		outputVal = protoreflect.ValueOfInt32(int32(num))
+		if str, ok = val.(string); ok {
+			parsedVal, err := strconv.ParseInt(str, 10, 32)
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to parse int32 at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+			outputVal = protoreflect.ValueOfInt32(int32(parsedVal))
+		} else {
+			num, ok = val.(float64)
+			expectedKind = "float64"
+			outputVal = protoreflect.ValueOfInt32(int32(num))
+		}
 	case protoreflect.Int64Kind:
-		num, ok = val.(float64)
-		expectedKind = "float64"
-		outputVal = protoreflect.ValueOfInt64(int64(num))
+		if str, ok = val.(string); ok {
+			parsedVal, err := strconv.ParseInt(str, 10, 64)
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to parse int64 at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+			outputVal = protoreflect.ValueOfInt64(parsedVal)
+		} else {
+			num, ok = val.(float64)
+			expectedKind = "float64"
+			outputVal = protoreflect.ValueOfInt64(int64(num))
+		}
 	case protoreflect.Uint32Kind:
-		num, ok = val.(float64)
-		expectedKind = "float64"
-		outputVal = protoreflect.ValueOfUint32(uint32(num))
+		if str, ok = val.(string); ok {
+			parsedVal, err := strconv.ParseUint(str, 10, 32)
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to parse uint32 at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+			outputVal = protoreflect.ValueOfUint32(uint32(parsedVal))
+		} else {
+			num, ok = val.(float64)
+			expectedKind = "float64"
+			outputVal = protoreflect.ValueOfUint32(uint32(num))
+		}
 	case protoreflect.Uint64Kind:
-		num, ok = val.(float64)
-		expectedKind = "float64"
-		outputVal = protoreflect.ValueOfUint64(uint64(num))
+		if str, ok = val.(string); ok {
+			parsedVal, err := strconv.ParseUint(str, 10, 64)
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to parse uint64 at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+			outputVal = protoreflect.ValueOfUint64(parsedVal)
+		} else {
+			num, ok = val.(float64)
+			expectedKind = "float64"
+			outputVal = protoreflect.ValueOfUint64(uint64(num))
+		}
 	case protoreflect.FloatKind:
 		num, ok = val.(float64)
 		expectedKind = "float64"
@@ -101,6 +158,13 @@ func deserializeOne(val any, index int, ref protoreflect.Message, insideList pro
 		outputVal = protoreflect.ValueOfFloat64(num)
 	case protoreflect.StringKind:
 		str, ok = val.(string)
+		if ok && isPbliteBinary(fieldDescriptor) {
+			bytes, err := base64.StdEncoding.DecodeString(str)
+			if err != nil {
+				return outputVal, fmt.Errorf("failed to decode base64 at index %d for field %s: %w", index, fieldDescriptor.FullName(), err)
+			}
+			str = string(bytes)
+		}
 		expectedKind = "string"
 		outputVal = protoreflect.ValueOfString(str)
 	case protoreflect.BoolKind:

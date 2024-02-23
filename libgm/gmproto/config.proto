@@ -1,0 +1,40 @@
+syntax = "proto3";
+package config;
+
+option go_package = "../gmproto";
+
+message Config {
+    message Flag {
+        string key = 1;
+        int32 value = 2;
+        optional string unknownField4 = 4;
+        optional string unknownField5 = 5;
+    }
+    message WrappedFlag {
+        message Value {
+            oneof value {
+                int32 intVal = 2;
+                string strVal = 3;
+            }
+        }
+        string key = 1;
+        Value value = 2;
+    }
+    message MoreFlags {
+        repeated WrappedFlag wrappedFlags = 1;
+    }
+    message DeviceInfo {
+        string email = 2;
+        string zero = 3;
+        string deviceID = 4;
+    }
+    string clientVersion = 1;
+    string serverVersion = 2;
+    repeated Flag intFlags = 3;
+    MoreFlags moreFlags = 4;
+    DeviceInfo deviceInfo = 5;
+    // item 6 seems like a list of device infos without device ID?
+    string countryCode = 7;
+    repeated uint32 unknownInts = 8;
+    int64 generatedAtMS = 9;
+}

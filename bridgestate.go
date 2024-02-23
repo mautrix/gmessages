@@ -27,6 +27,7 @@ const (
 	GMListenError      status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError       status.BridgeStateErrorCode = "gm-listen-fatal-error"
 	GMUnpaired         status.BridgeStateErrorCode = "gm-unpaired"
+	GMUnpairedGaia     status.BridgeStateErrorCode = "gm-unpaired-gaia"
 	GMUnpaired404      status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
 	GMNotConnected     status.BridgeStateErrorCode = "gm-not-connected"
 	GMConnecting       status.BridgeStateErrorCode = "gm-connecting"
@@ -49,12 +50,13 @@ func init() {
 		GMFatalError:                "Fatal error polling messages from Google Messages server, please re-link the bridge",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpairedGaia:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
 		GMPhoneNotResponding:        "Your phone is not responding, please check that it is connected to the internet. You may need to open the Messages app on your phone for it to reconnect.",
-		GMSwitchedToGoogleLogin:     "Please switch to the QR code pairing method in the Google Messages app to continue using SMS/RCS",
+		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
 	})
 }
 

@@ -122,13 +122,19 @@ func (c *Client) doLongPoll(loggedIn bool) {
 			Auth: &gmproto.AuthMessage{
 				RequestID:        listenReqID,
 				TachyonAuthToken: c.AuthData.TachyonAuthToken,
+				Network:          c.AuthData.AuthNetwork(),
 				ConfigVersion:    util.ConfigMessage,
 			},
 			Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject2{
 				Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject1{},
 			},
 		}
-		resp, err := c.makeProtobufHTTPRequest(util.ReceiveMessagesURL, payload, ContentTypePBLite)
+		url := util.ReceiveMessagesURL
+		if c.AuthData.Cookies != nil {
+			url = util.ReceiveMessagesURLGoogle
+			payload.Auth.Network = util.GoogleNetwork
+		}
+		resp, err := c.makeProtobufHTTPRequest(url, payload, ContentTypePBLite)
 		if err != nil {
 			if loggedIn {
 				c.triggerEvent(&events.ListenTemporaryError{Error: err})

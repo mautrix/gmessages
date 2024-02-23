@@ -28,6 +28,7 @@ const (
 	BugleRoute_Unknown   BugleRoute = 0
 	BugleRoute_DataEvent BugleRoute = 19
 	BugleRoute_PairEvent BugleRoute = 14
+	BugleRoute_GaiaEvent BugleRoute = 7
 )
 
 // Enum value maps for BugleRoute.
@@ -36,11 +37,13 @@ var (
 		0:  "Unknown",
 		19: "DataEvent",
 		14: "PairEvent",
+		7:  "GaiaEvent",
 	}
 	BugleRoute_value = map[string]int32{
 		"Unknown":   0,
 		"DataEvent": 19,
 		"PairEvent": 14,
+		"GaiaEvent": 7,
 	}
 )
 
@@ -119,6 +122,7 @@ const (
 	ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT        ActionType = 44
 	ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED    ActionType = 45
 	ActionType_UNPAIR_GAIA_PAIRING                    ActionType = 46
+	ActionType_CANCEL_GAIA_PAIRING                    ActionType = 47
 )
 
 // Enum value maps for ActionType.
@@ -169,6 +173,7 @@ var (
 		44: "CREATE_GAIA_PAIRING_CLIENT_INIT",
 		45: "CREATE_GAIA_PAIRING_CLIENT_FINISHED",
 		46: "UNPAIR_GAIA_PAIRING",
+		47: "CANCEL_GAIA_PAIRING",
 	}
 	ActionType_value = map[string]int32{
 		"UNSPECIFIED":                            0,
@@ -216,6 +221,7 @@ var (
 		"CREATE_GAIA_PAIRING_CLIENT_INIT":        44,
 		"CREATE_GAIA_PAIRING_CLIENT_FINISHED":    45,
 		"UNPAIR_GAIA_PAIRING":                    46,
+		"CANCEL_GAIA_PAIRING":                    47,
 	}
 )
 
@@ -251,7 +257,9 @@ type MessageType int32
 const (
 	MessageType_UNKNOWN_MESSAGE_TYPE MessageType = 0
 	MessageType_BUGLE_MESSAGE        MessageType = 2
+	MessageType_GAIA_1               MessageType = 3
 	MessageType_BUGLE_ANNOTATION     MessageType = 16
+	MessageType_GAIA_2               MessageType = 20
 )
 
 // Enum value maps for MessageType.
@@ -259,12 +267,16 @@ var (
 	MessageType_name = map[int32]string{
 		0:  "UNKNOWN_MESSAGE_TYPE",
 		2:  "BUGLE_MESSAGE",
+		3:  "GAIA_1",
 		16: "BUGLE_ANNOTATION",
+		20: "GAIA_2",
 	}
 	MessageType_value = map[string]int32{
 		"UNKNOWN_MESSAGE_TYPE": 0,
 		"BUGLE_MESSAGE":        2,
+		"GAIA_1":               3,
 		"BUGLE_ANNOTATION":     16,
+		"GAIA_2":               20,
 	}
 )
 
@@ -420,16 +432,18 @@ type IncomingRPCMessage struct {
 
 	ResponseID        string      `protobuf:"bytes,1,opt,name=responseID,proto3" json:"responseID,omitempty"`
 	BugleRoute        BugleRoute  `protobuf:"varint,2,opt,name=bugleRoute,proto3,enum=rpc.BugleRoute" json:"bugleRoute,omitempty"`
-	StartExecute      string      `protobuf:"bytes,3,opt,name=startExecute,proto3" json:"startExecute,omitempty"`
+	StartExecute      uint64      `protobuf:"varint,3,opt,name=startExecute,proto3" json:"startExecute,omitempty"`
 	MessageType       MessageType `protobuf:"varint,5,opt,name=messageType,proto3,enum=rpc.MessageType" json:"messageType,omitempty"`
-	FinishExecute     string      `protobuf:"bytes,6,opt,name=finishExecute,proto3" json:"finishExecute,omitempty"`
-	MillisecondsTaken string      `protobuf:"bytes,7,opt,name=millisecondsTaken,proto3" json:"millisecondsTaken,omitempty"`
+	FinishExecute     uint64      `protobuf:"varint,6,opt,name=finishExecute,proto3" json:"finishExecute,omitempty"`
+	MicrosecondsTaken uint64      `protobuf:"varint,7,opt,name=microsecondsTaken,proto3" json:"microsecondsTaken,omitempty"`
 	Mobile            *Device     `protobuf:"bytes,8,opt,name=mobile,proto3" json:"mobile,omitempty"`
 	Browser           *Device     `protobuf:"bytes,9,opt,name=browser,proto3" json:"browser,omitempty"`
 	// Either a RPCMessageData or a RPCPairData encoded as bytes
 	MessageData []byte `protobuf:"bytes,12,opt,name=messageData,proto3" json:"messageData,omitempty"`
 	SignatureID string `protobuf:"bytes,17,opt,name=signatureID,proto3" json:"signatureID,omitempty"`
 	Timestamp   string `protobuf:"bytes,21,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Completely unsure about this, but it seems to be present for weird intermediate responses
+	GdittoSource *IncomingRPCMessage_GDittoSource `protobuf:"bytes,23,opt,name=gdittoSource,proto3" json:"gdittoSource,omitempty"`
 }
 
 func (x *IncomingRPCMessage) Reset() {
@@ -478,11 +492,11 @@ func (x *IncomingRPCMessage) GetBugleRoute() BugleRoute {
 	return BugleRoute_Unknown
 }
 
-func (x *IncomingRPCMessage) GetStartExecute() string {
+func (x *IncomingRPCMessage) GetStartExecute() uint64 {
 	if x != nil {
 		return x.StartExecute
 	}
-	return ""
+	return 0
 }
 
 func (x *IncomingRPCMessage) GetMessageType() MessageType {
@@ -492,18 +506,18 @@ func (x *IncomingRPCMessage) GetMessageType() MessageType {
 	return MessageType_UNKNOWN_MESSAGE_TYPE
 }
 
-func (x *IncomingRPCMessage) GetFinishExecute() string {
+func (x *IncomingRPCMessage) GetFinishExecute() uint64 {
 	if x != nil {
 		return x.FinishExecute
 	}
-	return ""
+	return 0
 }
 
-func (x *IncomingRPCMessage) GetMillisecondsTaken() string {
+func (x *IncomingRPCMessage) GetMicrosecondsTaken() uint64 {
 	if x != nil {
-		return x.MillisecondsTaken
+		return x.MicrosecondsTaken
 	}
-	return ""
+	return 0
 }
 
 func (x *IncomingRPCMessage) GetMobile() *Device {
@@ -541,19 +555,27 @@ func (x *IncomingRPCMessage) GetTimestamp() string {
 	return ""
 }
 
+func (x *IncomingRPCMessage) GetGdittoSource() *IncomingRPCMessage_GDittoSource {
+	if x != nil {
+		return x.GdittoSource
+	}
+	return nil
+}
+
 type RPCMessageData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SessionID      string     `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
-	Timestamp      int64      `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Action         ActionType `protobuf:"varint,4,opt,name=action,proto3,enum=rpc.ActionType" json:"action,omitempty"`
-	Bool1          bool       `protobuf:"varint,6,opt,name=bool1,proto3" json:"bool1,omitempty"`
-	Bool2          bool       `protobuf:"varint,7,opt,name=bool2,proto3" json:"bool2,omitempty"`
-	EncryptedData  []byte     `protobuf:"bytes,8,opt,name=encryptedData,proto3" json:"encryptedData,omitempty"`
-	Bool3          bool       `protobuf:"varint,9,opt,name=bool3,proto3" json:"bool3,omitempty"`
-	EncryptedData2 []byte     `protobuf:"bytes,11,opt,name=encryptedData2,proto3" json:"encryptedData2,omitempty"`
+	SessionID       string     `protobuf:"bytes,1,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	Timestamp       int64      `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Action          ActionType `protobuf:"varint,4,opt,name=action,proto3,enum=rpc.ActionType" json:"action,omitempty"`
+	UnencryptedData []byte     `protobuf:"bytes,5,opt,name=unencryptedData,proto3" json:"unencryptedData,omitempty"`
+	Bool1           bool       `protobuf:"varint,6,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	Bool2           bool       `protobuf:"varint,7,opt,name=bool2,proto3" json:"bool2,omitempty"`
+	EncryptedData   []byte     `protobuf:"bytes,8,opt,name=encryptedData,proto3" json:"encryptedData,omitempty"`
+	Bool3           bool       `protobuf:"varint,9,opt,name=bool3,proto3" json:"bool3,omitempty"`
+	EncryptedData2  []byte     `protobuf:"bytes,11,opt,name=encryptedData2,proto3" json:"encryptedData2,omitempty"`
 }
 
 func (x *RPCMessageData) Reset() {
@@ -609,6 +631,13 @@ func (x *RPCMessageData) GetAction() ActionType {
 	return ActionType_UNSPECIFIED
 }
 
+func (x *RPCMessageData) GetUnencryptedData() []byte {
+	if x != nil {
+		return x.UnencryptedData
+	}
+	return nil
+}
+
 func (x *RPCMessageData) GetBool1() bool {
 	if x != nil {
 		return x.Bool1
@@ -649,11 +678,11 @@ type OutgoingRPCMessage struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Mobile   *Device                  `protobuf:"bytes,1,opt,name=mobile,proto3" json:"mobile,omitempty"`
-	Data     *OutgoingRPCMessage_Data `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Auth     *OutgoingRPCMessage_Auth `protobuf:"bytes,3,opt,name=auth,proto3" json:"auth,omitempty"`
-	TTL      int64                    `protobuf:"varint,5,opt,name=TTL,proto3" json:"TTL,omitempty"`
-	EmptyArr *EmptyArr                `protobuf:"bytes,9,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
+	Mobile              *Device                  `protobuf:"bytes,1,opt,name=mobile,proto3" json:"mobile,omitempty"`
+	Data                *OutgoingRPCMessage_Data `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Auth                *OutgoingRPCMessage_Auth `protobuf:"bytes,3,opt,name=auth,proto3" json:"auth,omitempty"`
+	TTL                 int64                    `protobuf:"varint,5,opt,name=TTL,proto3" json:"TTL,omitempty"`
+	DestRegistrationIDs []string                 `protobuf:"bytes,9,rep,name=destRegistrationIDs,proto3" json:"destRegistrationIDs,omitempty"`
 }
 
 func (x *OutgoingRPCMessage) Reset() {
@@ -716,9 +745,9 @@ func (x *OutgoingRPCMessage) GetTTL() int64 {
 	return 0
 }
 
-func (x *OutgoingRPCMessage) GetEmptyArr() *EmptyArr {
+func (x *OutgoingRPCMessage) GetDestRegistrationIDs() []string {
 	if x != nil {
-		return x.EmptyArr
+		return x.DestRegistrationIDs
 	}
 	return nil
 }
@@ -728,10 +757,11 @@ type OutgoingRPCData struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	RequestID          string     `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
-	Action             ActionType `protobuf:"varint,2,opt,name=action,proto3,enum=rpc.ActionType" json:"action,omitempty"`
-	EncryptedProtoData []byte     `protobuf:"bytes,5,opt,name=encryptedProtoData,proto3" json:"encryptedProtoData,omitempty"`
-	SessionID          string     `protobuf:"bytes,6,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
+	RequestID            string     `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
+	Action               ActionType `protobuf:"varint,2,opt,name=action,proto3,enum=rpc.ActionType" json:"action,omitempty"`
+	UnencryptedProtoData []byte     `protobuf:"bytes,3,opt,name=unencryptedProtoData,proto3" json:"unencryptedProtoData,omitempty"`
+	EncryptedProtoData   []byte     `protobuf:"bytes,5,opt,name=encryptedProtoData,proto3" json:"encryptedProtoData,omitempty"`
+	SessionID            string     `protobuf:"bytes,6,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
 }
 
 func (x *OutgoingRPCData) Reset() {
@@ -778,6 +808,13 @@ func (x *OutgoingRPCData) GetAction() ActionType {
 		return x.Action
 	}
 	return ActionType_UNSPECIFIED
+}
+
+func (x *OutgoingRPCData) GetUnencryptedProtoData() []byte {
+	if x != nil {
+		return x.UnencryptedProtoData
+	}
+	return nil
 }
 
 func (x *OutgoingRPCData) GetEncryptedProtoData() []byte {
@@ -850,6 +887,53 @@ func (x *OutgoingRPCResponse) GetTimestamp() string {
 	return ""
 }
 
+type IncomingRPCMessage_GDittoSource struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	DeviceID int32 `protobuf:"varint,2,opt,name=deviceID,proto3" json:"deviceID,omitempty"`
+}
+
+func (x *IncomingRPCMessage_GDittoSource) Reset() {
+	*x = IncomingRPCMessage_GDittoSource{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rpc_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *IncomingRPCMessage_GDittoSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncomingRPCMessage_GDittoSource) ProtoMessage() {}
+
+func (x *IncomingRPCMessage_GDittoSource) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncomingRPCMessage_GDittoSource.ProtoReflect.Descriptor instead.
+func (*IncomingRPCMessage_GDittoSource) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *IncomingRPCMessage_GDittoSource) GetDeviceID() int32 {
+	if x != nil {
+		return x.DeviceID
+	}
+	return 0
+}
+
 type OutgoingRPCMessage_Auth struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -863,7 +947,7 @@ type OutgoingRPCMessage_Auth struct {
 func (x *OutgoingRPCMessage_Auth) Reset() {
 	*x = OutgoingRPCMessage_Auth{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[7]
+		mi := &file_rpc_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -876,7 +960,7 @@ func (x *OutgoingRPCMessage_Auth) String() string {
 func (*OutgoingRPCMessage_Auth) ProtoMessage() {}
 
 func (x *OutgoingRPCMessage_Auth) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[7]
+	mi := &file_rpc_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +1012,7 @@ type OutgoingRPCMessage_Data struct {
 func (x *OutgoingRPCMessage_Data) Reset() {
 	*x = OutgoingRPCMessage_Data{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[8]
+		mi := &file_rpc_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -941,7 +1025,7 @@ func (x *OutgoingRPCMessage_Data) String() string {
 func (*OutgoingRPCMessage_Data) ProtoMessage() {}
 
 func (x *OutgoingRPCMessage_Data) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[8]
+	mi := &file_rpc_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -997,7 +1081,7 @@ type OutgoingRPCMessage_Data_Type struct {
 func (x *OutgoingRPCMessage_Data_Type) Reset() {
 	*x = OutgoingRPCMessage_Data_Type{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[9]
+		mi := &file_rpc_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1010,7 +1094,7 @@ func (x *OutgoingRPCMessage_Data_Type) String() string {
 func (*OutgoingRPCMessage_Data_Type) ProtoMessage() {}
 
 func (x *OutgoingRPCMessage_Data_Type) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[9]
+	mi := &file_rpc_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +1136,7 @@ type OutgoingRPCResponse_SomeIdentifier struct {
 func (x *OutgoingRPCResponse_SomeIdentifier) Reset() {
 	*x = OutgoingRPCResponse_SomeIdentifier{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_rpc_proto_msgTypes[10]
+		mi := &file_rpc_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1065,7 +1149,7 @@ func (x *OutgoingRPCResponse_SomeIdentifier) String() string {
 func (*OutgoingRPCResponse_SomeIdentifier) ProtoMessage() {}
 
 func (x *OutgoingRPCResponse_SomeIdentifier) ProtoReflect() protoreflect.Message {
-	mi := &file_rpc_proto_msgTypes[10]
+	mi := &file_rpc_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1106,7 +1190,7 @@ func file_rpc_proto_rawDescGZIP() []byte {
 }
 
 var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_rpc_proto_goTypes = []interface{}{
 	(BugleRoute)(0),                            // 0: rpc.BugleRoute
 	(ActionType)(0),                            // 1: rpc.ActionType
@@ -1118,34 +1202,35 @@ var file_rpc_proto_goTypes = []interface{}{
 	(*OutgoingRPCMessage)(nil),                 // 7: rpc.OutgoingRPCMessage
 	(*OutgoingRPCData)(nil),                    // 8: rpc.OutgoingRPCData
 	(*OutgoingRPCResponse)(nil),                // 9: rpc.OutgoingRPCResponse
-	(*OutgoingRPCMessage_Auth)(nil),            // 10: rpc.OutgoingRPCMessage.Auth
-	(*OutgoingRPCMessage_Data)(nil),            // 11: rpc.OutgoingRPCMessage.Data
-	(*OutgoingRPCMessage_Data_Type)(nil),       // 12: rpc.OutgoingRPCMessage.Data.Type
-	(*OutgoingRPCResponse_SomeIdentifier)(nil), // 13: rpc.OutgoingRPCResponse.SomeIdentifier
-	(*EmptyArr)(nil),                           // 14: util.EmptyArr
-	(*Device)(nil),                             // 15: authentication.Device
-	(*ConfigVersion)(nil),                      // 16: authentication.ConfigVersion
+	(*IncomingRPCMessage_GDittoSource)(nil),    // 10: rpc.IncomingRPCMessage.GDittoSource
+	(*OutgoingRPCMessage_Auth)(nil),            // 11: rpc.OutgoingRPCMessage.Auth
+	(*OutgoingRPCMessage_Data)(nil),            // 12: rpc.OutgoingRPCMessage.Data
+	(*OutgoingRPCMessage_Data_Type)(nil),       // 13: rpc.OutgoingRPCMessage.Data.Type
+	(*OutgoingRPCResponse_SomeIdentifier)(nil), // 14: rpc.OutgoingRPCResponse.SomeIdentifier
+	(*EmptyArr)(nil),                           // 15: util.EmptyArr
+	(*Device)(nil),                             // 16: authentication.Device
+	(*ConfigVersion)(nil),                      // 17: authentication.ConfigVersion
 }
 var file_rpc_proto_depIdxs = []int32{
 	5,  // 0: rpc.LongPollingPayload.data:type_name -> rpc.IncomingRPCMessage
-	14, // 1: rpc.LongPollingPayload.heartbeat:type_name -> util.EmptyArr
+	15, // 1: rpc.LongPollingPayload.heartbeat:type_name -> util.EmptyArr
 	3,  // 2: rpc.LongPollingPayload.ack:type_name -> rpc.StartAckMessage
-	14, // 3: rpc.LongPollingPayload.startRead:type_name -> util.EmptyArr
+	15, // 3: rpc.LongPollingPayload.startRead:type_name -> util.EmptyArr
 	0,  // 4: rpc.IncomingRPCMessage.bugleRoute:type_name -> rpc.BugleRoute
 	2,  // 5: rpc.IncomingRPCMessage.messageType:type_name -> rpc.MessageType
-	15, // 6: rpc.IncomingRPCMessage.mobile:type_name -> authentication.Device
-	15, // 7: rpc.IncomingRPCMessage.browser:type_name -> authentication.Device
-	1,  // 8: rpc.RPCMessageData.action:type_name -> rpc.ActionType
-	15, // 9: rpc.OutgoingRPCMessage.mobile:type_name -> authentication.Device
-	11, // 10: rpc.OutgoingRPCMessage.data:type_name -> rpc.OutgoingRPCMessage.Data
-	10, // 11: rpc.OutgoingRPCMessage.auth:type_name -> rpc.OutgoingRPCMessage.Auth
-	14, // 12: rpc.OutgoingRPCMessage.emptyArr:type_name -> util.EmptyArr
+	16, // 6: rpc.IncomingRPCMessage.mobile:type_name -> authentication.Device
+	16, // 7: rpc.IncomingRPCMessage.browser:type_name -> authentication.Device
+	10, // 8: rpc.IncomingRPCMessage.gdittoSource:type_name -> rpc.IncomingRPCMessage.GDittoSource
+	1,  // 9: rpc.RPCMessageData.action:type_name -> rpc.ActionType
+	16, // 10: rpc.OutgoingRPCMessage.mobile:type_name -> authentication.Device
+	12, // 11: rpc.OutgoingRPCMessage.data:type_name -> rpc.OutgoingRPCMessage.Data
+	11, // 12: rpc.OutgoingRPCMessage.auth:type_name -> rpc.OutgoingRPCMessage.Auth
 	1,  // 13: rpc.OutgoingRPCData.action:type_name -> rpc.ActionType
-	13, // 14: rpc.OutgoingRPCResponse.someIdentifier:type_name -> rpc.OutgoingRPCResponse.SomeIdentifier
-	16, // 15: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
+	14, // 14: rpc.OutgoingRPCResponse.someIdentifier:type_name -> rpc.OutgoingRPCResponse.SomeIdentifier
+	17, // 15: rpc.OutgoingRPCMessage.Auth.configVersion:type_name -> authentication.ConfigVersion
 	0,  // 16: rpc.OutgoingRPCMessage.Data.bugleRoute:type_name -> rpc.BugleRoute
-	12, // 17: rpc.OutgoingRPCMessage.Data.messageTypeData:type_name -> rpc.OutgoingRPCMessage.Data.Type
-	14, // 18: rpc.OutgoingRPCMessage.Data.Type.emptyArr:type_name -> util.EmptyArr
+	13, // 17: rpc.OutgoingRPCMessage.Data.messageTypeData:type_name -> rpc.OutgoingRPCMessage.Data.Type
+	15, // 18: rpc.OutgoingRPCMessage.Data.Type.emptyArr:type_name -> util.EmptyArr
 	2,  // 19: rpc.OutgoingRPCMessage.Data.Type.messageType:type_name -> rpc.MessageType
 	20, // [20:20] is the sub-list for method output_type
 	20, // [20:20] is the sub-list for method input_type
@@ -1161,6 +1246,7 @@ func file_rpc_proto_init() {
 	}
 	file_authentication_proto_init()
 	file_util_proto_init()
+	file_pblite_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_rpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StartAckMessage); i {
@@ -1247,7 +1333,7 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OutgoingRPCMessage_Auth); i {
+			switch v := v.(*IncomingRPCMessage_GDittoSource); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1259,7 +1345,7 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OutgoingRPCMessage_Data); i {
+			switch v := v.(*OutgoingRPCMessage_Auth); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1271,7 +1357,7 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OutgoingRPCMessage_Data_Type); i {
+			switch v := v.(*OutgoingRPCMessage_Data); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1283,6 +1369,18 @@ func file_rpc_proto_init() {
 			}
 		}
 		file_rpc_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OutgoingRPCMessage_Data_Type); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rpc_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OutgoingRPCResponse_SomeIdentifier); i {
 			case 0:
 				return &v.state
@@ -1304,7 +1402,7 @@ func file_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_rpc_proto_rawDesc,
 			NumEnums:      3,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

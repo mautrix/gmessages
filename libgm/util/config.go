@@ -5,13 +5,16 @@ import (
 )
 
 var ConfigMessage = &gmproto.ConfigVersion{
-	Year:  2023,
-	Month: 9,
-	Day:   28,
+	Year:  2024,
+	Month: 2,
+	Day:   20,
 	V1:    4,
 	V2:    6,
 }
-var Network = "Bugle"
+
+const QRNetwork = "Bugle"
+const GoogleNetwork = "GDitto"
+
 var BrowserDetailsMessage = &gmproto.BrowserDetails{
 	UserAgent:   UserAgent,
 	BrowserType: gmproto.BrowserType_OTHER,

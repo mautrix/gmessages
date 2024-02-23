@@ -120,9 +120,9 @@ func (c *Client) SetTyping(convID string) error {
 func (c *Client) SetActiveSession() error {
 	c.sessionHandler.ResetSessionID()
 	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
-		Action:       gmproto.ActionType_GET_UPDATES,
-		OmitTTL:      true,
-		UseSessionID: true,
+		Action:    gmproto.ActionType_GET_UPDATES,
+		OmitTTL:   true,
+		RequestID: c.sessionHandler.sessionID,
 	})
 }
 

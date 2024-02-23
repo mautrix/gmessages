@@ -51,6 +51,8 @@ func (prov *ProvisioningAPI) Init() {
 	r.Use(prov.AuthMiddleware)
 	r.HandleFunc("/v1/ping", prov.Ping).Methods(http.MethodGet)
 	r.HandleFunc("/v1/login", prov.Login).Methods(http.MethodPost)
+	r.HandleFunc("/v1/google_login/emoji", prov.GoogleLoginStart).Methods(http.MethodPost)
+	r.HandleFunc("/v1/google_login/wait", prov.GoogleLoginWait).Methods(http.MethodPost)
 	r.HandleFunc("/v1/logout", prov.Logout).Methods(http.MethodPost)
 	r.HandleFunc("/v1/delete_session", prov.DeleteSession).Methods(http.MethodPost)
 	r.HandleFunc("/v1/disconnect", prov.Disconnect).Methods(http.MethodPost)
@@ -307,6 +309,68 @@ func (prov *ProvisioningAPI) Logout(w http.ResponseWriter, r *http.Request) {
 
 	user.Logout(status.BridgeState{StateEvent: status.StateLoggedOut}, true)
 	jsonResponse(w, http.StatusOK, Response{true, "Logged out successfully."})
+}
+
+type ReqGoogleLoginStart struct {
+	Cookies map[string]string
+}
+
+type RespGoogleLoginStart struct {
+	Status string `json:"status"`
+	Emoji  string `json:"emoji"`
+}
+
+func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user_id")
+	user := prov.bridge.GetUserByMXID(id.UserID(userID))
+
+	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
+
+	if user.IsLoggedIn() {
+		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success", ErrCode: "already logged in"})
+		return
+	}
+	var req ReqGoogleLoginStart
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonResponse(w, http.StatusBadRequest, Error{
+			Error:   "Failed to parse request JSON",
+			ErrCode: "bad json",
+		})
+	}
+	emoji, err := user.AsyncLoginGoogleStart(req.Cookies)
+	if err != nil {
+		log.Err(err).Msg("Failed to start login")
+		// TODO proper error codes
+		jsonResponse(w, http.StatusInternalServerError, Error{
+			Error:   "Failed to start login",
+			ErrCode: "start login fail",
+		})
+		return
+	}
+	jsonResponse(w, http.StatusOK, &RespGoogleLoginStart{Status: "emoji", Emoji: emoji})
+}
+
+func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user_id")
+	user := prov.bridge.GetUserByMXID(id.UserID(userID))
+
+	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
+
+	if user.IsLoggedIn() {
+		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success", ErrCode: "already logged in"})
+		return
+	}
+	err := user.AsyncLoginGoogleWait()
+	if err != nil {
+		log.Err(err).Msg("Failed to start login")
+		// TODO proper error codes
+		jsonResponse(w, http.StatusInternalServerError, Error{
+			Error:   "Failed to finish login",
+			ErrCode: "finish login fail",
+		})
+		return
+	}
+	jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 }
 
 type LoginResponse struct {

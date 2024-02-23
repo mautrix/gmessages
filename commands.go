@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -40,7 +41,8 @@ type WrappedCommandEvent struct {
 func (br *GMBridge) RegisterCommands() {
 	proc := br.CommandProcessor.(*commands.Processor)
 	proc.AddHandlers(
-		cmdLogin,
+		cmdLoginQR,
+		cmdLoginGoogle,
 		cmdDeleteSession,
 		cmdLogout,
 		cmdReconnect,
@@ -70,16 +72,17 @@ var (
 	HelpSectionPortalManagement     = commands.HelpSection{Name: "Portal management", Order: 20}
 )
 
-var cmdLogin = &commands.FullHandler{
-	Func: wrapCommand(fnLogin),
-	Name: "login",
+var cmdLoginQR = &commands.FullHandler{
+	Func:    wrapCommand(fnLoginQR),
+	Name:    "login-qr",
+	Aliases: []string{"login"},
 	Help: commands.HelpMeta{
 		Section:     commands.HelpSectionAuth,
-		Description: "Link the bridge to Google Messages on your Android phone as a web client.",
+		Description: "Link the bridge to Google Messages on your Android phone by scanning a QR code.",
 	},
 }
 
-func fnLogin(ce *WrappedCommandEvent) {
+func fnLoginQR(ce *WrappedCommandEvent) {
 	if ce.User.Session != nil {
 		if ce.User.IsConnected() {
 			ce.Reply("You're already logged in")
@@ -121,6 +124,64 @@ func fnLogin(ce *WrappedCommandEvent) {
 		}
 	}
 	ce.ZLog.Trace().Msg("Login command finished")
+}
+
+var cmdLoginGoogle = &commands.FullHandler{
+	Func:    wrapCommand(fnLoginGoogle),
+	Name:    "login-google",
+	Aliases: []string{"login"},
+	Help: commands.HelpMeta{
+		Section:     commands.HelpSectionAuth,
+		Description: "Link the bridge to Google Messages on your Android phone by logging in with your Google account.",
+	},
+}
+
+func fnLoginGoogle(ce *WrappedCommandEvent) {
+	if ce.User.Session != nil {
+		if ce.User.IsConnected() {
+			ce.Reply("You're already logged in")
+		} else {
+			ce.Reply("You're already logged in. Perhaps you wanted to `reconnect`?")
+		}
+		return
+	} else if ce.User.pairSuccessChan != nil {
+		ce.Reply("You already have a login in progress")
+		return
+	}
+	ce.User.CommandState = &commands.CommandState{
+		Next:   commands.MinimalHandlerFunc(wrapCommand(fnLoginGoogleCookies)),
+		Action: "Login",
+	}
+	ce.Reply("Send your Google cookies here, formatted as a key-value JSON object (see <https://docs.mau.fi/bridges/go/gmessages/authentication.html> for details)")
+}
+
+func fnLoginGoogleCookies(ce *WrappedCommandEvent) {
+	ce.User.CommandState = nil
+	if ce.User.Session != nil {
+		if ce.User.IsConnected() {
+			ce.Reply("You're already logged in")
+		} else {
+			ce.Reply("You're already logged in. Perhaps you wanted to `reconnect`?")
+		}
+		return
+	} else if ce.User.pairSuccessChan != nil {
+		ce.Reply("You already have a login in progress")
+		return
+	}
+	var cookies map[string]string
+	err := json.Unmarshal([]byte(ce.RawArgs), &cookies)
+	if err != nil {
+		ce.Reply("Failed to parse cookies: %v", err)
+		return
+	}
+	err = ce.User.LoginGoogle(cookies, func(emoji string) {
+		ce.Reply(emoji)
+	})
+	if err != nil {
+		ce.Reply("Login failed: %v", err)
+	} else {
+		ce.Reply("Login successful")
+	}
 }
 
 func (user *User) sendQREdit(ce *WrappedCommandEvent, content *event.MessageEventContent, prevEvent id.EventID) id.EventID {

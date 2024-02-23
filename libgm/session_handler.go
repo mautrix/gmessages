@@ -37,8 +37,12 @@ func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
 		return err
 	}
 
+	url := util.SendMessageURL
+	if s.client.AuthData.Cookies != nil {
+		url = util.SendMessageURLGoogle
+	}
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequest(util.SendMessageURL, payload, ContentTypePBLite),
+		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
 	)
 	return err
 }
@@ -50,8 +54,12 @@ func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *Inc
 	}
 
 	ch := s.waitResponse(requestID)
+	url := util.SendMessageURL
+	if s.client.AuthData.Cookies != nil {
+		url = util.SendMessageURLGoogle
+	}
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequest(util.SendMessageURL, payload, ContentTypePBLite),
+		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
 	)
 	if err != nil {
 		s.cancelResponse(requestID, ch)
@@ -68,7 +76,7 @@ func typedResponse[T proto.Message](resp *IncomingRPCMessage, err error) (casted
 	var ok bool
 	casted, ok = resp.DecryptedMessage.(T)
 	if !ok {
-		retErr = fmt.Errorf("unexpected response type %T, expected %T", resp.DecryptedMessage, casted)
+		retErr = fmt.Errorf("unexpected response type %T for %s, expected %T", resp.DecryptedMessage, resp.ResponseID, casted)
 	}
 	return
 }
@@ -91,6 +99,17 @@ func (s *SessionHandler) cancelResponse(requestID string, ch chan *IncomingRPCMe
 func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	if msg.Message == nil {
 		return false
+	}
+	if s.client.AuthData.Cookies != nil {
+		switch msg.Message.Action {
+		case gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED:
+		default:
+			// Very hacky way to ignore weird messages that come before real responses
+			// TODO figure out how to properly handle these
+			if msg.Message.UnencryptedData != nil && msg.Message.EncryptedData == nil {
+				return false
+			}
+		}
 	}
 	requestID := msg.Message.SessionID
 	s.responseWaitersLock.Lock()
@@ -122,6 +141,10 @@ func (s *SessionHandler) sendMessageWithParams(params SendMessageParams) (*Incom
 		return nil, err
 	}
 
+	if params.NoPingOnTimeout {
+		return <-ch, nil
+	}
+
 	select {
 	case resp := <-ch:
 		return resp, nil
@@ -147,19 +170,21 @@ type SendMessageParams struct {
 	Action gmproto.ActionType
 	Data   proto.Message
 
-	UseSessionID bool
-	OmitTTL      bool
-	MessageType  gmproto.MessageType
+	RequestID   string
+	OmitTTL     bool
+	CustomTTL   int64
+	DontEncrypt bool
+	MessageType gmproto.MessageType
+
+	NoPingOnTimeout bool
 }
 
 func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.Message, error) {
-	var requestID string
 	var err error
 	sessionID := s.client.sessionHandler.sessionID
 
-	if params.UseSessionID {
-		requestID = s.sessionID
-	} else {
+	requestID := params.RequestID
+	if requestID == "" {
 		requestID = uuid.NewString()
 	}
 
@@ -182,28 +207,38 @@ func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.M
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
 			ConfigVersion:    util.ConfigMessage,
 		},
-		EmptyArr: &gmproto.EmptyArr{},
+		DestRegistrationIDs: []string{},
 	}
-	if !params.OmitTTL {
+	if s.client.AuthData != nil && s.client.AuthData.DestRegID != uuid.Nil {
+		message.DestRegistrationIDs = append(message.DestRegistrationIDs, s.client.AuthData.DestRegID.String())
+	}
+	if params.CustomTTL != 0 {
+		message.TTL = params.CustomTTL
+	} else if !params.OmitTTL {
 		message.TTL = s.client.AuthData.TachyonTTL
 	}
-	var encryptedData []byte
+	var encryptedData, unencryptedData []byte
 	if params.Data != nil {
 		var serializedData []byte
 		serializedData, err = proto.Marshal(params.Data)
 		if err != nil {
 			return "", nil, err
 		}
-		encryptedData, err = s.client.AuthData.RequestCrypto.Encrypt(serializedData)
-		if err != nil {
-			return "", nil, err
+		if params.DontEncrypt {
+			unencryptedData = serializedData
+		} else {
+			encryptedData, err = s.client.AuthData.RequestCrypto.Encrypt(serializedData)
+			if err != nil {
+				return "", nil, err
+			}
 		}
 	}
 	message.Data.MessageData, err = proto.Marshal(&gmproto.OutgoingRPCData{
-		RequestID:          requestID,
-		Action:             params.Action,
-		EncryptedProtoData: encryptedData,
-		SessionID:          sessionID,
+		RequestID:            requestID,
+		Action:               params.Action,
+		UnencryptedProtoData: unencryptedData,
+		EncryptedProtoData:   encryptedData,
+		SessionID:            sessionID,
 	})
 	if err != nil {
 		return "", nil, err
@@ -255,13 +290,18 @@ func (s *SessionHandler) sendAckRequest() {
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
+			Network:          s.client.AuthData.AuthNetwork(),
 			ConfigVersion:    util.ConfigMessage,
 		},
 		EmptyArr: &gmproto.EmptyArr{},
 		Acks:     ackMessages,
 	}
+	url := util.AckMessagesURL
+	if s.client.AuthData.Cookies != nil {
+		url = util.AckMessagesURLGoogle
+	}
 	_, err := typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequest(util.AckMessagesURL, payload, ContentTypePBLite),
+		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
 	)
 	if err != nil {
 		// TODO retry?
