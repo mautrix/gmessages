@@ -280,6 +280,7 @@ func (s *SessionHandler) sendAckRequest() {
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: s.client.AuthData.TachyonAuthToken,
+			Network:          s.client.AuthData.AuthNetwork(),
 			ConfigVersion:    util.ConfigMessage,
 		},
 		EmptyArr: &gmproto.EmptyArr{},

@@ -38,6 +38,13 @@ type AuthData struct {
 	Cookies   map[string]string `json:"cookies,omitempty"`
 }
 
+func (ad *AuthData) AuthNetwork() string {
+	if ad.Cookies != nil {
+		return util.GoogleNetwork
+	}
+	return ""
+}
+
 const RefreshTachyonBuffer = 1 * time.Hour
 
 type Proxy func(*http.Request) (*url.URL, error)
@@ -292,6 +299,7 @@ func (c *Client) refreshAuthToken() error {
 		MessageAuth: &gmproto.AuthMessage{
 			RequestID:        requestID,
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			Network:          c.AuthData.AuthNetwork(),
 			ConfigVersion:    util.ConfigMessage,
 		},
 		CurrBrowserDevice: c.AuthData.Browser,

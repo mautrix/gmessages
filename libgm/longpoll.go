@@ -122,6 +122,7 @@ func (c *Client) doLongPoll(loggedIn bool) {
 			Auth: &gmproto.AuthMessage{
 				RequestID:        listenReqID,
 				TachyonAuthToken: c.AuthData.TachyonAuthToken,
+				Network:          c.AuthData.AuthNetwork(),
 				ConfigVersion:    util.ConfigMessage,
 			},
 			Unknown: &gmproto.ReceiveMessagesRequest_UnknownEmptyObject2{
