@@ -58,7 +58,7 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 	c.AuthData.Mobile = data.Mobile
 	c.AuthData.Browser = data.Browser
 
-	c.triggerEvent(&events.PairSuccessful{PairedData: data})
+	c.triggerEvent(&events.PairSuccessful{PhoneID: data.GetMobile().GetSourceID(), QRData: data})
 
 	go func() {
 		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,

@@ -297,7 +297,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	c.AuthData.RequestCrypto.AESKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))
 	c.AuthData.RequestCrypto.HMACKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("server"))
 	c.AuthData.PairingID = ps.UUID
-	c.triggerEvent(&events.PairSuccessful{})
+	c.triggerEvent(&events.PairSuccessful{PhoneID: c.AuthData.Mobile.GetSourceID()})
 
 	go func() {
 		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,

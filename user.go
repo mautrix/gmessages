@@ -698,14 +698,14 @@ func (user *User) syncHandleEvent(event any) {
 		}
 	case *events.PairSuccessful:
 		user.Session = user.Client.AuthData
-		if user.PhoneID != "" && user.PhoneID != v.GetMobile().GetSourceID() {
+		if user.PhoneID != "" && user.PhoneID != v.PhoneID {
 			user.zlog.Warn().
 				Str("old_phone_id", user.PhoneID).
-				Str("new_phone_id", v.GetMobile().GetSourceID()).
+				Str("new_phone_id", v.PhoneID).
 				Msg("Phone ID changed, resetting state")
 			user.ResetState()
 		}
-		user.PhoneID = v.GetMobile().GetSourceID()
+		user.PhoneID = v.PhoneID
 		err := user.Update(context.TODO())
 		if err != nil {
 			user.zlog.Err(err).Msg("Failed to update session in database")

@@ -9,5 +9,6 @@ type QR struct {
 }
 
 type PairSuccessful struct {
-	*gmproto.PairedData
+	PhoneID string
+	QRData  *gmproto.PairedData
 }
