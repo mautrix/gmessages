@@ -160,6 +160,7 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) postConnect() {
+	c.Logger.Debug().Msg("Sending get updates request")
 	err := c.SetActiveSession()
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to set active session")
