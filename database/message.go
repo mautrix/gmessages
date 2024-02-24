@@ -18,7 +18,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -62,10 +61,6 @@ const (
 		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-	massInsertMessageQueryPrefix = `
-		INSERT INTO message (conv_id, conv_receiver, id, mxid, mx_room, sender, timestamp, status)
-		VALUES
-	`
 	updateMessageQuery = `
 		UPDATE message
 		SET conv_id=$1, mxid=$4, mx_room=$5, sender=$6, timestamp=$7, status=$8
@@ -74,6 +69,8 @@ const (
 	updateMessageStatusQuery = "UPDATE message SET status=$1, timestamp=$2 WHERE conv_receiver=$3 AND id=$4"
 	deleteMessageQuery       = "DELETE FROM message WHERE conv_id=$1 AND conv_receiver=$2 AND id=$3"
 )
+
+var massInsertMessageBuilder = dbutil.NewMassInsertBuilder[*Message, [3]any](insertMessageQuery, "($1, $2, $%d, $%d, $3, $%d, $%d, $%d)")
 
 func (mq *MessageQuery) GetByID(ctx context.Context, receiver int, messageID string) (*Message, error) {
 	return mq.QueryOne(ctx, getMessageByIDQuery, receiver, messageID)
@@ -154,26 +151,12 @@ func (msg *Message) Insert(ctx context.Context) error {
 	return msg.qh.Exec(ctx, insertMessageQuery, msg.sqlVariables()...)
 }
 
+func (msg *Message) GetMassInsertValues() [5]any {
+	return [...]any{msg.ID, msg.MXID, msg.Sender, msg.Timestamp.UnixMicro(), dbutil.JSON{Data: &msg.Status}}
+}
+
 func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) error {
-	valueStringFormat := "($1, $2, $%d, $%d, $3, $%d, $%d, $%d)"
-	if mq.GetDB().Dialect == dbutil.SQLite {
-		valueStringFormat = strings.ReplaceAll(valueStringFormat, "$", "?")
-	}
-	placeholders := make([]string, len(messages))
-	params := make([]any, 3+len(messages)*5)
-	params[0] = messages[0].Chat.ID
-	params[1] = messages[0].Chat.Receiver
-	params[2] = messages[0].RoomID
-	for i, msg := range messages {
-		baseIndex := 3 + i*5
-		params[baseIndex] = msg.ID
-		params[baseIndex+1] = msg.MXID
-		params[baseIndex+2] = msg.Sender
-		params[baseIndex+3] = msg.Timestamp.UnixMicro()
-		params[baseIndex+4] = dbutil.JSON{Data: &msg.Status}
-		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4, baseIndex+5)
-	}
-	query := massInsertMessageQueryPrefix + strings.Join(placeholders, ",")
+	query, params := massInsertMessageBuilder.Build([3]any{messages[0].Chat.ID, messages[0].Chat.Receiver, messages[0].RoomID}, messages)
 	return mq.Exec(ctx, query, params...)
 }
 

@@ -18,8 +18,6 @@ package database
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"go.mau.fi/util/dbutil"
 	"maunium.net/go/mautrix/id"
@@ -59,6 +57,8 @@ const (
 	deleteReactionQuery = "DELETE FROM reaction WHERE conv_id=$1 AND conv_receiver=$2 AND msg_id=$3 AND sender=$4"
 )
 
+var massInsertReactionBuilder = dbutil.NewMassInsertBuilder[*Reaction, [2]any](insertReactionQuery, "($1, $2, $%d, $%d, $%d, $%d)")
+
 func (rq *ReactionQuery) GetByID(ctx context.Context, receiver int, messageID, sender string) (*Reaction, error) {
 	return rq.QueryOne(ctx, getReactionByIDQuery, receiver, messageID, sender)
 }
@@ -93,24 +93,12 @@ func (r *Reaction) Insert(ctx context.Context) error {
 	return r.qh.Exec(ctx, insertReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender, r.Reaction, r.MXID)
 }
 
+func (r *Reaction) GetMassInsertValues() [4]any {
+	return [...]any{r.MessageID, r.Sender, r.Reaction, r.MXID}
+}
+
 func (rq *ReactionQuery) MassInsert(ctx context.Context, reactions []*Reaction) error {
-	valueStringFormat := "($1, $2, $%d, $%d, $%d, $%d)"
-	if rq.GetDB().Dialect == dbutil.SQLite {
-		valueStringFormat = strings.ReplaceAll(valueStringFormat, "$", "?")
-	}
-	placeholders := make([]string, len(reactions))
-	params := make([]any, 2+len(reactions)*4)
-	params[0] = reactions[0].Chat.ID
-	params[1] = reactions[0].Chat.Receiver
-	for i, msg := range reactions {
-		baseIndex := 2 + i*4
-		params[baseIndex] = msg.MessageID
-		params[baseIndex+1] = msg.Sender
-		params[baseIndex+2] = msg.Reaction
-		params[baseIndex+3] = msg.MXID
-		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4)
-	}
-	query := strings.Replace(insertReactionQuery, "($1, $2, $3, $4, $5, $6)", strings.Join(placeholders, ","), 1)
+	query, params := massInsertReactionBuilder.Build([2]any{reactions[0].Chat.ID, reactions[0].Chat.Receiver}, reactions)
 	return rq.Exec(ctx, query, params...)
 }
 

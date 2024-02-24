@@ -9,7 +9,7 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.2.2
-	go.mau.fi/util v0.4.1-0.20240222202553-953608f657a3
+	go.mau.fi/util v0.4.1-0.20240224232958-1a0adaa986cf
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	google.golang.org/protobuf v1.32.0
 	maunium.net/go/maulogger/v2 v2.4.1
