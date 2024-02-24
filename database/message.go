@@ -1,5 +1,5 @@
 // mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
-// Copyright (C) 2023 Tulir Asokan
+// Copyright (C) 2024 Tulir Asokan
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -18,8 +18,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -31,17 +29,11 @@ import (
 )
 
 type MessageQuery struct {
-	db *Database
+	*dbutil.QueryHelper[*Message]
 }
 
-func (mq *MessageQuery) New() *Message {
-	return &Message{
-		db: mq.db,
-	}
-}
-
-func (mq *MessageQuery) getDB() *Database {
-	return mq.db
+func newMessage(qh *dbutil.QueryHelper[*Message]) *Message {
+	return &Message{qh: qh}
 }
 
 const (
@@ -84,24 +76,23 @@ const (
 )
 
 func (mq *MessageQuery) GetByID(ctx context.Context, receiver int, messageID string) (*Message, error) {
-	return get[*Message](mq, ctx, getMessageByIDQuery, receiver, messageID)
+	return mq.QueryOne(ctx, getMessageByIDQuery, receiver, messageID)
 }
 
 func (mq *MessageQuery) GetByMXID(ctx context.Context, mxid id.EventID) (*Message, error) {
-	return get[*Message](mq, ctx, getMessageByMXIDQuery, mxid)
+	return mq.QueryOne(ctx, getMessageByMXIDQuery, mxid)
 }
 
 func (mq *MessageQuery) GetLastInChat(ctx context.Context, chat Key) (*Message, error) {
-	return get[*Message](mq, ctx, getLastMessageInChatQuery, chat.ID, chat.Receiver)
+	return mq.QueryOne(ctx, getLastMessageInChatQuery, chat.ID, chat.Receiver)
 }
 
 func (mq *MessageQuery) GetLastInChatWithMXID(ctx context.Context, chat Key) (*Message, error) {
-	return get[*Message](mq, ctx, getLastMessageInChatWithMXIDQuery, chat.ID, chat.Receiver)
+	return mq.QueryOne(ctx, getLastMessageInChatWithMXIDQuery, chat.ID, chat.Receiver)
 }
 
 func (mq *MessageQuery) DeleteAllInChat(ctx context.Context, chat Key) error {
-	_, err := mq.db.Conn(ctx).ExecContext(ctx, deleteAllMessagesInChatQuery, chat.ID, chat.Receiver)
-	return err
+	return mq.Exec(ctx, deleteAllMessagesInChatQuery, chat.ID, chat.Receiver)
 }
 
 type MediaPart struct {
@@ -132,7 +123,7 @@ func (ms *MessageStatus) HasPendingMediaParts() bool {
 }
 
 type Message struct {
-	db *Database
+	qh *dbutil.QueryHelper[*Message]
 
 	Chat      Key
 	ID        string
@@ -146,9 +137,7 @@ type Message struct {
 func (msg *Message) Scan(row dbutil.Scannable) (*Message, error) {
 	var ts int64
 	err := row.Scan(&msg.Chat.ID, &msg.Chat.Receiver, &msg.ID, &msg.MXID, &msg.RoomID, &msg.Sender, &ts, dbutil.JSON{Data: &msg.Status})
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	if ts != 0 {
@@ -162,13 +151,12 @@ func (msg *Message) sqlVariables() []any {
 }
 
 func (msg *Message) Insert(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, insertMessageQuery, msg.sqlVariables()...)
-	return err
+	return msg.qh.Exec(ctx, insertMessageQuery, msg.sqlVariables()...)
 }
 
 func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) error {
 	valueStringFormat := "($1, $2, $%d, $%d, $3, $%d, $%d, $%d)"
-	if mq.db.Dialect == dbutil.SQLite {
+	if mq.GetDB().Dialect == dbutil.SQLite {
 		valueStringFormat = strings.ReplaceAll(valueStringFormat, "$", "?")
 	}
 	placeholders := make([]string, len(messages))
@@ -186,23 +174,19 @@ func (mq *MessageQuery) MassInsert(ctx context.Context, messages []*Message) err
 		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4, baseIndex+5)
 	}
 	query := massInsertMessageQueryPrefix + strings.Join(placeholders, ",")
-	_, err := mq.db.Conn(ctx).ExecContext(ctx, query, params...)
-	return err
+	return mq.Exec(ctx, query, params...)
 }
 
 func (msg *Message) Update(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, updateMessageQuery, msg.sqlVariables()...)
-	return err
+	return msg.qh.Exec(ctx, updateMessageQuery, msg.sqlVariables()...)
 }
 
 func (msg *Message) UpdateStatus(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, updateMessageStatusQuery, dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.Receiver, msg.ID)
-	return err
+	return msg.qh.Exec(ctx, updateMessageStatusQuery, dbutil.JSON{Data: &msg.Status}, msg.Timestamp.UnixMicro(), msg.Chat.Receiver, msg.ID)
 }
 
 func (msg *Message) Delete(ctx context.Context) error {
-	_, err := msg.db.Conn(ctx).ExecContext(ctx, deleteMessageQuery, msg.Chat.ID, msg.Chat.Receiver, msg.ID)
-	return err
+	return msg.qh.Exec(ctx, deleteMessageQuery, msg.Chat.ID, msg.Chat.Receiver, msg.ID)
 }
 
 func (msg *Message) IsFakeMXID() bool {

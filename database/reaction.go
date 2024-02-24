@@ -1,5 +1,5 @@
 // mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
-// Copyright (C) 2023 Tulir Asokan
+// Copyright (C) 2024 Tulir Asokan
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -18,8 +18,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -28,17 +26,11 @@ import (
 )
 
 type ReactionQuery struct {
-	db *Database
+	*dbutil.QueryHelper[*Reaction]
 }
 
-func (rq *ReactionQuery) New() *Reaction {
-	return &Reaction{
-		db: rq.db,
-	}
-}
-
-func (rq *ReactionQuery) getDB() *Database {
-	return rq.db
+func newReaction(qh *dbutil.QueryHelper[*Reaction]) *Reaction {
+	return &Reaction{qh: qh}
 }
 
 const (
@@ -68,24 +60,23 @@ const (
 )
 
 func (rq *ReactionQuery) GetByID(ctx context.Context, receiver int, messageID, sender string) (*Reaction, error) {
-	return get[*Reaction](rq, ctx, getReactionByIDQuery, receiver, messageID, sender)
+	return rq.QueryOne(ctx, getReactionByIDQuery, receiver, messageID, sender)
 }
 
 func (rq *ReactionQuery) GetByMXID(ctx context.Context, mxid id.EventID) (*Reaction, error) {
-	return get[*Reaction](rq, ctx, getReactionByMXIDQuery, mxid)
+	return rq.QueryOne(ctx, getReactionByMXIDQuery, mxid)
 }
 
 func (rq *ReactionQuery) GetAllByMessage(ctx context.Context, receiver int, messageID string) ([]*Reaction, error) {
-	return getAll[*Reaction](rq, ctx, getReactionsByMessageIDQuery, receiver, messageID)
+	return rq.QueryMany(ctx, getReactionsByMessageIDQuery, receiver, messageID)
 }
 
 func (rq *ReactionQuery) DeleteAllByMessage(ctx context.Context, chat Key, messageID string) error {
-	_, err := rq.db.Conn(ctx).ExecContext(ctx, deleteReactionsByMessageIDQuery, chat.ID, chat.Receiver, messageID)
-	return err
+	return rq.Exec(ctx, deleteReactionsByMessageIDQuery, chat.ID, chat.Receiver, messageID)
 }
 
 type Reaction struct {
-	db *Database
+	qh *dbutil.QueryHelper[*Reaction]
 
 	Chat      Key
 	MessageID string
@@ -95,23 +86,16 @@ type Reaction struct {
 }
 
 func (r *Reaction) Scan(row dbutil.Scannable) (*Reaction, error) {
-	err := row.Scan(&r.Chat.ID, &r.Chat.Receiver, &r.MessageID, &r.Sender, &r.Reaction, &r.MXID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-	return r, nil
+	return dbutil.ValueOrErr(r, row.Scan(&r.Chat.ID, &r.Chat.Receiver, &r.MessageID, &r.Sender, &r.Reaction, &r.MXID))
 }
 
 func (r *Reaction) Insert(ctx context.Context) error {
-	_, err := r.db.Conn(ctx).ExecContext(ctx, insertReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender, r.Reaction, r.MXID)
-	return err
+	return r.qh.Exec(ctx, insertReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender, r.Reaction, r.MXID)
 }
 
 func (rq *ReactionQuery) MassInsert(ctx context.Context, reactions []*Reaction) error {
 	valueStringFormat := "($1, $2, $%d, $%d, $%d, $%d)"
-	if rq.db.Dialect == dbutil.SQLite {
+	if rq.GetDB().Dialect == dbutil.SQLite {
 		valueStringFormat = strings.ReplaceAll(valueStringFormat, "$", "?")
 	}
 	placeholders := make([]string, len(reactions))
@@ -127,11 +111,9 @@ func (rq *ReactionQuery) MassInsert(ctx context.Context, reactions []*Reaction) 
 		placeholders[i] = fmt.Sprintf(valueStringFormat, baseIndex+1, baseIndex+2, baseIndex+3, baseIndex+4)
 	}
 	query := strings.Replace(insertReactionQuery, "($1, $2, $3, $4, $5, $6)", strings.Join(placeholders, ","), 1)
-	_, err := rq.db.Conn(ctx).ExecContext(ctx, query, params...)
-	return err
+	return rq.Exec(ctx, query, params...)
 }
 
 func (r *Reaction) Delete(ctx context.Context) error {
-	_, err := r.db.Conn(ctx).ExecContext(ctx, deleteReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender)
-	return err
+	return r.qh.Exec(ctx, deleteReactionQuery, r.Chat.ID, r.Chat.Receiver, r.MessageID, r.Sender)
 }

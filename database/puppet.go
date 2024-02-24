@@ -1,5 +1,5 @@
 // mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
-// Copyright (C) 2023 Tulir Asokan
+// Copyright (C) 2024 Tulir Asokan
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -18,8 +18,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"time"
 
 	"go.mau.fi/util/dbutil"
@@ -27,13 +25,11 @@ import (
 )
 
 type PuppetQuery struct {
-	db *Database
+	*dbutil.QueryHelper[*Puppet]
 }
 
-func (pq *PuppetQuery) New() *Puppet {
-	return &Puppet{
-		db: pq.db,
-	}
+func newPuppet(qh *dbutil.QueryHelper[*Puppet]) *Puppet {
+	return &Puppet{qh: qh}
 }
 
 const (
@@ -50,21 +46,16 @@ const (
 	`
 )
 
-func (pq *PuppetQuery) getDB() *Database {
-	return pq.db
-}
-
 func (pq *PuppetQuery) DeleteAllForUser(ctx context.Context, userID int) error {
-	_, err := pq.db.Conn(ctx).ExecContext(ctx, deleteAllPuppetsForUserQuery, userID)
-	return err
+	return pq.Exec(ctx, deleteAllPuppetsForUserQuery, userID)
 }
 
 func (pq *PuppetQuery) Get(ctx context.Context, key Key) (*Puppet, error) {
-	return get[*Puppet](pq, ctx, getPuppetQuery, key.ID, key.Receiver)
+	return pq.QueryOne(ctx, getPuppetQuery, key.ID, key.Receiver)
 }
 
 type Puppet struct {
-	db *Database
+	qh *dbutil.QueryHelper[*Puppet]
 
 	Key
 	Phone          string
@@ -81,10 +72,11 @@ type Puppet struct {
 func (puppet *Puppet) Scan(row dbutil.Scannable) (*Puppet, error) {
 	var avatarHash []byte
 	var avatarUpdateTS int64
-	err := row.Scan(&puppet.ID, &puppet.Receiver, &puppet.Phone, &puppet.ContactID, &puppet.Name, &puppet.NameSet, &avatarHash, &puppet.AvatarMXC, &puppet.AvatarSet, &avatarUpdateTS, &puppet.ContactInfoSet)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
+	err := row.Scan(
+		&puppet.ID, &puppet.Receiver, &puppet.Phone, &puppet.ContactID, &puppet.Name, &puppet.NameSet,
+		&avatarHash, &puppet.AvatarMXC, &puppet.AvatarSet, &avatarUpdateTS, &puppet.ContactInfoSet,
+	)
+	if err != nil {
 		return nil, err
 	}
 	if len(avatarHash) == 32 {
@@ -95,15 +87,16 @@ func (puppet *Puppet) Scan(row dbutil.Scannable) (*Puppet, error) {
 }
 
 func (puppet *Puppet) sqlVariables() []any {
-	return []any{puppet.ID, puppet.Receiver, puppet.Phone, puppet.ContactID, puppet.Name, puppet.NameSet, puppet.AvatarHash[:], &puppet.AvatarMXC, puppet.AvatarSet, puppet.AvatarUpdateTS.UnixMilli(), puppet.ContactInfoSet}
+	return []any{
+		puppet.ID, puppet.Receiver, puppet.Phone, puppet.ContactID, puppet.Name, puppet.NameSet,
+		puppet.AvatarHash[:], &puppet.AvatarMXC, puppet.AvatarSet, puppet.AvatarUpdateTS.UnixMilli(), puppet.ContactInfoSet,
+	}
 }
 
 func (puppet *Puppet) Insert(ctx context.Context) error {
-	_, err := puppet.db.Conn(ctx).ExecContext(ctx, insertPuppetQuery, puppet.sqlVariables()...)
-	return err
+	return puppet.qh.Exec(ctx, insertPuppetQuery, puppet.sqlVariables()...)
 }
 
 func (puppet *Puppet) Update(ctx context.Context) error {
-	_, err := puppet.db.Conn(ctx).ExecContext(ctx, updatePuppetQuery, puppet.sqlVariables()...)
-	return err
+	return puppet.qh.Exec(ctx, updatePuppetQuery, puppet.sqlVariables()...)
 }

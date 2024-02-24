@@ -1,5 +1,5 @@
 // mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
-// Copyright (C) 2023 Tulir Asokan
+// Copyright (C) 2024 Tulir Asokan
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -20,7 +20,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -33,17 +32,11 @@ import (
 )
 
 type UserQuery struct {
-	db *Database
+	*dbutil.QueryHelper[*User]
 }
 
-func (uq *UserQuery) New() *User {
-	return &User{
-		db: uq.db,
-	}
-}
-
-func (uq *UserQuery) getDB() *Database {
-	return uq.db
+func newUser(qh *dbutil.QueryHelper[*User]) *User {
+	return &User{qh: qh}
 }
 
 const (
@@ -63,22 +56,23 @@ const (
 		    management_room=$7, space_room=$8, access_token=$9
 		WHERE mxid=$1
 	`
+	updateuserParticipantIDsQuery = `UPDATE "user" SET self_participant_ids=$2 WHERE mxid=$1`
 )
 
 func (uq *UserQuery) GetAllWithSession(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, getAllUsersWithSessionQuery)
+	return uq.QueryMany(ctx, getAllUsersWithSessionQuery)
 }
 
 func (uq *UserQuery) GetAllWithDoublePuppet(ctx context.Context) ([]*User, error) {
-	return getAll[*User](uq, ctx, getAllUsersWithDoublePuppetQuery)
+	return uq.QueryMany(ctx, getAllUsersWithDoublePuppetQuery)
 }
 
 func (uq *UserQuery) GetByRowID(ctx context.Context, rowID int) (*User, error) {
-	return get[*User](uq, ctx, getUserByRowIDQuery, rowID)
+	return uq.QueryOne(ctx, getUserByRowIDQuery, rowID)
 }
 
 func (uq *UserQuery) GetByMXID(ctx context.Context, userID id.UserID) (*User, error) {
-	return get[*User](uq, ctx, getUserByMXIDQuery, userID)
+	return uq.QueryOne(ctx, getUserByMXIDQuery, userID)
 }
 
 type Settings struct {
@@ -90,7 +84,7 @@ type Settings struct {
 }
 
 type User struct {
-	db *Database
+	qh *dbutil.QueryHelper[*User]
 
 	RowID   int
 	MXID    id.UserID
@@ -114,10 +108,11 @@ type User struct {
 func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 	var phoneID, session, managementRoom, spaceRoom, accessToken sql.NullString
 	var selfParticipantIDs, simMetadata, settings string
-	err := row.Scan(&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &simMetadata, &settings, &managementRoom, &spaceRoom, &accessToken)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
+	err := row.Scan(
+		&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &simMetadata,
+		&settings, &managementRoom, &spaceRoom, &accessToken,
+	)
+	if err != nil {
 		return nil, err
 	}
 	if session.String != "" {
@@ -152,23 +147,11 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 }
 
 func (user *User) sqlVariables() []any {
-	var phoneID, session, managementRoom, spaceRoom, accessToken *string
-	if user.PhoneID != "" {
-		phoneID = &user.PhoneID
-	}
+	var session *string
 	if user.Session != nil {
 		data, _ := json.Marshal(user.Session)
 		strData := string(data)
 		session = &strData
-	}
-	if user.ManagementRoom != "" {
-		managementRoom = (*string)(&user.ManagementRoom)
-	}
-	if user.SpaceRoom != "" {
-		spaceRoom = (*string)(&user.SpaceRoom)
-	}
-	if user.AccessToken != "" {
-		accessToken = &user.AccessToken
 	}
 	user.selfParticipantIDsLock.RLock()
 	selfParticipantIDs, _ := json.Marshal(user.SelfParticipantIDs)
@@ -183,7 +166,10 @@ func (user *User) sqlVariables() []any {
 	if err != nil {
 		panic(err)
 	}
-	return []any{user.MXID, phoneID, session, string(selfParticipantIDs), string(simMetadata), string(settings), managementRoom, spaceRoom, accessToken}
+	return []any{
+		user.MXID, dbutil.StrPtr(user.PhoneID), session, string(selfParticipantIDs), string(simMetadata),
+		string(settings), dbutil.StrPtr(user.ManagementRoom), dbutil.StrPtr(user.SpaceRoom), dbutil.StrPtr(user.AccessToken),
+	}
 }
 
 func (user *User) IsSelfParticipantID(id string) bool {
@@ -268,20 +254,18 @@ func (user *User) AddSelfParticipantID(ctx context.Context, id string) error {
 	if !slices.Contains(user.SelfParticipantIDs, id) {
 		user.SelfParticipantIDs = append(user.SelfParticipantIDs, id)
 		selfParticipantIDs, _ := json.Marshal(user.SelfParticipantIDs)
-		_, err := user.db.Conn(ctx).ExecContext(ctx, `UPDATE "user" SET self_participant_ids=$2 WHERE mxid=$1`, user.MXID, selfParticipantIDs)
-		return err
+		return user.qh.Exec(ctx, updateuserParticipantIDsQuery, user.MXID, selfParticipantIDs)
 	}
 	return nil
 }
 
 func (user *User) Insert(ctx context.Context) error {
-	err := user.db.Conn(ctx).
-		QueryRowContext(ctx, insertUserQuery, user.sqlVariables()...).
+	err := user.qh.GetDB().
+		QueryRow(ctx, insertUserQuery, user.sqlVariables()...).
 		Scan(&user.RowID)
 	return err
 }
 
 func (user *User) Update(ctx context.Context) error {
-	_, err := user.db.Conn(ctx).ExecContext(ctx, updateUserQuery, user.sqlVariables()...)
-	return err
+	return user.qh.Exec(ctx, updateUserQuery, user.sqlVariables()...)
 }

@@ -1,5 +1,5 @@
 // mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
-// Copyright (C) 2023 Tulir Asokan
+// Copyright (C) 2024 Tulir Asokan
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog"
@@ -30,17 +29,11 @@ import (
 )
 
 type PortalQuery struct {
-	db *Database
+	*dbutil.QueryHelper[*Portal]
 }
 
-func (pq *PortalQuery) New() *Portal {
-	return &Portal{
-		db: pq.db,
-	}
-}
-
-func (pq *PortalQuery) getDB() *Database {
-	return pq.db
+func newPortal(qh *dbutil.QueryHelper[*Portal]) *Portal {
+	return &Portal{qh: qh}
 }
 
 const (
@@ -62,23 +55,23 @@ const (
 )
 
 func (pq *PortalQuery) GetAll(ctx context.Context) ([]*Portal, error) {
-	return getAll[*Portal](pq, ctx, getAllPortalsQuery)
+	return pq.QueryMany(ctx, getAllPortalsQuery)
 }
 
 func (pq *PortalQuery) GetAllForUser(ctx context.Context, receiver int) ([]*Portal, error) {
-	return getAll[*Portal](pq, ctx, getAllPortalsForUserQuery, receiver)
+	return pq.QueryMany(ctx, getAllPortalsForUserQuery, receiver)
 }
 
 func (pq *PortalQuery) GetByKey(ctx context.Context, key Key) (*Portal, error) {
-	return get[*Portal](pq, ctx, getPortalByKeyQuery, key.ID, key.Receiver)
+	return pq.QueryOne(ctx, getPortalByKeyQuery, key.ID, key.Receiver)
 }
 
 func (pq *PortalQuery) GetByOtherUser(ctx context.Context, key Key) (*Portal, error) {
-	return get[*Portal](pq, ctx, getPortalByOtherUserQuery, key.ID, key.Receiver)
+	return pq.QueryOne(ctx, getPortalByOtherUserQuery, key.ID, key.Receiver)
 }
 
 func (pq *PortalQuery) GetByMXID(ctx context.Context, mxid id.RoomID) (*Portal, error) {
-	return get[*Portal](pq, ctx, getPortalByMXIDQuery, mxid)
+	return pq.QueryOne(ctx, getPortalByMXIDQuery, mxid)
 }
 
 type Key struct {
@@ -95,7 +88,7 @@ func (p Key) MarshalZerologObject(e *zerolog.Event) {
 }
 
 type Portal struct {
-	db *Database
+	qh *dbutil.QueryHelper[*Portal]
 
 	Key
 	OutgoingID  string
@@ -112,10 +105,11 @@ type Portal struct {
 func (portal *Portal) Scan(row dbutil.Scannable) (*Portal, error) {
 	var mxid, selfUserID, otherUserID sql.NullString
 	var convType int
-	err := row.Scan(&portal.ID, &portal.Receiver, &selfUserID, &otherUserID, &convType, &mxid, &portal.Name, &portal.NameSet, &portal.Encrypted, &portal.InSpace)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
+	err := row.Scan(
+		&portal.ID, &portal.Receiver, &selfUserID, &otherUserID, &convType, &mxid,
+		&portal.Name, &portal.NameSet, &portal.Encrypted, &portal.InSpace,
+	)
+	if err != nil {
 		return nil, err
 	}
 	portal.Type = gmproto.ConversationType(convType)
@@ -126,33 +120,21 @@ func (portal *Portal) Scan(row dbutil.Scannable) (*Portal, error) {
 }
 
 func (portal *Portal) sqlVariables() []any {
-	var mxid, selfUserID, otherUserID *string
-	if portal.MXID != "" {
-		mxid = (*string)(&portal.MXID)
-	}
-	if portal.OutgoingID != "" {
-		selfUserID = &portal.OutgoingID
-	}
-	if portal.OtherUserID != "" {
-		otherUserID = &portal.OtherUserID
-	}
 	return []any{
-		portal.ID, portal.Receiver, selfUserID, otherUserID, int(portal.Type), mxid, portal.Name, portal.NameSet,
-		portal.Encrypted, portal.InSpace,
+		portal.ID, portal.Receiver, dbutil.StrPtr(portal.OutgoingID), dbutil.StrPtr(portal.OtherUserID),
+		int(portal.Type), dbutil.StrPtr(portal.MXID),
+		portal.Name, portal.NameSet, portal.Encrypted, portal.InSpace,
 	}
 }
 
 func (portal *Portal) Insert(ctx context.Context) error {
-	_, err := portal.db.Conn(ctx).ExecContext(ctx, insertPortalQuery, portal.sqlVariables()...)
-	return err
+	return portal.qh.Exec(ctx, insertPortalQuery, portal.sqlVariables()...)
 }
 
 func (portal *Portal) Update(ctx context.Context) error {
-	_, err := portal.db.Conn(ctx).ExecContext(ctx, updatePortalQuery, portal.sqlVariables()...)
-	return err
+	return portal.qh.Exec(ctx, updatePortalQuery, portal.sqlVariables()...)
 }
 
 func (portal *Portal) Delete(ctx context.Context) error {
-	_, err := portal.db.Conn(ctx).ExecContext(ctx, deletePortalQuery, portal.ID, portal.Receiver)
-	return err
+	return portal.qh.Exec(ctx, deletePortalQuery, portal.ID, portal.Receiver)
 }

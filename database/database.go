@@ -1,5 +1,5 @@
 // mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
-// Copyright (C) 2023 Tulir Asokan
+// Copyright (C) 2024 Tulir Asokan
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -17,8 +17,6 @@
 package database
 
 import (
-	"context"
-
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/util/dbutil"
@@ -36,45 +34,13 @@ type Database struct {
 	Reaction *ReactionQuery
 }
 
-func New(baseDB *dbutil.Database) *Database {
-	db := &Database{Database: baseDB}
+func New(db *dbutil.Database) *Database {
 	db.UpgradeTable = upgrades.Table
-	db.User = &UserQuery{db: db}
-	db.Portal = &PortalQuery{db: db}
-	db.Puppet = &PuppetQuery{db: db}
-	db.Message = &MessageQuery{db: db}
-	db.Reaction = &ReactionQuery{db: db}
-	return db
-}
-
-type dataStruct[T any] interface {
-	Scan(row dbutil.Scannable) (T, error)
-}
-
-type queryStruct[T dataStruct[T]] interface {
-	New() T
-	getDB() *Database
-}
-
-func get[T dataStruct[T]](qs queryStruct[T], ctx context.Context, query string, args ...any) (T, error) {
-	return qs.New().Scan(qs.getDB().Conn(ctx).QueryRowContext(ctx, query, args...))
-}
-
-func getAll[T dataStruct[T]](qs queryStruct[T], ctx context.Context, query string, args ...any) ([]T, error) {
-	rows, err := qs.getDB().Conn(ctx).QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
+	return &Database{
+		User:     &UserQuery{dbutil.MakeQueryHelper(db, newUser)},
+		Portal:   &PortalQuery{dbutil.MakeQueryHelper(db, newPortal)},
+		Puppet:   &PuppetQuery{dbutil.MakeQueryHelper(db, newPuppet)},
+		Message:  &MessageQuery{dbutil.MakeQueryHelper(db, newMessage)},
+		Reaction: &ReactionQuery{dbutil.MakeQueryHelper(db, newReaction)},
 	}
-	items := make([]T, 0)
-	defer func() {
-		_ = rows.Close()
-	}()
-	for rows.Next() {
-		item, err := qs.New().Scan(rows)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
 }
