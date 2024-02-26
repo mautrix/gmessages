@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"strings"
@@ -321,6 +322,15 @@ type RespGoogleLoginStart struct {
 	Emoji  string `json:"emoji"`
 }
 
+func findMissingCookies(cookies map[string]string) string {
+	for _, requiredCookie := range []string{"SID", "SSID", "HSID", "OSID", "APISID", "SAPISID"} {
+		if _, ok := cookies[requiredCookie]; !ok {
+			return requiredCookie
+		}
+	}
+	return ""
+}
+
 func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	user := prov.bridge.GetUserByMXID(id.UserID(userID))
@@ -337,6 +347,20 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 		jsonResponse(w, http.StatusBadRequest, Error{
 			Error:   "Failed to parse request JSON",
 			ErrCode: "bad json",
+		})
+		return
+	} else if len(req.Cookies) == 0 {
+		log.Warn().Msg("No cookies in request")
+		jsonResponse(w, http.StatusBadRequest, Error{
+			Error:   "No cookies in request",
+			ErrCode: "missing cookies",
+		})
+		return
+	} else if missingCookie := findMissingCookies(req.Cookies); missingCookie != "" {
+		log.Warn().Msg("Missing cookies in request")
+		jsonResponse(w, http.StatusBadRequest, Error{
+			Error:   fmt.Sprintf("Missing %s cookie", missingCookie),
+			ErrCode: "missing cookies",
 		})
 		return
 	}

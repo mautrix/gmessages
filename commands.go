@@ -174,6 +174,9 @@ func fnLoginGoogleCookies(ce *WrappedCommandEvent) {
 	if err != nil {
 		ce.Reply("Failed to parse cookies: %v", err)
 		return
+	} else if missingCookie := findMissingCookies(cookies); missingCookie != "" {
+		ce.Reply("Missing %s cookie", missingCookie)
+		return
 	}
 	ce.Redact()
 	err = ce.User.LoginGoogle(ce.Ctx, cookies, func(emoji string) {
