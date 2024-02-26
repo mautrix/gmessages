@@ -177,6 +177,7 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	msg, err := c.decryptInternalMessage(rawMsg)
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to decode incoming RPC message")
+		c.sessionHandler.queueMessageAck(rawMsg.ResponseID)
 		return
 	}
 
