@@ -33,6 +33,7 @@ import (
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/id"
 
+	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
@@ -340,11 +341,18 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 	emoji, err := user.AsyncLoginGoogleStart(req.Cookies)
 	if err != nil {
 		log.Err(err).Msg("Failed to start login")
-		// TODO proper error codes
-		jsonResponse(w, http.StatusInternalServerError, Error{
-			Error:   "Failed to start login",
-			ErrCode: "start login fail",
-		})
+		switch {
+		case errors.Is(err, libgm.ErrNoDevicesFound):
+			jsonResponse(w, http.StatusBadRequest, Error{
+				Error:   err.Error(),
+				ErrCode: "no-devices-found",
+			})
+		default:
+			jsonResponse(w, http.StatusInternalServerError, Error{
+				Error:   "Failed to start login",
+				ErrCode: "unknown",
+			})
+		}
 		return
 	}
 	jsonResponse(w, http.StatusOK, &RespGoogleLoginStart{Status: "emoji", Emoji: emoji})
@@ -358,12 +366,34 @@ func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Requ
 
 	err := user.AsyncLoginGoogleWait()
 	if err != nil {
-		log.Err(err).Msg("Failed to start login")
-		// TODO proper error codes
-		jsonResponse(w, http.StatusInternalServerError, Error{
-			Error:   "Failed to finish login",
-			ErrCode: "finish login fail",
-		})
+		log.Err(err).Msg("Failed to wait for google login")
+		switch {
+		case errors.Is(err, ErrNoLoginInProgress):
+			jsonResponse(w, http.StatusBadRequest, Error{
+				Error:   "No login in progress",
+				ErrCode: "login-not-in-progress",
+			})
+		case errors.Is(err, libgm.ErrIncorrectEmoji):
+			jsonResponse(w, http.StatusBadRequest, Error{
+				Error:   err.Error(),
+				ErrCode: "incorrect-emoji",
+			})
+		case errors.Is(err, libgm.ErrPairingCancelled):
+			jsonResponse(w, http.StatusBadRequest, Error{
+				Error:   err.Error(),
+				ErrCode: "pairing-cancelled",
+			})
+		case errors.Is(err, libgm.ErrPairingTimeout):
+			jsonResponse(w, http.StatusBadRequest, Error{
+				Error:   err.Error(),
+				ErrCode: "timeout",
+			})
+		default:
+			jsonResponse(w, http.StatusInternalServerError, Error{
+				Error:   "Failed to finish login",
+				ErrCode: "unknown",
+			})
+		}
 		return
 	}
 	jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})

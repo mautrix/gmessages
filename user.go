@@ -377,6 +377,7 @@ func (user *User) SetManagementRoom(roomID id.RoomID) {
 
 var ErrAlreadyLoggedIn = errors.New("already logged in")
 var ErrLoginInProgress = errors.New("login already in progress")
+var ErrNoLoginInProgress = errors.New("no login in progress")
 var ErrLoginTimeout = errors.New("login timed out")
 
 func (user *User) createClient(sess *libgm.AuthData) {
@@ -507,7 +508,7 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 func (user *User) AsyncLoginGoogleWait() error {
 	ch := user.googleAsyncPairErrChan.Swap(nil)
 	if ch == nil {
-		return fmt.Errorf("no login in progress")
+		return ErrNoLoginInProgress
 	}
 	return <-*ch
 }
