@@ -521,11 +521,14 @@ func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(stri
 	} else if !user.loginInProgress.CompareAndSwap(false, true) {
 		return ErrLoginInProgress
 	}
+	defer user.loginInProgress.Store(false)
 	if user.Client != nil {
 		user.unlockedDeleteConnection()
 	}
-	pairSuccessChan := make(chan struct{})
-	user.pairSuccessChan = pairSuccessChan
+	user.pairSuccessChan = make(chan struct{})
+	defer func() {
+		user.pairSuccessChan = nil
+	}()
 	authData := libgm.NewAuthData()
 	authData.Cookies = cookies
 	user.createClient(authData)
@@ -533,8 +536,6 @@ func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(stri
 	err := user.Client.DoGaiaPairing(emojiCallback)
 	if err != nil {
 		user.unlockedDeleteConnection()
-		user.pairSuccessChan = nil
-		user.loginInProgress.Store(false)
 		return err
 	}
 	return nil

@@ -426,6 +426,14 @@ func (prov *ProvisioningAPI) Login(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if errors.Is(err, ErrLoginInProgress) && ch == nil {
+		log.Err(err).Msg("Tried to start QR login while non-QR login is in progress")
+		jsonResponse(w, http.StatusBadRequest, Error{
+			Error:   "Non-QR login already in progress",
+			ErrCode: "unknown",
+		})
+		return
+	}
 
 	var item, prevItem qrChannelItem
 	var hasItem bool
