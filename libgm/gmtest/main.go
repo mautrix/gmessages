@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,7 +57,7 @@ func main() {
 	cli = libgm.NewClient(&sess, log)
 	cli.SetEventHandler(evtHandler)
 	if doLogin {
-		err = cli.DoGaiaPairing(func(emoji string) {
+		err = cli.DoGaiaPairing(context.TODO(), func(emoji string) {
 			fmt.Println(emoji)
 		})
 		if err != nil {

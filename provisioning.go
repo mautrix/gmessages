@@ -364,7 +364,7 @@ func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Requ
 
 	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
 
-	err := user.AsyncLoginGoogleWait()
+	err := user.AsyncLoginGoogleWait(r.Context())
 	if err != nil {
 		log.Err(err).Msg("Failed to wait for google login")
 		switch {
@@ -387,6 +387,12 @@ func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Requ
 			jsonResponse(w, http.StatusBadRequest, Error{
 				Error:   err.Error(),
 				ErrCode: "timeout",
+			})
+		case errors.Is(err, context.Canceled):
+			// This should only happen if the client already disconnected, so clients will probably never see this error code.
+			jsonResponse(w, http.StatusBadRequest, Error{
+				Error:   err.Error(),
+				ErrCode: "context-cancelled",
 			})
 		default:
 			jsonResponse(w, http.StatusInternalServerError, Error{

@@ -176,7 +176,7 @@ func fnLoginGoogleCookies(ce *WrappedCommandEvent) {
 		return
 	}
 	ce.Redact()
-	err = ce.User.LoginGoogle(cookies, func(emoji string) {
+	err = ce.User.LoginGoogle(ce.Ctx, cookies, func(emoji string) {
 		ce.Reply(emoji)
 	})
 	if err != nil {

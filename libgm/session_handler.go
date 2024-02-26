@@ -141,10 +141,6 @@ func (s *SessionHandler) sendMessageWithParams(params SendMessageParams) (*Incom
 		return nil, err
 	}
 
-	if params.NoPingOnTimeout {
-		return <-ch, nil
-	}
-
 	select {
 	case resp := <-ch:
 		return resp, nil
@@ -175,8 +171,6 @@ type SendMessageParams struct {
 	CustomTTL   int64
 	DontEncrypt bool
 	MessageType gmproto.MessageType
-
-	NoPingOnTimeout bool
 }
 
 func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.Message, error) {

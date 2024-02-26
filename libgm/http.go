@@ -24,6 +24,11 @@ const ContentTypeProtobuf = "application/x-protobuf"
 const ContentTypePBLite = "application/json+protobuf"
 
 func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, contentType string) (*http.Response, error) {
+	ctx := c.Logger.WithContext(context.TODO())
+	return c.makeProtobufHTTPRequestContext(ctx, url, data, contentType)
+}
+
+func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string, data proto.Message, contentType string) (*http.Response, error) {
 	var body []byte
 	var err error
 	switch contentType {
@@ -37,7 +42,6 @@ func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, content
 	if err != nil {
 		return nil, err
 	}
-	ctx := c.Logger.WithContext(context.TODO())
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err

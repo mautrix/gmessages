@@ -484,8 +484,13 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 		outEmoji = emoji
 		initialWait.Done()
 	}
+	var ctx context.Context
+	ctx, user.cancelLogin = context.WithCancel(context.Background())
 	go func() {
-		err := user.LoginGoogle(cookies, callback)
+		defer func() {
+			user.cancelLogin = nil
+		}()
+		err := user.LoginGoogle(ctx, cookies, callback)
 		if !callbackDone {
 			user.zlog.Err(err).Msg("Async google login failed before callback")
 			initialWait.Done()
@@ -505,15 +510,24 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 	return
 }
 
-func (user *User) AsyncLoginGoogleWait() error {
+func (user *User) AsyncLoginGoogleWait(ctx context.Context) error {
 	ch := user.googleAsyncPairErrChan.Swap(nil)
 	if ch == nil {
 		return ErrNoLoginInProgress
 	}
-	return <-*ch
+	select {
+	case ret := <-*ch:
+		return ret
+	case <-ctx.Done():
+		user.zlog.Err(ctx.Err()).Msg("Login wait context canceled, canceling login")
+		if cancelLogin := user.cancelLogin; cancelLogin != nil {
+			cancelLogin()
+		}
+		return ctx.Err()
+	}
 }
 
-func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(string)) error {
+func (user *User) LoginGoogle(ctx context.Context, cookies map[string]string, emojiCallback func(string)) error {
 	user.connLock.Lock()
 	defer user.connLock.Unlock()
 	if user.Session != nil {
@@ -533,7 +547,7 @@ func (user *User) LoginGoogle(cookies map[string]string, emojiCallback func(stri
 	authData.Cookies = cookies
 	user.createClient(authData)
 	Analytics.Track(user.MXID, "$login_start")
-	err := user.Client.DoGaiaPairing(emojiCallback)
+	err := user.Client.DoGaiaPairing(ctx, emojiCallback)
 	if err != nil {
 		user.unlockedDeleteConnection()
 		return err

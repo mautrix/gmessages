@@ -17,6 +17,7 @@
 package libgm
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -61,15 +62,15 @@ func (c *Client) baseSignInGaiaPayload() *gmproto.SignInGaiaRequest {
 	}
 }
 
-func (c *Client) signInGaiaInitial() (*gmproto.SignInGaiaResponse, error) {
+func (c *Client) signInGaiaInitial(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
 	payload := c.baseSignInGaiaPayload()
 	payload.UnknownInt3 = 1
 	return typedHTTPResponse[*gmproto.SignInGaiaResponse](
-		c.makeProtobufHTTPRequest(util.SignInGaiaURL, payload, ContentTypePBLite),
+		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite),
 	)
 }
 
-func (c *Client) signInGaiaGetToken() (*gmproto.SignInGaiaResponse, error) {
+func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
 	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
 	if err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func (c *Client) signInGaiaGetToken() (*gmproto.SignInGaiaResponse, error) {
 		SomeData: key,
 	}
 	resp, err := typedHTTPResponse[*gmproto.SignInGaiaResponse](
-		c.makeProtobufHTTPRequest(util.SignInGaiaURL, payload, ContentTypePBLite),
+		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite),
 	)
 	if err != nil {
 		return nil, err
@@ -242,11 +243,11 @@ var (
 	ErrPairingTimeout   = errors.New("pairing timed out")
 )
 
-func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
+func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) error {
 	if len(c.AuthData.Cookies) == 0 {
 		return ErrNoCookies
 	}
-	sigResp, err := c.signInGaiaGetToken()
+	sigResp, err := c.signInGaiaGetToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to prepare gaia pairing: %w", err)
 	}
@@ -272,7 +273,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare pairing payloads: %w", err)
 	}
-	serverInit, err := c.sendGaiaPairingMessage(ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
+	serverInit, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
 	if err != nil {
 		return fmt.Errorf("failed to send client init: %w", err)
 	}
@@ -281,7 +282,7 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 		return fmt.Errorf("error processing server init: %w", err)
 	}
 	emojiCallback(pairingEmoji)
-	finishResp, err := c.sendGaiaPairingMessage(ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, clientFinish)
+	finishResp, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, clientFinish)
 	if finishResp.GetFinishErrorType() != 0 {
 		switch finishResp.GetFinishErrorCode() {
 		case 5:
@@ -312,8 +313,8 @@ func (c *Client) DoGaiaPairing(emojiCallback func(string)) error {
 	return nil
 }
 
-func (c *Client) sendGaiaPairingMessage(sess PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
-	resp, err := c.sessionHandler.sendMessageWithParams(SendMessageParams{
+func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
+	respCh, err := c.sessionHandler.sendAsyncMessage(SendMessageParams{
 		Action: action,
 		Data: &gmproto.GaiaPairingRequestContainer{
 			PairingAttemptID: sess.UUID.String(),
@@ -324,18 +325,21 @@ func (c *Client) sendGaiaPairingMessage(sess PairingSession, action gmproto.Acti
 		DontEncrypt: true,
 		CustomTTL:   (300 * time.Second).Microseconds(),
 		MessageType: gmproto.MessageType_GAIA_2,
-
-		NoPingOnTimeout: true,
 	})
 	if err != nil {
 		return nil, err
 	}
-	var respDat gmproto.GaiaPairingResponseContainer
-	err = proto.Unmarshal(resp.Message.UnencryptedData, &respDat)
-	if err != nil {
-		return nil, err
+	select {
+	case resp := <-respCh:
+		var respDat gmproto.GaiaPairingResponseContainer
+		err = proto.Unmarshal(resp.Message.UnencryptedData, &respDat)
+		if err != nil {
+			return nil, err
+		}
+		return &respDat, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	return &respDat, nil
 }
 
 func (c *Client) UnpairGaia() error {
@@ -344,6 +348,5 @@ func (c *Client) UnpairGaia() error {
 		Data: &gmproto.RevokeGaiaPairingRequest{
 			PairingAttemptID: c.AuthData.PairingID.String(),
 		},
-		NoPingOnTimeout: true,
 	})
 }
