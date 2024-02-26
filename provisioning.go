@@ -333,10 +333,12 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 	}
 	var req ReqGoogleLoginStart
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Warn().Err(err).Msg("Failed to parse request JSON")
 		jsonResponse(w, http.StatusBadRequest, Error{
 			Error:   "Failed to parse request JSON",
 			ErrCode: "bad json",
 		})
+		return
 	}
 	emoji, err := user.AsyncLoginGoogleStart(req.Cookies)
 	if err != nil {
