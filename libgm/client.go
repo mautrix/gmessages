@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -73,6 +74,8 @@ type Client struct {
 	recentUpdatesPtr int
 
 	conversationsFetchedOnce bool
+
+	hackyDelaySetActive atomic.Bool
 
 	AuthData *AuthData
 	cfg      *gmproto.Config
@@ -160,6 +163,11 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) postConnect() {
+	// For some reason SetActiveSession fails if it's called immediately after reconnecting after a google login,
+	// so hackily delay it a few seconds to make it work.
+	if c.hackyDelaySetActive.CompareAndSwap(true, false) {
+		time.Sleep(3 * time.Second)
+	}
 	c.Logger.Debug().Msg("Sending get updates request")
 	err := c.SetActiveSession()
 	if err != nil {

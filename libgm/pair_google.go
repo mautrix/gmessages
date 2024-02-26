@@ -300,6 +300,7 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	c.AuthData.PairingID = ps.UUID
 	c.triggerEvent(&events.PairSuccessful{PhoneID: c.AuthData.Mobile.GetSourceID()})
 
+	c.hackyDelaySetActive.Store(true)
 	go func() {
 		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
 		// the phone won't recognize the session the bridge will get unpaired.
