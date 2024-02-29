@@ -1268,8 +1268,8 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, medi
 }
 
 func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metadata *gmproto.Conversation) (userIDs []id.UserID, changed bool) {
-	var firstParticipant *gmproto.Participant
-	var manyParticipants bool
+	filteredParticipants := make([]*gmproto.Participant, 0, len(metadata.Participants))
+	manyContactIDs := false
 	for _, participant := range metadata.Participants {
 		if participant.IsMe {
 			err := source.AddSelfParticipantID(ctx, participant.ID.ParticipantID)
@@ -1283,11 +1283,28 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 			portal.zlog.Warn().Interface("participant", participant).Msg("No number found in non-self participant entry")
 			continue
 		}
-		if firstParticipant == nil {
-			firstParticipant = participant
-		} else {
-			manyParticipants = true
+		if len(filteredParticipants) > 0 && filteredParticipants[0].ContactID != participant.ContactID {
+			manyContactIDs = true
 		}
+		filteredParticipants = append(filteredParticipants, participant)
+	}
+	if len(filteredParticipants) > 1 && !manyContactIDs && !metadata.IsGroupChat {
+		bestParticipant := filteredParticipants[0]
+		for _, participant := range filteredParticipants[1:] {
+			bestNumber := bestParticipant.GetID().GetNumber()
+			thisNumber := participant.GetID().GetNumber()
+			// If this number is a substring of the previous number, prefer this one.
+			// Duplicates often have an extra random country code, so we want the one that isn't a substring of the others.
+			if thisNumber != bestNumber && strings.HasPrefix(thisNumber, "+") && strings.Contains(bestNumber, thisNumber[1:]) {
+				bestParticipant = participant
+			}
+		}
+		portal.zlog.Debug().
+			Any("participants", filteredParticipants).
+			Any("chosen_participant", bestParticipant).
+			Msg("Applied hacky deduplication to DM participants with same contact ID")
+	}
+	for _, participant := range filteredParticipants {
 		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
 		if puppet == nil {
 			portal.zlog.Error().Any("participant_id", participant.ID).Msg("Failed to get puppet for participant")
@@ -1304,12 +1321,12 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 			}
 		}
 	}
-	if !metadata.IsGroupChat && !manyParticipants && portal.OtherUserID != firstParticipant.ID.ParticipantID {
+	if !metadata.IsGroupChat && len(filteredParticipants) == 1 && portal.OtherUserID != filteredParticipants[0].ID.ParticipantID {
 		portal.zlog.Info().
 			Str("old_other_user_id", portal.OtherUserID).
-			Str("new_other_user_id", firstParticipant.ID.ParticipantID).
+			Str("new_other_user_id", filteredParticipants[0].ID.ParticipantID).
 			Msg("Found other user ID in DM")
-		portal.OtherUserID = firstParticipant.ID.ParticipantID
+		portal.OtherUserID = filteredParticipants[0].ID.ParticipantID
 		portal.bridge.portalsLock.Lock()
 		portal.bridge.portalsByOtherUser[database.Key{
 			ID:       portal.OtherUserID,
@@ -1317,6 +1334,9 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 		}] = portal
 		portal.bridge.portalsLock.Unlock()
 		changed = true
+	}
+	if !metadata.IsGroupChat && portal.OtherUserID == "" {
+		portal.zlog.Warn().Msg("No other user ID found in DM")
 	}
 	if portal.MXID != "" {
 		members, err := portal.MainIntent().JoinedMembers(ctx, portal.MXID)
