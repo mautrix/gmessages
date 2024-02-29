@@ -1029,8 +1029,8 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		Str("action", "sync conversation").
 		Str("conversation_status", updateType.String()).
 		Str("data_source", source).
-		Interface("conversation_data", convCopy).
 		Logger()
+	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
 	ctx := log.WithContext(context.TODO())
 	if cancel := portal.cancelCreation.Load(); cancel != nil {
 		if updateType == gmproto.ConversationStatus_SPAM_FOLDER || updateType == gmproto.ConversationStatus_BLOCKED_FOLDER {
