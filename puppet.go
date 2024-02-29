@@ -289,14 +289,18 @@ func (puppet *Puppet) UpdateContactInfo(ctx context.Context) bool {
 		return false
 	}
 
+	idents := []string{
+		fmt.Sprintf("tel:%s", puppet.Phone),
+	}
+	if puppet.ContactID != "" {
+		idents = append(idents, fmt.Sprintf("gmsg-contact:%s", puppet.ContactID))
+	}
+
 	contactInfo := map[string]any{
-		"com.beeper.bridge.identifiers": []string{
-			fmt.Sprintf("tel:%s", puppet.Phone),
-			fmt.Sprintf("gmsg-contact:%s", puppet.ContactID),
-		},
-		"com.beeper.bridge.remote_id": puppet.Key.String(),
-		"com.beeper.bridge.service":   "gmessages",
-		"com.beeper.bridge.network":   "gmessages",
+		"com.beeper.bridge.identifiers": idents,
+		"com.beeper.bridge.remote_id":   puppet.Key.String(),
+		"com.beeper.bridge.service":     "gmessages",
+		"com.beeper.bridge.network":     "gmessages",
 	}
 	err := puppet.DefaultIntent().BeeperUpdateProfile(ctx, contactInfo)
 	if err != nil {
