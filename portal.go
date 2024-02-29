@@ -1435,6 +1435,9 @@ func (portal *Portal) UpdateMetadata(ctx context.Context, user *User, info *gmpr
 			portal.zlog.Warn().Err(err).Msg("Failed to get power levels")
 		} else if portal.updatePowerLevels(info, pls) {
 			resp, err := portal.MainIntent().SetPowerLevels(ctx, portal.MXID, pls)
+			if errors.Is(err, mautrix.MForbidden) && portal.MainIntent() != portal.bridge.Bot {
+				resp, err = portal.bridge.Bot.SetPowerLevels(ctx, portal.MXID, pls)
+			}
 			if err != nil {
 				portal.zlog.Warn().Err(err).Msg("Failed to update power levels")
 			} else {
@@ -1498,6 +1501,7 @@ func (portal *Portal) updatePowerLevels(conv *gmproto.Conversation, pl *event.Po
 	changed = pl.EnsureEventLevel(event.EventReaction, expectedEventsDefault) || changed
 	// Explicitly set m.room.redaction level to 0 so redactions work even if sending is disabled
 	changed = pl.EnsureEventLevel(event.EventRedaction, 0) || changed
+	changed = pl.EnsureUserLevel(portal.MainIntent().UserID, 100) || changed
 	changed = pl.EnsureUserLevel(portal.bridge.Bot.UserID, 100) || changed
 	return changed
 }
