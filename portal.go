@@ -1303,6 +1303,7 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 			Any("participants", filteredParticipants).
 			Any("chosen_participant", bestParticipant).
 			Msg("Applied hacky deduplication to DM participants with same contact ID")
+		filteredParticipants = []*gmproto.Participant{bestParticipant}
 	}
 	for _, participant := range filteredParticipants {
 		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
