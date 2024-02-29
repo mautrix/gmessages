@@ -55,11 +55,42 @@ enum EmojiType {
     CRYING_FACE = 10;
     POUTING_FACE = 11;
     RED_HEART = 12;
+    EMOTIFY = 13;
+}
+
+message CustomEmojiData {
+    message Inner {
+        optional string unknownString = 100;
+        message ImageData {
+            string mimeType = 1;
+            string uri = 2;
+            optional int32 unknownInt3 = 3;
+            optional string unknownString5 = 5;
+        }
+        message WrappedImageData {
+            message ImageData {
+                int32 unknownInt1 = 1;
+                string mimeType = 2;
+                string uri = 3;
+                int32 width = 5;
+                int32 height = 6;
+                optional int32 unknownInt7 = 7;
+            }
+            ImageData data = 1;
+        }
+        ImageData first = 101;
+        WrappedImageData second = 102;
+    }
+
+    string uuid = 1;
+    optional int32 unknownInt4 = 4;
+    Inner innerData = 100;
 }
 
 message ReactionData {
     string unicode = 1;
     EmojiType type = 2;
+    CustomEmojiData customEmoji = 101;
 }
 
 message EmojiMeta {

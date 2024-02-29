@@ -38,6 +38,7 @@ const (
 	EmojiType_CRYING_FACE               EmojiType = 10
 	EmojiType_POUTING_FACE              EmojiType = 11
 	EmojiType_RED_HEART                 EmojiType = 12
+	EmojiType_EMOTIFY                   EmojiType = 13
 )
 
 // Enum value maps for EmojiType.
@@ -56,6 +57,7 @@ var (
 		10: "CRYING_FACE",
 		11: "POUTING_FACE",
 		12: "RED_HEART",
+		13: "EMOTIFY",
 	}
 	EmojiType_value = map[string]int32{
 		"REACTION_TYPE_UNSPECIFIED": 0,
@@ -71,6 +73,7 @@ var (
 		"CRYING_FACE":               10,
 		"POUTING_FACE":              11,
 		"RED_HEART":                 12,
+		"EMOTIFY":                   13,
 	}
 )
 
@@ -1066,19 +1069,83 @@ func (x *ReactionEntry) GetParticipantIDs() []string {
 	return nil
 }
 
+type CustomEmojiData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Uuid        string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	UnknownInt4 *int32                 `protobuf:"varint,4,opt,name=unknownInt4,proto3,oneof" json:"unknownInt4,omitempty"`
+	InnerData   *CustomEmojiData_Inner `protobuf:"bytes,100,opt,name=innerData,proto3" json:"innerData,omitempty"`
+}
+
+func (x *CustomEmojiData) Reset() {
+	*x = CustomEmojiData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_conversations_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CustomEmojiData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomEmojiData) ProtoMessage() {}
+
+func (x *CustomEmojiData) ProtoReflect() protoreflect.Message {
+	mi := &file_conversations_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomEmojiData.ProtoReflect.Descriptor instead.
+func (*CustomEmojiData) Descriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CustomEmojiData) GetUuid() string {
+	if x != nil {
+		return x.Uuid
+	}
+	return ""
+}
+
+func (x *CustomEmojiData) GetUnknownInt4() int32 {
+	if x != nil && x.UnknownInt4 != nil {
+		return *x.UnknownInt4
+	}
+	return 0
+}
+
+func (x *CustomEmojiData) GetInnerData() *CustomEmojiData_Inner {
+	if x != nil {
+		return x.InnerData
+	}
+	return nil
+}
+
 type ReactionData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Unicode string    `protobuf:"bytes,1,opt,name=unicode,proto3" json:"unicode,omitempty"`
-	Type    EmojiType `protobuf:"varint,2,opt,name=type,proto3,enum=conversations.EmojiType" json:"type,omitempty"`
+	Unicode     string           `protobuf:"bytes,1,opt,name=unicode,proto3" json:"unicode,omitempty"`
+	Type        EmojiType        `protobuf:"varint,2,opt,name=type,proto3,enum=conversations.EmojiType" json:"type,omitempty"`
+	CustomEmoji *CustomEmojiData `protobuf:"bytes,101,opt,name=customEmoji,proto3" json:"customEmoji,omitempty"`
 }
 
 func (x *ReactionData) Reset() {
 	*x = ReactionData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[4]
+		mi := &file_conversations_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1091,7 +1158,7 @@ func (x *ReactionData) String() string {
 func (*ReactionData) ProtoMessage() {}
 
 func (x *ReactionData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[4]
+	mi := &file_conversations_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1104,7 +1171,7 @@ func (x *ReactionData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactionData.ProtoReflect.Descriptor instead.
 func (*ReactionData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{4}
+	return file_conversations_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ReactionData) GetUnicode() string {
@@ -1121,6 +1188,13 @@ func (x *ReactionData) GetType() EmojiType {
 	return EmojiType_REACTION_TYPE_UNSPECIFIED
 }
 
+func (x *ReactionData) GetCustomEmoji() *CustomEmojiData {
+	if x != nil {
+		return x.CustomEmoji
+	}
+	return nil
+}
+
 type EmojiMeta struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1132,7 +1206,7 @@ type EmojiMeta struct {
 func (x *EmojiMeta) Reset() {
 	*x = EmojiMeta{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[5]
+		mi := &file_conversations_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1145,7 +1219,7 @@ func (x *EmojiMeta) String() string {
 func (*EmojiMeta) ProtoMessage() {}
 
 func (x *EmojiMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[5]
+	mi := &file_conversations_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1158,7 +1232,7 @@ func (x *EmojiMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmojiMeta.ProtoReflect.Descriptor instead.
 func (*EmojiMeta) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{5}
+	return file_conversations_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EmojiMeta) GetEmojiMetaData() []*EmojiMetaData {
@@ -1180,7 +1254,7 @@ type EmojiMetaData struct {
 func (x *EmojiMetaData) Reset() {
 	*x = EmojiMetaData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[6]
+		mi := &file_conversations_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1193,7 +1267,7 @@ func (x *EmojiMetaData) String() string {
 func (*EmojiMetaData) ProtoMessage() {}
 
 func (x *EmojiMetaData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[6]
+	mi := &file_conversations_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1206,7 +1280,7 @@ func (x *EmojiMetaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmojiMetaData.ProtoReflect.Descriptor instead.
 func (*EmojiMetaData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{6}
+	return file_conversations_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EmojiMetaData) GetUnicode() string {
@@ -1236,7 +1310,7 @@ type ReplyMessage struct {
 func (x *ReplyMessage) Reset() {
 	*x = ReplyMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[7]
+		mi := &file_conversations_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1249,7 +1323,7 @@ func (x *ReplyMessage) String() string {
 func (*ReplyMessage) ProtoMessage() {}
 
 func (x *ReplyMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[7]
+	mi := &file_conversations_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1262,7 +1336,7 @@ func (x *ReplyMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyMessage.ProtoReflect.Descriptor instead.
 func (*ReplyMessage) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{7}
+	return file_conversations_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReplyMessage) GetMessageID() string {
@@ -1295,7 +1369,7 @@ type ReplyMessageData struct {
 func (x *ReplyMessageData) Reset() {
 	*x = ReplyMessageData{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[8]
+		mi := &file_conversations_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1308,7 +1382,7 @@ func (x *ReplyMessageData) String() string {
 func (*ReplyMessageData) ProtoMessage() {}
 
 func (x *ReplyMessageData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[8]
+	mi := &file_conversations_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1321,7 +1395,7 @@ func (x *ReplyMessageData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyMessageData.ProtoReflect.Descriptor instead.
 func (*ReplyMessageData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{8}
+	return file_conversations_proto_rawDescGZIP(), []int{9}
 }
 
 type MessageInfo struct {
@@ -1340,7 +1414,7 @@ type MessageInfo struct {
 func (x *MessageInfo) Reset() {
 	*x = MessageInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[9]
+		mi := &file_conversations_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1353,7 +1427,7 @@ func (x *MessageInfo) String() string {
 func (*MessageInfo) ProtoMessage() {}
 
 func (x *MessageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[9]
+	mi := &file_conversations_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1366,7 +1440,7 @@ func (x *MessageInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageInfo.ProtoReflect.Descriptor instead.
 func (*MessageInfo) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{9}
+	return file_conversations_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *MessageInfo) GetActionMessageID() string {
@@ -1432,7 +1506,7 @@ type MediaContent struct {
 func (x *MediaContent) Reset() {
 	*x = MediaContent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[10]
+		mi := &file_conversations_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1445,7 +1519,7 @@ func (x *MediaContent) String() string {
 func (*MediaContent) ProtoMessage() {}
 
 func (x *MediaContent) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[10]
+	mi := &file_conversations_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1458,7 +1532,7 @@ func (x *MediaContent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaContent.ProtoReflect.Descriptor instead.
 func (*MediaContent) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{10}
+	return file_conversations_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *MediaContent) GetFormat() MediaFormats {
@@ -1536,7 +1610,7 @@ type Dimensions struct {
 func (x *Dimensions) Reset() {
 	*x = Dimensions{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[11]
+		mi := &file_conversations_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1549,7 +1623,7 @@ func (x *Dimensions) String() string {
 func (*Dimensions) ProtoMessage() {}
 
 func (x *Dimensions) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[11]
+	mi := &file_conversations_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1562,7 +1636,7 @@ func (x *Dimensions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dimensions.ProtoReflect.Descriptor instead.
 func (*Dimensions) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{11}
+	return file_conversations_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Dimensions) GetWidth() int64 {
@@ -1590,7 +1664,7 @@ type MessageContent struct {
 func (x *MessageContent) Reset() {
 	*x = MessageContent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[12]
+		mi := &file_conversations_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1603,7 +1677,7 @@ func (x *MessageContent) String() string {
 func (*MessageContent) ProtoMessage() {}
 
 func (x *MessageContent) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[12]
+	mi := &file_conversations_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1616,7 +1690,7 @@ func (x *MessageContent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageContent.ProtoReflect.Descriptor instead.
 func (*MessageContent) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{12}
+	return file_conversations_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MessageContent) GetContent() string {
@@ -1637,7 +1711,7 @@ type MsgType struct {
 func (x *MsgType) Reset() {
 	*x = MsgType{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[13]
+		mi := &file_conversations_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1650,7 +1724,7 @@ func (x *MsgType) String() string {
 func (*MsgType) ProtoMessage() {}
 
 func (x *MsgType) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[13]
+	mi := &file_conversations_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1663,7 +1737,7 @@ func (x *MsgType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MsgType.ProtoReflect.Descriptor instead.
 func (*MsgType) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{13}
+	return file_conversations_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *MsgType) GetType() int64 {
@@ -1688,7 +1762,7 @@ type MessageStatus struct {
 func (x *MessageStatus) Reset() {
 	*x = MessageStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[14]
+		mi := &file_conversations_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1701,7 +1775,7 @@ func (x *MessageStatus) String() string {
 func (*MessageStatus) ProtoMessage() {}
 
 func (x *MessageStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[14]
+	mi := &file_conversations_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1714,7 +1788,7 @@ func (x *MessageStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageStatus.ProtoReflect.Descriptor instead.
 func (*MessageStatus) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{14}
+	return file_conversations_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *MessageStatus) GetStatus() MessageStatusType {
@@ -1780,7 +1854,7 @@ type Conversation struct {
 func (x *Conversation) Reset() {
 	*x = Conversation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[15]
+		mi := &file_conversations_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1793,7 +1867,7 @@ func (x *Conversation) String() string {
 func (*Conversation) ProtoMessage() {}
 
 func (x *Conversation) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[15]
+	mi := &file_conversations_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1806,7 +1880,7 @@ func (x *Conversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conversation.ProtoReflect.Descriptor instead.
 func (*Conversation) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{15}
+	return file_conversations_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Conversation) GetConversationID() string {
@@ -1957,7 +2031,7 @@ type Participant struct {
 func (x *Participant) Reset() {
 	*x = Participant{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[16]
+		mi := &file_conversations_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1970,7 +2044,7 @@ func (x *Participant) String() string {
 func (*Participant) ProtoMessage() {}
 
 func (x *Participant) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[16]
+	mi := &file_conversations_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1983,7 +2057,7 @@ func (x *Participant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Participant.ProtoReflect.Descriptor instead.
 func (*Participant) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{16}
+	return file_conversations_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Participant) GetID() *SmallInfo {
@@ -2083,7 +2157,7 @@ type SmallInfo struct {
 func (x *SmallInfo) Reset() {
 	*x = SmallInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[17]
+		mi := &file_conversations_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2096,7 +2170,7 @@ func (x *SmallInfo) String() string {
 func (*SmallInfo) ProtoMessage() {}
 
 func (x *SmallInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[17]
+	mi := &file_conversations_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2109,7 +2183,7 @@ func (x *SmallInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SmallInfo.ProtoReflect.Descriptor instead.
 func (*SmallInfo) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{17}
+	return file_conversations_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SmallInfo) GetType() IdentifierType {
@@ -2147,7 +2221,7 @@ type LatestMessage struct {
 func (x *LatestMessage) Reset() {
 	*x = LatestMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[18]
+		mi := &file_conversations_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2160,7 +2234,7 @@ func (x *LatestMessage) String() string {
 func (*LatestMessage) ProtoMessage() {}
 
 func (x *LatestMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[18]
+	mi := &file_conversations_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2173,7 +2247,7 @@ func (x *LatestMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatestMessage.ProtoReflect.Descriptor instead.
 func (*LatestMessage) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{18}
+	return file_conversations_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LatestMessage) GetDisplayContent() string {
@@ -2216,7 +2290,7 @@ type LatestMessageStatus struct {
 func (x *LatestMessageStatus) Reset() {
 	*x = LatestMessageStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[19]
+		mi := &file_conversations_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2229,7 +2303,7 @@ func (x *LatestMessageStatus) String() string {
 func (*LatestMessageStatus) ProtoMessage() {}
 
 func (x *LatestMessageStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[19]
+	mi := &file_conversations_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2242,7 +2316,7 @@ func (x *LatestMessageStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatestMessageStatus.ProtoReflect.Descriptor instead.
 func (*LatestMessageStatus) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{19}
+	return file_conversations_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LatestMessageStatus) GetStatus2() int64 {
@@ -2270,7 +2344,7 @@ type Muted struct {
 func (x *Muted) Reset() {
 	*x = Muted{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_conversations_proto_msgTypes[20]
+		mi := &file_conversations_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2283,7 +2357,7 @@ func (x *Muted) String() string {
 func (*Muted) ProtoMessage() {}
 
 func (x *Muted) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[20]
+	mi := &file_conversations_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2296,12 +2370,280 @@ func (x *Muted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Muted.ProtoReflect.Descriptor instead.
 func (*Muted) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{20}
+	return file_conversations_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Muted) GetIsMuted() int64 {
 	if x != nil {
 		return x.IsMuted
+	}
+	return 0
+}
+
+type CustomEmojiData_Inner struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UnknownString *string                                 `protobuf:"bytes,100,opt,name=unknownString,proto3,oneof" json:"unknownString,omitempty"`
+	First         *CustomEmojiData_Inner_ImageData        `protobuf:"bytes,101,opt,name=first,proto3" json:"first,omitempty"`
+	Second        *CustomEmojiData_Inner_WrappedImageData `protobuf:"bytes,102,opt,name=second,proto3" json:"second,omitempty"`
+}
+
+func (x *CustomEmojiData_Inner) Reset() {
+	*x = CustomEmojiData_Inner{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_conversations_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CustomEmojiData_Inner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomEmojiData_Inner) ProtoMessage() {}
+
+func (x *CustomEmojiData_Inner) ProtoReflect() protoreflect.Message {
+	mi := &file_conversations_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomEmojiData_Inner.ProtoReflect.Descriptor instead.
+func (*CustomEmojiData_Inner) Descriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *CustomEmojiData_Inner) GetUnknownString() string {
+	if x != nil && x.UnknownString != nil {
+		return *x.UnknownString
+	}
+	return ""
+}
+
+func (x *CustomEmojiData_Inner) GetFirst() *CustomEmojiData_Inner_ImageData {
+	if x != nil {
+		return x.First
+	}
+	return nil
+}
+
+func (x *CustomEmojiData_Inner) GetSecond() *CustomEmojiData_Inner_WrappedImageData {
+	if x != nil {
+		return x.Second
+	}
+	return nil
+}
+
+type CustomEmojiData_Inner_ImageData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MimeType       string  `protobuf:"bytes,1,opt,name=mimeType,proto3" json:"mimeType,omitempty"`
+	Uri            string  `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`
+	UnknownInt3    *int32  `protobuf:"varint,3,opt,name=unknownInt3,proto3,oneof" json:"unknownInt3,omitempty"`
+	UnknownString5 *string `protobuf:"bytes,5,opt,name=unknownString5,proto3,oneof" json:"unknownString5,omitempty"`
+}
+
+func (x *CustomEmojiData_Inner_ImageData) Reset() {
+	*x = CustomEmojiData_Inner_ImageData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_conversations_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CustomEmojiData_Inner_ImageData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomEmojiData_Inner_ImageData) ProtoMessage() {}
+
+func (x *CustomEmojiData_Inner_ImageData) ProtoReflect() protoreflect.Message {
+	mi := &file_conversations_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomEmojiData_Inner_ImageData.ProtoReflect.Descriptor instead.
+func (*CustomEmojiData_Inner_ImageData) Descriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{4, 0, 0}
+}
+
+func (x *CustomEmojiData_Inner_ImageData) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *CustomEmojiData_Inner_ImageData) GetUri() string {
+	if x != nil {
+		return x.Uri
+	}
+	return ""
+}
+
+func (x *CustomEmojiData_Inner_ImageData) GetUnknownInt3() int32 {
+	if x != nil && x.UnknownInt3 != nil {
+		return *x.UnknownInt3
+	}
+	return 0
+}
+
+func (x *CustomEmojiData_Inner_ImageData) GetUnknownString5() string {
+	if x != nil && x.UnknownString5 != nil {
+		return *x.UnknownString5
+	}
+	return ""
+}
+
+type CustomEmojiData_Inner_WrappedImageData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Data *CustomEmojiData_Inner_WrappedImageData_ImageData `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData) Reset() {
+	*x = CustomEmojiData_Inner_WrappedImageData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_conversations_proto_msgTypes[24]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomEmojiData_Inner_WrappedImageData) ProtoMessage() {}
+
+func (x *CustomEmojiData_Inner_WrappedImageData) ProtoReflect() protoreflect.Message {
+	mi := &file_conversations_proto_msgTypes[24]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomEmojiData_Inner_WrappedImageData.ProtoReflect.Descriptor instead.
+func (*CustomEmojiData_Inner_WrappedImageData) Descriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{4, 0, 1}
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData) GetData() *CustomEmojiData_Inner_WrappedImageData_ImageData {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type CustomEmojiData_Inner_WrappedImageData_ImageData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UnknownInt1 int32  `protobuf:"varint,1,opt,name=unknownInt1,proto3" json:"unknownInt1,omitempty"`
+	MimeType    string `protobuf:"bytes,2,opt,name=mimeType,proto3" json:"mimeType,omitempty"`
+	Uri         string `protobuf:"bytes,3,opt,name=uri,proto3" json:"uri,omitempty"`
+	Width       int32  `protobuf:"varint,5,opt,name=width,proto3" json:"width,omitempty"`
+	Height      int32  `protobuf:"varint,6,opt,name=height,proto3" json:"height,omitempty"`
+	UnknownInt7 *int32 `protobuf:"varint,7,opt,name=unknownInt7,proto3,oneof" json:"unknownInt7,omitempty"`
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) Reset() {
+	*x = CustomEmojiData_Inner_WrappedImageData_ImageData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_conversations_proto_msgTypes[25]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomEmojiData_Inner_WrappedImageData_ImageData) ProtoMessage() {}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) ProtoReflect() protoreflect.Message {
+	mi := &file_conversations_proto_msgTypes[25]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomEmojiData_Inner_WrappedImageData_ImageData.ProtoReflect.Descriptor instead.
+func (*CustomEmojiData_Inner_WrappedImageData_ImageData) Descriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{4, 0, 1, 0}
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetUnknownInt1() int32 {
+	if x != nil {
+		return x.UnknownInt1
+	}
+	return 0
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetUri() string {
+	if x != nil {
+		return x.Uri
+	}
+	return ""
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetHeight() int32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetUnknownInt7() int32 {
+	if x != nil && x.UnknownInt7 != nil {
+		return *x.UnknownInt7
 	}
 	return 0
 }
@@ -2324,66 +2666,76 @@ func file_conversations_proto_rawDescGZIP() []byte {
 }
 
 var file_conversations_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_conversations_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_conversations_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_conversations_proto_goTypes = []interface{}{
-	(EmojiType)(0),              // 0: conversations.EmojiType
-	(IdentifierType)(0),         // 1: conversations.IdentifierType
-	(ConversationType)(0),       // 2: conversations.ConversationType
-	(MessageStatusType)(0),      // 3: conversations.MessageStatusType
-	(ConversationStatus)(0),     // 4: conversations.ConversationStatus
-	(MediaFormats)(0),           // 5: conversations.MediaFormats
-	(*Contact)(nil),             // 6: conversations.Contact
-	(*ContactNumber)(nil),       // 7: conversations.ContactNumber
-	(*Message)(nil),             // 8: conversations.Message
-	(*ReactionEntry)(nil),       // 9: conversations.ReactionEntry
-	(*ReactionData)(nil),        // 10: conversations.ReactionData
-	(*EmojiMeta)(nil),           // 11: conversations.EmojiMeta
-	(*EmojiMetaData)(nil),       // 12: conversations.EmojiMetaData
-	(*ReplyMessage)(nil),        // 13: conversations.ReplyMessage
-	(*ReplyMessageData)(nil),    // 14: conversations.ReplyMessageData
-	(*MessageInfo)(nil),         // 15: conversations.MessageInfo
-	(*MediaContent)(nil),        // 16: conversations.MediaContent
-	(*Dimensions)(nil),          // 17: conversations.Dimensions
-	(*MessageContent)(nil),      // 18: conversations.MessageContent
-	(*MsgType)(nil),             // 19: conversations.MsgType
-	(*MessageStatus)(nil),       // 20: conversations.MessageStatus
-	(*Conversation)(nil),        // 21: conversations.Conversation
-	(*Participant)(nil),         // 22: conversations.Participant
-	(*SmallInfo)(nil),           // 23: conversations.SmallInfo
-	(*LatestMessage)(nil),       // 24: conversations.LatestMessage
-	(*LatestMessageStatus)(nil), // 25: conversations.LatestMessageStatus
-	(*Muted)(nil),               // 26: conversations.Muted
+	(EmojiType)(0),                                 // 0: conversations.EmojiType
+	(IdentifierType)(0),                            // 1: conversations.IdentifierType
+	(ConversationType)(0),                          // 2: conversations.ConversationType
+	(MessageStatusType)(0),                         // 3: conversations.MessageStatusType
+	(ConversationStatus)(0),                        // 4: conversations.ConversationStatus
+	(MediaFormats)(0),                              // 5: conversations.MediaFormats
+	(*Contact)(nil),                                // 6: conversations.Contact
+	(*ContactNumber)(nil),                          // 7: conversations.ContactNumber
+	(*Message)(nil),                                // 8: conversations.Message
+	(*ReactionEntry)(nil),                          // 9: conversations.ReactionEntry
+	(*CustomEmojiData)(nil),                        // 10: conversations.CustomEmojiData
+	(*ReactionData)(nil),                           // 11: conversations.ReactionData
+	(*EmojiMeta)(nil),                              // 12: conversations.EmojiMeta
+	(*EmojiMetaData)(nil),                          // 13: conversations.EmojiMetaData
+	(*ReplyMessage)(nil),                           // 14: conversations.ReplyMessage
+	(*ReplyMessageData)(nil),                       // 15: conversations.ReplyMessageData
+	(*MessageInfo)(nil),                            // 16: conversations.MessageInfo
+	(*MediaContent)(nil),                           // 17: conversations.MediaContent
+	(*Dimensions)(nil),                             // 18: conversations.Dimensions
+	(*MessageContent)(nil),                         // 19: conversations.MessageContent
+	(*MsgType)(nil),                                // 20: conversations.MsgType
+	(*MessageStatus)(nil),                          // 21: conversations.MessageStatus
+	(*Conversation)(nil),                           // 22: conversations.Conversation
+	(*Participant)(nil),                            // 23: conversations.Participant
+	(*SmallInfo)(nil),                              // 24: conversations.SmallInfo
+	(*LatestMessage)(nil),                          // 25: conversations.LatestMessage
+	(*LatestMessageStatus)(nil),                    // 26: conversations.LatestMessageStatus
+	(*Muted)(nil),                                  // 27: conversations.Muted
+	(*CustomEmojiData_Inner)(nil),                  // 28: conversations.CustomEmojiData.Inner
+	(*CustomEmojiData_Inner_ImageData)(nil),        // 29: conversations.CustomEmojiData.Inner.ImageData
+	(*CustomEmojiData_Inner_WrappedImageData)(nil), // 30: conversations.CustomEmojiData.Inner.WrappedImageData
+	(*CustomEmojiData_Inner_WrappedImageData_ImageData)(nil), // 31: conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
 }
 var file_conversations_proto_depIdxs = []int32{
 	7,  // 0: conversations.Contact.number:type_name -> conversations.ContactNumber
-	19, // 1: conversations.Message.msgType:type_name -> conversations.MsgType
-	20, // 2: conversations.Message.messageStatus:type_name -> conversations.MessageStatus
-	15, // 3: conversations.Message.messageInfo:type_name -> conversations.MessageInfo
+	20, // 1: conversations.Message.msgType:type_name -> conversations.MsgType
+	21, // 2: conversations.Message.messageStatus:type_name -> conversations.MessageStatus
+	16, // 3: conversations.Message.messageInfo:type_name -> conversations.MessageInfo
 	9,  // 4: conversations.Message.reactions:type_name -> conversations.ReactionEntry
-	13, // 5: conversations.Message.replyMessage:type_name -> conversations.ReplyMessage
-	10, // 6: conversations.ReactionEntry.data:type_name -> conversations.ReactionData
-	0,  // 7: conversations.ReactionData.type:type_name -> conversations.EmojiType
-	12, // 8: conversations.EmojiMeta.emojiMetaData:type_name -> conversations.EmojiMetaData
-	14, // 9: conversations.ReplyMessage.replyMessageData:type_name -> conversations.ReplyMessageData
-	18, // 10: conversations.MessageInfo.messageContent:type_name -> conversations.MessageContent
-	16, // 11: conversations.MessageInfo.mediaContent:type_name -> conversations.MediaContent
-	5,  // 12: conversations.MediaContent.format:type_name -> conversations.MediaFormats
-	17, // 13: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
-	3,  // 14: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
-	24, // 15: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
-	4,  // 16: conversations.Conversation.status:type_name -> conversations.ConversationStatus
-	22, // 17: conversations.Conversation.participants:type_name -> conversations.Participant
-	2,  // 18: conversations.Conversation.type:type_name -> conversations.ConversationType
-	23, // 19: conversations.Participant.ID:type_name -> conversations.SmallInfo
-	26, // 20: conversations.Participant.muted:type_name -> conversations.Muted
-	1,  // 21: conversations.SmallInfo.type:type_name -> conversations.IdentifierType
-	25, // 22: conversations.LatestMessage.latestMessageStatus:type_name -> conversations.LatestMessageStatus
-	3,  // 23: conversations.LatestMessageStatus.status:type_name -> conversations.MessageStatusType
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	14, // 5: conversations.Message.replyMessage:type_name -> conversations.ReplyMessage
+	11, // 6: conversations.ReactionEntry.data:type_name -> conversations.ReactionData
+	28, // 7: conversations.CustomEmojiData.innerData:type_name -> conversations.CustomEmojiData.Inner
+	0,  // 8: conversations.ReactionData.type:type_name -> conversations.EmojiType
+	10, // 9: conversations.ReactionData.customEmoji:type_name -> conversations.CustomEmojiData
+	13, // 10: conversations.EmojiMeta.emojiMetaData:type_name -> conversations.EmojiMetaData
+	15, // 11: conversations.ReplyMessage.replyMessageData:type_name -> conversations.ReplyMessageData
+	19, // 12: conversations.MessageInfo.messageContent:type_name -> conversations.MessageContent
+	17, // 13: conversations.MessageInfo.mediaContent:type_name -> conversations.MediaContent
+	5,  // 14: conversations.MediaContent.format:type_name -> conversations.MediaFormats
+	18, // 15: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
+	3,  // 16: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
+	25, // 17: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
+	4,  // 18: conversations.Conversation.status:type_name -> conversations.ConversationStatus
+	23, // 19: conversations.Conversation.participants:type_name -> conversations.Participant
+	2,  // 20: conversations.Conversation.type:type_name -> conversations.ConversationType
+	24, // 21: conversations.Participant.ID:type_name -> conversations.SmallInfo
+	27, // 22: conversations.Participant.muted:type_name -> conversations.Muted
+	1,  // 23: conversations.SmallInfo.type:type_name -> conversations.IdentifierType
+	26, // 24: conversations.LatestMessage.latestMessageStatus:type_name -> conversations.LatestMessageStatus
+	3,  // 25: conversations.LatestMessageStatus.status:type_name -> conversations.MessageStatusType
+	29, // 26: conversations.CustomEmojiData.Inner.first:type_name -> conversations.CustomEmojiData.Inner.ImageData
+	30, // 27: conversations.CustomEmojiData.Inner.second:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData
+	31, // 28: conversations.CustomEmojiData.Inner.WrappedImageData.data:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
+	29, // [29:29] is the sub-list for method output_type
+	29, // [29:29] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_conversations_proto_init() }
@@ -2441,7 +2793,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReactionData); i {
+			switch v := v.(*CustomEmojiData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2453,7 +2805,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EmojiMeta); i {
+			switch v := v.(*ReactionData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2465,7 +2817,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EmojiMetaData); i {
+			switch v := v.(*EmojiMeta); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2477,7 +2829,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyMessage); i {
+			switch v := v.(*EmojiMetaData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2489,7 +2841,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyMessageData); i {
+			switch v := v.(*ReplyMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2501,7 +2853,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageInfo); i {
+			switch v := v.(*ReplyMessageData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2513,7 +2865,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MediaContent); i {
+			switch v := v.(*MessageInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2525,7 +2877,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Dimensions); i {
+			switch v := v.(*MediaContent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2537,7 +2889,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageContent); i {
+			switch v := v.(*Dimensions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2549,7 +2901,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MsgType); i {
+			switch v := v.(*MessageContent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2561,7 +2913,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MessageStatus); i {
+			switch v := v.(*MsgType); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2573,7 +2925,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Conversation); i {
+			switch v := v.(*MessageStatus); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2585,7 +2937,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Participant); i {
+			switch v := v.(*Conversation); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2597,7 +2949,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SmallInfo); i {
+			switch v := v.(*Participant); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2609,7 +2961,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LatestMessage); i {
+			switch v := v.(*SmallInfo); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2621,7 +2973,7 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LatestMessageStatus); i {
+			switch v := v.(*LatestMessage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2633,7 +2985,67 @@ func file_conversations_proto_init() {
 			}
 		}
 		file_conversations_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LatestMessageStatus); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_conversations_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Muted); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_conversations_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CustomEmojiData_Inner); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_conversations_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CustomEmojiData_Inner_ImageData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_conversations_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CustomEmojiData_Inner_WrappedImageData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_conversations_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CustomEmojiData_Inner_WrappedImageData_ImageData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2647,17 +3059,21 @@ func file_conversations_proto_init() {
 	}
 	file_conversations_proto_msgTypes[1].OneofWrappers = []interface{}{}
 	file_conversations_proto_msgTypes[2].OneofWrappers = []interface{}{}
-	file_conversations_proto_msgTypes[9].OneofWrappers = []interface{}{
+	file_conversations_proto_msgTypes[4].OneofWrappers = []interface{}{}
+	file_conversations_proto_msgTypes[10].OneofWrappers = []interface{}{
 		(*MessageInfo_MessageContent)(nil),
 		(*MessageInfo_MediaContent)(nil),
 	}
+	file_conversations_proto_msgTypes[22].OneofWrappers = []interface{}{}
+	file_conversations_proto_msgTypes[23].OneofWrappers = []interface{}{}
+	file_conversations_proto_msgTypes[25].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_conversations_proto_rawDesc,
 			NumEnums:      6,
-			NumMessages:   21,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

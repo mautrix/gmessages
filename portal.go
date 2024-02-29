@@ -798,8 +798,13 @@ func (portal *Portal) syncReactions(ctx context.Context, source *User, message *
 		remove[reaction.Sender] = reaction
 	}
 	for _, reaction := range reactions {
-		emoji := reaction.GetData().GetUnicode()
-		if emoji == "" {
+		var emoji string
+		switch reaction.GetData().GetType() {
+		case gmproto.EmojiType_EMOTIFY:
+			emoji = ":custom:"
+		case gmproto.EmojiType_CUSTOM:
+			emoji = reaction.GetData().GetUnicode()
+		default:
 			emoji = reaction.GetData().GetType().Unicode()
 			if emoji == "" {
 				continue
