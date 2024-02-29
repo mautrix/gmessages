@@ -299,6 +299,7 @@ var (
 
 func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 	if len(portal.MXID) == 0 {
+		portal.zlog.Warn().Str("message_id", msg.evt.MessageID).Msg("Dropping message as portal is not yet created")
 		return
 	}
 	portal.forwardBackfillLock.Lock()
