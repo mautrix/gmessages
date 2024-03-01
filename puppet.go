@@ -196,19 +196,20 @@ func (puppet *Puppet) UpdateAvatar(ctx context.Context, source *User) bool {
 	}
 	puppet.AvatarUpdateTS = time.Now()
 	if len(resp.Thumbnail) == 0 {
-		if puppet.AvatarHash == [32]byte{} && puppet.AvatarMXC.IsEmpty() {
-			puppet.AvatarSet = true
+		if puppet.AvatarHash == [32]byte{} && puppet.AvatarMXC.IsEmpty() && puppet.AvatarSet {
 			return true
 		}
 		puppet.AvatarHash = [32]byte{}
 		puppet.AvatarMXC = id.ContentURI{}
 		puppet.AvatarSet = false
+		puppet.log.Debug().Msg("Clearing user avatar")
 	} else {
 		thumbData := resp.Thumbnail[0].GetData()
 		hash := sha256.Sum256(thumbData.GetImageBuffer())
 		if hash == puppet.AvatarHash && puppet.AvatarSet {
 			return true
 		}
+		puppet.log.Debug().Hex("avatar_hash", hash[:]).Msg("Uploading new user avatar")
 		puppet.AvatarHash = hash
 		puppet.AvatarSet = false
 		avatarBytes := thumbData.GetImageBuffer()
@@ -220,6 +221,10 @@ func (puppet *Puppet) UpdateAvatar(ctx context.Context, source *User) bool {
 			puppet.log.Err(err).Msg("Failed to upload avatar")
 			return true
 		}
+		puppet.log.Debug().
+			Hex("avatar_hash", hash[:]).
+			Stringer("mxc", uploadResp.ContentURI).
+			Msg("Uploaded new user avatar")
 		puppet.AvatarMXC = uploadResp.ContentURI
 	}
 	err = puppet.DefaultIntent().SetAvatarURL(ctx, puppet.AvatarMXC)
@@ -227,6 +232,7 @@ func (puppet *Puppet) UpdateAvatar(ctx context.Context, source *User) bool {
 		puppet.log.Err(err).Msg("Failed to set avatar")
 	} else {
 		puppet.AvatarSet = true
+		puppet.log.Debug().Stringer("mxc", puppet.AvatarMXC).Msg("Updated avatar")
 	}
 	go puppet.updatePortalAvatar(ctx)
 	return true
