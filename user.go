@@ -470,9 +470,10 @@ func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 
 func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji string, outErr error) {
 	errChan := make(chan error, 1)
-	if !user.googleAsyncPairErrChan.CompareAndSwap(nil, &errChan) {
+	errChanPtr := &errChan
+	if !user.googleAsyncPairErrChan.CompareAndSwap(nil, errChanPtr) {
 		close(errChan)
-		outErr = fmt.Errorf("login already in progress")
+		outErr = ErrLoginInProgress
 		return
 	}
 	var callbackDone bool
@@ -504,6 +505,14 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 				user.zlog.Info().Msg("Async google login succeeded")
 			}
 			errChan <- err
+			if user.googleAsyncPairErrChan.Load() == errChanPtr {
+				go func() {
+					time.Sleep(5 * time.Second)
+					if user.googleAsyncPairErrChan.CompareAndSwap(errChanPtr, nil) {
+						user.zlog.Warn().Msg("Async login was never waited, clearing state")
+					}
+				}()
+			}
 		}
 	}()
 	initialWait.Wait()
