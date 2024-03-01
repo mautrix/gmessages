@@ -1288,7 +1288,7 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 		var bestParticipant *gmproto.Participant
 		var foundMultiple bool
 		for _, participant := range filteredParticipants {
-			if participant.GetSomeInt() == 1 && participant.GetFullName() == metadata.GetName() {
+			if participant.GetSomeInt() == 1 && (participant.GetFullName() == metadata.GetName() || participant.GetFormattedNumber() == metadata.GetName()) {
 				if bestParticipant != nil {
 					foundMultiple = true
 					break
