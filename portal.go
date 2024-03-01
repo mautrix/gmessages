@@ -1269,7 +1269,6 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, medi
 
 func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metadata *gmproto.Conversation) (userIDs []id.UserID, changed bool) {
 	filteredParticipants := make([]*gmproto.Participant, 0, len(metadata.Participants))
-	manyContactIDs := false
 	for _, participant := range metadata.Participants {
 		if participant.IsMe {
 			err := source.AddSelfParticipantID(ctx, participant.ID.ParticipantID)
@@ -1283,27 +1282,36 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 			portal.zlog.Warn().Interface("participant", participant).Msg("No number found in non-self participant entry")
 			continue
 		}
-		if len(filteredParticipants) > 0 && filteredParticipants[0].ContactID != participant.ContactID {
-			manyContactIDs = true
-		}
 		filteredParticipants = append(filteredParticipants, participant)
 	}
-	if len(filteredParticipants) > 1 && !manyContactIDs && !metadata.IsGroupChat {
-		bestParticipant := filteredParticipants[0]
-		for _, participant := range filteredParticipants[1:] {
-			bestNumber := bestParticipant.GetID().GetNumber()
-			thisNumber := participant.GetID().GetNumber()
-			// If this number is a substring of the previous number, prefer this one.
-			// Duplicates often have an extra random country code, so we want the one that isn't a substring of the others.
-			if thisNumber != bestNumber && strings.HasPrefix(thisNumber, "+") && strings.Contains(bestNumber, thisNumber[1:]) {
-				bestParticipant = participant
+	if len(filteredParticipants) > 1 && !metadata.IsGroupChat {
+		var bestParticipant *gmproto.Participant
+		var foundMultiple bool
+		for _, participant := range filteredParticipants {
+			if participant.GetSomeInt() == 1 && participant.GetFullName() == metadata.GetName() {
+				if bestParticipant != nil {
+					foundMultiple = true
+					break
+				} else {
+					bestParticipant = participant
+				}
 			}
 		}
-		portal.zlog.Debug().
-			Any("participants", filteredParticipants).
-			Any("chosen_participant", bestParticipant).
-			Msg("Applied hacky deduplication to DM participants with same contact ID")
-		filteredParticipants = []*gmproto.Participant{bestParticipant}
+		if foundMultiple {
+			portal.zlog.Warn().
+				Any("participants", filteredParticipants).
+				Msg("Didn't apply hacky deduplication to DM participants: found multiple matches")
+		} else if bestParticipant != nil {
+			portal.zlog.Debug().
+				Any("participants", filteredParticipants).
+				Any("chosen_participant", bestParticipant).
+				Msg("Applied hacky deduplication to DM participants")
+			filteredParticipants = []*gmproto.Participant{bestParticipant}
+		} else {
+			portal.zlog.Warn().
+				Any("participants", filteredParticipants).
+				Msg("Didn't apply hacky deduplication to DM participants: no match found")
+		}
 	}
 	for _, participant := range filteredParticipants {
 		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
