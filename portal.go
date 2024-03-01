@@ -1362,6 +1362,12 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 					UserID: userID,
 					Reason: "User is not participating in chat",
 				})
+				if errors.Is(err, mautrix.MForbidden) && portal.MainIntent() != portal.bridge.Bot {
+					_, err = portal.bridge.Bot.KickUser(ctx, portal.MXID, &mautrix.ReqKickUser{
+						UserID: userID,
+						Reason: "User is not participating in chat",
+					})
+				}
 				if err != nil {
 					portal.zlog.Warn().Err(err).
 						Str("user_id", userID.String()).
