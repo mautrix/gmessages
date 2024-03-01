@@ -33,9 +33,8 @@ func newPuppet(qh *dbutil.QueryHelper[*Puppet]) *Puppet {
 }
 
 const (
-	deleteAllPuppetsForUserQuery = "DELETE FROM puppet WHERE receiver=$1"
-	getPuppetQuery               = "SELECT id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set FROM puppet WHERE id=$1 AND receiver=$2"
-	insertPuppetQuery            = `
+	getPuppetQuery    = "SELECT id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set FROM puppet WHERE id=$1 AND receiver=$2"
+	insertPuppetQuery = `
 		INSERT INTO puppet (id, receiver, phone, contact_id, name, name_set, avatar_hash, avatar_mxc, avatar_set, avatar_update_ts, contact_info_set)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
@@ -45,10 +44,6 @@ const (
 		WHERE id=$1 AND receiver=$2
 	`
 )
-
-func (pq *PuppetQuery) DeleteAllForUser(ctx context.Context, userID int) error {
-	return pq.Exec(ctx, deleteAllPuppetsForUserQuery, userID)
-}
 
 func (pq *PuppetQuery) Get(ctx context.Context, key Key) (*Puppet, error) {
 	return pq.QueryOne(ctx, getPuppetQuery, key.ID, key.Receiver)

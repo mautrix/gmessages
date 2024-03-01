@@ -60,20 +60,6 @@ func (br *GMBridge) GetPuppetByMXID(mxid id.UserID) *Puppet {
 	return br.GetPuppetByKey(key, "")
 }
 
-func (br *GMBridge) DeleteAllPuppetsForUser(userID int) {
-	br.puppetsLock.Lock()
-	defer br.puppetsLock.Unlock()
-	err := br.DB.Puppet.DeleteAllForUser(context.Background(), userID)
-	if err != nil {
-		br.ZLog.Err(err).Msg("Failed to delete all ghosts for user from database")
-	}
-	for key, puppet := range br.puppetsByKey {
-		if puppet.Receiver == userID {
-			delete(br.puppetsByKey, key)
-		}
-	}
-}
-
 func (br *GMBridge) GetPuppetByKey(key database.Key, phone string) *Puppet {
 	br.puppetsLock.Lock()
 	defer br.puppetsLock.Unlock()

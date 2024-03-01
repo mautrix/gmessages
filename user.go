@@ -783,7 +783,6 @@ func (user *User) ResetState() {
 	for _, portal := range portals {
 		portal.Delete(context.TODO())
 	}
-	user.bridge.DeleteAllPuppetsForUser(user.RowID)
 	user.PhoneID = ""
 	go func() {
 		user.zlog.Debug().Msg("Cleaning up portal rooms in background")
