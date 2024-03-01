@@ -313,10 +313,12 @@ func (puppet *Puppet) Sync(ctx context.Context, source *User, contact *gmproto.P
 	update := false
 	if contact.ID.Number != "" && puppet.Phone != contact.ID.Number {
 		puppet.Phone = contact.ID.Number
+		puppet.ContactInfoSet = false
 		update = true
 	}
 	if contact.ContactID != puppet.ContactID {
 		puppet.ContactID = contact.ContactID
+		puppet.ContactInfoSet = false
 		update = true
 	}
 	update = puppet.UpdateName(ctx, contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName()) || update
