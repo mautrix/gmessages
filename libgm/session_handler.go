@@ -254,7 +254,7 @@ func (s *SessionHandler) queueMessageAck(messageID string) {
 
 func (s *SessionHandler) startAckInterval() {
 	if s.ackTicker != nil {
-		s.ackTicker.Stop()
+		return
 	}
 	ticker := time.NewTicker(5 * time.Second)
 	s.ackTicker = ticker

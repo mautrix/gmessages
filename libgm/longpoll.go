@@ -205,7 +205,7 @@ func tryReadBody(resp io.ReadCloser) []byte {
 	return data
 }
 
-func (c *Client) doLongPoll(loggedIn bool) {
+func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 	c.listenID++
 	listenID := c.listenID
 	listenReqID := uuid.NewString()
@@ -303,6 +303,10 @@ func (c *Client) doLongPoll(loggedIn bool) {
 			default:
 				log.Debug().Msg("Ditto pinger is still waiting for previous ping, skipping new ping")
 			}
+		}
+		if onFirstConnect != nil {
+			go onFirstConnect()
+			onFirstConnect = nil
 		}
 		c.readLongPoll(&log, resp.Body)
 		c.longPollingConn = nil

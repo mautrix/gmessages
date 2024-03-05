@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -267,7 +268,10 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		return fmt.Errorf("failed to parse destination UUID: %w", err)
 	}
 	c.AuthData.DestRegID = destRegUUID
-	go c.doLongPoll(false)
+	var longPollConnectWait sync.WaitGroup
+	longPollConnectWait.Add(1)
+	go c.doLongPoll(false, longPollConnectWait.Done)
+	longPollConnectWait.Wait()
 	ps := NewPairingSession()
 	clientInit, clientFinish, err := ps.PreparePayloads()
 	if err != nil {
@@ -300,7 +304,6 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	c.AuthData.PairingID = ps.UUID
 	c.triggerEvent(&events.PairSuccessful{PhoneID: c.AuthData.Mobile.GetSourceID()})
 
-	c.hackyDelaySetActive.Store(true)
 	go func() {
 		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
 		// the phone won't recognize the session the bridge will get unpaired.
