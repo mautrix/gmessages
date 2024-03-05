@@ -103,8 +103,10 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 		AuthData:       authData,
 		Logger:         logger,
 		sessionHandler: sessionHandler,
-		http:           &http.Client{Transport: transport, Timeout: 2 * time.Minute},
-		lphttp:         &http.Client{Transport: transport, Timeout: 30 * time.Minute},
+
+		httpTransport: transport,
+		http:          &http.Client{Transport: transport, Timeout: 2 * time.Minute},
+		lphttp:        &http.Client{Transport: transport, Timeout: 30 * time.Minute},
 
 		pingShortCircuit: make(chan struct{}),
 	}
