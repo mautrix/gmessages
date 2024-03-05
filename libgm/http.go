@@ -25,10 +25,10 @@ const ContentTypePBLite = "application/json+protobuf"
 
 func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, contentType string) (*http.Response, error) {
 	ctx := c.Logger.WithContext(context.TODO())
-	return c.makeProtobufHTTPRequestContext(ctx, url, data, contentType)
+	return c.makeProtobufHTTPRequestContext(ctx, url, data, contentType, false)
 }
 
-func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string, data proto.Message, contentType string) (*http.Response, error) {
+func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string, data proto.Message, contentType string, longPoll bool) (*http.Response, error) {
 	var body []byte
 	var err error
 	switch contentType {
@@ -48,7 +48,11 @@ func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string,
 	}
 	util.BuildRelayHeaders(req, contentType, "*/*")
 	c.AddCookieHeaders(req)
-	res, reqErr := c.http.Do(req)
+	client := c.http
+	if longPoll {
+		client = c.lphttp
+	}
+	res, reqErr := client.Do(req)
 	if reqErr != nil {
 		return res, reqErr
 	}

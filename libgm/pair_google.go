@@ -67,7 +67,7 @@ func (c *Client) signInGaiaInitial(ctx context.Context) (*gmproto.SignInGaiaResp
 	payload := c.baseSignInGaiaPayload()
 	payload.UnknownInt3 = 1
 	return typedHTTPResponse[*gmproto.SignInGaiaResponse](
-		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite),
+		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite, false),
 	)
 }
 
@@ -82,7 +82,7 @@ func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaRes
 		SomeData: key,
 	}
 	resp, err := typedHTTPResponse[*gmproto.SignInGaiaResponse](
-		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite),
+		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite, false),
 	)
 	if err != nil {
 		return nil, err

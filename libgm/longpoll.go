@@ -3,6 +3,7 @@ package libgm
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -214,6 +215,7 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 	defer func() {
 		log.Debug().Msg("Long polling stopped")
 	}()
+	ctx := log.WithContext(context.TODO())
 	log.Debug().Str("listen_uuid", listenReqID).Msg("Long polling starting")
 
 	dittoPing := make(chan struct{}, 1)
@@ -253,7 +255,7 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			url = util.ReceiveMessagesURLGoogle
 			payload.Auth.Network = util.GoogleNetwork
 		}
-		resp, err := c.makeProtobufHTTPRequest(url, payload, ContentTypePBLite)
+		resp, err := c.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, true)
 		if err != nil {
 			if loggedIn {
 				c.triggerEvent(&events.ListenTemporaryError{Error: err})

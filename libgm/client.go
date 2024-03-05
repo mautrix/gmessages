@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -77,8 +78,9 @@ type Client struct {
 	AuthData *AuthData
 	cfg      *gmproto.Config
 
-	proxy Proxy
-	http  *http.Client
+	httpTransport *http.Transport
+	http          *http.Client
+	lphttp        *http.Client
 }
 
 func NewAuthData() *AuthData {
@@ -92,11 +94,17 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
 		responseWaiters: make(map[string]chan<- *IncomingRPCMessage),
 	}
+	transport := &http.Transport{
+		DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 20 * time.Second,
+	}
 	cli := &Client{
 		AuthData:       authData,
 		Logger:         logger,
 		sessionHandler: sessionHandler,
-		http:           &http.Client{},
+		http:           &http.Client{Transport: transport, Timeout: 2 * time.Minute},
+		lphttp:         &http.Client{Transport: transport, Timeout: 30 * time.Minute},
 
 		pingShortCircuit: make(chan struct{}),
 	}
@@ -127,11 +135,7 @@ func (c *Client) SetProxy(proxy string) error {
 	if err != nil {
 		c.Logger.Fatal().Err(err).Msg("Failed to set proxy")
 	}
-	proxyUrl := http.ProxyURL(proxyParsed)
-	c.http.Transport = &http.Transport{
-		Proxy: proxyUrl,
-	}
-	c.proxy = proxyUrl
+	c.httpTransport.Proxy = http.ProxyURL(proxyParsed)
 	c.Logger.Debug().Any("proxy", proxyParsed.Host).Msg("SetProxy")
 	return nil
 }
