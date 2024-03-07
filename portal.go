@@ -2099,7 +2099,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		return fmt.Errorf("failed to get existing reaction from database")
 	}
 
-	emoji := variationselector.Remove(content.RelatesTo.Key)
+	emoji := variationselector.FullyQualify(content.RelatesTo.Key)
 	action := gmproto.SendReactionRequest_ADD
 	if existingReaction != nil {
 		action = gmproto.SendReactionRequest_SWITCH
