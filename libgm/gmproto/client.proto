@@ -297,6 +297,7 @@ message SendReactionRequest {
     string messageID = 1;
     conversations.ReactionData reactionData = 2;
     Action action = 3;
+    settings.SIMPayload SIMPayload = 4;
 }
 
 message SendReactionResponse {

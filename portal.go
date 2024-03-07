@@ -2108,6 +2108,7 @@ func (portal *Portal) handleMatrixReaction(sender *User, evt *event.Event) error
 		MessageID:    msg.ID,
 		ReactionData: gmproto.MakeReactionData(emoji),
 		Action:       action,
+		SIMPayload:   sender.GetSIM(portal.OutgoingID).GetSIMData().GetSIMPayload(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send reaction: %w", err)

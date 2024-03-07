@@ -2697,6 +2697,7 @@ type SendReactionRequest struct {
 	MessageID    string                     `protobuf:"bytes,1,opt,name=messageID,proto3" json:"messageID,omitempty"`
 	ReactionData *ReactionData              `protobuf:"bytes,2,opt,name=reactionData,proto3" json:"reactionData,omitempty"`
 	Action       SendReactionRequest_Action `protobuf:"varint,3,opt,name=action,proto3,enum=client.SendReactionRequest_Action" json:"action,omitempty"`
+	SIMPayload   *SIMPayload                `protobuf:"bytes,4,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
 }
 
 func (x *SendReactionRequest) Reset() {
@@ -2750,6 +2751,13 @@ func (x *SendReactionRequest) GetAction() SendReactionRequest_Action {
 		return x.Action
 	}
 	return SendReactionRequest_UNSPECIFIED
+}
+
+func (x *SendReactionRequest) GetSIMPayload() *SIMPayload {
+	if x != nil {
+		return x.SIMPayload
+	}
+	return nil
 }
 
 type SendReactionResponse struct {
@@ -3324,15 +3332,16 @@ var file_client_proto_depIdxs = []int32{
 	4,  // 37: client.SendMessageResponse.status:type_name -> client.SendMessageResponse.Status
 	70, // 38: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
 	5,  // 39: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
-	57, // 40: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
-	52, // 41: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
-	60, // 42: client.AckMessageRequest.Message.device:type_name -> authentication.Device
-	18, // 43: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
-	44, // [44:44] is the sub-list for method output_type
-	44, // [44:44] is the sub-list for method input_type
-	44, // [44:44] is the sub-list for extension type_name
-	44, // [44:44] is the sub-list for extension extendee
-	0,  // [0:44] is the sub-list for field type_name
+	67, // 40: client.SendReactionRequest.SIMPayload:type_name -> settings.SIMPayload
+	57, // 41: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
+	52, // 42: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	60, // 43: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	18, // 44: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
+	45, // [45:45] is the sub-list for method output_type
+	45, // [45:45] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_client_proto_init() }
