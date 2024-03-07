@@ -51,8 +51,8 @@ func UnicodeToEmojiType(emoji string) EmojiType {
 		return EmojiType_CRYING_FACE
 	case "😡":
 		return EmojiType_POUTING_FACE
-	//case "❤", "❤️":
-	//	return EmojiType_RED_HEART
+	case "❤", "❤️":
+		return EmojiType_RED_HEART
 	default:
 		return EmojiType_CUSTOM
 	}
