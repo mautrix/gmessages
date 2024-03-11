@@ -166,10 +166,16 @@ func (c *Client) Connect() error {
 
 func (c *Client) postConnect() {
 	time.Sleep(2 * time.Second)
-	c.Logger.Debug().Msg("Sending acks before get updates request")
 	if c.skipCount > 0 {
-		c.Logger.Warn().Int("skip_count", c.skipCount).Msg("Skip count is still non-zero")
+		c.Logger.Warn().Int("skip_count", c.skipCount).Msg("Skip count is non-zero in postConnect, waiting longer")
+		for i := 0; i < 10 && c.skipCount > 0; i++ {
+			time.Sleep(1 * time.Second)
+		}
+		if c.skipCount > 0 {
+			c.Logger.Warn().Int("skip_count", c.skipCount).Msg("Skip count is still non-zero")
+		}
 	}
+	c.Logger.Debug().Msg("Sending acks before get updates request")
 	c.sessionHandler.sendAckRequest()
 	time.Sleep(1 * time.Second)
 	c.Logger.Debug().Msg("Sending get updates request")
