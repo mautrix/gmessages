@@ -3,6 +3,7 @@ module go.mau.fi/mautrix-gmessages
 go 1.21
 
 require (
+	github.com/beeper/libserv v0.0.0-20231231202820-c7303abfc32c
 	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.22
@@ -26,6 +27,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	github.com/rs/xid v1.5.0 // indirect
 	github.com/tidwall/gjson v1.17.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

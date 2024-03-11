@@ -101,7 +101,7 @@ func (br *GMBridge) Init() {
 
 	ss := br.Config.Bridge.Provisioning.SharedSecret
 	if len(ss) > 0 && ss != "disable" {
-		br.Provisioning = &ProvisioningAPI{bridge: br}
+		br.Provisioning = &ProvisioningAPI{bridge: br, log: br.ZLog.With().Str("component", "provisioning").Logger()}
 	}
 }
 

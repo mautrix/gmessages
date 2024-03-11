@@ -24,12 +24,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"strings"
-	"time"
 
+	"github.com/beeper/libserv/pkg/requestlog"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"google.golang.org/protobuf/proto"
-
-	log "maunium.net/go/maulogger/v2"
 
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/id"
@@ -40,16 +39,14 @@ import (
 
 type ProvisioningAPI struct {
 	bridge *GMBridge
-	log    log.Logger
-	zlog   zerolog.Logger
+	log    zerolog.Logger
 }
 
 func (prov *ProvisioningAPI) Init() {
-	prov.log = prov.bridge.Log.Sub("Provisioning")
-	prov.zlog = prov.bridge.ZLog.With().Str("component", "provisioning").Logger()
-
-	prov.log.Debugln("Enabling provisioning API at", prov.bridge.Config.Bridge.Provisioning.Prefix)
+	prov.log.Debug().Str("path_prefix", prov.bridge.Config.Bridge.Provisioning.Prefix).Msg("Enabling provisioning API")
 	r := prov.bridge.AS.Router.PathPrefix(prov.bridge.Config.Bridge.Provisioning.Prefix).Subrouter()
+	r.Use(hlog.NewHandler(prov.log))
+	r.Use(requestlog.AccessLogger(true))
 	r.Use(prov.AuthMiddleware)
 	r.HandleFunc("/v1/ping", prov.Ping).Methods(http.MethodGet)
 	r.HandleFunc("/v1/login", prov.Login).Methods(http.MethodPost)
@@ -65,7 +62,7 @@ func (prov *ProvisioningAPI) Init() {
 	prov.bridge.AS.Router.HandleFunc("/_matrix/app/com.beeper.bridge_state", prov.BridgeStatePing).Methods(http.MethodPost)
 
 	if prov.bridge.Config.Bridge.Provisioning.DebugEndpoints {
-		prov.zlog.Debug().Msg("Enabling debug API at /debug")
+		prov.log.Debug().Msg("Enabling debug API at /debug")
 		r := prov.bridge.AS.Router.PathPrefix("/debug").Subrouter()
 		r.Use(prov.AuthMiddleware)
 		r.PathPrefix("/pprof").Handler(http.DefaultServeMux)
@@ -75,16 +72,6 @@ func (prov *ProvisioningAPI) Init() {
 	r.HandleFunc("/v1/delete_connection", prov.Disconnect).Methods(http.MethodPost)
 }
 
-type responseWrap struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (rw *responseWrap) WriteHeader(statusCode int) {
-	rw.ResponseWriter.WriteHeader(statusCode)
-	rw.statusCode = statusCode
-}
-
 func (prov *ProvisioningAPI) AuthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
@@ -92,7 +79,7 @@ func (prov *ProvisioningAPI) AuthMiddleware(h http.Handler) http.Handler {
 			auth = auth[len("Bearer "):]
 		}
 		if auth != prov.bridge.Config.Bridge.Provisioning.SharedSecret {
-			prov.log.Infof("Authentication token does not match shared secret")
+			hlog.FromRequest(r).Warn().Msg("Authentication token does not match shared secret")
 			jsonResponse(w, http.StatusForbidden, map[string]interface{}{
 				"error":   "Authentication token does not match shared secret",
 				"errcode": "M_FORBIDDEN",
@@ -101,11 +88,7 @@ func (prov *ProvisioningAPI) AuthMiddleware(h http.Handler) http.Handler {
 		}
 		userID := r.URL.Query().Get("user_id")
 		user := prov.bridge.GetUserByMXID(id.UserID(userID))
-		start := time.Now()
-		wWrap := &responseWrap{w, 200}
-		h.ServeHTTP(wWrap, r.WithContext(context.WithValue(r.Context(), "user", user)))
-		duration := time.Now().Sub(start).Seconds()
-		prov.log.Infofln("%s %s from %s took %.2f seconds and returned status %d", r.Method, r.URL.Path, user.MXID, duration, wWrap.statusCode)
+		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "user", user)))
 	})
 }
 
@@ -174,7 +157,7 @@ func (prov *ProvisioningAPI) ListContacts(w http.ResponseWriter, r *http.Request
 			ErrCode: "no session",
 		})
 	} else if contacts, err := user.Client.ListContacts(); err != nil {
-		prov.log.Errorfln("Failed to fetch %s's contacts: %v", user.MXID, err)
+		hlog.FromRequest(r).Err(err).Msg("Failed to fetch user's contacts")
 		jsonResponse(w, http.StatusInternalServerError, Error{
 			Error:   "Internal server error while fetching contact list",
 			ErrCode: "failed to get contacts",
@@ -226,7 +209,7 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := user.Client.GetOrCreateConversation(&reqData)
 	if err != nil {
-		prov.zlog.Err(err).Msg("Failed to start chat")
+		hlog.FromRequest(r).Err(err).Msg("Failed to start chat")
 		jsonResponse(w, http.StatusInternalServerError, Error{
 			Error:   "Failed to start chat",
 			ErrCode: "unknown error",
@@ -240,7 +223,7 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if resp.GetConversation() == nil {
-		prov.zlog.Warn().
+		hlog.FromRequest(r).Warn().
 			Int("req_number_count", len(req.Numbers)).
 			Str("status", resp.GetStatus().String()).
 			Msg("No conversation in chat create response")
@@ -252,11 +235,11 @@ func (prov *ProvisioningAPI) StartChat(w http.ResponseWriter, r *http.Request) {
 	}
 	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
 	convCopy.LatestMessage = nil
-	prov.zlog.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for start chat")
+	hlog.FromRequest(r).Debug().Any("conversation_data", convCopy).Msg("Got conversation data for start chat")
 	portal := user.GetPortalByID(resp.Conversation.ConversationID)
 	err = portal.CreateMatrixRoom(r.Context(), user, resp.Conversation, false)
 	if err != nil {
-		prov.zlog.Err(err).Msg("Failed to create matrix room")
+		hlog.FromRequest(r).Err(err).Msg("Failed to create matrix room")
 		jsonResponse(w, http.StatusInternalServerError, Error{
 			Error:   "Failed to create matrix room",
 			ErrCode: "unknown error",
@@ -335,7 +318,7 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 	userID := r.URL.Query().Get("user_id")
 	user := prov.bridge.GetUserByMXID(id.UserID(userID))
 
-	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
+	log := hlog.FromRequest(r)
 
 	if user.IsLoggedIn() {
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success", ErrCode: "already logged in"})
@@ -388,7 +371,7 @@ func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Requ
 	userID := r.URL.Query().Get("user_id")
 	user := prov.bridge.GetUserByMXID(id.UserID(userID))
 
-	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
+	log := hlog.FromRequest(r)
 
 	err := user.AsyncLoginGoogleWait(r.Context())
 	if err != nil {
@@ -442,7 +425,7 @@ func (prov *ProvisioningAPI) Login(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	user := prov.bridge.GetUserByMXID(id.UserID(userID))
 
-	log := prov.zlog.With().Str("user_id", user.MXID.String()).Str("endpoint", "login").Logger()
+	log := hlog.FromRequest(r)
 
 	if user.IsLoggedIn() {
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success", ErrCode: "already logged in"})
