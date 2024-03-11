@@ -7,6 +7,7 @@
     be online. Google Fi cloud sync is still not supported.
 * Added deduplication for DM participants, as Google randomly sends duplicate
   participant entries sometimes.
+* Added voice message conversion.
 * Changed custom image reactions to be bridged as `:custom:` instead of a UUID.
   Google Messages for Web doesn't support fetching the actual image yet.
 * Fixed sending reactions breaking for some users.

@@ -1985,8 +1985,8 @@ func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *
 	if content.FileName != "" {
 		fileName = content.FileName
 	}
-	isVoice, ok := raw["org.matrix.msc3245.voice"].(bool)
-	if ok && isVoice {
+	_, isVoice := raw["org.matrix.msc3245.voice"]
+	if isVoice {
 		data, err = ffmpeg.ConvertBytes(ctx, data, ".m4a", []string{}, []string{"-c:a", "aac"}, content.Info.MimeType)
 		if err != nil {
 			return nil, fmt.Errorf("%w (ogg to m4a): %w", errMediaConvertFailed, err)
