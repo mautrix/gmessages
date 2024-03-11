@@ -416,7 +416,7 @@ func (user *User) Login(maxAttempts int) (<-chan qrChannelItem, error) {
 		user.loginInProgress.Store(false)
 		return nil, fmt.Errorf("failed to connect to Google Messages: %w", err)
 	}
-	Analytics.Track(user.MXID, "$login_start")
+	Analytics.Track(user.MXID, "$login_start", map[string]any{"mode": "qr"})
 	ch := make(chan qrChannelItem, maxAttempts+2)
 	ctx, cancel := context.WithCancel(context.Background())
 	user.cancelLogin = cancel
@@ -555,12 +555,25 @@ func (user *User) LoginGoogle(ctx context.Context, cookies map[string]string, em
 	authData := libgm.NewAuthData()
 	authData.Cookies = cookies
 	user.createClient(authData)
-	Analytics.Track(user.MXID, "$login_start")
+	Analytics.Track(user.MXID, "$login_start", map[string]any{"mode": "google"})
 	err := user.Client.DoGaiaPairing(ctx, emojiCallback)
 	if err != nil {
 		user.unlockedDeleteConnection()
+		switch {
+		case errors.Is(err, libgm.ErrNoDevicesFound):
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "no devices"})
+		case errors.Is(err, libgm.ErrIncorrectEmoji):
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "incorrect emoji"})
+		case errors.Is(err, libgm.ErrPairingCancelled):
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "cancelled"})
+		case errors.Is(err, libgm.ErrPairingTimeout):
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "timeout"})
+		default:
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "unknown"})
+		}
 		return err
 	}
+	Analytics.Track(user.MXID, "$login_success", map[string]any{"mode": "google"})
 	return nil
 }
 
