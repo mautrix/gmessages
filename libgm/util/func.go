@@ -54,7 +54,7 @@ func BuildUploadHeaders(req *http.Request, metadata string) {
 func NewMediaUploadHeaders(imageSize string, command string, uploadOffset string, imageContentType string, protocol string) *http.Header {
 	headers := &http.Header{}
 
-	headers.Set("host", "instantmessaging-pa.googleapis.com")
+	//headers.Set("host", "instantmessaging-pa.googleapis.com")
 	headers.Set("sec-ch-ua", SecUA)
 	if protocol != "" {
 		headers.Set("x-goog-upload-protocol", protocol)

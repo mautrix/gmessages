@@ -3,7 +3,7 @@ package libgm
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -99,15 +99,15 @@ func (c *Client) UploadMedia(data []byte, fileName, mime string) (*gmproto.Media
 	}
 	encryptedBytes, err := cryptor.EncryptData(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encrypt media: %w", err)
 	}
 	startUploadImage, err := c.StartUploadMedia(encryptedBytes, mime)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to start upload: %w", err)
 	}
 	upload, err := c.FinalizeUploadMedia(startUploadImage)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to finalize upload: %w", err)
 	}
 	return &gmproto.MediaContent{
 		Format:        mediaType.Type,
@@ -134,46 +134,61 @@ type MediaUpload struct {
 	MediaNumber int64
 }
 
-var (
-	errStartUploadMedia    = errors.New("failed to start uploading media")
-	errFinalizeUploadMedia = errors.New("failed to finalize uploading media")
-)
+func isBase64Character(char byte) bool {
+	return (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '+' || char == '/' || char == '='
+}
+
+func isStandardBase64(data []byte) bool {
+	if len(data)%4 != 0 {
+		return false
+	}
+	for _, char := range data {
+		if !isBase64Character(char) {
+			return false
+		}
+	}
+	return true
+}
 
 func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, error) {
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
 	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", upload.MimeType, "")
-	req, reqErr := http.NewRequest(http.MethodPost, upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
-	if reqErr != nil {
-		return nil, reqErr
+	req, err := http.NewRequest(http.MethodPost, upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
-
 	req.Header = *finalizeUploadHeaders
 
-	res, resErr := c.http.Do(req)
-	if resErr != nil {
-		panic(resErr)
+	res, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer res.Body.Close()
 
-	statusCode := res.StatusCode
-	if statusCode != 200 {
-		return nil, errFinalizeUploadMedia
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
+	}
+	respData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+	if isStandardBase64(respData) {
+		n, err := base64.StdEncoding.Decode(respData, respData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		respData = respData[:n]
 	}
 
-	rHeaders := res.Header
-	googleResponse, err3 := io.ReadAll(base64.NewDecoder(base64.StdEncoding, res.Body))
-	if err3 != nil {
-		return nil, err3
-	}
-
-	uploadStatus := rHeaders.Get("x-goog-upload-status")
-	c.Logger.Debug().Str("upload_status", uploadStatus).Msg("Upload complete")
+	c.Logger.Debug().
+		Str("upload_status", res.Header.Get("x-goog-upload-status")).
+		Msg("Upload complete")
 
 	mediaIDs := &gmproto.UploadMediaResponse{}
-	err3 = proto.Unmarshal(googleResponse, mediaIDs)
-	if err3 != nil {
-		return nil, err3
+	err = proto.Unmarshal(respData, mediaIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 	return &MediaUpload{
 		MediaID:     mediaIDs.Media.MediaID,
@@ -185,42 +200,38 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 	encryptedImageSize := strconv.Itoa(len(encryptedImageBytes))
 
 	startUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "start", "", mime, "resumable")
-	startUploadPayload, buildPayloadErr := c.buildStartUploadPayload()
-	if buildPayloadErr != nil {
-		return nil, buildPayloadErr
+	startUploadPayload, err := c.buildStartUploadPayload()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build payload: %w", err)
 	}
 
-	req, reqErr := http.NewRequest(http.MethodPost, util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
-	if reqErr != nil {
-		return nil, reqErr
+	req, err := http.NewRequest(http.MethodPost, util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
-
 	req.Header = *startUploadHeaders
 
-	res, resErr := c.http.Do(req)
-	if resErr != nil {
-		panic(resErr)
+	res, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer res.Body.Close()
+	_ = res.Body.Close()
 
-	statusCode := res.StatusCode
-	if statusCode != 200 {
-		return nil, errStartUploadMedia
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
 	}
 
-	rHeaders := res.Header
-
-	chunkGranularity, convertErr := strconv.Atoi(rHeaders.Get("x-goog-upload-chunk-granularity"))
-	if convertErr != nil {
-		return nil, convertErr
+	chunkGranularity, err := strconv.Atoi(res.Header.Get("x-goog-upload-chunk-granularity"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse chunk granularity: %w", err)
 	}
 
 	uploadResponse := &StartGoogleUpload{
-		UploadID:         rHeaders.Get("x-guploader-uploadid"),
-		UploadURL:        rHeaders.Get("x-goog-upload-url"),
-		UploadStatus:     rHeaders.Get("x-goog-upload-status"),
+		UploadID:         res.Header.Get("x-guploader-uploadid"),
+		UploadURL:        res.Header.Get("x-goog-upload-url"),
+		UploadStatus:     res.Header.Get("x-goog-upload-status"),
 		ChunkGranularity: int64(chunkGranularity),
-		ControlURL:       rHeaders.Get("x-goog-upload-control-url"),
+		ControlURL:       res.Header.Get("x-goog-upload-control-url"),
 		MimeType:         mime,
 
 		EncryptedMediaBytes: encryptedImageBytes,
@@ -234,6 +245,7 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			Network:          c.AuthData.AuthNetwork(),
 			ConfigVersion:    util.ConfigMessage,
 		},
 		Mobile: c.AuthData.Mobile,
@@ -257,35 +269,36 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 		AuthData: &gmproto.AuthMessage{
 			RequestID:        uuid.NewString(),
 			TachyonAuthToken: c.AuthData.TachyonAuthToken,
+			Network:          c.AuthData.AuthNetwork(),
 			ConfigVersion:    util.ConfigMessage,
 		},
 	}
 	downloadMetadataBytes, err := proto.Marshal(downloadMetadata)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal download request: %w", err)
 	}
 	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
 	req, err := http.NewRequest(http.MethodGet, util.UploadMediaURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
 	util.BuildUploadHeaders(req, downloadMetadataEncoded)
-	res, reqErr := c.http.Do(req)
-	if reqErr != nil {
-		return nil, reqErr
+	res, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer res.Body.Close()
-	encryptedBuffImg, err := io.ReadAll(res.Body)
+	respData, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 	cryptor, err := crypto.NewAESGCMHelper(key)
 	if err != nil {
 		return nil, err
 	}
-	decryptedImageBytes, decryptionErr := cryptor.DecryptData(encryptedBuffImg)
-	if decryptionErr != nil {
-		return nil, decryptionErr
+	decryptedImageBytes, err := cryptor.DecryptData(respData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt media: %w", err)
 	}
 	return decryptedImageBytes, nil
 }
