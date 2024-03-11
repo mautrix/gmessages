@@ -34,6 +34,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exerrors"
+	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/random"
 	"go.mau.fi/util/variationselector"
 	"maunium.net/go/mautrix"
@@ -1001,6 +1002,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	cm.MediaStatus = downloadStatus
 	for _, part := range evt.MessageInfo {
 		var content event.MessageEventContent
+		var extra map[string]any
 		pendingMedia := false
 		switch data := part.GetData().(type) {
 		case *gmproto.MessageInfo_MessageContent:
@@ -1023,7 +1025,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 					MsgType: event.MsgNotice,
 					Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 				}
-			} else if contentPtr, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
+			} else if contentPtr, extraMap, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
 				pendingMedia = true
 				log.Err(err).Msg("Failed to copy attachment")
 				content = event.MessageEventContent{
@@ -1032,6 +1034,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 				}
 			} else {
 				content = *contentPtr
+				extra = extraMap
 			}
 		default:
 			continue
@@ -1043,6 +1046,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 			ID:           part.GetActionMessageID(),
 			PendingMedia: pendingMedia,
 			Content:      &content,
+			Extra:        extra,
 		})
 	}
 	if downloadStatus != "" {
@@ -1191,7 +1195,7 @@ func (msg *ConvertedMessage) MergeCaption() {
 	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
-func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, error) {
+func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, map[string]any, error) {
 	var data []byte
 	var err error
 	if msg.MediaID != "" {
@@ -1202,12 +1206,14 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 		err = fmt.Errorf("no media ID found")
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	mime := libgm.FormatToMediaType[msg.GetFormat()].Format
 	if mime == "" {
 		mime = mimetype.Detect(data).String()
 	}
+	fileName := msg.MediaName
+	extra := make(map[string]any)
 	msgtype := event.MsgFile
 	switch strings.Split(mime, "/")[0] {
 	case "image":
@@ -1217,17 +1223,23 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 		// TODO convert weird formats to mp4
 	case "audio":
 		msgtype = event.MsgAudio
-		// TODO convert everything to ogg and include voice message metadata
+		data, err = ffmpeg.ConvertBytes(ctx, data, ".ogg", []string{}, []string{"-c:a", "libopus"}, mime)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
+		}
+		extra["org.matrix.msc3245.voice"] = map[string]any{}
+		fileName += ".ogg"
+		mime = "audio/ogg"
 	}
 	content := &event.MessageEventContent{
 		MsgType: msgtype,
-		Body:    msg.MediaName,
+		Body:    fileName,
 		Info: &event.FileInfo{
 			MimeType: mime,
 			Size:     len(data),
 		},
 	}
-	return content, portal.uploadMedia(ctx, intent, data, content)
+	return content, extra, portal.uploadMedia(ctx, intent, data, content)
 }
 
 func (portal *Portal) isRecentlyHandled(id string) bool {
@@ -1877,7 +1889,7 @@ func (portal *Portal) uploadMedia(ctx context.Context, intent *appservice.Intent
 	return nil
 }
 
-func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, txnID string) (*gmproto.SendMessageRequest, error) {
+func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, raw map[string]any, txnID string) (*gmproto.SendMessageRequest, error) {
 	log := zerolog.Ctx(ctx)
 	req := &gmproto.SendMessageRequest{
 		ConversationID: portal.ID,
@@ -1916,7 +1928,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 			}},
 		}}
 	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
-		resp, err := portal.reuploadMedia(ctx, sender, content)
+		resp, err := portal.reuploadMedia(ctx, sender, content, raw)
 		if err != nil {
 			return nil, err
 		}
@@ -1925,7 +1937,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		}}
 	case event.MsgBeeperGallery:
 		for i, part := range content.BeeperGalleryImages {
-			convertedPart, err := portal.reuploadMedia(ctx, sender, part)
+			convertedPart, err := portal.reuploadMedia(ctx, sender, part, nil)
 			if err != nil {
 				return nil, fmt.Errorf("failed to reupload gallery image #%d: %w", i+1, err)
 			}
@@ -1946,7 +1958,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 	return req, nil
 }
 
-func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *event.MessageEventContent) (*gmproto.MediaContent, error) {
+func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *event.MessageEventContent, raw map[string]any) (*gmproto.MediaContent, error) {
 	var url id.ContentURI
 	if content.File != nil {
 		url = content.File.URL.ParseOrIgnore()
@@ -1972,6 +1984,15 @@ func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *
 	fileName := content.Body
 	if content.FileName != "" {
 		fileName = content.FileName
+	}
+	isVoice, ok := raw["org.matrix.msc3245.voice"].(bool)
+	if ok && isVoice {
+		data, err = ffmpeg.ConvertBytes(ctx, data, ".m4a", []string{}, []string{"-c:a", "aac"}, content.Info.MimeType)
+		if err != nil {
+			return nil, fmt.Errorf("%w (ogg to m4a): %w", errMediaConvertFailed, err)
+		}
+		fileName += ".m4a"
+		content.Info.MimeType = "audio/mp4"
 	}
 	resp, err := sender.Client.UploadMedia(data, fileName, content.Info.MimeType)
 	if err != nil {
@@ -2004,7 +2025,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	}
 
 	start := time.Now()
-	req, err := portal.convertMatrixMessage(ctx, sender, content, txnID)
+	req, err := portal.convertMatrixMessage(ctx, sender, content, evt.Content.Raw, txnID)
 	timings.convert = time.Since(start)
 	if err != nil {
 		go ms.sendMessageMetrics(ctx, sender, evt, err, "Error converting", true)

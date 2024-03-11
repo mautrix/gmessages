@@ -44,6 +44,7 @@ var (
 	errMissingMediaURL             = errors.New("missing media URL")
 	errMediaDownloadFailed         = errors.New("failed to download media")
 	errMediaDecryptFailed          = errors.New("failed to decrypt media")
+	errMediaConvertFailed          = errors.New("failed to convert media")
 	errMediaReuploadFailed         = errors.New("failed to upload media to google")
 
 	errIncorrectUser = errors.New("incorrect user")
