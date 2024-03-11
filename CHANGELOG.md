@@ -1,3 +1,18 @@
+# v0.3.0 (unreleased)
+
+* Added support for pairing via Google account.
+  * See [docs](https://docs.mau.fi/bridges/go/gmessages/authentication.html)
+    for instructions.
+  * There are no benefits to using this method, it still requires your phone to
+    be online. Google Fi cloud sync is still not supported.
+* Added deduplication for DM participants, as Google randomly sends duplicate
+  participant entries sometimes.
+* Changed custom image reactions to be bridged as `:custom:` instead of a UUID.
+  Google Messages for Web doesn't support fetching the actual image yet.
+* Fixed sending reactions breaking for some users.
+* Fixed ghost user avatars not being reset properly when switching phones or
+  clearing data on phone.
+
 # v0.2.4 (2024-01-16)
 
 * Fixed panic handling read receipts if the user isn't connected.
