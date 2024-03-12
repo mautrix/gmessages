@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -29,6 +30,7 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
+	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
@@ -156,6 +158,13 @@ func fnLoginGoogle(ce *WrappedCommandEvent) {
 	ce.Reply("Send your Google cookies here, formatted as a key-value JSON object (see <https://docs.mau.fi/bridges/go/gmessages/authentication.html> for details)")
 }
 
+const (
+	pairingErrMsgNoDevices      = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
+	pairingErrMsgIncorrectEmoji = "Incorrect emoji chosen on phone, please try again"
+	pairingErrMsgCancelled      = "Pairing cancelled on phone"
+	pairingErrMsgTimeout        = "Pairing timed out, please try again"
+)
+
 func fnLoginGoogleCookies(ce *WrappedCommandEvent) {
 	ce.User.CommandState = nil
 	if ce.User.Session != nil {
@@ -183,7 +192,17 @@ func fnLoginGoogleCookies(ce *WrappedCommandEvent) {
 		ce.Reply(emoji)
 	})
 	if err != nil {
-		ce.Reply("Login failed: %v", err)
+		if errors.Is(err, libgm.ErrNoDevicesFound) {
+			ce.Reply(pairingErrMsgNoDevices)
+		} else if errors.Is(err, libgm.ErrIncorrectEmoji) {
+			ce.Reply(pairingErrMsgIncorrectEmoji)
+		} else if errors.Is(err, libgm.ErrPairingCancelled) {
+			ce.Reply(pairingErrMsgCancelled)
+		} else if errors.Is(err, libgm.ErrPairingTimeout) {
+			ce.Reply(pairingErrMsgTimeout)
+		} else {
+			ce.Reply("Login failed: %v", err)
+		}
 	} else {
 		ce.Reply("Login successful")
 	}

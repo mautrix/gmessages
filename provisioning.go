@@ -353,7 +353,7 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 		switch {
 		case errors.Is(err, libgm.ErrNoDevicesFound):
 			jsonResponse(w, http.StatusBadRequest, Error{
-				Error:   err.Error(),
+				Error:   pairingErrMsgNoDevices,
 				ErrCode: "no-devices-found",
 			})
 		default:
@@ -384,17 +384,17 @@ func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Requ
 			})
 		case errors.Is(err, libgm.ErrIncorrectEmoji):
 			jsonResponse(w, http.StatusBadRequest, Error{
-				Error:   err.Error(),
+				Error:   pairingErrMsgIncorrectEmoji,
 				ErrCode: "incorrect-emoji",
 			})
 		case errors.Is(err, libgm.ErrPairingCancelled):
 			jsonResponse(w, http.StatusBadRequest, Error{
-				Error:   err.Error(),
+				Error:   pairingErrMsgCancelled,
 				ErrCode: "pairing-cancelled",
 			})
 		case errors.Is(err, libgm.ErrPairingTimeout):
 			jsonResponse(w, http.StatusBadRequest, Error{
-				Error:   err.Error(),
+				Error:   pairingErrMsgTimeout,
 				ErrCode: "timeout",
 			})
 		case errors.Is(err, context.Canceled):
