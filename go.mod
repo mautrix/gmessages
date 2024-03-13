@@ -13,7 +13,6 @@ require (
 	go.mau.fi/util v0.4.1-0.20240311141448-53cb04950f7e
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	google.golang.org/protobuf v1.33.0
-	maunium.net/go/maulogger/v2 v2.4.1
 	maunium.net/go/mautrix v0.18.0-beta.1.0.20240311183606-94246ffc85aa
 )
 

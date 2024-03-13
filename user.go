@@ -29,8 +29,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
-	"maunium.net/go/maulogger/v2"
-	"maunium.net/go/maulogger/v2/maulogadapt"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
@@ -40,7 +38,6 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/format"
 	"maunium.net/go/mautrix/id"
-	"maunium.net/go/mautrix/pushrules"
 
 	"go.mau.fi/mautrix-gmessages/database"
 	"go.mau.fi/mautrix-gmessages/libgm"
@@ -54,8 +51,6 @@ type User struct {
 
 	bridge *GMBridge
 	zlog   zerolog.Logger
-	// Deprecated
-	log maulogger.Logger
 
 	Admin           bool
 	Whitelisted     bool
@@ -229,7 +224,6 @@ func (br *GMBridge) NewUser(dbUser *database.User) *User {
 		bridge: br,
 		zlog:   br.ZLog.With().Str("user_id", dbUser.MXID.String()).Logger(),
 	}
-	user.log = maulogadapt.ZeroAsMau(&user.zlog)
 	user.longPollingError = errors.New("not connected")
 	user.phoneResponding = true
 
@@ -1131,26 +1125,6 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 	}
 }
 
-func (user *User) updateChatMute(ctx context.Context, portal *Portal, mutedUntil time.Time) {
-	intent := user.DoublePuppetIntent
-	if intent == nil || len(portal.MXID) == 0 {
-		return
-	}
-	var err error
-	if mutedUntil.IsZero() && mutedUntil.Before(time.Now()) {
-		user.log.Debugfln("Portal %s is muted until %s, unmuting...", portal.MXID, mutedUntil)
-		err = intent.DeletePushRule(ctx, "global", pushrules.RoomRule, string(portal.MXID))
-	} else {
-		user.log.Debugfln("Portal %s is muted until %s, muting...", portal.MXID, mutedUntil)
-		err = intent.PutPushRule(ctx, "global", pushrules.RoomRule, string(portal.MXID), &mautrix.ReqPutPushRule{
-			Actions: []pushrules.PushActionType{pushrules.ActionDontNotify},
-		})
-	}
-	if err != nil && !errors.Is(err, mautrix.MNotFound) {
-		user.log.Warnfln("Failed to update push rule for %s through double puppet: %v", portal.MXID, err)
-	}
-}
-
 type CustomTagData struct {
 	Order        json.Number `json:"order"`
 	DoublePuppet string      `json:"fi.mau.double_puppet_source"`
@@ -1264,7 +1238,7 @@ func (user *User) UpdateDirectChats(ctx context.Context, chats map[id.UserID][]i
 		existingChats := make(map[id.UserID][]id.RoomID)
 		err = intent.GetAccountData(ctx, event.AccountDataDirectChats.Type, &existingChats)
 		if err != nil {
-			user.log.Warnln("Failed to get m.direct list to update it:", err)
+			user.zlog.Err(err).Msg("Failed to get m.direct list to update it")
 			return
 		}
 		for userID, rooms := range existingChats {
@@ -1279,7 +1253,7 @@ func (user *User) UpdateDirectChats(ctx context.Context, chats map[id.UserID][]i
 		err = intent.SetAccountData(ctx, event.AccountDataDirectChats.Type, &chats)
 	}
 	if err != nil {
-		user.log.Warnln("Failed to update m.direct list:", err)
+		user.zlog.Err(err).Msg("Failed to update m.direct list")
 	}
 }
 

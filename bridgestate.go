@@ -100,7 +100,7 @@ func (prov *ProvisioningAPI) BridgeStatePing(w http.ResponseWriter, r *http.Requ
 		remote = remote.Fill(user)
 		resp.RemoteStates[remote.RemoteID] = remote
 	}
-	user.log.Debugfln("Responding bridge state in bridge status endpoint: %+v", resp)
+	user.zlog.Debug().Any("bridge_state", &resp).Msg("Responding bridge state in bridge status endpoint")
 	jsonResponse(w, http.StatusOK, &resp)
 	if len(resp.RemoteStates) > 0 {
 		user.BridgeState.SetPrev(remote)
