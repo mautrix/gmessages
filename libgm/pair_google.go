@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"go.mau.fi/util/random"
 	"golang.org/x/crypto/hkdf"
 	"google.golang.org/protobuf/proto"
@@ -237,12 +238,15 @@ func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseCont
 }
 
 var (
-	ErrNoCookies        = errors.New("gaia pairing requires cookies")
-	ErrNoDevicesFound   = errors.New("no devices found for gaia pairing")
-	ErrIncorrectEmoji   = errors.New("user chose incorrect emoji on phone")
-	ErrPairingCancelled = errors.New("user cancelled pairing on phone")
-	ErrPairingTimeout   = errors.New("pairing timed out")
+	ErrNoCookies          = errors.New("gaia pairing requires cookies")
+	ErrNoDevicesFound     = errors.New("no devices found for gaia pairing")
+	ErrIncorrectEmoji     = errors.New("user chose incorrect emoji on phone")
+	ErrPairingCancelled   = errors.New("user cancelled pairing on phone")
+	ErrPairingTimeout     = errors.New("pairing timed out")
+	ErrPairingInitTimeout = errors.New("client init timed out")
 )
+
+const GaiaInitTimeout = 15 * time.Second
 
 func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) error {
 	if len(c.AuthData.Cookies) == 0 {
@@ -277,12 +281,25 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	if err != nil {
 		return fmt.Errorf("failed to prepare pairing payloads: %w", err)
 	}
-	serverInit, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
+	initCtx, cancel := context.WithTimeout(ctx, GaiaInitTimeout)
+	serverInit, err := c.sendGaiaPairingMessage(initCtx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
+	cancel()
 	if err != nil {
+		cancelErr := c.cancelGaiaPairing(ps)
+		if cancelErr != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after init timeout")
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return ErrPairingInitTimeout
+		}
 		return fmt.Errorf("failed to send client init: %w", err)
 	}
 	pairingEmoji, err := ps.ProcessServerInit(serverInit)
 	if err != nil {
+		cancelErr := c.cancelGaiaPairing(ps)
+		if cancelErr != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after error processing server init")
+		}
 		return fmt.Errorf("error processing server init: %w", err)
 	}
 	emojiCallback(pairingEmoji)
@@ -315,6 +332,16 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		}
 	}()
 	return nil
+}
+
+func (c *Client) cancelGaiaPairing(sess PairingSession) error {
+	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action:      gmproto.ActionType_CANCEL_GAIA_PAIRING,
+		RequestID:   sess.UUID.String(),
+		DontEncrypt: true,
+		CustomTTL:   (300 * time.Second).Microseconds(),
+		MessageType: gmproto.MessageType_GAIA_2,
+	})
 }
 
 func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
