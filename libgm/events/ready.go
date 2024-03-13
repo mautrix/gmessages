@@ -92,3 +92,5 @@ type PingFailed struct {
 	Error      error
 	ErrorCount int
 }
+
+type HackySetActiveMayFail struct{}

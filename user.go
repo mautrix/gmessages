@@ -81,6 +81,7 @@ type User struct {
 	batteryLowAlertSent         time.Time
 	pollErrorAlertSent          bool
 	phoneNotRespondingAlertSent bool
+	didHackySetActive           bool
 
 	loginInProgress  atomic.Bool
 	pairSuccessChan  chan struct{}
@@ -644,6 +645,7 @@ func (user *User) HasSession() bool {
 func (user *User) DeleteSession() {
 	user.Session = nil
 	user.SelfParticipantIDs = []string{}
+	user.didHackySetActive = false
 	err := user.Update(context.TODO())
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to delete session from database")
@@ -670,6 +672,28 @@ func (user *User) sendMarkdownBridgeAlert(ctx context.Context, important bool, f
 	_, err := user.bridge.Bot.SendMessageEvent(ctx, user.GetManagementRoom(ctx), event.EventMessage, content)
 	if err != nil {
 		user.zlog.Warn().Err(err).Str("notice", notice).Msg("Failed to send bridge alert")
+	}
+}
+
+func (user *User) hackyResetActive() {
+	if user.didHackySetActive {
+		return
+	}
+	user.didHackySetActive = true
+	time.Sleep(7 * time.Second)
+	if !user.ready && user.phoneResponding {
+		user.zlog.Warn().Msg("Client is still not ready, trying to re-set active session")
+		err := user.Client.SetActiveSession()
+		if err != nil {
+			user.zlog.Err(err).Msg("Failed to re-set active session")
+		} else {
+			time.Sleep(7 * time.Second)
+		}
+		if !user.ready && user.phoneResponding {
+			user.zlog.Warn().Msg("Client is still not ready, reconnecting")
+			user.DeleteConnection()
+			user.Connect()
+		}
 	}
 }
 
@@ -716,6 +740,8 @@ func (user *User) syncHandleEvent(event any) {
 			go user.sendMarkdownBridgeAlert(ctx, false, "Phone is responding again")
 			user.phoneNotRespondingAlertSent = false
 		}
+	case *events.HackySetActiveMayFail:
+		go user.hackyResetActive()
 	case *events.PingFailed:
 		if errors.Is(v.Error, events.ErrRequestedEntityNotFound) {
 			go user.Logout(status.BridgeState{
