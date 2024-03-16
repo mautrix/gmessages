@@ -1,5 +1,6 @@
-# v0.3.0 (unreleased)
+# v0.3.0 (2024-03-16)
 
+* Bumped minimum Go version to 1.21.
 * Added support for pairing via Google account.
   * See [docs](https://docs.mau.fi/bridges/go/gmessages/authentication.html)
     for instructions.

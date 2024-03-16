@@ -9,11 +9,11 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/rs/zerolog v1.32.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	go.mau.fi/mautrix-gmessages/libgm v0.2.2
-	go.mau.fi/util v0.4.1-0.20240311141448-53cb04950f7e
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
+	go.mau.fi/mautrix-gmessages/libgm v0.3.0
+	go.mau.fi/util v0.4.1
+	golang.org/x/exp v0.0.0-20240314144324-c7f7c6466f7f
 	google.golang.org/protobuf v1.33.0
-	maunium.net/go/mautrix v0.18.0-beta.1.0.20240311183606-94246ffc85aa
+	maunium.net/go/mautrix v0.18.0
 )
 
 require (
