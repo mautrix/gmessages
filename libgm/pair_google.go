@@ -264,6 +264,7 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		Msg("Gaia devices response")
 	// TODO multiple devices?
 	var destRegID string
+	var destRegUnknownInt uint64
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
 		if dev.GetUnknownInt4() == 1 {
 			if destRegID != "" {
@@ -273,11 +274,16 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 					Msg("Found multiple primary-looking devices for gaia pairing")
 			}
 			destRegID = dev.GetDestOrSourceUUID()
+			destRegUnknownInt = dev.GetUnknownBigInt7()
 		}
 	}
 	if destRegID == "" {
 		return ErrNoDevicesFound
 	}
+	zerolog.Ctx(ctx).Debug().
+		Str("dest_reg_uuid", destRegID).
+		Uint64("dest_reg_unknown_int", destRegUnknownInt).
+		Msg("Found UUID to use for gaia pairing")
 	destRegUUID, err := uuid.Parse(destRegID)
 	if err != nil {
 		return fmt.Errorf("failed to parse destination UUID: %w", err)
@@ -330,7 +336,7 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	c.AuthData.RequestCrypto.AESKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))
 	c.AuthData.RequestCrypto.HMACKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("server"))
 	c.AuthData.PairingID = ps.UUID
-	c.triggerEvent(&events.PairSuccessful{PhoneID: fmt.Sprintf("%s/%s", c.AuthData.Mobile.GetSourceID(), destRegUUID)})
+	c.triggerEvent(&events.PairSuccessful{PhoneID: fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), destRegUnknownInt)})
 
 	go func() {
 		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
