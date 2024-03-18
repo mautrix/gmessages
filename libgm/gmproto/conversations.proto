@@ -183,7 +183,7 @@ message Participant {
     string avatarHexColor = 5;
     bool isMe = 6;
     Muted muted = 7;
-    int64 someInt = 8;
+    bool isVisible = 8;
     string contactID = 10;
     int64 bs = 14;
     string formattedNumber = 15;

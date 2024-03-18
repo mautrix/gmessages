@@ -2020,7 +2020,7 @@ type Participant struct {
 	AvatarHexColor  string     `protobuf:"bytes,5,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
 	IsMe            bool       `protobuf:"varint,6,opt,name=isMe,proto3" json:"isMe,omitempty"`
 	Muted           *Muted     `protobuf:"bytes,7,opt,name=muted,proto3" json:"muted,omitempty"`
-	SomeInt         int64      `protobuf:"varint,8,opt,name=someInt,proto3" json:"someInt,omitempty"`
+	IsVisible       bool       `protobuf:"varint,8,opt,name=isVisible,proto3" json:"isVisible,omitempty"`
 	ContactID       string     `protobuf:"bytes,10,opt,name=contactID,proto3" json:"contactID,omitempty"`
 	Bs              int64      `protobuf:"varint,14,opt,name=bs,proto3" json:"bs,omitempty"`
 	FormattedNumber string     `protobuf:"bytes,15,opt,name=formattedNumber,proto3" json:"formattedNumber,omitempty"`
@@ -2102,11 +2102,11 @@ func (x *Participant) GetMuted() *Muted {
 	return nil
 }
 
-func (x *Participant) GetSomeInt() int64 {
+func (x *Participant) GetIsVisible() bool {
 	if x != nil {
-		return x.SomeInt
+		return x.IsVisible
 	}
-	return 0
+	return false
 }
 
 func (x *Participant) GetContactID() string {

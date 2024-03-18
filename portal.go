@@ -905,6 +905,14 @@ func (portal *Portal) getIntent(ctx context.Context, source *User, participant s
 			return nil
 		}
 		return intent
+	} else if portal.IsPrivateChat() {
+		if participant != portal.OtherUserID {
+			zerolog.Ctx(ctx).Warn().
+				Str("participant_id", participant).
+				Str("portal_other_user_id", portal.OtherUserID).
+				Msg("Got unexpected participant ID for message in DM portal, forcing to main intent")
+		}
+		return portal.MainIntent()
 	} else {
 		puppet := source.GetPuppetByID(participant, "")
 		if puppet == nil {
@@ -1291,43 +1299,13 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 			}
 			continue
 		} else if participant.ID.Number == "" {
-			portal.zlog.Warn().Interface("participant", participant).Msg("No number found in non-self participant entry")
+			portal.zlog.Warn().Any("participant", participant).Msg("No number found in non-self participant entry")
+			continue
+		} else if !participant.IsVisible {
+			portal.zlog.Debug().Any("participant", participant).Msg("Ignoring fake participant")
 			continue
 		}
 		filteredParticipants = append(filteredParticipants, participant)
-	}
-	if len(filteredParticipants) > 1 && !metadata.IsGroupChat {
-		var bestParticipant *gmproto.Participant
-		var foundMultiple bool
-		for _, participant := range filteredParticipants {
-			if participant.GetSomeInt() == 1 &&
-				// TODO this name check may be unnecessary (and is even more hacky)
-				(participant.GetFullName() == metadata.GetName() ||
-					participant.GetFormattedNumber() == metadata.GetName() ||
-					strings.TrimPrefix(participant.GetID().GetNumber(), "+") == strings.TrimPrefix(metadata.GetName(), "+")) {
-				if bestParticipant != nil {
-					foundMultiple = true
-					break
-				} else {
-					bestParticipant = participant
-				}
-			}
-		}
-		if foundMultiple {
-			portal.zlog.Warn().
-				Any("participants", filteredParticipants).
-				Msg("Didn't apply hacky deduplication to DM participants: found multiple matches")
-		} else if bestParticipant != nil {
-			portal.zlog.Debug().
-				Any("participants", filteredParticipants).
-				Any("chosen_participant", bestParticipant).
-				Msg("Applied hacky deduplication to DM participants")
-			filteredParticipants = []*gmproto.Participant{bestParticipant}
-		} else {
-			portal.zlog.Warn().
-				Any("participants", filteredParticipants).
-				Msg("Didn't apply hacky deduplication to DM participants: no match found")
-		}
 	}
 	for _, participant := range filteredParticipants {
 		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
