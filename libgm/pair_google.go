@@ -256,12 +256,23 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	if err != nil {
 		return fmt.Errorf("failed to prepare gaia pairing: %w", err)
 	}
+	// Don't log the whole object as it also contains the tachyon token
+	zerolog.Ctx(ctx).Debug().
+		Any("header", sigResp.Header).
+		Str("maybe_browser_uuid", sigResp.MaybeBrowserUUID).
+		Any("device_data", sigResp.DeviceData).
+		Msg("Gaia devices response")
 	// TODO multiple devices?
 	var destRegID string
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
 		if dev.GetUnknownInt4() == 1 {
+			if destRegID != "" {
+				zerolog.Ctx(ctx).Warn().
+					Str("prev_reg_id", destRegID).
+					Str("next_reg_id", dev.GetDestOrSourceUUID()).
+					Msg("Found multiple primary-looking devices for gaia pairing")
+			}
 			destRegID = dev.GetDestOrSourceUUID()
-			break
 		}
 	}
 	if destRegID == "" {
