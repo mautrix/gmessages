@@ -820,10 +820,15 @@ func (user *User) syncHandleEvent(event any) {
 }
 
 func (user *User) ResetState() {
+	ctx := context.TODO()
 	portals := user.bridge.GetAllPortalsForUser(user.RowID)
 	user.zlog.Debug().Int("portal_count", len(portals)).Msg("Deleting portals")
 	for _, portal := range portals {
-		portal.Delete(context.TODO())
+		portal.Delete(ctx)
+	}
+	err := user.bridge.DB.Puppet.Reset(ctx, user.RowID)
+	if err != nil {
+		user.zlog.Err(err).Msg("Failed to reset puppet state")
 	}
 	user.PhoneID = ""
 	go func() {

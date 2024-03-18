@@ -1,4 +1,4 @@
--- v0 -> v8: Latest revision
+-- v0 -> v9: Latest revision
 
 CREATE TABLE "user" (
     -- only: postgres
@@ -23,7 +23,7 @@ CREATE TABLE "user" (
 CREATE TABLE puppet (
     id               TEXT    NOT NULL,
     receiver         BIGINT  NOT NULL,
-    phone            TEXT    NOT NULL,
+    phone            TEXT,
     contact_id       TEXT    NOT NULL,
     name             TEXT    NOT NULL,
     name_set         BOOLEAN NOT NULL DEFAULT false,

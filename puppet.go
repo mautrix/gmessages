@@ -281,8 +281,9 @@ func (puppet *Puppet) UpdateContactInfo(ctx context.Context) bool {
 		return false
 	}
 
-	idents := []string{
-		fmt.Sprintf("tel:%s", puppet.Phone),
+	idents := make([]string, 0, 2)
+	if puppet.Phone != "" {
+		idents = append(idents, fmt.Sprintf("tel:%s", puppet.Phone))
 	}
 	if puppet.ContactID != "" {
 		idents = append(idents, fmt.Sprintf("gmsg-contact:%s", puppet.ContactID))
@@ -312,8 +313,15 @@ func (puppet *Puppet) Sync(ctx context.Context, source *User, contact *gmproto.P
 
 	update := false
 	if contact.ID.Number != "" && puppet.Phone != contact.ID.Number {
+		oldPhone := puppet.Phone
 		puppet.Phone = contact.ID.Number
 		puppet.ContactInfoSet = false
+		puppet.log = puppet.bridge.ZLog.With().
+			Str("phone", puppet.Phone).
+			Str("puppet_id", puppet.ID).
+			Int("puppet_receiver", puppet.Receiver).
+			Logger()
+		puppet.log.Debug().Str("old_phone", oldPhone).Msg("Phone number changed")
 		update = true
 	}
 	if contact.ContactID != puppet.ContactID {
