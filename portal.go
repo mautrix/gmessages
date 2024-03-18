@@ -1231,13 +1231,15 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 		// TODO convert weird formats to mp4
 	case "audio":
 		msgtype = event.MsgAudio
-		data, err = ffmpeg.ConvertBytes(ctx, data, ".ogg", []string{}, []string{"-c:a", "libopus"}, mime)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
+		if mime != "audio/ogg" {
+			data, err = ffmpeg.ConvertBytes(ctx, data, ".ogg", []string{}, []string{"-c:a", "libopus"}, mime)
+			if err != nil {
+				return nil, nil, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
+			}
+			fileName += ".ogg"
+			mime = "audio/ogg"
 		}
 		extra["org.matrix.msc3245.voice"] = map[string]any{}
-		fileName += ".ogg"
-		mime = "audio/ogg"
 	}
 	content := &event.MessageEventContent{
 		MsgType: msgtype,
