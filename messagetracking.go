@@ -70,6 +70,8 @@ func (ose OutgoingStatusError) HumanError() string {
 	case gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
 		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
 		return "recipient failed to decrypt message"
+	case gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC:
+		return "generic carrier error, check google messages and try again"
 	}
 	return ""
 }
