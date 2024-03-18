@@ -186,16 +186,20 @@ func (puppet *Puppet) DefaultIntent() *appservice.IntentAPI {
 const MinAvatarUpdateInterval = 24 * time.Hour
 
 func (puppet *Puppet) UpdateAvatar(ctx context.Context, source *User) bool {
-	if (puppet.AvatarSet && time.Since(puppet.AvatarUpdateTS) < MinAvatarUpdateInterval) || puppet.ContactID == "" {
+	if (puppet.AvatarSet && time.Since(puppet.AvatarUpdateTS) < MinAvatarUpdateInterval) || (puppet.ContactID == "" && puppet.AvatarMXC.IsEmpty()) {
 		return false
 	}
-	resp, err := source.Client.GetParticipantThumbnail(puppet.ID)
-	if err != nil {
-		puppet.log.Err(err).Msg("Failed to get avatar thumbnail")
-		return false
+	var resp *gmproto.GetThumbnailResponse
+	var err error
+	if puppet.ContactID != "" {
+		resp, err = source.Client.GetParticipantThumbnail(puppet.ID)
+		if err != nil {
+			puppet.log.Err(err).Msg("Failed to get avatar thumbnail")
+			return false
+		}
 	}
 	puppet.AvatarUpdateTS = time.Now()
-	if len(resp.Thumbnail) == 0 {
+	if resp == nil || len(resp.Thumbnail) == 0 {
 		if puppet.AvatarHash == [32]byte{} && puppet.AvatarMXC.IsEmpty() && puppet.AvatarSet {
 			return true
 		}
