@@ -7,7 +7,7 @@ import (
 var ConfigMessage = &gmproto.ConfigVersion{
 	Year:  2024,
 	Month: 3,
-	Day:   4,
+	Day:   13,
 	V1:    4,
 	V2:    6,
 }
