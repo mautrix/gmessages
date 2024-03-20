@@ -307,7 +307,22 @@ func (portal *Portal) handleMessageLoopItem(msg PortalMessage) {
 	defer portal.forwardBackfillLock.Unlock()
 	switch {
 	case msg.evt != nil:
-		portal.handleMessage(msg.source, msg.evt, msg.raw)
+		doneChan := make(chan struct{})
+		go func() {
+			defer close(doneChan)
+			portal.handleMessage(msg.source, msg.evt, msg.raw)
+		}()
+		timer := time.NewTimer(1 * time.Minute)
+		select {
+		case <-doneChan:
+			if !timer.Stop() {
+				<-timer.C
+			}
+		case <-timer.C:
+			portal.zlog.Error().
+				Str("message_id", msg.evt.MessageID).
+				Msg("Google Messages event handling is taking over a minute, unblocking loop")
+		}
 	default:
 		portal.zlog.Warn().Interface("portal_message", msg).Msg("Unexpected PortalMessage with no message")
 	}
@@ -330,17 +345,32 @@ func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
 		portalQueue:  time.Since(msg.receivedAt),
 		totalReceive: time.Since(evtTS),
 	}
-	switch msg.evt.Type {
-	case event.EventMessage, event.EventSticker:
-		portal.HandleMatrixMessage(msg.user, msg.evt, timings)
-	case event.EventReaction:
-		portal.HandleMatrixReaction(msg.user, msg.evt)
-	case event.EventRedaction:
-		portal.HandleMatrixRedaction(msg.user, msg.evt)
-	default:
-		portal.zlog.Warn().
-			Str("event_type", msg.evt.Type.Type).
-			Msg("Unsupported event type in portal message channel")
+	doneChan := make(chan struct{})
+	go func() {
+		defer close(doneChan)
+		switch msg.evt.Type {
+		case event.EventMessage, event.EventSticker:
+			portal.HandleMatrixMessage(msg.user, msg.evt, timings)
+		case event.EventReaction:
+			portal.HandleMatrixReaction(msg.user, msg.evt)
+		case event.EventRedaction:
+			portal.HandleMatrixRedaction(msg.user, msg.evt)
+		default:
+			portal.zlog.Warn().
+				Str("event_type", msg.evt.Type.Type).
+				Msg("Unsupported event type in portal message channel")
+		}
+	}()
+	timer := time.NewTimer(1 * time.Minute)
+	select {
+	case <-doneChan:
+		if !timer.Stop() {
+			<-timer.C
+		}
+	case <-timer.C:
+		portal.zlog.Error().
+			Stringer("event_id", msg.evt.ID).
+			Msg("Matrix event handling is taking over a minute, unblocking loop")
 	}
 }
 
