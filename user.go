@@ -1173,8 +1173,11 @@ func (user *User) markSelfReadFull(ctx context.Context, portal *Portal, lastMess
 		return
 	}
 	lastMessage, err := user.bridge.DB.Message.GetByID(ctx, portal.Receiver, lastMessageID)
-	if err == nil && lastMessage == nil || lastMessage.IsFakeMXID() {
+	if err == nil && (lastMessage == nil || lastMessage.IsFakeMXID()) {
 		lastMessage, err = user.bridge.DB.Message.GetLastInChatWithMXID(ctx, portal.Key)
+		if idToInt(lastMessage.ID) > idToInt(lastMessageID) {
+			return
+		}
 	}
 	if err != nil {
 		user.zlog.Warn().Err(err).Msg("Failed to get last message in chat to mark it as read")
