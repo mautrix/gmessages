@@ -320,8 +320,23 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 
 	log := hlog.FromRequest(r)
 
-	if user.IsLoggedIn() {
-		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success", ErrCode: "already logged in"})
+	if user.IsLoggedIn() && user.switchedToGoogleLogin {
+		log.Info().Msg("Logging out before starting new Google login")
+		user.Logout(status.BridgeState{StateEvent: status.StateLoggedOut}, false)
+	} else if user.IsLoggedIn() {
+		log.Warn().Msg("User is already logged in, ignoring new login request")
+		if !user.phoneResponding {
+			jsonResponse(w, http.StatusConflict, LoginResponse{
+				Error:   "You're already logged in, but the Google Messages app on your phone is not responding",
+				ErrCode: "already logged in",
+			})
+		} else {
+			jsonResponse(w, http.StatusConflict, LoginResponse{
+				Status:  "success",
+				Error:   "You're already logged in",
+				ErrCode: "already logged in",
+			})
+		}
 		return
 	}
 	var req ReqGoogleLoginStart
