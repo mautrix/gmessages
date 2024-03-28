@@ -321,6 +321,9 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	}
 	emojiCallback(pairingEmoji)
 	finishResp, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, clientFinish)
+	if err != nil {
+		return fmt.Errorf("failed to send client finish: %w", err)
+	}
 	if finishResp.GetFinishErrorType() != 0 {
 		switch finishResp.GetFinishErrorCode() {
 		case 5:
