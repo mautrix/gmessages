@@ -468,7 +468,7 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 	errChanPtr := &errChan
 	if !user.googleAsyncPairErrChan.CompareAndSwap(nil, errChanPtr) {
 		close(errChan)
-		outErr = ErrLoginInProgress
+		outErr = fmt.Errorf("%w: wait not called", ErrLoginInProgress)
 		return
 	}
 	var callbackDone bool
@@ -479,6 +479,10 @@ func (user *User) AsyncLoginGoogleStart(cookies map[string]string) (outEmoji str
 		callbackDone = true
 		outEmoji = emoji
 		initialWait.Done()
+	}
+	if cancelPrevLogin := user.cancelLogin; cancelPrevLogin != nil {
+		user.zlog.Warn().Msg("Another async google login started while previous one was in progress")
+		cancelPrevLogin()
 	}
 	var ctx context.Context
 	ctx, user.cancelLogin = context.WithCancel(context.Background())
