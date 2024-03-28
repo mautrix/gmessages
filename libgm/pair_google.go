@@ -322,6 +322,13 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	emojiCallback(pairingEmoji)
 	finishResp, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, clientFinish)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			zerolog.Ctx(ctx).Debug().Msg("Sending gaia pairing cancel after context was canceled")
+			cancelErr := c.cancelGaiaPairing(ps)
+			if cancelErr != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after context was canceled")
+			}
+		}
 		return fmt.Errorf("failed to send client finish: %w", err)
 	}
 	if finishResp.GetFinishErrorType() != 0 {
