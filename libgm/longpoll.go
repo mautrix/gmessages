@@ -194,7 +194,7 @@ func (dp *dittoPinger) Loop() {
 			dp.Ping(pingID, shortPingTimeout, 0)
 		case <-dp.ping:
 			pingID := pingIDCounter.Add(1)
-			dp.log.Debug().Uint64("ping_id", pingID).Msg("Doing normal ditto ping")
+			dp.log.Trace().Uint64("ping_id", pingID).Msg("Doing normal ditto ping")
 			dp.Ping(pingID, defaultPingTimeout, 0)
 		case <-dp.stop:
 			return
@@ -278,7 +278,7 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			}
 			return
 		}
-		log.Debug().Msg("Starting new long-polling request")
+		log.Trace().Msg("Starting new long-polling request")
 		payload := &gmproto.ReceiveMessagesRequest{
 			Auth: &gmproto.AuthMessage{
 				RequestID:        listenReqID,
@@ -375,7 +375,7 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 		if err != nil {
 			var logEvt *zerolog.Event
 			if (errors.Is(err, io.EOF) && expectEOF) || c.disconnecting {
-				logEvt = log.Debug()
+				logEvt = log.Trace()
 			} else {
 				logEvt = log.Warn()
 			}
@@ -387,7 +387,7 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 		chunk := buf[:n]
 		if len(accumulatedData) == 0 {
 			if len(chunk) == 2 && string(chunk) == "]]" {
-				log.Debug().Msg("Got stream end marker")
+				log.Trace().Msg("Got stream end marker")
 				expectEOF = true
 				continue
 			}
@@ -410,7 +410,11 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 		case msg.GetData() != nil:
 			c.HandleRPCMsg(msg.GetData())
 		case msg.GetAck() != nil:
-			log.Debug().Int32("count", msg.GetAck().GetCount()).Msg("Got startup ack count message")
+			level := zerolog.TraceLevel
+			if msg.GetAck().GetCount() > 0 {
+				level = zerolog.DebugLevel
+			}
+			log.WithLevel(level).Int32("count", msg.GetAck().GetCount()).Msg("Got startup ack count message")
 			c.skipCount = int(msg.GetAck().GetCount())
 		case msg.GetStartRead() != nil:
 			log.Trace().Msg("Got startRead message")
