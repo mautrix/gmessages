@@ -183,6 +183,8 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, timeoutCount i
 	}
 }
 
+const DefaultBugleDefaultCheckInterval = 55 * time.Minute
+
 func (dp *dittoPinger) Loop() {
 	for {
 		select {
@@ -197,7 +199,45 @@ func (dp *dittoPinger) Loop() {
 		case <-dp.stop:
 			return
 		}
+		if time.Until(dp.client.getNextBugleDefaultCheck()) <= 0 {
+			go dp.BugleDefaultCheck()
+			dp.client.bumpNextBugleDefaultCheck(DefaultBugleDefaultCheckInterval)
+		}
 	}
+}
+
+func (dp *dittoPinger) BugleDefaultCheck() {
+	dp.log.Debug().Msg("Doing bugle default check")
+	start := time.Now()
+	resp, err := dp.client.IsBugleDefault()
+	if err != nil {
+		dp.log.Err(err).
+			Dur("check_duration", time.Since(start)).
+			Msg("Failed to do bugle default check")
+	} else {
+		lvl := zerolog.DebugLevel
+		if !resp.Success {
+			lvl = zerolog.WarnLevel
+		}
+		dp.log.WithLevel(lvl).
+			Dur("check_duration", time.Since(start)).
+			Bool("bugle_default", resp.Success).
+			Msg("Got bugle default check response")
+	}
+}
+
+func (c *Client) getNextBugleDefaultCheck() time.Time {
+	c.nextBugleDefaultCheckLock.Lock()
+	defer c.nextBugleDefaultCheckLock.Unlock()
+	return c.nextBugleDefaultCheck
+}
+
+func (c *Client) bumpNextBugleDefaultCheck(after time.Duration) {
+	c.nextBugleDefaultCheckLock.Lock()
+	if time.Until(c.nextBugleDefaultCheck) < after {
+		c.nextBugleDefaultCheck = time.Now().Add(after)
+	}
+	c.nextBugleDefaultCheckLock.Unlock()
 }
 
 func tryReadBody(resp io.ReadCloser) []byte {

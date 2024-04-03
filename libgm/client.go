@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,7 +69,9 @@ type Client struct {
 	skipCount       int
 	disconnecting   bool
 
-	pingShortCircuit chan struct{}
+	pingShortCircuit          chan struct{}
+	nextBugleDefaultCheck     time.Time
+	nextBugleDefaultCheckLock sync.Mutex
 
 	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
@@ -153,6 +156,7 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to refresh auth token: %w", err)
 	}
+	c.bumpNextBugleDefaultCheck(10 * time.Minute)
 
 	//webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
 	//if err != nil {
