@@ -214,7 +214,9 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			c.triggerEvent(&events.GaiaLoggedOut{})
 			return
 		}
-		c.bumpNextBugleDefaultCheck(DefaultBugleDefaultCheckInterval)
+		if !msg.IsOld {
+			c.bumpNextBugleDefaultCheck(DefaultBugleDefaultCheckInterval)
+		}
 		data, ok := msg.DecryptedMessage.(*gmproto.UpdateEvents)
 		if !ok {
 			c.Logger.Error().

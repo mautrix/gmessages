@@ -199,9 +199,8 @@ func (dp *dittoPinger) Loop() {
 		case <-dp.stop:
 			return
 		}
-		if time.Until(dp.client.getNextBugleDefaultCheck()) <= 0 {
+		if dp.client.shouldDoBugleDefaultCheck() {
 			go dp.BugleDefaultCheck()
-			dp.client.bumpNextBugleDefaultCheck(DefaultBugleDefaultCheckInterval)
 		}
 	}
 }
@@ -226,10 +225,14 @@ func (dp *dittoPinger) BugleDefaultCheck() {
 	}
 }
 
-func (c *Client) getNextBugleDefaultCheck() time.Time {
+func (c *Client) shouldDoBugleDefaultCheck() bool {
 	c.nextBugleDefaultCheckLock.Lock()
 	defer c.nextBugleDefaultCheckLock.Unlock()
-	return c.nextBugleDefaultCheck
+	if time.Until(c.nextBugleDefaultCheck) <= 0 {
+		c.nextBugleDefaultCheck = time.Now().Add(DefaultBugleDefaultCheckInterval)
+		return true
+	}
+	return false
 }
 
 func (c *Client) bumpNextBugleDefaultCheck(after time.Duration) {
