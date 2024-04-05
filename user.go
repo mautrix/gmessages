@@ -77,6 +77,8 @@ type User struct {
 	pollErrorAlertSent          bool
 	phoneNotRespondingAlertSent bool
 	didHackySetActive           bool
+	noDataReceivedRecently      bool
+	lastNoDataResync            time.Time
 
 	loginInProgress  atomic.Bool
 	pairSuccessChan  chan struct{}
@@ -644,6 +646,7 @@ func (user *User) DeleteSession() {
 	user.Session = nil
 	user.SelfParticipantIDs = []string{}
 	user.didHackySetActive = false
+	user.noDataReceivedRecently = false
 	err := user.Update(context.TODO())
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to delete session from database")
@@ -678,6 +681,7 @@ func (user *User) hackyResetActive() {
 		return
 	}
 	user.didHackySetActive = true
+	user.noDataReceivedRecently = false
 	time.Sleep(7 * time.Second)
 	if !user.ready && user.phoneResponding {
 		user.zlog.Warn().Msg("Client is still not ready, trying to re-set active session")
@@ -798,9 +802,11 @@ func (user *User) syncHandleEvent(event any) {
 			}
 		}()
 	case *gmproto.Conversation:
+		user.noDataReceivedRecently = false
 		go user.syncConversation(v, "event")
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
+		user.noDataReceivedRecently = false
 		user.zlog.Debug().
 			Str("conversation_id", v.GetConversationID()).
 			Str("participant_id", v.GetParticipantID()).
@@ -815,9 +821,12 @@ func (user *User) syncHandleEvent(event any) {
 	case *gmproto.UserAlertEvent:
 		user.handleUserAlert(v)
 	case *gmproto.Settings:
+		user.noDataReceivedRecently = false
 		user.handleSettings(v)
 	case *events.AccountChange:
 		user.handleAccountChange(v)
+	case *events.NoDataReceived:
+		user.noDataReceivedRecently = true
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
@@ -903,6 +912,8 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	ctx := context.TODO()
 	user.zlog.Debug().Str("alert_type", v.GetAlertType().String()).Msg("Got user alert event")
 	becameInactive := false
+	hadNoDataReceived := user.noDataReceivedRecently
+	user.noDataReceivedRecently = false
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
 		user.browserInactiveType = GMBrowserInactive
@@ -913,10 +924,19 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.browserInactiveType = ""
 		user.ready = true
 		newSessionID := user.Client.CurrentSessionID()
-		if user.sessionID != newSessionID || wasInactive {
+		if hadNoDataReceived && time.Since(user.lastNoDataResync) < 5*time.Hour {
+			user.zlog.Warn().Time("last_resync", user.lastNoDataResync).Msg("Frequent no data received resyncs")
+			hadNoDataReceived = false
+		}
+		if user.sessionID != newSessionID || wasInactive || hadNoDataReceived {
+			if hadNoDataReceived {
+				user.lastNoDataResync = time.Now()
+			}
 			user.zlog.Debug().
 				Str("old_session_id", user.sessionID).
 				Str("new_session_id", newSessionID).
+				Bool("was_inactive", wasInactive).
+				Bool("had_no_data_received", hadNoDataReceived).
 				Msg("Session ID changed for browser active event, resyncing")
 			user.sessionID = newSessionID
 			go user.fetchAndSyncConversations()
@@ -924,6 +944,8 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		} else {
 			user.zlog.Debug().
 				Str("session_id", user.sessionID).
+				Bool("was_inactive", wasInactive).
+				Bool("had_no_data_received", hadNoDataReceived).
 				Msg("Session ID didn't change for browser active event, not resyncing")
 		}
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:

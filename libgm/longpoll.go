@@ -206,7 +206,8 @@ func (dp *dittoPinger) Loop() {
 }
 
 func (dp *dittoPinger) HandleNoRecentUpdates() {
-	dp.log.Debug().Msg("No data received recently, sending extra GET_UPDATES call")
+	dp.client.triggerEvent(&events.NoDataReceived{})
+	dp.log.Warn().Msg("No data received recently, sending extra GET_UPDATES call")
 	err := dp.client.sessionHandler.sendMessageNoResponse(SendMessageParams{
 		Action:    gmproto.ActionType_GET_UPDATES,
 		OmitTTL:   true,

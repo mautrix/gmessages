@@ -17,6 +17,8 @@ type AuthTokenRefreshed struct{}
 
 type GaiaLoggedOut struct{}
 
+type NoDataReceived struct{}
+
 type AccountChange struct {
 	*gmproto.AccountChangeOrSomethingEvent
 	IsFake bool
