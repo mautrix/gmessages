@@ -77,7 +77,7 @@ type User struct {
 	pollErrorAlertSent          bool
 	phoneNotRespondingAlertSent bool
 	didHackySetActive           bool
-	noDataReceivedRecently      bool
+	noDataReceivedRecentlyStart time.Time
 	lastNoDataResync            time.Time
 
 	loginInProgress  atomic.Bool
@@ -646,7 +646,7 @@ func (user *User) DeleteSession() {
 	user.Session = nil
 	user.SelfParticipantIDs = []string{}
 	user.didHackySetActive = false
-	user.noDataReceivedRecently = false
+	user.noDataReceivedRecentlyStart = time.Time{}
 	err := user.Update(context.TODO())
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to delete session from database")
@@ -681,7 +681,7 @@ func (user *User) hackyResetActive() {
 		return
 	}
 	user.didHackySetActive = true
-	user.noDataReceivedRecently = false
+	user.noDataReceivedRecentlyStart = time.Time{}
 	time.Sleep(7 * time.Second)
 	if !user.ready && user.phoneResponding {
 		user.zlog.Warn().Msg("Client is still not ready, trying to re-set active session")
@@ -802,11 +802,11 @@ func (user *User) syncHandleEvent(event any) {
 			}
 		}()
 	case *gmproto.Conversation:
-		user.noDataReceivedRecently = false
+		user.noDataReceivedRecentlyStart = time.Time{}
 		go user.syncConversation(v, "event")
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
-		user.noDataReceivedRecently = false
+		user.noDataReceivedRecentlyStart = time.Time{}
 		user.zlog.Debug().
 			Str("conversation_id", v.GetConversationID()).
 			Str("participant_id", v.GetParticipantID()).
@@ -821,12 +821,12 @@ func (user *User) syncHandleEvent(event any) {
 	case *gmproto.UserAlertEvent:
 		user.handleUserAlert(v)
 	case *gmproto.Settings:
-		user.noDataReceivedRecently = false
+		user.noDataReceivedRecentlyStart = time.Time{}
 		user.handleSettings(v)
 	case *events.AccountChange:
 		user.handleAccountChange(v)
 	case *events.NoDataReceived:
-		user.noDataReceivedRecently = true
+		user.noDataReceivedRecentlyStart = time.Time{}
 	default:
 		user.zlog.Trace().Any("data", v).Type("data_type", v).Msg("Unknown event")
 	}
@@ -875,7 +875,7 @@ func (user *User) aggressiveSetActive() {
 	}
 }
 
-func (user *User) fetchAndSyncConversations() {
+func (user *User) fetchAndSyncConversations(noDataReceivedStart time.Time) {
 	user.zlog.Info().Msg("Fetching conversation list")
 	resp, err := user.Client.ListConversations(user.bridge.Config.Bridge.InitialChatSyncCount, gmproto.ListConversationsRequest_INBOX)
 	if err != nil {
@@ -884,6 +884,13 @@ func (user *User) fetchAndSyncConversations() {
 	}
 	user.zlog.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
 	for _, conv := range resp.GetConversations() {
+		lastMessageTS := time.UnixMicro(conv.GetLastMessageTimestamp())
+		if !noDataReceivedStart.IsZero() && lastMessageTS.After(noDataReceivedStart) {
+			user.zlog.Warn().
+				Time("last_message_ts", lastMessageTS).
+				Time("no_data_received_start", noDataReceivedStart).
+				Msg("Conversation's last message is newer than no data received start time")
+		}
 		user.syncConversation(conv, "sync")
 	}
 }
@@ -912,8 +919,9 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	ctx := context.TODO()
 	user.zlog.Debug().Str("alert_type", v.GetAlertType().String()).Msg("Got user alert event")
 	becameInactive := false
-	hadNoDataReceived := user.noDataReceivedRecently
-	user.noDataReceivedRecently = false
+	noDataReceivedStart := user.noDataReceivedRecentlyStart
+	hadNoDataReceived := !noDataReceivedStart.IsZero()
+	user.noDataReceivedRecentlyStart = time.Time{}
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
 		user.browserInactiveType = GMBrowserInactive
@@ -937,15 +945,17 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 				Str("new_session_id", newSessionID).
 				Bool("was_inactive", wasInactive).
 				Bool("had_no_data_received", hadNoDataReceived).
+				Time("no_data_received_start", noDataReceivedStart).
 				Msg("Session ID changed for browser active event, resyncing")
 			user.sessionID = newSessionID
-			go user.fetchAndSyncConversations()
+			go user.fetchAndSyncConversations(noDataReceivedStart)
 			go user.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
 		} else {
 			user.zlog.Debug().
 				Str("session_id", user.sessionID).
 				Bool("was_inactive", wasInactive).
 				Bool("had_no_data_received", hadNoDataReceived).
+				Time("no_data_received_start", noDataReceivedStart).
 				Msg("Session ID didn't change for browser active event, not resyncing")
 		}
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
