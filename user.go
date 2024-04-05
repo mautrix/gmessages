@@ -78,7 +78,6 @@ type User struct {
 	phoneNotRespondingAlertSent bool
 	didHackySetActive           bool
 	noDataReceivedRecentlyStart time.Time
-	lastNoDataResync            time.Time
 
 	loginInProgress  atomic.Bool
 	pairSuccessChan  chan struct{}
@@ -875,7 +874,7 @@ func (user *User) aggressiveSetActive() {
 	}
 }
 
-func (user *User) fetchAndSyncConversations(noDataReceivedStart time.Time) {
+func (user *User) fetchAndSyncConversations(noDataReceivedStart time.Time, minimalSync bool) {
 	user.zlog.Info().Msg("Fetching conversation list")
 	resp, err := user.Client.ListConversations(user.bridge.Config.Bridge.InitialChatSyncCount, gmproto.ListConversationsRequest_INBOX)
 	if err != nil {
@@ -883,14 +882,25 @@ func (user *User) fetchAndSyncConversations(noDataReceivedStart time.Time) {
 		return
 	}
 	user.zlog.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
-	for _, conv := range resp.GetConversations() {
-		lastMessageTS := time.UnixMicro(conv.GetLastMessageTimestamp())
-		if !noDataReceivedStart.IsZero() && lastMessageTS.After(noDataReceivedStart) {
-			user.zlog.Warn().
-				Time("last_message_ts", lastMessageTS).
-				Time("no_data_received_start", noDataReceivedStart).
-				Msg("Conversation's last message is newer than no data received start time")
+	if !noDataReceivedStart.IsZero() {
+		for _, conv := range resp.GetConversations() {
+			lastMessageTS := time.UnixMicro(conv.GetLastMessageTimestamp())
+			if lastMessageTS.After(noDataReceivedStart) {
+				user.zlog.Warn().
+					Time("last_message_ts", lastMessageTS).
+					Time("no_data_received_start", noDataReceivedStart).
+					Msg("Conversation's last message is newer than no data received start time")
+				minimalSync = false
+			}
 		}
+	} else if minimalSync {
+		user.zlog.Warn().Msg("Minimal sync called without no data received start time")
+	}
+	if minimalSync {
+		user.zlog.Debug().Msg("Minimal sync with no recent messages, not syncing conversations")
+		return
+	}
+	for _, conv := range resp.GetConversations() {
 		user.syncConversation(conv, "sync")
 	}
 }
@@ -932,14 +942,8 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.browserInactiveType = ""
 		user.ready = true
 		newSessionID := user.Client.CurrentSessionID()
-		if hadNoDataReceived && time.Since(user.lastNoDataResync) < 5*time.Hour {
-			user.zlog.Warn().Time("last_resync", user.lastNoDataResync).Msg("Frequent no data received resyncs")
-			hadNoDataReceived = false
-		}
-		if user.sessionID != newSessionID || wasInactive || hadNoDataReceived {
-			if hadNoDataReceived {
-				user.lastNoDataResync = time.Now()
-			}
+		sessionIDChanged := user.sessionID != newSessionID
+		if sessionIDChanged || wasInactive || hadNoDataReceived {
 			user.zlog.Debug().
 				Str("old_session_id", user.sessionID).
 				Str("new_session_id", newSessionID).
@@ -948,7 +952,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 				Time("no_data_received_start", noDataReceivedStart).
 				Msg("Session ID changed for browser active event, resyncing")
 			user.sessionID = newSessionID
-			go user.fetchAndSyncConversations(noDataReceivedStart)
+			go user.fetchAndSyncConversations(noDataReceivedStart, !sessionIDChanged && !wasInactive)
 			go user.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
 		} else {
 			user.zlog.Debug().

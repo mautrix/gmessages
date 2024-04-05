@@ -183,7 +183,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, timeoutCount i
 	}
 }
 
-const DefaultBugleDefaultCheckInterval = 1*time.Hour + 55*time.Minute
+const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
 
 func (dp *dittoPinger) Loop() {
 	for {
