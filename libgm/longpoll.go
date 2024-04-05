@@ -183,7 +183,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, timeoutCount i
 	}
 }
 
-const DefaultBugleDefaultCheckInterval = 55 * time.Minute
+const DefaultBugleDefaultCheckInterval = 1*time.Hour + 55*time.Minute
 
 func (dp *dittoPinger) Loop() {
 	for {
@@ -199,48 +199,42 @@ func (dp *dittoPinger) Loop() {
 		case <-dp.stop:
 			return
 		}
-		if dp.client.shouldDoBugleDefaultCheck() {
-			go dp.BugleDefaultCheck()
+		if dp.client.shouldDoDataReceiveCheck() {
+			go dp.HandleNoRecentUpdates()
 		}
 	}
 }
 
-func (dp *dittoPinger) BugleDefaultCheck() {
-	dp.log.Debug().Msg("Doing bugle default check")
-	start := time.Now()
-	resp, err := dp.client.IsBugleDefault()
+func (dp *dittoPinger) HandleNoRecentUpdates() {
+	dp.log.Debug().Msg("No data received recently, sending extra GET_UPDATES call")
+	err := dp.client.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action:    gmproto.ActionType_GET_UPDATES,
+		OmitTTL:   true,
+		RequestID: dp.client.sessionHandler.sessionID,
+	})
 	if err != nil {
-		dp.log.Err(err).
-			Dur("check_duration", time.Since(start)).
-			Msg("Failed to do bugle default check")
+		dp.log.Err(err).Msg("Failed to send extra GET_UPDATES call")
 	} else {
-		lvl := zerolog.DebugLevel
-		if !resp.Success {
-			lvl = zerolog.WarnLevel
-		}
-		dp.log.WithLevel(lvl).
-			Dur("check_duration", time.Since(start)).
-			Bool("bugle_default", resp.Success).
-			Msg("Got bugle default check response")
+		dp.log.Debug().Msg("Sent extra GET_UPDATES call")
 	}
 }
 
-func (c *Client) shouldDoBugleDefaultCheck() bool {
-	c.nextBugleDefaultCheckLock.Lock()
-	defer c.nextBugleDefaultCheckLock.Unlock()
-	if time.Until(c.nextBugleDefaultCheck) <= 0 {
-		c.nextBugleDefaultCheck = time.Now().Add(DefaultBugleDefaultCheckInterval)
+func (c *Client) shouldDoDataReceiveCheck() bool {
+	c.nextDataReceiveCheckLock.Lock()
+	defer c.nextDataReceiveCheckLock.Unlock()
+	if time.Until(c.nextDataReceiveCheck) <= 0 {
+		c.nextDataReceiveCheck = time.Now().Add(DefaultBugleDefaultCheckInterval)
 		return true
 	}
 	return false
 }
 
-func (c *Client) bumpNextBugleDefaultCheck(after time.Duration) {
-	c.nextBugleDefaultCheckLock.Lock()
-	if time.Until(c.nextBugleDefaultCheck) < after {
-		c.nextBugleDefaultCheck = time.Now().Add(after)
+func (c *Client) bumpNextDataReceiveCheck(after time.Duration) {
+	c.nextDataReceiveCheckLock.Lock()
+	if time.Until(c.nextDataReceiveCheck) < after {
+		c.nextDataReceiveCheck = time.Now().Add(after)
 	}
-	c.nextBugleDefaultCheckLock.Unlock()
+	c.nextDataReceiveCheckLock.Unlock()
 }
 
 func tryReadBody(resp io.ReadCloser) []byte {
