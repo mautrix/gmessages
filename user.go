@@ -1144,6 +1144,9 @@ type CustomTagEventContent struct {
 }
 
 func (user *User) updateChatTag(ctx context.Context, portal *Portal, tag string, active bool, existingTags CustomTagEventContent) {
+	if tag == "" {
+		return
+	}
 	var err error
 	currentTag, ok := existingTags.Tags[tag]
 	if active && !ok {
