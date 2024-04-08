@@ -754,12 +754,22 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message, raw []by
 		log.Debug().Msg("Not handling incoming auto-downloading MMS")
 		return
 	}
-	if eventTS.Add(24 * time.Hour).Before(time.Now()) {
+	if time.Since(eventTS) > 24*time.Hour {
 		lastMessage, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
-		} else if lastMessage != nil && lastMessage.Timestamp.After(eventTS) && idToInt(lastMessage.ID) > idToInt(evt.MessageID) {
-			log.Debug().Msg("Not handling old message")
+		} else if lastMessage != nil && lastMessage.Timestamp.After(eventTS) {
+			if idToInt(lastMessage.ID) > idToInt(evt.MessageID) {
+				log.Warn().
+					Str("last_message_id", lastMessage.ID).
+					Time("last_message_ts", lastMessage.Timestamp).
+					Msg("Not handling old message even though it has higher ID than last new one")
+			} else {
+				log.Debug().
+					Str("last_message_id", lastMessage.ID).
+					Time("last_message_ts", lastMessage.Timestamp).
+					Msg("Not handling old message")
+			}
 			return
 		}
 	}
