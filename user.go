@@ -568,7 +568,9 @@ func (user *User) LoginGoogle(ctx context.Context, cookies map[string]string, em
 		case errors.Is(err, libgm.ErrPairingCancelled):
 			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "cancelled"})
 		case errors.Is(err, libgm.ErrPairingTimeout):
-			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "timeout"})
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "user timeout"})
+		case errors.Is(err, libgm.ErrPairingInitTimeout):
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "init timeout"})
 		default:
 			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "unknown"})
 		}

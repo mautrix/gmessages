@@ -504,12 +504,13 @@ Loop:
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "qr", Code: item.qr})
 	case item.err != nil:
 		log.Err(item.err).Msg("Got error in QR channel")
-		Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "qr"})
 		var resp LoginResponse
 		switch {
 		case errors.Is(item.err, ErrLoginTimeout):
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "qr", "error": "user timeout"})
 			resp = LoginResponse{ErrCode: "timeout", Error: "Scanning QR code timed out"}
 		default:
+			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "qr", "error": "unknown"})
 			resp = LoginResponse{ErrCode: "unknown", Error: "Login failed"}
 		}
 		resp.Status = "fail"
