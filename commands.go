@@ -160,7 +160,7 @@ func fnLoginGoogle(ce *WrappedCommandEvent) {
 
 const (
 	pairingErrMsgNoDevices       = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
-	pairingErrPhoneNotResponding = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations."
+	pairingErrPhoneNotResponding = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations. Alternatively, try QR pairing"
 	pairingErrMsgIncorrectEmoji  = "Incorrect emoji chosen on phone, please try again"
 	pairingErrMsgCancelled       = "Pairing cancelled on phone"
 	pairingErrMsgTimeout         = "Pairing timed out, please try again"

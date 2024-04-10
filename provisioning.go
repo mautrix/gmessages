@@ -372,8 +372,12 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 				ErrCode: "no-devices-found",
 			})
 		case errors.Is(err, libgm.ErrPairingInitTimeout):
+			errMsg := pairingErrPhoneNotResponding
+			if strings.Contains(r.UserAgent(), "; Android") {
+				errMsg += " using the desktop app"
+			}
 			jsonResponse(w, http.StatusBadRequest, Error{
-				Error:   pairingErrPhoneNotResponding,
+				Error:   errMsg,
 				ErrCode: "timeout",
 			})
 		default:
