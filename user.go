@@ -820,6 +820,9 @@ func (user *User) syncHandleEvent(event any) {
 	case *libgm.WrappedMessage:
 		user.noDataReceivedRecently = false
 		user.lastDataReceived = time.Now()
+		if v.GetTimestamp() > user.lastDataReceived.UnixMicro() {
+			user.lastDataReceived = time.UnixMicro(v.GetTimestamp())
+		}
 		user.zlog.Debug().
 			Str("conversation_id", v.GetConversationID()).
 			Str("participant_id", v.GetParticipantID()).
