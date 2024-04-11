@@ -79,6 +79,7 @@ type User struct {
 	didHackySetActive           bool
 	noDataReceivedRecently      bool
 	lastDataReceived            time.Time
+	gaiaHackyDeviceSwitcher     int
 
 	loginInProgress  atomic.Bool
 	pairSuccessChan  chan struct{}
@@ -557,6 +558,7 @@ func (user *User) LoginGoogle(ctx context.Context, cookies map[string]string, em
 	authData.Cookies = cookies
 	user.createClient(authData)
 	Analytics.Track(user.MXID, "$login_start", map[string]any{"mode": "google"})
+	user.Client.GaiaHackyDeviceSwitcher = user.gaiaHackyDeviceSwitcher
 	err := user.Client.DoGaiaPairing(ctx, emojiCallback)
 	if err != nil {
 		user.unlockedDeleteConnection()
@@ -570,7 +572,12 @@ func (user *User) LoginGoogle(ctx context.Context, cookies map[string]string, em
 		case errors.Is(err, libgm.ErrPairingTimeout):
 			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "user timeout"})
 		case errors.Is(err, libgm.ErrPairingInitTimeout):
-			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "init timeout"})
+			if errors.Is(err, libgm.ErrHadMultipleDevices) {
+				user.gaiaHackyDeviceSwitcher++
+				Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "init timeout (multiple devices)"})
+			} else {
+				Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "init timeout"})
+			}
 		default:
 			Analytics.Track(user.MXID, "$login_failure", map[string]any{"mode": "google", "error": "unknown"})
 		}

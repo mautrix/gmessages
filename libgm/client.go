@@ -78,6 +78,8 @@ type Client struct {
 
 	conversationsFetchedOnce bool
 
+	GaiaHackyDeviceSwitcher int
+
 	AuthData *AuthData
 	cfg      *gmproto.Config
 

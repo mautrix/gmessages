@@ -244,9 +244,15 @@ var (
 	ErrPairingCancelled   = errors.New("user cancelled pairing on phone")
 	ErrPairingTimeout     = errors.New("pairing timed out")
 	ErrPairingInitTimeout = errors.New("client init timed out")
+	ErrHadMultipleDevices = errors.New("had multiple primary-looking devices")
 )
 
-const GaiaInitTimeout = 15 * time.Second
+const GaiaInitTimeout = 20 * time.Second
+
+type primaryDeviceID struct {
+	regID      string
+	unknownInt uint64
+}
 
 func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) error {
 	if len(c.AuthData.Cookies) == 0 {
@@ -262,24 +268,25 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		Str("maybe_browser_uuid", sigResp.MaybeBrowserUUID).
 		Any("device_data", sigResp.DeviceData).
 		Msg("Gaia devices response")
-	// TODO multiple devices?
-	var destRegID string
-	var destRegUnknownInt uint64
+	var primaryDevices []primaryDeviceID
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
 		if dev.GetUnknownInt4() == 1 {
-			if destRegID != "" {
-				zerolog.Ctx(ctx).Warn().
-					Str("prev_reg_id", destRegID).
-					Str("next_reg_id", dev.GetDestOrSourceUUID()).
-					Msg("Found multiple primary-looking devices for gaia pairing")
-			}
-			destRegID = dev.GetDestOrSourceUUID()
-			destRegUnknownInt = dev.GetUnknownBigInt7()
+			primaryDevices = append(primaryDevices, primaryDeviceID{
+				regID:      dev.GetDestOrSourceUUID(),
+				unknownInt: dev.GetUnknownBigInt7(),
+			})
 		}
 	}
-	if destRegID == "" {
+	if len(primaryDevices) == 0 {
 		return ErrNoDevicesFound
+	} else if len(primaryDevices) > 1 {
+		zerolog.Ctx(ctx).Warn().
+			Any("devices", primaryDevices).
+			Int("hacky_device_switcher", c.GaiaHackyDeviceSwitcher).
+			Msg("Found multiple primary-looking devices for gaia pairing")
 	}
+	destRegID := primaryDevices[c.GaiaHackyDeviceSwitcher%len(primaryDevices)].regID
+	destRegUnknownInt := primaryDevices[c.GaiaHackyDeviceSwitcher%len(primaryDevices)].unknownInt
 	zerolog.Ctx(ctx).Debug().
 		Str("dest_reg_uuid", destRegID).
 		Uint64("dest_reg_unknown_int", destRegUnknownInt).
@@ -307,7 +314,11 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after init timeout")
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
-			return ErrPairingInitTimeout
+			err = ErrPairingInitTimeout
+			if len(primaryDevices) > 1 {
+				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrHadMultipleDevices)
+			}
+			return err
 		}
 		return fmt.Errorf("failed to send client init: %w", err)
 	}
