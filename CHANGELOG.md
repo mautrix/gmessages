@@ -1,3 +1,13 @@
+# v0.4.0 (2024-04-16)
+
+* Added automatic detection and workarounds for cases where the app stops
+  sending new messages to the bridge.
+* Improved participant deduplication and extended it to cover groups too
+  instead of only DMs.
+* Fixed some cases of Google account pairing not working correctly.
+* Fixed database errors related to ghosts after switching phones or clearing
+  data on phone (caused by the ghost avatar fix in 0.3.0).
+
 # v0.3.0 (2024-03-16)
 
 * Bumped minimum Go version to 1.21.
