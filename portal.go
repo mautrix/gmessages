@@ -1932,10 +1932,10 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		} else if replyToMsg == nil {
 			log.Warn().Str("reply_to_mxid", replyToMXID.String()).Msg("Reply target message not found")
 		} else {
-			req.IsReply = true
 			req.Reply = &gmproto.ReplyPayload{MessageID: replyToMsg.ID}
 		}
 	}
+	req.IsRCS = portal.Type == gmproto.ConversationType_RCS
 
 	switch content.MsgType {
 	case event.MsgText, event.MsgEmote, event.MsgNotice:
@@ -1956,6 +1956,13 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 		req.MessagePayload.MessageInfo = []*gmproto.MessageInfo{{
 			Data: &gmproto.MessageInfo_MediaContent{MediaContent: resp},
 		}}
+		if content.FileName != "" && content.FileName != content.Body {
+			req.MessagePayload.MessageInfo = append(req.MessagePayload.MessageInfo, &gmproto.MessageInfo{
+				Data: &gmproto.MessageInfo_MessageContent{MessageContent: &gmproto.MessageContent{
+					Content: content.Body,
+				}},
+			})
+		}
 	case event.MsgBeeperGallery:
 		for i, part := range content.BeeperGalleryImages {
 			convertedPart, err := portal.reuploadMedia(ctx, sender, part, nil)

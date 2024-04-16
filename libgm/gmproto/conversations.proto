@@ -130,6 +130,7 @@ message MediaContent {
     string mediaID2 = 9;
     bytes decryptionKey = 11;
     bytes decryptionKey2 = 12;
+    string mimeType = 14;
 }
 
 message Dimensions {

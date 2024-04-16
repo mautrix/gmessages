@@ -1501,6 +1501,7 @@ type MediaContent struct {
 	MediaID2       string       `protobuf:"bytes,9,opt,name=mediaID2,proto3" json:"mediaID2,omitempty"`
 	DecryptionKey  []byte       `protobuf:"bytes,11,opt,name=decryptionKey,proto3" json:"decryptionKey,omitempty"`
 	DecryptionKey2 []byte       `protobuf:"bytes,12,opt,name=decryptionKey2,proto3" json:"decryptionKey2,omitempty"`
+	MimeType       string       `protobuf:"bytes,14,opt,name=mimeType,proto3" json:"mimeType,omitempty"`
 }
 
 func (x *MediaContent) Reset() {
@@ -1596,6 +1597,13 @@ func (x *MediaContent) GetDecryptionKey2() []byte {
 		return x.DecryptionKey2
 	}
 	return nil
+}
+
+func (x *MediaContent) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
 }
 
 type Dimensions struct {

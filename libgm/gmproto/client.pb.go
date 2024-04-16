@@ -2383,7 +2383,7 @@ type SendMessageRequest struct {
 	MessagePayload *MessagePayload `protobuf:"bytes,3,opt,name=messagePayload,proto3" json:"messagePayload,omitempty"`
 	SIMPayload     *SIMPayload     `protobuf:"bytes,4,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
 	TmpID          string          `protobuf:"bytes,5,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
-	IsReply        bool            `protobuf:"varint,6,opt,name=isReply,proto3" json:"isReply,omitempty"` // not sure
+	IsRCS          bool            `protobuf:"varint,6,opt,name=isRCS,proto3" json:"isRCS,omitempty"` // not sure
 	Reply          *ReplyPayload   `protobuf:"bytes,8,opt,name=reply,proto3" json:"reply,omitempty"`
 }
 
@@ -2447,9 +2447,9 @@ func (x *SendMessageRequest) GetTmpID() string {
 	return ""
 }
 
-func (x *SendMessageRequest) GetIsReply() bool {
+func (x *SendMessageRequest) GetIsRCS() bool {
 	if x != nil {
-		return x.IsReply
+		return x.IsRCS
 	}
 	return false
 }

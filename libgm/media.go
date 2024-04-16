@@ -115,6 +115,7 @@ func (c *Client) UploadMedia(data []byte, fileName, mime string) (*gmproto.Media
 		MediaName:     fileName,
 		Size:          int64(len(data)),
 		DecryptionKey: decryptionKey,
+		MimeType:      mime,
 	}, nil
 }
 
