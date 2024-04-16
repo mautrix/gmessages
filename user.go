@@ -1119,6 +1119,9 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 		Logger()
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
 	ctx := log.WithContext(context.TODO())
+	if updateType == gmproto.ConversationStatus_SPAM_FOLDER || updateType == gmproto.ConversationStatus_BLOCKED_FOLDER {
+		portal.markedSpamAt = time.Now()
+	}
 	if cancel := portal.cancelCreation.Load(); cancel != nil {
 		if updateType == gmproto.ConversationStatus_SPAM_FOLDER || updateType == gmproto.ConversationStatus_BLOCKED_FOLDER {
 			(*cancel)(fmt.Errorf("conversation was moved to spam"))
@@ -1160,6 +1163,9 @@ func (user *User) syncConversation(v *gmproto.Conversation, source string) {
 	} else if updateType == gmproto.ConversationStatus_ACTIVE || updateType == gmproto.ConversationStatus_ARCHIVED {
 		if v.Participants == nil {
 			log.Debug().Msg("Not syncing conversation with nil participants")
+			return
+		} else if time.Since(portal.markedSpamAt) < 1*time.Minute {
+			log.Warn().Msg("Dropping conversation update due to suspected race condition")
 			return
 		}
 		if source == "event" {

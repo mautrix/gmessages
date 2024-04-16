@@ -288,6 +288,7 @@ type Portal struct {
 	matrixMessages chan PortalMatrixMessage
 
 	cancelCreation atomic.Pointer[context.CancelCauseFunc]
+	markedSpamAt   time.Time
 }
 
 var (
