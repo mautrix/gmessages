@@ -152,7 +152,7 @@ func (c *Client) UnpairBugle() (*gmproto.RevokeRelayPairingResponse, error) {
 }
 
 func (c *Client) Unpair() (err error) {
-	if c.AuthData.Cookies != nil {
+	if c.AuthData.HasCookies() {
 		err = c.UnpairGaia()
 	} else {
 		_, err = c.UnpairBugle()

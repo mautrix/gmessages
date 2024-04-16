@@ -255,7 +255,7 @@ type primaryDeviceID struct {
 }
 
 func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) error {
-	if len(c.AuthData.Cookies) == 0 {
+	if !c.AuthData.HasCookies() {
 		return ErrNoCookies
 	}
 	sigResp, err := c.signInGaiaGetToken(ctx)

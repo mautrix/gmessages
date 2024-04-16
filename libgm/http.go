@@ -47,7 +47,7 @@ func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string,
 		return nil, err
 	}
 	util.BuildRelayHeaders(req, contentType, "*/*")
-	c.AddCookieHeaders(req)
+	c.AuthData.AddCookiesToRequest(req)
 	client := c.http
 	if longPoll {
 		client = c.lphttp
@@ -56,30 +56,8 @@ func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string,
 	if reqErr != nil {
 		return res, reqErr
 	}
-	c.HandleCookieUpdates(res)
+	c.AuthData.UpdateCookiesFromResponse(res)
 	return res, nil
-}
-
-func (c *Client) AddCookieHeaders(req *http.Request) {
-	if c.AuthData == nil || c.AuthData.Cookies == nil {
-		return
-	}
-	for k, v := range c.AuthData.Cookies {
-		req.AddCookie(&http.Cookie{Name: k, Value: v})
-	}
-	sapisid, ok := c.AuthData.Cookies["SAPISID"]
-	if ok {
-		req.Header.Set("Authorization", sapisidHash(util.MessagesBaseURL, sapisid))
-	}
-}
-
-func (c *Client) HandleCookieUpdates(resp *http.Response) {
-	if c.AuthData.Cookies == nil {
-		return
-	}
-	for _, cookie := range resp.Cookies() {
-		c.AuthData.Cookies[cookie.Name] = cookie.Value
-	}
 }
 
 func sapisidHash(origin, sapisid string) string {

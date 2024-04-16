@@ -38,7 +38,7 @@ func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
 	}
 
 	url := util.SendMessageURL
-	if s.client.AuthData.Cookies != nil {
+	if s.client.AuthData.HasCookies() {
 		url = util.SendMessageURLGoogle
 	}
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
@@ -55,7 +55,7 @@ func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *Inc
 
 	ch := s.waitResponse(requestID)
 	url := util.SendMessageURL
-	if s.client.AuthData.Cookies != nil {
+	if s.client.AuthData.HasCookies() {
 		url = util.SendMessageURLGoogle
 	}
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
@@ -100,7 +100,7 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	if msg.Message == nil {
 		return false
 	}
-	if s.client.AuthData.Cookies != nil {
+	if s.client.AuthData.HasCookies() {
 		switch msg.Message.Action {
 		case gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED:
 		default:
@@ -291,7 +291,7 @@ func (s *SessionHandler) sendAckRequest() {
 		Acks:     ackMessages,
 	}
 	url := util.AckMessagesURL
-	if s.client.AuthData.Cookies != nil {
+	if s.client.AuthData.HasCookies() {
 		url = util.AckMessagesURLGoogle
 	}
 	_, err := typedHTTPResponse[*gmproto.OutgoingRPCResponse](

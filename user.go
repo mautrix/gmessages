@@ -555,7 +555,7 @@ func (user *User) LoginGoogle(ctx context.Context, cookies map[string]string, em
 		user.pairSuccessChan = nil
 	}()
 	authData := libgm.NewAuthData()
-	authData.Cookies = cookies
+	authData.SetCookies(cookies)
 	user.createClient(authData)
 	Analytics.Track(user.MXID, "$login_start", map[string]any{"mode": "google"})
 	user.Client.GaiaHackyDeviceSwitcher = user.gaiaHackyDeviceSwitcher

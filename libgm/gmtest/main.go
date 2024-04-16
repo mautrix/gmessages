@@ -112,7 +112,7 @@ func main() {
 
 func saveSession() {
 	file := mustReturn(os.OpenFile("session.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600))
-	must(json.NewEncoder(file).Encode(sess))
+	must(json.NewEncoder(file).Encode(&sess))
 	_ = file.Close()
 }
 

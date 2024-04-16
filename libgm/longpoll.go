@@ -289,9 +289,8 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			},
 		}
 		url := util.ReceiveMessagesURL
-		if c.AuthData.Cookies != nil {
+		if c.AuthData.HasCookies() {
 			url = util.ReceiveMessagesURLGoogle
-			payload.Auth.Network = util.GoogleNetwork
 		}
 		resp, err := c.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, true)
 		if err != nil {

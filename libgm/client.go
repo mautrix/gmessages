@@ -36,14 +36,57 @@ type AuthData struct {
 	// Unknown encryption key, not used for anything
 	WebEncryptionKey []byte `json:"web_encryption_key,omitempty"`
 
-	SessionID uuid.UUID         `json:"session_id,omitempty"`
-	DestRegID uuid.UUID         `json:"dest_reg_id,omitempty"`
-	PairingID uuid.UUID         `json:"pairing_id,omitempty"`
-	Cookies   map[string]string `json:"cookies,omitempty"`
+	SessionID uuid.UUID `json:"session_id,omitempty"`
+	DestRegID uuid.UUID `json:"dest_reg_id,omitempty"`
+	PairingID uuid.UUID `json:"pairing_id,omitempty"`
+
+	Cookies     map[string]string `json:"cookies,omitempty"`
+	CookiesLock sync.RWMutex      `json:"-"`
+}
+
+func (ad *AuthData) SetCookies(cookies map[string]string) {
+	ad.CookiesLock.Lock()
+	ad.Cookies = cookies
+	ad.CookiesLock.Unlock()
+}
+
+func (ad *AuthData) AddCookiesToRequest(req *http.Request) {
+	ad.CookiesLock.RLock()
+	defer ad.CookiesLock.RUnlock()
+	if ad.Cookies == nil {
+		return
+	}
+	for name, value := range ad.Cookies {
+		req.AddCookie(&http.Cookie{Name: name, Value: value})
+	}
+	sapisid, ok := ad.Cookies["SAPISID"]
+	if ok {
+		req.Header.Set("Authorization", sapisidHash(util.MessagesBaseURL, sapisid))
+	}
+}
+
+func (ad *AuthData) UpdateCookiesFromResponse(resp *http.Response) {
+	ad.CookiesLock.Lock()
+	defer ad.CookiesLock.Unlock()
+	if ad.Cookies == nil {
+		return
+	}
+	for _, cookie := range resp.Cookies() {
+		ad.Cookies[cookie.Name] = cookie.Value
+	}
+}
+
+func (ad *AuthData) HasCookies() bool {
+	if ad == nil {
+		return false
+	}
+	ad.CookiesLock.RLock()
+	defer ad.CookiesLock.RUnlock()
+	return ad.Cookies != nil
 }
 
 func (ad *AuthData) AuthNetwork() string {
-	if ad.Cookies != nil {
+	if ad.HasCookies() {
 		return util.GoogleNetwork
 	}
 	return ""
@@ -253,11 +296,11 @@ func (c *Client) FetchConfig() (*gmproto.Config, error) {
 	req.Header.Set("sec-fetch-site", "same-origin")
 	req.Header.Del("x-user-agent")
 	req.Header.Del("origin")
-	c.AddCookieHeaders(req)
+	c.AuthData.AddCookiesToRequest(req)
 
 	resp, err := c.http.Do(req)
 	if resp != nil {
-		c.HandleCookieUpdates(resp)
+		c.AuthData.UpdateCookiesFromResponse(resp)
 	}
 	config, err := typedHTTPResponse[*gmproto.Config](resp, err)
 	if err != nil {
