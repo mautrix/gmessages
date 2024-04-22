@@ -46,6 +46,9 @@ var requestType = map[gmproto.ActionType]proto.Message{
 	gmproto.ActionType_LIST_TOP_CONTACTS:          &gmproto.ListTopContactsRequest{},
 	gmproto.ActionType_GET_OR_CREATE_CONVERSATION: &gmproto.GetOrCreateConversationRequest{},
 	gmproto.ActionType_UPDATE_CONVERSATION:        &gmproto.UpdateConversationRequest{},
+
+	gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT:     &gmproto.GaiaPairingRequestContainer{},
+	gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED: &gmproto.GaiaPairingRequestContainer{},
 }
 
 func main() {
@@ -91,6 +94,8 @@ func main() {
 		mustNoReturn(pblite.Unmarshal(d, &orm))
 		decoded = orm.Data.MessageData
 		typ = orm.Data.MessageTypeData.MessageType
+		fmt.Println("DEST REGISTRATION IDS:", orm.DestRegistrationIDs)
+		fmt.Println("MOBILE:", orm.GetMobile())
 	} else {
 		decoded = must(base64.StdEncoding.DecodeString(string(d)))
 	}
@@ -102,11 +107,16 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, "CHANNEL:", typ.String())
 		_, _ = fmt.Fprintln(os.Stderr, "REQUEST TYPE:", ord.Action.String())
 		_, _ = fmt.Fprintln(os.Stderr, "REQUEST ID:", ord.RequestID)
-		if ord.EncryptedProtoData == nil {
+		var decrypted []byte
+
+		if ord.EncryptedProtoData != nil {
+			decrypted = must(x.Decrypt(ord.EncryptedProtoData))
+		} else if ord.UnencryptedProtoData != nil {
+			decrypted = ord.UnencryptedProtoData
+		} else {
 			_, _ = fmt.Fprintln(os.Stderr, "No encrypted data")
 			return
 		}
-		decrypted := must(x.Decrypt(ord.EncryptedProtoData))
 		_, _ = fmt.Fprintln(os.Stderr, "------------------------------ RAW DECRYPTED DATA ------------------------------")
 		fmt.Println(base64.StdEncoding.EncodeToString(decrypted))
 		_, _ = fmt.Fprintln(os.Stderr, "--------------------------------- DECODED DATA ---------------------------------")
