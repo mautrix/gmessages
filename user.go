@@ -43,6 +43,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 type User struct {
@@ -600,6 +601,9 @@ func (user *User) Connect() bool {
 	}
 	user.zlog.Debug().Msg("Connecting to Google Messages")
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnecting, Error: GMConnecting})
+	if user.Session.Mobile.Network == util.GoogleNetwork {
+		user.Session.Mobile.SourceID = strings.ToLower(user.Session.Mobile.SourceID)
+	}
 	user.createClient(user.Session)
 	err := user.Client.Connect()
 	if err != nil {

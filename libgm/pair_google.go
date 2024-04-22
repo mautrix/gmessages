@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,8 +90,11 @@ func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaRes
 		return nil, err
 	}
 	c.updateTachyonAuthToken(resp.GetTokenData())
-	c.AuthData.Mobile = resp.GetDeviceData().GetDeviceWrapper().GetDevice()
-	c.AuthData.Browser = resp.GetDeviceData().GetDeviceWrapper().GetDevice()
+	device := resp.GetDeviceData().GetDeviceWrapper().GetDevice()
+	lowercaseDevice := proto.Clone(device).(*gmproto.Device)
+	lowercaseDevice.SourceID = strings.ToLower(device.SourceID)
+	c.AuthData.Mobile = lowercaseDevice
+	c.AuthData.Browser = device
 	return resp, nil
 }
 
