@@ -383,6 +383,10 @@ func (c *Client) cancelGaiaPairing(sess PairingSession) error {
 }
 
 func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
+	msgType := gmproto.MessageType_GAIA_2
+	if action == gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED {
+		msgType = gmproto.MessageType_BUGLE_MESSAGE
+	}
 	respCh, err := c.sessionHandler.sendAsyncMessage(SendMessageParams{
 		Action: action,
 		Data: &gmproto.GaiaPairingRequestContainer{
@@ -393,7 +397,7 @@ func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess PairingSession
 		},
 		DontEncrypt: true,
 		CustomTTL:   (300 * time.Second).Microseconds(),
-		MessageType: gmproto.MessageType_GAIA_2,
+		MessageType: msgType,
 	})
 	if err != nil {
 		return nil, err
