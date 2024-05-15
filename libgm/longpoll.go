@@ -187,19 +187,26 @@ const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
 
 func (dp *dittoPinger) Loop() {
 	for {
+		var pingStart time.Time
 		select {
 		case <-dp.client.pingShortCircuit:
 			pingID := pingIDCounter.Add(1)
 			dp.log.Debug().Uint64("ping_id", pingID).Msg("Ditto ping wait short-circuited")
+			pingStart = time.Now()
 			dp.Ping(pingID, shortPingTimeout, 0)
 		case <-dp.ping:
 			pingID := pingIDCounter.Add(1)
 			dp.log.Trace().Uint64("ping_id", pingID).Msg("Doing normal ditto ping")
+			pingStart = time.Now()
 			dp.Ping(pingID, defaultPingTimeout, 0)
 		case <-dp.stop:
 			return
 		}
 		if dp.client.shouldDoDataReceiveCheck() {
+			dp.log.Warn().Msg("No data received recently, sending extra GET_UPDATES call")
+			go dp.HandleNoRecentUpdates()
+		} else if time.Since(pingStart) > 5*time.Minute {
+			dp.log.Warn().Msg("Was disconnected for over 5 minutes, sending extra GET_UPDATES call")
 			go dp.HandleNoRecentUpdates()
 		}
 	}
@@ -207,7 +214,6 @@ func (dp *dittoPinger) Loop() {
 
 func (dp *dittoPinger) HandleNoRecentUpdates() {
 	dp.client.triggerEvent(&events.NoDataReceived{})
-	dp.log.Warn().Msg("No data received recently, sending extra GET_UPDATES call")
 	err := dp.client.sessionHandler.sendMessageNoResponse(SendMessageParams{
 		Action:    gmproto.ActionType_GET_UPDATES,
 		OmitTTL:   true,
