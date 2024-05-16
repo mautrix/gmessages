@@ -1,3 +1,13 @@
+# v0.4.1 (2024-05-16)
+
+* Added support for sending captions.
+  * Note that RCS doesn't support captions yet, so sending captions in RCS
+    chats will cause weirdness. Captions should work in MMS chats.
+* Fixed frequent disconnections when using Google account pairing with an
+  email containing uppercase characters.
+* Fixed some cases of spam messages being bridged even after Google's filter
+  caught them.
+
 # v0.4.0 (2024-04-16)
 
 * Added automatic detection and workarounds for cases where the app stops
