@@ -374,6 +374,7 @@ func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
 		portal.zlog.Error().
 			Stringer("event_id", msg.evt.ID).
 			Msg("Matrix event handling is taking over a minute, unblocking loop")
+		go portal.bridge.SendMessageCheckpoint(msg.evt, status.MsgStepRemote, errHandlingTakingLong, status.MsgStatusTimeout, 0)
 	}
 }
 

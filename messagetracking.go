@@ -47,6 +47,7 @@ var (
 	errMediaConvertFailed          = errors.New("failed to convert media")
 	errMediaReuploadFailed         = errors.New("failed to upload media to google")
 	errEchoTimeout                 = errors.New("remote echo timeout")
+	errHandlingTakingLong          = errors.New("message handling is taking long")
 
 	errIncorrectUser = errors.New("incorrect user")
 	errNotLoggedIn   = errors.New("not logged in")
@@ -99,6 +100,8 @@ func errorToStatusReason(err error) (reason event.MessageStatusReason, status ev
 		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "handling the message took too long and was cancelled"
 	case errors.Is(err, errEchoTimeout):
 		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "phone has not confirmed message delivery"
+	case errors.Is(err, errHandlingTakingLong):
+		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "sending the message is taking long; is your phone online?"
 	case errors.Is(err, errTargetNotFound):
 		return event.MessageStatusGenericError, event.MessageStatusFail, true, false, ""
 	case errors.As(err, &ose):
