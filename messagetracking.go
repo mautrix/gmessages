@@ -46,11 +46,10 @@ var (
 	errMediaDecryptFailed          = errors.New("failed to decrypt media")
 	errMediaConvertFailed          = errors.New("failed to convert media")
 	errMediaReuploadFailed         = errors.New("failed to upload media to google")
+	errEchoTimeout                 = errors.New("remote echo timeout")
 
 	errIncorrectUser = errors.New("incorrect user")
 	errNotLoggedIn   = errors.New("not logged in")
-
-	errMessageTakingLong = errors.New("bridging the message is taking longer than usual")
 )
 
 type OutgoingStatusError gmproto.MessageStatusType
@@ -98,6 +97,8 @@ func errorToStatusReason(err error) (reason event.MessageStatusReason, status ev
 		return event.MessageStatusUnsupported, event.MessageStatusFail, true, true, err.Error()
 	case errors.Is(err, context.DeadlineExceeded):
 		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "handling the message took too long and was cancelled"
+	case errors.Is(err, errEchoTimeout):
+		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "phone has not confirmed message delivery"
 	case errors.Is(err, errTargetNotFound):
 		return event.MessageStatusGenericError, event.MessageStatusFail, true, false, ""
 	case errors.As(err, &ose):
@@ -116,8 +117,8 @@ func (portal *Portal) sendErrorMessage(ctx context.Context, evt *event.Event, er
 		certainty = "was not"
 	}
 	msg := fmt.Sprintf("\u26a0 Your %s %s bridged: %v", msgType, certainty, err)
-	if errors.Is(err, errMessageTakingLong) {
-		msg = fmt.Sprintf("\u26a0 Bridging your %s is taking longer than usual", msgType)
+	if errors.Is(err, errEchoTimeout) {
+		msg = fmt.Sprintf("\u26a0 Your phone has not echoed the message, it may have been lost")
 	}
 	content := &event.MessageEventContent{
 		MsgType: event.MsgNotice,

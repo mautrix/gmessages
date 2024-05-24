@@ -40,6 +40,7 @@ import (
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
 	"maunium.net/go/mautrix/bridge"
+	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/crypto/attachment"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
@@ -252,8 +253,9 @@ type PortalMatrixMessage struct {
 
 type outgoingMessage struct {
 	*event.Event
-	Saved        bool
-	Checkpointed bool
+	Acked     bool
+	Errored   bool
+	Timeouted bool
 }
 
 type Portal struct {
@@ -376,12 +378,14 @@ func (portal *Portal) handleMatrixMessageLoopItem(msg PortalMatrixMessage) {
 }
 
 func (portal *Portal) handleMessageLoop() {
+	outgoingTicker := time.NewTicker(1 * time.Minute)
 	for {
-		portal.handleOneMessageLoopItem()
+		outgoingTicker.Stop()
+		portal.handleOneMessageLoopItem(outgoingTicker.C)
 	}
 }
 
-func (portal *Portal) handleOneMessageLoopItem() {
+func (portal *Portal) handleOneMessageLoopItem(timeout <-chan time.Time) {
 	defer func() {
 		if err := recover(); err != nil {
 			logEvt := portal.zlog.WithLevel(zerolog.FatalLevel).
@@ -400,7 +404,18 @@ func (portal *Portal) handleOneMessageLoopItem() {
 		portal.handleMessageLoopItem(msg)
 	case msg := <-portal.matrixMessages:
 		portal.handleMatrixMessageLoopItem(msg)
+	case <-timeout:
 	}
+	portal.outgoingMessagesLock.Lock()
+	for _, out := range portal.outgoingMessages {
+		if !out.Timeouted && out.Acked && !out.Errored && time.Since(time.UnixMilli(out.Timestamp)) > 1*time.Minute {
+			go portal.sendStatusEvent(context.TODO(), out.ID, "", errEchoTimeout, nil)
+			go portal.sendErrorMessage(context.TODO(), out.Event, errEchoTimeout, "message", false, "")
+			go portal.bridge.SendMessageCheckpoint(out.Event, status.MsgStepRemote, errEchoTimeout, status.MsgStatusTimeout, 0)
+			out.Timeouted = true
+		}
+	}
+	portal.outgoingMessagesLock.Unlock()
 }
 
 func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) *database.Message {
@@ -2045,8 +2060,9 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	}
 
 	txnID := util.GenerateTmpID()
+	outgoingMsg := &outgoingMessage{Event: evt}
 	portal.outgoingMessagesLock.Lock()
-	portal.outgoingMessages[txnID] = &outgoingMessage{Event: evt}
+	portal.outgoingMessages[txnID] = outgoingMsg
 	portal.outgoingMessagesLock.Unlock()
 	if evt.Type == event.EventSticker {
 		content.MsgType = event.MsgImage
@@ -2067,10 +2083,14 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	resp, err := sender.Client.SendMessage(req)
 	timings.send = time.Since(start)
 	if err != nil {
+		outgoingMsg.Errored = true
 		go ms.sendMessageMetrics(ctx, sender, evt, err, "Error sending", true)
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
+		outgoingMsg.Errored = true
+		outgoingMsg.Acked = true
 		go ms.sendMessageMetrics(ctx, sender, evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
 	} else {
+		outgoingMsg.Acked = true
 		go ms.sendMessageMetrics(ctx, sender, evt, nil, "", true)
 	}
 }
