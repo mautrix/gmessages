@@ -131,6 +131,11 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 		}
 	}
 	evt.Msg("Received response")
+	if msg.Message.Action == gmproto.ActionType_SEND_MESSAGE {
+		s.client.Logger.Debug().
+			Str("send_response_data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
+			Msg("Message send response data")
+	}
 	ch <- msg
 	return true
 }
