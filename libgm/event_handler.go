@@ -176,7 +176,7 @@ func (c *Client) deduplicateUpdate(id string, msg *IncomingRPCMessage) bool {
 func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	msg, err := c.decryptInternalMessage(rawMsg)
 	if err != nil {
-		c.Logger.Err(err).Msg("Failed to decode incoming RPC message")
+		c.Logger.Err(err).Str("message_id", rawMsg.ResponseID).Msg("Failed to decode incoming RPC message")
 		c.sessionHandler.queueMessageAck(rawMsg.ResponseID)
 		return
 	}
@@ -185,6 +185,10 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	if c.sessionHandler.receiveResponse(msg) {
 		return
 	}
+	c.Logger.Debug().
+		Stringer("message_action", msg.Message.Action).
+		Str("message_id", msg.ResponseID).
+		Msg("Received message")
 	switch msg.BugleRoute {
 	case gmproto.BugleRoute_PairEvent:
 		c.handlePairingEvent(msg)

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 
@@ -32,7 +33,7 @@ func (s *SessionHandler) ResetSessionID() {
 }
 
 func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
-	_, payload, err := s.buildMessage(params)
+	requestID, payload, err := s.buildMessage(params)
 	if err != nil {
 		return err
 	}
@@ -41,6 +42,10 @@ func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
 	if s.client.AuthData.HasCookies() {
 		url = util.SendMessageURLGoogle
 	}
+	s.client.Logger.Debug().
+		Stringer("message_action", params.Action).
+		Str("message_id", requestID).
+		Msg("Sending request to phone (not expecting response)")
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
 		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
 	)
@@ -58,6 +63,10 @@ func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *Inc
 	if s.client.AuthData.HasCookies() {
 		url = util.SendMessageURLGoogle
 	}
+	s.client.Logger.Debug().
+		Stringer("message_action", params.Action).
+		Str("message_id", requestID).
+		Msg("Sending request to phone")
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
 		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
 	)
@@ -120,9 +129,11 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	}
 	delete(s.responseWaiters, requestID)
 	s.responseWaitersLock.Unlock()
-	evt := s.client.Logger.Trace().
-		Str("request_id", requestID)
-	if evt.Enabled() {
+	evt := s.client.Logger.Debug().
+		Stringer("message_action", msg.Message.Action).
+		Str("request_message_id", requestID).
+		Str("response_message_id", msg.ResponseID)
+	if s.client.Logger.GetLevel() == zerolog.TraceLevel {
 		if msg.DecryptedData != nil {
 			evt.Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData))
 		}
@@ -131,11 +142,6 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 		}
 	}
 	evt.Msg("Received response")
-	if msg.Message.Action == gmproto.ActionType_SEND_MESSAGE {
-		s.client.Logger.Debug().
-			Str("send_response_data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
-			Msg("Message send response data")
-	}
 	ch <- msg
 	return true
 }
@@ -306,6 +312,6 @@ func (s *SessionHandler) sendAckRequest() {
 		// TODO retry?
 		s.client.Logger.Err(err).Strs("message_ids", dataToAck).Msg("Failed to send acks")
 	} else {
-		s.client.Logger.Debug().Strs("message_ids", dataToAck).Msg("Sent acks")
+		s.client.Logger.Trace().Strs("message_ids", dataToAck).Msg("Sent acks")
 	}
 }
