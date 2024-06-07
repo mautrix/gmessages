@@ -161,6 +161,7 @@ enum ActionType {
     CREATE_GAIA_PAIRING_CLIENT_FINISHED = 45;
     UNPAIR_GAIA_PAIRING = 46;
     CANCEL_GAIA_PAIRING = 47;
+    PREWARM = 48;
 }
 
 enum MessageType {

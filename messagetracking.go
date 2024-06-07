@@ -86,6 +86,7 @@ func (ose OutgoingStatusError) Is(other error) bool {
 
 func errorToStatusReason(err error) (reason event.MessageStatusReason, status event.MessageStatus, isCertain, sendNotice bool, humanMessage string) {
 	var ose OutgoingStatusError
+	var rse *responseStatusError
 	switch {
 	case errors.Is(err, errUnexpectedParsedContentType),
 		errors.Is(err, errUnknownMsgType):
@@ -104,6 +105,8 @@ func errorToStatusReason(err error) (reason event.MessageStatusReason, status ev
 		return event.MessageStatusTooOld, event.MessageStatusRetriable, false, true, "sending the message is taking long; is your phone online?"
 	case errors.Is(err, errTargetNotFound):
 		return event.MessageStatusGenericError, event.MessageStatusFail, true, false, ""
+	case errors.As(err, &rse):
+		return event.MessageStatusNetworkError, event.MessageStatusRetriable, true, true, rse.Error()
 	case errors.As(err, &ose):
 		return event.MessageStatusNetworkError, event.MessageStatusFail, true, true, ose.HumanError()
 	default:

@@ -2049,6 +2049,24 @@ func (portal *Portal) reuploadMedia(ctx context.Context, sender *User, content *
 	return resp, nil
 }
 
+type responseStatusError gmproto.SendMessageResponse
+
+func (rse *responseStatusError) Error() string {
+	switch rse.Status {
+	case 0:
+		if rse.GoogleAccountSwitch != nil && strings.ContainsRune(rse.GoogleAccountSwitch.GetAccount(), '@') {
+			return "Switch back to QR pairing or log in with Google account to send messages"
+		}
+	case gmproto.SendMessageResponse_FAILURE_2:
+		return "Unknown permanent error"
+	case gmproto.SendMessageResponse_FAILURE_3:
+		return "Unknown temporary error"
+	case gmproto.SendMessageResponse_FAILURE_4:
+		return "Google Messages is not your default SMS app"
+	}
+	return fmt.Sprintf("Unrecognized response status %d", rse.Status)
+}
+
 func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timings messageTimings) {
 	ms := metricSender{portal: portal, timings: &timings}
 
@@ -2093,7 +2111,7 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
 		outgoingMsg.Errored = true
 		outgoingMsg.Acked = true
-		go ms.sendMessageMetrics(ctx, sender, evt, fmt.Errorf("response status %d", resp.Status), "Error sending", true)
+		go ms.sendMessageMetrics(ctx, sender, evt, (*responseStatusError)(resp), "Error sending", true)
 	} else {
 		outgoingMsg.Acked = true
 		go ms.sendMessageMetrics(ctx, sender, evt, nil, "", true)
