@@ -130,9 +130,11 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	delete(s.responseWaiters, requestID)
 	s.responseWaitersLock.Unlock()
 	evt := s.client.Logger.Debug().
-		Stringer("message_action", msg.Message.Action).
 		Str("request_message_id", requestID).
 		Str("response_message_id", msg.ResponseID)
+	if msg.Message != nil {
+		evt.Stringer("message_action", msg.Message.Action)
+	}
 	if s.client.Logger.GetLevel() == zerolog.TraceLevel {
 		if msg.DecryptedData != nil {
 			evt.Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData))

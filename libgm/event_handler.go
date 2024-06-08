@@ -185,10 +185,13 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	if c.sessionHandler.receiveResponse(msg) {
 		return
 	}
-	c.Logger.Debug().
-		Stringer("message_action", msg.Message.Action).
+	logEvt := c.Logger.Debug().
 		Str("message_id", msg.ResponseID).
-		Msg("Received message")
+		Stringer("bugle_route", msg.BugleRoute)
+	if msg.Message != nil {
+		logEvt.Stringer("message_action", msg.Message.Action)
+	}
+	logEvt.Msg("Received message")
 	switch msg.BugleRoute {
 	case gmproto.BugleRoute_PairEvent:
 		c.handlePairingEvent(msg)
