@@ -254,7 +254,7 @@ type PortalMatrixMessage struct {
 
 type outgoingMessage struct {
 	*event.Event
-	Acked     bool
+	AckedAt   time.Time
 	Errored   bool
 	Timeouted bool
 }
@@ -390,7 +390,7 @@ func (portal *Portal) outgoingMessageTimeoutLoop() {
 	for range ticker.C {
 		portal.outgoingMessagesLock.Lock()
 		for _, out := range portal.outgoingMessages {
-			if !out.Timeouted && out.Acked && !out.Errored && time.Since(time.UnixMilli(out.Timestamp)) > 1*time.Minute {
+			if !out.Timeouted && !out.AckedAt.IsZero() && !out.Errored && time.Since(out.AckedAt) > 1*time.Minute {
 				go portal.sendStatusEvent(context.TODO(), out.ID, "", errEchoTimeout, nil)
 				go portal.sendErrorMessage(context.TODO(), out.Event, errEchoTimeout, "message", false, "")
 				go portal.bridge.SendMessageCheckpoint(out.Event, status.MsgStepRemote, errEchoTimeout, status.MsgStatusTimeout, 0)
@@ -2110,10 +2110,10 @@ func (portal *Portal) HandleMatrixMessage(sender *User, evt *event.Event, timing
 		go ms.sendMessageMetrics(ctx, sender, evt, err, "Error sending", true)
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
 		outgoingMsg.Errored = true
-		outgoingMsg.Acked = true
+		outgoingMsg.AckedAt = time.Now()
 		go ms.sendMessageMetrics(ctx, sender, evt, (*responseStatusError)(resp), "Error sending", true)
 	} else {
-		outgoingMsg.Acked = true
+		outgoingMsg.AckedAt = time.Now()
 		go ms.sendMessageMetrics(ctx, sender, evt, nil, "", true)
 	}
 }
