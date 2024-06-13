@@ -255,7 +255,7 @@ message SendMessageRequest {
     MessagePayload messagePayload = 3;
     settings.SIMPayload SIMPayload = 4;
     string tmpID = 5;
-    bool isRCS = 6; // not sure
+    bool forceRCS = 6;
     ReplyPayload reply = 8;
 }
 

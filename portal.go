@@ -774,6 +774,26 @@ func (portal *Portal) handleMessage(source *User, evt *gmproto.Message, raw []by
 	case gmproto.MessageStatusType_INCOMING_AUTO_DOWNLOADING, gmproto.MessageStatusType_INCOMING_RETRYING_AUTO_DOWNLOAD:
 		log.Debug().Msg("Not handling incoming auto-downloading MMS")
 		return
+	case gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_RCS_TO_E2EE, gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_TEXT_TO_E2EE:
+		if !portal.ForceRCS {
+			portal.ForceRCS = true
+			err := portal.Update(ctx)
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed to update portal to force RCS")
+			} else {
+				log.Debug().Msg("Setting force RCS flag for portal due to E2EE tombstone")
+			}
+		}
+	case gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_RCS, gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PROTOCOL_SWITCH_E2EE_TO_TEXT:
+		if portal.ForceRCS {
+			portal.ForceRCS = false
+			err := portal.Update(ctx)
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed to update portal to unforce RCS")
+			} else {
+				log.Debug().Msg("Removing force RCS flag for portal due to non-E2EE tombstone")
+			}
+		}
 	}
 	if time.Since(eventTS) > 24*time.Hour {
 		lastMessage, err := portal.bridge.DB.Message.GetLastInChat(ctx, portal.Key)
@@ -1486,6 +1506,14 @@ func (portal *Portal) UpdateMetadata(ctx context.Context, user *User, info *gmpr
 		portal.Type = info.Type
 		update = true
 	}
+	if portal.SendMode != info.SendMode {
+		portal.zlog.Debug().
+			Str("old_send_mode", portal.SendMode.String()).
+			Str("new_send_mode", info.SendMode.String()).
+			Msg("Conversation send mode changed")
+		portal.SendMode = info.SendMode
+		update = true
+	}
 	if portal.OutgoingID != info.DefaultOutgoingID {
 		portal.zlog.Debug().
 			Str("old_id", portal.OutgoingID).
@@ -1932,6 +1960,7 @@ func (portal *Portal) uploadMedia(ctx context.Context, intent *appservice.Intent
 
 func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, content *event.MessageEventContent, raw map[string]any, txnID string) (*gmproto.SendMessageRequest, error) {
 	log := zerolog.Ctx(ctx)
+	sim := sender.GetSIM(portal.OutgoingID)
 	req := &gmproto.SendMessageRequest{
 		ConversationID: portal.ID,
 		TmpID:          txnID,
@@ -1941,7 +1970,7 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 			TmpID2:         txnID,
 			ParticipantID:  portal.OutgoingID,
 		},
-		SIMPayload: sender.GetSIM(portal.OutgoingID).GetSIMData().GetSIMPayload(),
+		SIMPayload: sim.GetSIMData().GetSIMPayload(),
 	}
 
 	replyToMXID := content.RelatesTo.GetReplyTo()
@@ -1955,7 +1984,12 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 			req.Reply = &gmproto.ReplyPayload{MessageID: replyToMsg.ID}
 		}
 	}
-	req.IsRCS = portal.Type == gmproto.ConversationType_RCS
+	req.ForceRCS = portal.Type == gmproto.ConversationType_RCS &&
+		portal.SendMode == gmproto.ConversationSendMode_SEND_MODE_AUTO &&
+		portal.ForceRCS
+	if req.ForceRCS && !sim.GetRCSChats().GetEnabled() {
+		log.Warn().Msg("Forcing RCS but RCS is disabled on sim")
+	}
 
 	switch content.MsgType {
 	case event.MsgText, event.MsgEmote, event.MsgNotice:

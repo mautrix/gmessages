@@ -153,6 +153,55 @@ func (IdentifierType) EnumDescriptor() ([]byte, []int) {
 	return file_conversations_proto_rawDescGZIP(), []int{1}
 }
 
+type ConversationSendMode int32
+
+const (
+	ConversationSendMode_SEND_MODE_AUTO      ConversationSendMode = 0
+	ConversationSendMode_SEND_MODE_XMS       ConversationSendMode = 1
+	ConversationSendMode_SEND_MODE_XMS_LATCH ConversationSendMode = 2
+)
+
+// Enum value maps for ConversationSendMode.
+var (
+	ConversationSendMode_name = map[int32]string{
+		0: "SEND_MODE_AUTO",
+		1: "SEND_MODE_XMS",
+		2: "SEND_MODE_XMS_LATCH",
+	}
+	ConversationSendMode_value = map[string]int32{
+		"SEND_MODE_AUTO":      0,
+		"SEND_MODE_XMS":       1,
+		"SEND_MODE_XMS_LATCH": 2,
+	}
+)
+
+func (x ConversationSendMode) Enum() *ConversationSendMode {
+	p := new(ConversationSendMode)
+	*p = x
+	return p
+}
+
+func (x ConversationSendMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConversationSendMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_conversations_proto_enumTypes[2].Descriptor()
+}
+
+func (ConversationSendMode) Type() protoreflect.EnumType {
+	return &file_conversations_proto_enumTypes[2]
+}
+
+func (x ConversationSendMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConversationSendMode.Descriptor instead.
+func (ConversationSendMode) EnumDescriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{2}
+}
+
 type ConversationType int32
 
 const (
@@ -186,11 +235,11 @@ func (x ConversationType) String() string {
 }
 
 func (ConversationType) Descriptor() protoreflect.EnumDescriptor {
-	return file_conversations_proto_enumTypes[2].Descriptor()
+	return file_conversations_proto_enumTypes[3].Descriptor()
 }
 
 func (ConversationType) Type() protoreflect.EnumType {
-	return &file_conversations_proto_enumTypes[2]
+	return &file_conversations_proto_enumTypes[3]
 }
 
 func (x ConversationType) Number() protoreflect.EnumNumber {
@@ -199,7 +248,7 @@ func (x ConversationType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ConversationType.Descriptor instead.
 func (ConversationType) EnumDescriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{2}
+	return file_conversations_proto_rawDescGZIP(), []int{3}
 }
 
 type MessageStatusType int32
@@ -463,11 +512,11 @@ func (x MessageStatusType) String() string {
 }
 
 func (MessageStatusType) Descriptor() protoreflect.EnumDescriptor {
-	return file_conversations_proto_enumTypes[3].Descriptor()
+	return file_conversations_proto_enumTypes[4].Descriptor()
 }
 
 func (MessageStatusType) Type() protoreflect.EnumType {
-	return &file_conversations_proto_enumTypes[3]
+	return &file_conversations_proto_enumTypes[4]
 }
 
 func (x MessageStatusType) Number() protoreflect.EnumNumber {
@@ -476,7 +525,7 @@ func (x MessageStatusType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MessageStatusType.Descriptor instead.
 func (MessageStatusType) EnumDescriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{3}
+	return file_conversations_proto_rawDescGZIP(), []int{4}
 }
 
 type ConversationStatus int32
@@ -524,11 +573,11 @@ func (x ConversationStatus) String() string {
 }
 
 func (ConversationStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_conversations_proto_enumTypes[4].Descriptor()
+	return file_conversations_proto_enumTypes[5].Descriptor()
 }
 
 func (ConversationStatus) Type() protoreflect.EnumType {
-	return &file_conversations_proto_enumTypes[4]
+	return &file_conversations_proto_enumTypes[5]
 }
 
 func (x ConversationStatus) Number() protoreflect.EnumNumber {
@@ -537,7 +586,7 @@ func (x ConversationStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ConversationStatus.Descriptor instead.
 func (ConversationStatus) EnumDescriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{4}
+	return file_conversations_proto_rawDescGZIP(), []int{5}
 }
 
 type MediaFormats int32
@@ -696,11 +745,11 @@ func (x MediaFormats) String() string {
 }
 
 func (MediaFormats) Descriptor() protoreflect.EnumDescriptor {
-	return file_conversations_proto_enumTypes[5].Descriptor()
+	return file_conversations_proto_enumTypes[6].Descriptor()
 }
 
 func (MediaFormats) Type() protoreflect.EnumType {
-	return &file_conversations_proto_enumTypes[5]
+	return &file_conversations_proto_enumTypes[6]
 }
 
 func (x MediaFormats) Number() protoreflect.EnumNumber {
@@ -709,7 +758,7 @@ func (x MediaFormats) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MediaFormats.Descriptor instead.
 func (MediaFormats) EnumDescriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{5}
+	return file_conversations_proto_rawDescGZIP(), []int{6}
 }
 
 type Contact struct {
@@ -1839,24 +1888,25 @@ type Conversation struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ConversationID       string             `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	Name                 string             `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	LatestMessage        *LatestMessage     `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
-	LastMessageTimestamp int64              `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
-	Unread               bool               `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
-	IsGroupChat          bool               `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
-	DefaultOutgoingID    string             `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
-	Status               ConversationStatus `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConversationStatus" json:"status,omitempty"`
-	ReadOnly             bool               `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
-	AvatarHexColor       string             `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
-	LatestMessageID      string             `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
-	Participants         []*Participant     `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
-	OtherParticipants    []string           `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
-	Type                 ConversationType   `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
-	SubType              bool               `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
-	Pinned               bool               `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
-	UnknownTimestamp     int64              `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
-	ThirdType            bool               `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
+	ConversationID       string               `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Name                 string               `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	LatestMessage        *LatestMessage       `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
+	LastMessageTimestamp int64                `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
+	Unread               bool                 `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
+	IsGroupChat          bool                 `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
+	DefaultOutgoingID    string               `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
+	Status               ConversationStatus   `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConversationStatus" json:"status,omitempty"`
+	ReadOnly             bool                 `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
+	AvatarHexColor       string               `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
+	LatestMessageID      string               `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
+	SendMode             ConversationSendMode `protobuf:"varint,18,opt,name=sendMode,proto3,enum=conversations.ConversationSendMode" json:"sendMode,omitempty"`
+	Participants         []*Participant       `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
+	OtherParticipants    []string             `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
+	Type                 ConversationType     `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
+	SubType              bool                 `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
+	Pinned               bool                 `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
+	UnknownTimestamp     int64                `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
+	ThirdType            bool                 `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
 }
 
 func (x *Conversation) Reset() {
@@ -1966,6 +2016,13 @@ func (x *Conversation) GetLatestMessageID() string {
 		return x.LatestMessageID
 	}
 	return ""
+}
+
+func (x *Conversation) GetSendMode() ConversationSendMode {
+	if x != nil {
+		return x.SendMode
+	}
+	return ConversationSendMode_SEND_MODE_AUTO
 }
 
 func (x *Conversation) GetParticipants() []*Participant {
@@ -2673,77 +2730,79 @@ func file_conversations_proto_rawDescGZIP() []byte {
 	return file_conversations_proto_rawDescData
 }
 
-var file_conversations_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_conversations_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
 var file_conversations_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_conversations_proto_goTypes = []interface{}{
 	(EmojiType)(0),                                 // 0: conversations.EmojiType
 	(IdentifierType)(0),                            // 1: conversations.IdentifierType
-	(ConversationType)(0),                          // 2: conversations.ConversationType
-	(MessageStatusType)(0),                         // 3: conversations.MessageStatusType
-	(ConversationStatus)(0),                        // 4: conversations.ConversationStatus
-	(MediaFormats)(0),                              // 5: conversations.MediaFormats
-	(*Contact)(nil),                                // 6: conversations.Contact
-	(*ContactNumber)(nil),                          // 7: conversations.ContactNumber
-	(*Message)(nil),                                // 8: conversations.Message
-	(*ReactionEntry)(nil),                          // 9: conversations.ReactionEntry
-	(*CustomEmojiData)(nil),                        // 10: conversations.CustomEmojiData
-	(*ReactionData)(nil),                           // 11: conversations.ReactionData
-	(*EmojiMeta)(nil),                              // 12: conversations.EmojiMeta
-	(*EmojiMetaData)(nil),                          // 13: conversations.EmojiMetaData
-	(*ReplyMessage)(nil),                           // 14: conversations.ReplyMessage
-	(*ReplyMessageData)(nil),                       // 15: conversations.ReplyMessageData
-	(*MessageInfo)(nil),                            // 16: conversations.MessageInfo
-	(*MediaContent)(nil),                           // 17: conversations.MediaContent
-	(*Dimensions)(nil),                             // 18: conversations.Dimensions
-	(*MessageContent)(nil),                         // 19: conversations.MessageContent
-	(*MsgType)(nil),                                // 20: conversations.MsgType
-	(*MessageStatus)(nil),                          // 21: conversations.MessageStatus
-	(*Conversation)(nil),                           // 22: conversations.Conversation
-	(*Participant)(nil),                            // 23: conversations.Participant
-	(*SmallInfo)(nil),                              // 24: conversations.SmallInfo
-	(*LatestMessage)(nil),                          // 25: conversations.LatestMessage
-	(*LatestMessageStatus)(nil),                    // 26: conversations.LatestMessageStatus
-	(*Muted)(nil),                                  // 27: conversations.Muted
-	(*CustomEmojiData_Inner)(nil),                  // 28: conversations.CustomEmojiData.Inner
-	(*CustomEmojiData_Inner_ImageData)(nil),        // 29: conversations.CustomEmojiData.Inner.ImageData
-	(*CustomEmojiData_Inner_WrappedImageData)(nil), // 30: conversations.CustomEmojiData.Inner.WrappedImageData
-	(*CustomEmojiData_Inner_WrappedImageData_ImageData)(nil), // 31: conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
+	(ConversationSendMode)(0),                      // 2: conversations.ConversationSendMode
+	(ConversationType)(0),                          // 3: conversations.ConversationType
+	(MessageStatusType)(0),                         // 4: conversations.MessageStatusType
+	(ConversationStatus)(0),                        // 5: conversations.ConversationStatus
+	(MediaFormats)(0),                              // 6: conversations.MediaFormats
+	(*Contact)(nil),                                // 7: conversations.Contact
+	(*ContactNumber)(nil),                          // 8: conversations.ContactNumber
+	(*Message)(nil),                                // 9: conversations.Message
+	(*ReactionEntry)(nil),                          // 10: conversations.ReactionEntry
+	(*CustomEmojiData)(nil),                        // 11: conversations.CustomEmojiData
+	(*ReactionData)(nil),                           // 12: conversations.ReactionData
+	(*EmojiMeta)(nil),                              // 13: conversations.EmojiMeta
+	(*EmojiMetaData)(nil),                          // 14: conversations.EmojiMetaData
+	(*ReplyMessage)(nil),                           // 15: conversations.ReplyMessage
+	(*ReplyMessageData)(nil),                       // 16: conversations.ReplyMessageData
+	(*MessageInfo)(nil),                            // 17: conversations.MessageInfo
+	(*MediaContent)(nil),                           // 18: conversations.MediaContent
+	(*Dimensions)(nil),                             // 19: conversations.Dimensions
+	(*MessageContent)(nil),                         // 20: conversations.MessageContent
+	(*MsgType)(nil),                                // 21: conversations.MsgType
+	(*MessageStatus)(nil),                          // 22: conversations.MessageStatus
+	(*Conversation)(nil),                           // 23: conversations.Conversation
+	(*Participant)(nil),                            // 24: conversations.Participant
+	(*SmallInfo)(nil),                              // 25: conversations.SmallInfo
+	(*LatestMessage)(nil),                          // 26: conversations.LatestMessage
+	(*LatestMessageStatus)(nil),                    // 27: conversations.LatestMessageStatus
+	(*Muted)(nil),                                  // 28: conversations.Muted
+	(*CustomEmojiData_Inner)(nil),                  // 29: conversations.CustomEmojiData.Inner
+	(*CustomEmojiData_Inner_ImageData)(nil),        // 30: conversations.CustomEmojiData.Inner.ImageData
+	(*CustomEmojiData_Inner_WrappedImageData)(nil), // 31: conversations.CustomEmojiData.Inner.WrappedImageData
+	(*CustomEmojiData_Inner_WrappedImageData_ImageData)(nil), // 32: conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
 }
 var file_conversations_proto_depIdxs = []int32{
-	7,  // 0: conversations.Contact.number:type_name -> conversations.ContactNumber
-	20, // 1: conversations.Message.msgType:type_name -> conversations.MsgType
-	21, // 2: conversations.Message.messageStatus:type_name -> conversations.MessageStatus
-	16, // 3: conversations.Message.messageInfo:type_name -> conversations.MessageInfo
-	9,  // 4: conversations.Message.reactions:type_name -> conversations.ReactionEntry
-	14, // 5: conversations.Message.replyMessage:type_name -> conversations.ReplyMessage
-	11, // 6: conversations.ReactionEntry.data:type_name -> conversations.ReactionData
-	28, // 7: conversations.CustomEmojiData.innerData:type_name -> conversations.CustomEmojiData.Inner
+	8,  // 0: conversations.Contact.number:type_name -> conversations.ContactNumber
+	21, // 1: conversations.Message.msgType:type_name -> conversations.MsgType
+	22, // 2: conversations.Message.messageStatus:type_name -> conversations.MessageStatus
+	17, // 3: conversations.Message.messageInfo:type_name -> conversations.MessageInfo
+	10, // 4: conversations.Message.reactions:type_name -> conversations.ReactionEntry
+	15, // 5: conversations.Message.replyMessage:type_name -> conversations.ReplyMessage
+	12, // 6: conversations.ReactionEntry.data:type_name -> conversations.ReactionData
+	29, // 7: conversations.CustomEmojiData.innerData:type_name -> conversations.CustomEmojiData.Inner
 	0,  // 8: conversations.ReactionData.type:type_name -> conversations.EmojiType
-	10, // 9: conversations.ReactionData.customEmoji:type_name -> conversations.CustomEmojiData
-	13, // 10: conversations.EmojiMeta.emojiMetaData:type_name -> conversations.EmojiMetaData
-	15, // 11: conversations.ReplyMessage.replyMessageData:type_name -> conversations.ReplyMessageData
-	19, // 12: conversations.MessageInfo.messageContent:type_name -> conversations.MessageContent
-	17, // 13: conversations.MessageInfo.mediaContent:type_name -> conversations.MediaContent
-	5,  // 14: conversations.MediaContent.format:type_name -> conversations.MediaFormats
-	18, // 15: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
-	3,  // 16: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
-	25, // 17: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
-	4,  // 18: conversations.Conversation.status:type_name -> conversations.ConversationStatus
-	23, // 19: conversations.Conversation.participants:type_name -> conversations.Participant
-	2,  // 20: conversations.Conversation.type:type_name -> conversations.ConversationType
-	24, // 21: conversations.Participant.ID:type_name -> conversations.SmallInfo
-	27, // 22: conversations.Participant.muted:type_name -> conversations.Muted
-	1,  // 23: conversations.SmallInfo.type:type_name -> conversations.IdentifierType
-	26, // 24: conversations.LatestMessage.latestMessageStatus:type_name -> conversations.LatestMessageStatus
-	3,  // 25: conversations.LatestMessageStatus.status:type_name -> conversations.MessageStatusType
-	29, // 26: conversations.CustomEmojiData.Inner.first:type_name -> conversations.CustomEmojiData.Inner.ImageData
-	30, // 27: conversations.CustomEmojiData.Inner.second:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData
-	31, // 28: conversations.CustomEmojiData.Inner.WrappedImageData.data:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
-	29, // [29:29] is the sub-list for method output_type
-	29, // [29:29] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	11, // 9: conversations.ReactionData.customEmoji:type_name -> conversations.CustomEmojiData
+	14, // 10: conversations.EmojiMeta.emojiMetaData:type_name -> conversations.EmojiMetaData
+	16, // 11: conversations.ReplyMessage.replyMessageData:type_name -> conversations.ReplyMessageData
+	20, // 12: conversations.MessageInfo.messageContent:type_name -> conversations.MessageContent
+	18, // 13: conversations.MessageInfo.mediaContent:type_name -> conversations.MediaContent
+	6,  // 14: conversations.MediaContent.format:type_name -> conversations.MediaFormats
+	19, // 15: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
+	4,  // 16: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
+	26, // 17: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
+	5,  // 18: conversations.Conversation.status:type_name -> conversations.ConversationStatus
+	2,  // 19: conversations.Conversation.sendMode:type_name -> conversations.ConversationSendMode
+	24, // 20: conversations.Conversation.participants:type_name -> conversations.Participant
+	3,  // 21: conversations.Conversation.type:type_name -> conversations.ConversationType
+	25, // 22: conversations.Participant.ID:type_name -> conversations.SmallInfo
+	28, // 23: conversations.Participant.muted:type_name -> conversations.Muted
+	1,  // 24: conversations.SmallInfo.type:type_name -> conversations.IdentifierType
+	27, // 25: conversations.LatestMessage.latestMessageStatus:type_name -> conversations.LatestMessageStatus
+	4,  // 26: conversations.LatestMessageStatus.status:type_name -> conversations.MessageStatusType
+	30, // 27: conversations.CustomEmojiData.Inner.first:type_name -> conversations.CustomEmojiData.Inner.ImageData
+	31, // 28: conversations.CustomEmojiData.Inner.second:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData
+	32, // 29: conversations.CustomEmojiData.Inner.WrappedImageData.data:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
+	30, // [30:30] is the sub-list for method output_type
+	30, // [30:30] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_conversations_proto_init() }
@@ -3080,7 +3139,7 @@ func file_conversations_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_conversations_proto_rawDesc,
-			NumEnums:      6,
+			NumEnums:      7,
 			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   0,

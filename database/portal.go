@@ -37,18 +37,18 @@ func newPortal(qh *dbutil.QueryHelper[*Portal]) *Portal {
 }
 
 const (
-	getAllPortalsQuery        = "SELECT id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space FROM portal"
+	getAllPortalsQuery        = "SELECT id, receiver, self_user, other_user, type, send_mode, force_rcs, mxid, name, name_set, encrypted, in_space FROM portal"
 	getAllPortalsForUserQuery = getAllPortalsQuery + " WHERE receiver=$1"
 	getPortalByKeyQuery       = getAllPortalsQuery + " WHERE id=$1 AND receiver=$2"
 	getPortalByOtherUserQuery = getAllPortalsQuery + " WHERE other_user=$1 AND receiver=$2"
 	getPortalByMXIDQuery      = getAllPortalsQuery + " WHERE mxid=$1"
 	insertPortalQuery         = `
-		INSERT INTO portal (id, receiver, self_user, other_user, type, mxid, name, name_set, encrypted, in_space)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO portal (id, receiver, self_user, other_user, type, send_mode, force_rcs, mxid, name, name_set, encrypted, in_space)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 	updatePortalQuery = `
 		UPDATE portal
-		SET self_user=$3, other_user=$4, type=$5, mxid=$6, name=$7, name_set=$8, encrypted=$9, in_space=$10
+		SET self_user=$3, other_user=$4, type=$5, send_mode=$6, force_rcs=$7, mxid=$8, name=$9, name_set=$10, encrypted=$11, in_space=$12
 		WHERE id=$1 AND receiver=$2
 	`
 	deletePortalQuery = "DELETE FROM portal WHERE id=$1 AND receiver=$2"
@@ -96,6 +96,8 @@ type Portal struct {
 	MXID        id.RoomID
 
 	Type      gmproto.ConversationType
+	SendMode  gmproto.ConversationSendMode
+	ForceRCS  bool
 	Name      string
 	NameSet   bool
 	Encrypted bool
@@ -104,15 +106,16 @@ type Portal struct {
 
 func (portal *Portal) Scan(row dbutil.Scannable) (*Portal, error) {
 	var mxid, selfUserID, otherUserID sql.NullString
-	var convType int
+	var convType, sendMode int
 	err := row.Scan(
-		&portal.ID, &portal.Receiver, &selfUserID, &otherUserID, &convType, &mxid,
+		&portal.ID, &portal.Receiver, &selfUserID, &otherUserID, &convType, &sendMode, &portal.ForceRCS, &mxid,
 		&portal.Name, &portal.NameSet, &portal.Encrypted, &portal.InSpace,
 	)
 	if err != nil {
 		return nil, err
 	}
 	portal.Type = gmproto.ConversationType(convType)
+	portal.SendMode = gmproto.ConversationSendMode(sendMode)
 	portal.MXID = id.RoomID(mxid.String)
 	portal.OutgoingID = selfUserID.String
 	portal.OtherUserID = otherUserID.String
@@ -122,7 +125,7 @@ func (portal *Portal) Scan(row dbutil.Scannable) (*Portal, error) {
 func (portal *Portal) sqlVariables() []any {
 	return []any{
 		portal.ID, portal.Receiver, dbutil.StrPtr(portal.OutgoingID), dbutil.StrPtr(portal.OtherUserID),
-		int(portal.Type), dbutil.StrPtr(portal.MXID),
+		int(portal.Type), int(portal.SendMode), portal.ForceRCS, dbutil.StrPtr(portal.MXID),
 		portal.Name, portal.NameSet, portal.Encrypted, portal.InSpace,
 	}
 }

@@ -2383,7 +2383,7 @@ type SendMessageRequest struct {
 	MessagePayload *MessagePayload `protobuf:"bytes,3,opt,name=messagePayload,proto3" json:"messagePayload,omitempty"`
 	SIMPayload     *SIMPayload     `protobuf:"bytes,4,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
 	TmpID          string          `protobuf:"bytes,5,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
-	IsRCS          bool            `protobuf:"varint,6,opt,name=isRCS,proto3" json:"isRCS,omitempty"` // not sure
+	ForceRCS       bool            `protobuf:"varint,6,opt,name=forceRCS,proto3" json:"forceRCS,omitempty"`
 	Reply          *ReplyPayload   `protobuf:"bytes,8,opt,name=reply,proto3" json:"reply,omitempty"`
 }
 
@@ -2447,9 +2447,9 @@ func (x *SendMessageRequest) GetTmpID() string {
 	return ""
 }
 
-func (x *SendMessageRequest) GetIsRCS() bool {
+func (x *SendMessageRequest) GetForceRCS() bool {
 	if x != nil {
-		return x.IsRCS
+		return x.ForceRCS
 	}
 	return false
 }

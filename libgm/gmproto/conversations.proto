@@ -168,6 +168,7 @@ message Conversation {
     bool readOnly = 13;
     string avatarHexColor = 15;
     string latestMessageID = 17;
+    ConversationSendMode sendMode = 18;
     repeated Participant participants = 20;
     repeated string otherParticipants = 21; // participant ids excluding me
     ConversationType type = 22;
@@ -219,6 +220,12 @@ message LatestMessageStatus {
 
 message Muted {
     int64 isMuted = 1;
+}
+
+enum ConversationSendMode {
+    SEND_MODE_AUTO = 0;
+    SEND_MODE_XMS = 1;
+    SEND_MODE_XMS_LATCH = 2;
 }
 
 enum ConversationType {
