@@ -1,3 +1,15 @@
+# v0.4.2 (2024-06-16)
+
+* Added error message if phone doesn't send echo for outgoing message in
+  time.
+* Added better error messages for some message send failures.
+* Added logging for RPC request and response IDs.
+* Fixed sending messages incorrectly forcing RCS in some cases causing failures
+  (e.g. when using dual SIM and sending from a SIM with RCS disabled).
+* Fixed ping loop getting stuck (and therefore not keeping the connection
+  alive) if the first ping never responds.
+* Removed unnecessary sleep after Google account pairing.
+
 # v0.4.1 (2024-05-16)
 
 * Added support for sending captions.

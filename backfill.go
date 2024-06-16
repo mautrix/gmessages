@@ -126,6 +126,7 @@ func (portal *Portal) forwardBackfill(ctx context.Context, user *User, after tim
 	}
 
 	log := zerolog.Ctx(ctx)
+	// TODO this should cancel if the context is canceled
 	resp, err := user.Client.FetchMessages(portal.ID, int64(limit), nil)
 	if err != nil {
 		portal.zlog.Error().Err(err).Msg("Failed to fetch messages")
