@@ -3,7 +3,6 @@ module go.mau.fi/mautrix-gmessages
 go 1.21
 
 require (
-	github.com/beeper/libserv v0.0.0-20231231202820-c7303abfc32c
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.22
