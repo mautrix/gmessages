@@ -52,6 +52,8 @@ func (br *GMBridge) RegisterCommands() {
 		cmdDisconnect,
 		cmdSetActive,
 		cmdPing,
+		cmdToggleBatteryNotifications,
+		cmdToggleVerboseNotifications,
 		cmdPM,
 		cmdDeletePortal,
 		cmdDeleteAllPortals,
@@ -400,6 +402,44 @@ func fnPing(ce *WrappedCommandEvent) {
 		}
 		ce.Reply("Linked to %s and active as primary browser%s", ce.User.PhoneID, modifierStr)
 	}
+}
+
+var cmdToggleBatteryNotifications = &commands.FullHandler{
+	Func:    wrapCommand(fnToggleBatteryNotifications),
+	Name:    "toggle-battery-notifications",
+	Help: commands.HelpMeta{
+		Section:     HelpSectionConnectionManagement,
+		Description: "Silence Battery statuses.",
+	},
+}
+
+func fnToggleBatteryNotifications(ce *WrappedCommandEvent) {
+	ce.User.toggleNotifyBattery()
+	if ce.User.DisableNotifyBattery {
+		ce.Reply("Disabled battery notifications")
+	} else {
+		ce.Reply("Enabled battery notifications")
+	}
+	ce.ZLog.Trace().Msg("ToggleBatteryNotifications command finished")
+}
+
+var cmdToggleVerboseNotifications = &commands.FullHandler{
+	Func:    wrapCommand(fnToggleVerboseNotifications),
+	Name:    "toggle-verbose-notifications",
+	Help: commands.HelpMeta{
+		Section:     HelpSectionConnectionManagement,
+		Description: "Silence Connected statuses when session changes and no data received recently.",
+	},
+}
+
+func fnToggleVerboseNotifications(ce *WrappedCommandEvent) {
+	ce.User.toggleNotifyVerbose()
+	if ce.User.DisableNotifyVerbose {
+		ce.Reply("Disabled verbose notifications")
+	} else {
+		ce.Reply("Enabled verbose notifications")
+	}
+	ce.ZLog.Trace().Msg("ToggleVerboseNotifications command finished")
 }
 
 var cmdPM = &commands.FullHandler{

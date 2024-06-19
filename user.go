@@ -79,6 +79,7 @@ type User struct {
 	phoneNotRespondingAlertSent bool
 	didHackySetActive           bool
 	noDataReceivedRecently      bool
+	recentlyDisconnected        bool
 	lastDataReceived            time.Time
 	gaiaHackyDeviceSwitcher     int
 
@@ -660,6 +661,7 @@ func (user *User) DeleteSession() {
 	user.SelfParticipantIDs = []string{}
 	user.didHackySetActive = false
 	user.noDataReceivedRecently = false
+	user.recentlyDisconnected = false
 	user.lastDataReceived = time.Time{}
 	err := user.Update(context.TODO())
 	if err != nil {
@@ -849,6 +851,8 @@ func (user *User) syncHandleEvent(event any) {
 		user.handleSettings(v)
 	case *events.AccountChange:
 		user.handleAccountChange(v)
+	case *events.RecentlyDisconnected:
+		user.recentlyDisconnected = true
 	case *events.NoDataReceived:
 		user.noDataReceivedRecently = true
 	default:
@@ -970,17 +974,20 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		user.ready = true
 		newSessionID := user.Client.CurrentSessionID()
 		sessionIDChanged := user.sessionID != newSessionID
-		if sessionIDChanged || wasInactive || user.noDataReceivedRecently {
+		if sessionIDChanged || wasInactive || user.noDataReceivedRecently || user.recentlyDisconnected {
 			user.zlog.Debug().
 				Str("old_session_id", user.sessionID).
 				Str("new_session_id", newSessionID).
 				Bool("was_inactive", wasInactive).
 				Bool("had_no_data_received", user.noDataReceivedRecently).
+				Bool("recently_disconeccted", user.recentlyDisconnected).
 				Time("last_data_received", user.lastDataReceived).
 				Msg("Session ID changed for browser active event, resyncing")
 			user.sessionID = newSessionID
 			go user.fetchAndSyncConversations(user.lastDataReceived, !sessionIDChanged && !wasInactive)
-			go user.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
+			if (!user.DisableNotifyVerbose || wasInactive || user.recentlyDisconnected) {
+				go user.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
+			}
 		} else {
 			user.zlog.Debug().
 				Str("session_id", user.sessionID).
@@ -990,6 +997,7 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 				Msg("Session ID didn't change for browser active event, not resyncing")
 		}
 		user.noDataReceivedRecently = false
+		user.recentlyDisconnected = false
 		user.lastDataReceived = time.Now()
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		user.browserInactiveType = GMBrowserInactiveTimeout
@@ -1004,13 +1012,17 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 	case gmproto.AlertType_MOBILE_BATTERY_LOW:
 		user.batteryLow = true
 		if time.Since(user.batteryLowAlertSent) > 30*time.Minute {
-			go user.sendMarkdownBridgeAlert(ctx, true, "Your phone's battery is low")
+			if (!user.DisableNotifyBattery) {
+				go user.sendMarkdownBridgeAlert(ctx, true, "Your phone's battery is low")
+			}
 			user.batteryLowAlertSent = time.Now()
 		}
 	case gmproto.AlertType_MOBILE_BATTERY_RESTORED:
 		user.batteryLow = false
 		if !user.batteryLowAlertSent.IsZero() {
-			go user.sendMarkdownBridgeAlert(ctx, false, "Phone battery restored")
+			if (!user.DisableNotifyBattery) {
+				go user.sendMarkdownBridgeAlert(ctx, false, "Phone battery restored")
+			}
 			user.batteryLowAlertSent = time.Time{}
 		}
 	default:
@@ -1024,6 +1036,22 @@ func (user *User) handleUserAlert(v *gmproto.UserAlertEvent) {
 		}
 	}
 	user.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+}
+
+func (user *User) toggleNotifyBattery() {
+	user.DisableNotifyBattery = !user.DisableNotifyBattery
+	err := user.Update(context.TODO())
+	if err != nil {
+		user.zlog.Err(err).Msg("Failed to save notify battery preference")
+	}
+}
+
+func (user *User) toggleNotifyVerbose() {
+	user.DisableNotifyVerbose = !user.DisableNotifyVerbose
+	err := user.Update(context.TODO())
+	if err != nil {
+		user.zlog.Err(err).Msg("Failed to save notify verbose preference")
+	}
 }
 
 func (user *User) handleSettings(settings *gmproto.Settings) {

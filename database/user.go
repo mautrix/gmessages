@@ -40,7 +40,7 @@ func newUser(qh *dbutil.QueryHelper[*User]) *User {
 }
 
 const (
-	getUserBaseQuery                 = `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token FROM "user"`
+	getUserBaseQuery                 = `SELECT rowid, mxid, phone_id, session, self_participant_ids, sim_metadata, settings, management_room, space_room, access_token, disable_notify_battery, disable_notify_verbose FROM "user"`
 	getAllUsersWithSessionQuery      = getUserBaseQuery + " WHERE session IS NOT NULL"
 	getAllUsersWithDoublePuppetQuery = getUserBaseQuery + " WHERE access_token<>''"
 	getUserByRowIDQuery              = getUserBaseQuery + " WHERE rowid=$1"
@@ -53,7 +53,8 @@ const (
 	updateUserQuery = `
 		UPDATE "user"
 		SET phone_id=$2, session=$3, self_participant_ids=$4, sim_metadata=$5, settings=$6,
-		    management_room=$7, space_room=$8, access_token=$9
+		    management_room=$7, space_room=$8, access_token=$9,
+		    disable_notify_battery=$10, disable_notify_verbose=$11
 		WHERE mxid=$1
 	`
 	updateuserParticipantIDsQuery = `UPDATE "user" SET self_participant_ids=$2 WHERE mxid=$1`
@@ -103,6 +104,9 @@ type User struct {
 	Settings Settings
 
 	AccessToken string
+
+	DisableNotifyBattery bool
+	DisableNotifyVerbose bool
 }
 
 func (user *User) Scan(row dbutil.Scannable) (*User, error) {
@@ -111,6 +115,7 @@ func (user *User) Scan(row dbutil.Scannable) (*User, error) {
 	err := row.Scan(
 		&user.RowID, &user.MXID, &phoneID, &session, &selfParticipantIDs, &simMetadata,
 		&settings, &managementRoom, &spaceRoom, &accessToken,
+		&user.DisableNotifyBattery, &user.DisableNotifyVerbose,
 	)
 	if err != nil {
 		return nil, err
@@ -169,6 +174,7 @@ func (user *User) sqlVariables() []any {
 	return []any{
 		user.MXID, dbutil.StrPtr(user.PhoneID), session, string(selfParticipantIDs), string(simMetadata),
 		string(settings), dbutil.StrPtr(user.ManagementRoom), dbutil.StrPtr(user.SpaceRoom), dbutil.StrPtr(user.AccessToken),
+		user.DisableNotifyBattery, user.DisableNotifyVerbose,
 	}
 }
 
