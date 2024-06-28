@@ -498,10 +498,12 @@ type GaiaPairingRequestContainer struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	PairingAttemptID string          `protobuf:"bytes,1,opt,name=pairingAttemptID,proto3" json:"pairingAttemptID,omitempty"`
-	BrowserDetails   *BrowserDetails `protobuf:"bytes,2,opt,name=browserDetails,proto3" json:"browserDetails,omitempty"`
-	StartTimestamp   int64           `protobuf:"varint,3,opt,name=startTimestamp,proto3" json:"startTimestamp,omitempty"`
-	Data             []byte          `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	PairingAttemptID                string          `protobuf:"bytes,1,opt,name=pairingAttemptID,proto3" json:"pairingAttemptID,omitempty"`
+	BrowserDetails                  *BrowserDetails `protobuf:"bytes,2,opt,name=browserDetails,proto3" json:"browserDetails,omitempty"`
+	StartTimestamp                  int64           `protobuf:"varint,3,opt,name=startTimestamp,proto3" json:"startTimestamp,omitempty"`
+	Data                            []byte          `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	ProposedVerificationCodeVersion int32           `protobuf:"varint,5,opt,name=proposedVerificationCodeVersion,proto3" json:"proposedVerificationCodeVersion,omitempty"`
+	ProposedKeyDerivationVersion    int32           `protobuf:"varint,6,opt,name=proposedKeyDerivationVersion,proto3" json:"proposedKeyDerivationVersion,omitempty"`
 }
 
 func (x *GaiaPairingRequestContainer) Reset() {
@@ -564,16 +566,32 @@ func (x *GaiaPairingRequestContainer) GetData() []byte {
 	return nil
 }
 
+func (x *GaiaPairingRequestContainer) GetProposedVerificationCodeVersion() int32 {
+	if x != nil {
+		return x.ProposedVerificationCodeVersion
+	}
+	return 0
+}
+
+func (x *GaiaPairingRequestContainer) GetProposedKeyDerivationVersion() int32 {
+	if x != nil {
+		return x.ProposedKeyDerivationVersion
+	}
+	return 0
+}
+
 type GaiaPairingResponseContainer struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	FinishErrorType int32  `protobuf:"varint,1,opt,name=finishErrorType,proto3" json:"finishErrorType,omitempty"`
-	FinishErrorCode int32  `protobuf:"varint,2,opt,name=finishErrorCode,proto3" json:"finishErrorCode,omitempty"`
-	UnknownInt3     int32  `protobuf:"varint,3,opt,name=unknownInt3,proto3" json:"unknownInt3,omitempty"` // For init, 1
-	SessionUUID     string `protobuf:"bytes,4,opt,name=sessionUUID,proto3" json:"sessionUUID,omitempty"`
-	Data            []byte `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+	FinishErrorType                  int32  `protobuf:"varint,1,opt,name=finishErrorType,proto3" json:"finishErrorType,omitempty"`
+	FinishErrorCode                  int32  `protobuf:"varint,2,opt,name=finishErrorCode,proto3" json:"finishErrorCode,omitempty"`
+	UnknownInt3                      int32  `protobuf:"varint,3,opt,name=unknownInt3,proto3" json:"unknownInt3,omitempty"` // For init, 1
+	SessionUUID                      string `protobuf:"bytes,4,opt,name=sessionUUID,proto3" json:"sessionUUID,omitempty"`
+	Data                             []byte `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+	ConfirmedVerificationCodeVersion int32  `protobuf:"varint,6,opt,name=confirmedVerificationCodeVersion,proto3" json:"confirmedVerificationCodeVersion,omitempty"`
+	ConfirmedKeyDerivationVersion    int32  `protobuf:"varint,7,opt,name=confirmedKeyDerivationVersion,proto3" json:"confirmedKeyDerivationVersion,omitempty"`
 }
 
 func (x *GaiaPairingResponseContainer) Reset() {
@@ -641,6 +659,20 @@ func (x *GaiaPairingResponseContainer) GetData() []byte {
 		return x.Data
 	}
 	return nil
+}
+
+func (x *GaiaPairingResponseContainer) GetConfirmedVerificationCodeVersion() int32 {
+	if x != nil {
+		return x.ConfirmedVerificationCodeVersion
+	}
+	return 0
+}
+
+func (x *GaiaPairingResponseContainer) GetConfirmedKeyDerivationVersion() int32 {
+	if x != nil {
+		return x.ConfirmedKeyDerivationVersion
+	}
+	return 0
 }
 
 type RevokeGaiaPairingRequest struct {

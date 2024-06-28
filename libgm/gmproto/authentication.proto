@@ -88,6 +88,8 @@ message GaiaPairingRequestContainer {
     BrowserDetails browserDetails = 2;
     int64 startTimestamp = 3;
     bytes data = 4;
+    int32 proposedVerificationCodeVersion = 5;
+    int32 proposedKeyDerivationVersion = 6;
 }
 
 message GaiaPairingResponseContainer {
@@ -96,6 +98,8 @@ message GaiaPairingResponseContainer {
     int32 unknownInt3 = 3; // For init, 1
     string sessionUUID = 4;
     bytes data = 5;
+    int32 confirmedVerificationCodeVersion = 6;
+    int32 confirmedKeyDerivationVersion = 7;
 }
 
 message RevokeGaiaPairingRequest {

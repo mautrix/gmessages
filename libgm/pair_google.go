@@ -29,12 +29,15 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exsync"
 	"go.mau.fi/util/random"
 	"golang.org/x/crypto/hkdf"
 	"google.golang.org/protobuf/proto"
@@ -169,7 +172,7 @@ func (ps *PairingSession) PreparePayloads() ([]byte, []byte, error) {
 	return init, finish, nil
 }
 
-func doHKDF(key []byte, salt, info []byte) []byte {
+func doHKDF(key, salt, info []byte) []byte {
 	h := hkdf.New(sha256.New, key, salt, info)
 	out := make([]byte, 32)
 	_, err := io.ReadFull(h, out)
@@ -180,7 +183,30 @@ func doHKDF(key []byte, salt, info []byte) []byte {
 }
 
 var encryptionKeyInfo = []byte{130, 170, 85, 160, 211, 151, 248, 131, 70, 202, 28, 238, 141, 57, 9, 185, 95, 19, 250, 125, 235, 29, 74, 179, 131, 118, 184, 37, 109, 168, 85, 16}
-var pairingEmojis = []string{"😁", "😅", "🤣", "🫠", "🥰", "😇", "🤩", "😘", "😜", "🤗", "🤔", "🤐", "😴", "🥶", "🤯", "🤠", "🥳", "🥸", "😎", "🤓", "🧐", "🥹", "😭", "😱", "😖", "🥱", "😮\u200d💨", "🤡", "💩", "👻", "👽", "🤖", "😻", "💌", "💘", "💕", "❤", "💢", "💥", "💫", "💬", "🗯", "💤", "👋", "🙌", "🙏", "✍", "🦶", "👂", "🧠", "🦴", "👀", "🧑", "🧚", "🧍", "👣", "🐵", "🐶", "🐺", "🦊", "🦁", "🐯", "🦓", "🦄", "🐑", "🐮", "🐷", "🐿", "🐰", "🦇", "🐻", "🐨", "🐼", "🦥", "🐾", "🐔", "🐥", "🐦", "🕊", "🦆", "🦉", "🪶", "🦩", "🐸", "🐢", "🦎", "🐍", "🐳", "🐬", "🦭", "🐠", "🐡", "🦈", "🪸", "🐌", "🦋", "🐛", "🐝", "🐞", "🪱", "💐", "🌸", "🌹", "🌻", "🌱", "🌲", "🌴", "🌵", "🌾", "☘", "🍁", "🍂", "🍄", "🪺", "🍇", "🍈", "🍉", "🍋", "🍌", "🍍", "🍎", "🍐", "🍒", "🍓", "🥝", "🥥", "🥑", "🥕", "🌽", "🌶", "🫑", "🥦", "🥜", "🍞", "🥐", "🥨", "🧀", "🍗", "🍔", "🍟", "🍕", "🌭", "🌮", "🥗", "🥣", "🍿", "🦀", "🦑", "🍦", "🍩", "🍪", "🍫", "🍰", "🍬", "🍭", "☕", "🫖", "🍹", "🥤", "🧊", "🥢", "🍽", "🥄", "🧭", "🏔", "🌋", "🏕", "🏖", "🪵", "🏗", "🏡", "🏰", "🛝", "🚂", "🛵", "🛴", "🛼", "🚥", "⚓", "🛟", "⛵", "✈", "🚀", "🛸", "🧳", "⏰", "🌙", "🌡", "🌞", "🪐", "🌠", "🌧", "🌀", "🌈", "☂", "⚡", "❄", "⛄", "🔥", "🎇", "🧨", "✨", "🎈", "🎉", "🎁", "🏆", "🏅", "⚽", "⚾", "🏀", "🏐", "🏈", "🎾", "🎳", "🏓", "🥊", "⛳", "⛸", "🎯", "🪁", "🔮", "🎮", "🧩", "🧸", "🪩", "🖼", "🎨", "🧵", "🧶", "🦺", "🧣", "🧤", "🧦", "🎒", "🩴", "👟", "👑", "👒", "🎩", "🧢", "💎", "🔔", "🎤", "📻", "🎷", "🪗", "🎸", "🎺", "🎻", "🥁", "📺", "🔋", "💻", "💿", "☎", "🕯", "💡", "📖", "📚", "📬", "✏", "✒", "🖌", "🖍", "📝", "💼", "📋", "📌", "📎", "🔑", "🔧", "🧲", "🪜", "🧬", "🔭", "🩹", "🩺", "🪞", "🛋", "🪑", "🛁", "🧹", "🧺", "🔱", "🏁", "🐪", "🐘", "🦃", "🍞", "🍜", "🍠", "🚘", "🤿", "🃏", "👕", "📸", "🏷", "✂", "🧪", "🚪", "🧴", "🧻", "🪣", "🧽", "🚸"}
+var pairingEmojisV0 = []string{"😁", "😅", "🤣", "🫠", "🥰", "😇", "🤩", "😘", "😜", "🤗", "🤔", "🤐", "😴", "🥶", "🤯", "🤠", "🥳", "🥸", "😎", "🤓", "🧐", "🥹", "😭", "😱", "😖", "🥱", "😮\u200d💨", "🤡", "💩", "👻", "👽", "🤖", "😻", "💌", "💘", "💕", "❤", "💢", "💥", "💫", "💬", "🗯", "💤", "👋", "🙌", "🙏", "✍", "🦶", "👂", "🧠", "🦴", "👀", "🧑", "🧚", "🧍", "👣", "🐵", "🐶", "🐺", "🦊", "🦁", "🐯", "🦓", "🦄", "🐑", "🐮", "🐷", "🐿", "🐰", "🦇", "🐻", "🐨", "🐼", "🦥", "🐾", "🐔", "🐥", "🐦", "🕊", "🦆", "🦉", "🪶", "🦩", "🐸", "🐢", "🦎", "🐍", "🐳", "🐬", "🦭", "🐠", "🐡", "🦈", "🪸", "🐌", "🦋", "🐛", "🐝", "🐞", "🪱", "💐", "🌸", "🌹", "🌻", "🌱", "🌲", "🌴", "🌵", "🌾", "☘", "🍁", "🍂", "🍄", "🪺", "🍇", "🍈", "🍉", "🍋", "🍌", "🍍", "🍎", "🍐", "🍒", "🍓", "🥝", "🥥", "🥑", "🥕", "🌽", "🌶", "🫑", "🥦", "🥜", "🍞", "🥐", "🥨", "🧀", "🍗", "🍔", "🍟", "🍕", "🌭", "🌮", "🥗", "🥣", "🍿", "🦀", "🦑", "🍦", "🍩", "🍪", "🍫", "🍰", "🍬", "🍭", "☕", "🫖", "🍹", "🥤", "🧊", "🥢", "🍽", "🥄", "🧭", "🏔", "🌋", "🏕", "🏖", "🪵", "🏗", "🏡", "🏰", "🛝", "🚂", "🛵", "🛴", "🛼", "🚥", "⚓", "🛟", "⛵", "✈", "🚀", "🛸", "🧳", "⏰", "🌙", "🌡", "🌞", "🪐", "🌠", "🌧", "🌀", "🌈", "☂", "⚡", "❄", "⛄", "🔥", "🎇", "🧨", "✨", "🎈", "🎉", "🎁", "🏆", "🏅", "⚽", "⚾", "🏀", "🏐", "🏈", "🎾", "🎳", "🏓", "🥊", "⛳", "⛸", "🎯", "🪁", "🔮", "🎮", "🧩", "🧸", "🪩", "🖼", "🎨", "🧵", "🧶", "🦺", "🧣", "🧤", "🧦", "🎒", "🩴", "👟", "👑", "👒", "🎩", "🧢", "💎", "🔔", "🎤", "📻", "🎷", "🪗", "🎸", "🎺", "🎻", "🥁", "📺", "🔋", "💻", "💿", "☎", "🕯", "💡", "📖", "📚", "📬", "✏", "✒", "🖌", "🖍", "📝", "💼", "📋", "📌", "📎", "🔑", "🔧", "🧲", "🪜", "🧬", "🔭", "🩹", "🩺", "🪞", "🛋", "🪑", "🛁", "🧹", "🧺", "🔱", "🏁", "🐪", "🐘", "🦃", "🍞", "🍜", "🍠", "🚘", "🤿", "🃏", "👕", "📸", "🏷", "✂", "🧪", "🚪", "🧴", "🧻", "🪣", "🧽", "🚸"}
+var pairingEmojisV1 []string
+
+func init() {
+	pairingEmojisAddedV1 := []string{"🍋‍🟩", "🐦‍🔥", "🐲", "🪅", "🦜", "🏺", "🗿", "🫐", "⛽", "🍱", "🥡", "🧋", "🍼", "📐"}
+	pairingEmojisRemovedV1 := exsync.NewSetWithItems([]string{"💻", "🤗", "💬", "👋", "😁", "😎", "😇", "🥰", "🤓", "🤩"})
+
+	pairingEmojisV1 = append([]string{}, pairingEmojisV0...)
+	pairingEmojisV1 = append(pairingEmojisV1, pairingEmojisAddedV1...)
+	pairingEmojisV1 = slices.DeleteFunc(pairingEmojisV1, func(s string) bool {
+		return pairingEmojisRemovedV1.Has(s)
+	})
+}
+
+const emojiSVGTemplate = "https://fonts.gstatic.com/s/e/notoemoji/latest/%s/emoji.svg"
+
+func GetEmojiSVG(emoji string) string {
+	x := []rune(emoji)
+	hexes := make([]string, len(x))
+	for i, r := range x {
+		hexes[i] = strings.TrimLeft(strconv.FormatInt(int64(r), 16), "0")
+	}
+	return fmt.Sprintf(emojiSVGTemplate, strings.Join(hexes, "_"))
+}
 
 func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseContainer) (string, error) {
 	var ukeyMessage gmproto.Ukey2Message
@@ -237,7 +263,15 @@ func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseCont
 	ukeyV1Auth := doHKDF(sharedSecret[:], []byte("UKEY2 v1 auth"), authInfo)
 	ps.NextKey = doHKDF(sharedSecret[:], []byte("UKEY2 v1 next"), authInfo)
 	authNumber := binary.BigEndian.Uint32(ukeyV1Auth)
-	pairingEmoji := pairingEmojis[int(authNumber)%len(pairingEmojis)]
+	var pairingEmoji string
+	switch msg.GetConfirmedVerificationCodeVersion() {
+	case 0:
+		pairingEmoji = pairingEmojisV0[int(authNumber)%len(pairingEmojisV0)]
+	case 1:
+		pairingEmoji = pairingEmojisV1[int(authNumber)%len(pairingEmojisV1)]
+	default:
+		return "", fmt.Errorf("unsupported verification code version %d", msg.GetConfirmedVerificationCodeVersion())
+	}
 	return pairingEmoji, nil
 }
 
@@ -358,8 +392,28 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 			return fmt.Errorf("unknown error pairing: %d/%d", finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
 		}
 	}
-	c.AuthData.RequestCrypto.AESKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))
-	c.AuthData.RequestCrypto.HMACKey = doHKDF(ps.NextKey, encryptionKeyInfo, []byte("server"))
+	ukey2ClientKey := doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))
+	ukey2ServerKey := doHKDF(ps.NextKey, encryptionKeyInfo, []byte("server"))
+	switch serverInit.GetConfirmedKeyDerivationVersion() {
+	case 0:
+		c.AuthData.RequestCrypto.AESKey = ukey2ClientKey
+		c.AuthData.RequestCrypto.HMACKey = ukey2ServerKey
+	case 1:
+		concattedUkeys := make([]byte, 3*32)
+		copy(concattedUkeys[0:32], encryptionKeyInfo)
+		if byteHash(ukey2ClientKey) < byteHash(ukey2ServerKey) {
+			copy(concattedUkeys[32:64], ukey2ClientKey)
+			copy(concattedUkeys[64:96], ukey2ServerKey)
+		} else {
+			copy(concattedUkeys[32:64], ukey2ServerKey)
+			copy(concattedUkeys[64:96], ukey2ClientKey)
+		}
+		concattedHash := sha256.Sum256(concattedUkeys)
+		c.AuthData.RequestCrypto.AESKey = doHKDF(concattedHash[:], []byte("Ditto salt 1"), []byte("Ditto info 1"))
+		c.AuthData.RequestCrypto.HMACKey = doHKDF(concattedHash[:], []byte("Ditto salt 2"), []byte("Ditto info 2"))
+	default:
+		return fmt.Errorf("unsupported key derivation version %d", serverInit.GetConfirmedKeyDerivationVersion())
+	}
 	c.AuthData.PairingID = ps.UUID
 	c.triggerEvent(&events.PairSuccessful{PhoneID: fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), destRegUnknownInt)})
 
@@ -370,6 +424,14 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		}
 	}()
 	return nil
+}
+
+func byteHash(bytes []byte) (out int32) {
+	out = 1
+	for _, b := range bytes {
+		out = 31*out + int32(int8(b))
+	}
+	return out
 }
 
 func (c *Client) cancelGaiaPairing(sess PairingSession) error {
@@ -383,18 +445,22 @@ func (c *Client) cancelGaiaPairing(sess PairingSession) error {
 }
 
 func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
+	reqContainer := &gmproto.GaiaPairingRequestContainer{
+		PairingAttemptID: sess.UUID.String(),
+		BrowserDetails:   util.BrowserDetailsMessage,
+		StartTimestamp:   sess.Start.UnixMilli(),
+		Data:             msg,
+	}
 	msgType := gmproto.MessageType_GAIA_2
 	if action == gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED {
 		msgType = gmproto.MessageType_BUGLE_MESSAGE
+	} else {
+		reqContainer.ProposedVerificationCodeVersion = 1
+		reqContainer.ProposedKeyDerivationVersion = 1
 	}
 	respCh, err := c.sessionHandler.sendAsyncMessage(SendMessageParams{
-		Action: action,
-		Data: &gmproto.GaiaPairingRequestContainer{
-			PairingAttemptID: sess.UUID.String(),
-			BrowserDetails:   util.BrowserDetailsMessage,
-			StartTimestamp:   sess.Start.UnixMilli(),
-			Data:             msg,
-		},
+		Action:      action,
+		Data:        reqContainer,
 		DontEncrypt: true,
 		CustomTTL:   (300 * time.Second).Microseconds(),
 		MessageType: msgType,
