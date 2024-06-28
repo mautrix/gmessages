@@ -300,8 +300,9 @@ type ReqGoogleLoginStart struct {
 }
 
 type RespGoogleLoginStart struct {
-	Status string `json:"status"`
-	Emoji  string `json:"emoji"`
+	Status   string `json:"status"`
+	Emoji    string `json:"emoji"`
+	EmojiURL string `json:"emoji_url"`
 }
 
 func findMissingCookies(cookies map[string]string) string {
@@ -387,7 +388,7 @@ func (prov *ProvisioningAPI) GoogleLoginStart(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	jsonResponse(w, http.StatusOK, &RespGoogleLoginStart{Status: "emoji", Emoji: emoji})
+	jsonResponse(w, http.StatusOK, &RespGoogleLoginStart{Status: "emoji", Emoji: emoji, EmojiURL: libgm.GetEmojiSVG(emoji)})
 }
 
 func (prov *ProvisioningAPI) GoogleLoginWait(w http.ResponseWriter, r *http.Request) {
