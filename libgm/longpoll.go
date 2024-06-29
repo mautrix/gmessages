@@ -240,13 +240,27 @@ func (dp *dittoPinger) Loop() {
 			go dp.HandleNoRecentUpdates()
 		} else if time.Since(pingStart) > 5*time.Minute {
 			dp.log.Warn().Msg("Was disconnected for over 5 minutes, sending extra GET_UPDATES call")
-			go dp.HandleNoRecentUpdates()
+			go dp.HandleRecentlyDisconnected()
 		}
 	}
 }
 
 func (dp *dittoPinger) HandleNoRecentUpdates() {
 	dp.client.triggerEvent(&events.NoDataReceived{})
+	err := dp.client.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action:    gmproto.ActionType_GET_UPDATES,
+		OmitTTL:   true,
+		RequestID: dp.client.sessionHandler.sessionID,
+	})
+	if err != nil {
+		dp.log.Err(err).Msg("Failed to send extra GET_UPDATES call")
+	} else {
+		dp.log.Debug().Msg("Sent extra GET_UPDATES call")
+	}
+}
+
+func (dp *dittoPinger) HandleRecentlyDisconnected() {
+	dp.client.triggerEvent(&events.RecentlyDisconnected{})
 	err := dp.client.sessionHandler.sendMessageNoResponse(SendMessageParams{
 		Action:    gmproto.ActionType_GET_UPDATES,
 		OmitTTL:   true,
