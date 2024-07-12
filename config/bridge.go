@@ -23,6 +23,7 @@ import (
 	"text/template"
 
 	"maunium.net/go/mautrix/bridge/bridgeconfig"
+	"maunium.net/go/mautrix/event"
 )
 
 type BridgeConfig struct {
@@ -46,16 +47,16 @@ type BridgeConfig struct {
 
 	DoublePuppetConfig bridgeconfig.DoublePuppetConfig `yaml:",inline"`
 
-	PrivateChatPortalMeta string `yaml:"private_chat_portal_meta"`
-	BridgeNotices         bool   `yaml:"bridge_notices"`
-	ResendBridgeInfo      bool   `yaml:"resend_bridge_info"`
-	MuteBridging          bool   `yaml:"mute_bridging"`
-	ArchiveTag            string `yaml:"archive_tag"`
-	PinnedTag             string `yaml:"pinned_tag"`
-	TagOnlyOnCreate       bool   `yaml:"tag_only_on_create"`
-	FederateRooms         bool   `yaml:"federate_rooms"`
-	CaptionInMessage      bool   `yaml:"caption_in_message"`
-	BeeperGalleries       bool   `yaml:"beeper_galleries"`
+	PrivateChatPortalMeta string        `yaml:"private_chat_portal_meta"`
+	BridgeNotices         bool          `yaml:"bridge_notices"`
+	ResendBridgeInfo      bool          `yaml:"resend_bridge_info"`
+	MuteBridging          bool          `yaml:"mute_bridging"`
+	ArchiveTag            event.RoomTag `yaml:"archive_tag"`
+	PinnedTag             event.RoomTag `yaml:"pinned_tag"`
+	TagOnlyOnCreate       bool          `yaml:"tag_only_on_create"`
+	FederateRooms         bool          `yaml:"federate_rooms"`
+	CaptionInMessage      bool          `yaml:"caption_in_message"`
+	BeeperGalleries       bool          `yaml:"beeper_galleries"`
 
 	DisableBridgeAlerts bool `yaml:"disable_bridge_alerts"`
 

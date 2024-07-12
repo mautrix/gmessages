@@ -1211,21 +1211,21 @@ type CustomTagData struct {
 }
 
 type CustomTagEventContent struct {
-	Tags map[string]CustomTagData `json:"tags"`
+	Tags map[event.RoomTag]CustomTagData `json:"tags"`
 }
 
-func (user *User) updateChatTag(ctx context.Context, portal *Portal, tag string, active bool, existingTags CustomTagEventContent) {
+func (user *User) updateChatTag(ctx context.Context, portal *Portal, tag event.RoomTag, active bool, existingTags CustomTagEventContent) {
 	if tag == "" {
 		return
 	}
 	var err error
 	currentTag, ok := existingTags.Tags[tag]
 	if active && !ok {
-		user.zlog.Debug().Str("tag", tag).Str("room_id", portal.MXID.String()).Msg("Adding room tag")
+		user.zlog.Debug().Str("tag", string(tag)).Str("room_id", portal.MXID.String()).Msg("Adding room tag")
 		data := CustomTagData{Order: "0.5", DoublePuppet: user.bridge.Name}
 		err = user.DoublePuppetIntent.AddTagWithCustomData(ctx, portal.MXID, tag, &data)
 	} else if !active && ok && currentTag.DoublePuppet == user.bridge.Name {
-		user.zlog.Debug().Str("tag", tag).Str("room_id", portal.MXID.String()).Msg("Removing room tag")
+		user.zlog.Debug().Str("tag", string(tag)).Str("room_id", portal.MXID.String()).Msg("Removing room tag")
 		err = user.DoublePuppetIntent.RemoveTag(ctx, portal.MXID, tag)
 	} else {
 		err = nil

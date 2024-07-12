@@ -9,10 +9,10 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.4.2
-	go.mau.fi/util v0.5.0
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
+	go.mau.fi/util v0.5.1-0.20240710154926-931b33d6d530
+	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
 	google.golang.org/protobuf v1.34.2
-	maunium.net/go/mautrix v0.19.0-beta.1.0.20240617151654-afeadfb15fee
+	maunium.net/go/mautrix v0.19.0-beta.1.0.20240712164309-85e0664cb441
 )
 
 require (
@@ -29,7 +29,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/yuin/goldmark v1.7.2 // indirect
+	github.com/yuin/goldmark v1.7.4 // indirect
 	go.mau.fi/zeroconfig v0.1.2 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
