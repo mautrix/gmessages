@@ -436,6 +436,7 @@ func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) *database.Message 
 			Timestamp: time.UnixMicro(msg.GetTimestamp()),
 			SenderID:  msg.ParticipantID,
 			PartCount: len(msg.GetMessageInfo()),
+			TextHash:  getTextHash(msg),
 		}, out.ID, nil, true)
 	}
 	return nil
@@ -449,6 +450,25 @@ func hasInProgressMedia(msg *gmproto.Message) bool {
 		}
 	}
 	return false
+}
+
+func getTextHash(msg *gmproto.Message) string {
+	textHasher := sha256.New()
+	textHasher.Write([]byte(msg.GetSubject()))
+	textHasher.Write([]byte{0x00})
+	hasText := len(msg.GetSubject()) > 0
+	for _, part := range msg.GetMessageInfo() {
+		switch data := part.Data.(type) {
+		case *gmproto.MessageInfo_MessageContent:
+			hasText = true
+			textHasher.Write([]byte(data.MessageContent.GetContent()))
+			textHasher.Write([]byte{0x00})
+		}
+	}
+	if hasText {
+		return hex.EncodeToString(textHasher.Sum(nil))
+	}
+	return ""
 }
 
 func checkMessageWasEdited(msg *gmproto.Message, dbMsg *database.Message) (edited bool, changes *zerolog.Event) {
