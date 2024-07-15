@@ -318,3 +318,12 @@ message TypingUpdateRequest {
 
     Data data = 2;
 }
+
+message GetFullSizeImageRequest {
+    string messageID = 1;
+    string actionMessageID = 2;
+}
+
+message GetFullSizeImageResponse {
+
+}

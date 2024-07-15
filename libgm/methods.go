@@ -137,3 +137,10 @@ func (c *Client) NotifyDittoActivity() (<-chan *IncomingRPCMessage, error) {
 		Data:   &gmproto.NotifyDittoActivityRequest{Success: true},
 	})
 }
+
+func (c *Client) GetFullSizeImage(messageID, actionMessageID string) (*gmproto.GetFullSizeImageResponse, error) {
+	payload := &gmproto.GetFullSizeImageRequest{MessageID: messageID, ActionMessageID: actionMessageID}
+	actionType := gmproto.ActionType_GET_FULL_SIZE_IMAGE
+
+	return typedResponse[*gmproto.GetFullSizeImageResponse](c.sessionHandler.sendMessage(actionType, payload))
+}

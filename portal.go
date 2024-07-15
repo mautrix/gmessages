@@ -19,7 +19,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"image"
@@ -442,11 +444,61 @@ func (portal *Portal) isOutgoingMessage(msg *gmproto.Message) *database.Message 
 func hasInProgressMedia(msg *gmproto.Message) bool {
 	for _, part := range msg.MessageInfo {
 		media, ok := part.GetData().(*gmproto.MessageInfo_MediaContent)
-		if ok && media.MediaContent.GetMediaID() == "" && media.MediaContent.GetMediaID2() == "" {
+		if ok && media.MediaContent.GetMediaID() == "" && media.MediaContent.GetThumbnailMediaID() == "" {
 			return true
 		}
 	}
 	return false
+}
+
+func checkMessageWasEdited(msg *gmproto.Message, dbMsg *database.Message) (edited bool, changes *zerolog.Event) {
+	textHasher := sha256.New()
+	textHasher.Write([]byte(msg.GetSubject()))
+	textHasher.Write([]byte{0x00})
+	hasText := len(msg.GetSubject()) > 0
+	changes = zerolog.Dict()
+	for _, part := range msg.GetMessageInfo() {
+		switch data := part.Data.(type) {
+		case *gmproto.MessageInfo_MediaContent:
+			subDict := zerolog.Dict()
+			bestMediaID := data.MediaContent.GetMediaID()
+			if bestMediaID == "" {
+				bestMediaID = data.MediaContent.GetThumbnailMediaID()
+			}
+			subDict.Str("new_media_id", bestMediaID)
+			existingPart, ok := dbMsg.Status.MediaParts[part.GetActionMessageID()]
+			if !ok {
+				existingPart, ok = dbMsg.Status.MediaParts[""]
+				if !ok {
+					subDict.Str("old_entry_type", "not found")
+				} else {
+					subDict.Str("old_entry_type", "merged")
+				}
+			} else {
+				subDict.Str("old_entry_type", "exact")
+			}
+			subDict.Str("old_media_id", existingPart.MediaID)
+			didChange := existingPart.MediaID != bestMediaID
+			subDict.Bool("did_change", didChange)
+			changes.Dict(part.GetActionMessageID(), subDict)
+			edited = edited || didChange
+		case *gmproto.MessageInfo_MessageContent:
+			hasText = true
+			textHasher.Write([]byte(data.MessageContent.GetContent()))
+			textHasher.Write([]byte{0x00})
+		}
+	}
+	newTextHash := ""
+	if hasText {
+		newTextHash = hex.EncodeToString(textHasher.Sum(nil))
+	}
+	if dbMsg.Status.TextHash != newTextHash {
+		edited = true
+		changes.
+			Str("old_text_hash", dbMsg.Status.TextHash).
+			Str("new_text_hash", "")
+	}
+	return
 }
 
 func isSuccessfullySentStatus(status gmproto.MessageStatusType) bool {
@@ -557,11 +609,13 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	chatIDChanged := dbMsg.Chat.ID != portal.ID
 	hasPendingMedia := dbMsg.Status.HasPendingMediaParts()
 	updatedMediaIsComplete := !hasInProgressMedia(evt)
-	if dbMsg.Status.Type == newStatus && !chatIDChanged && !(hasPendingMedia && updatedMediaIsComplete) {
+	messageWasEdited, changes := checkMessageWasEdited(evt, dbMsg)
+	if dbMsg.Status.Type == newStatus && !chatIDChanged && !(hasPendingMedia && updatedMediaIsComplete) && !messageWasEdited {
 		logEvt := log.Debug().
 			Str("old_status", dbMsg.Status.Type.String()).
 			Bool("has_pending_media", hasPendingMedia).
-			Bool("updated_media_is_complete", updatedMediaIsComplete)
+			Bool("updated_media_is_complete", updatedMediaIsComplete).
+			Dict("message_change_debug_data", changes)
 		if hasPendingMedia {
 			debugData := zerolog.Dict()
 			for _, part := range evt.MessageInfo {
@@ -570,13 +624,13 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 					debugData.Dict(
 						part.GetActionMessageID(),
 						zerolog.Dict().
-							Str("media_id_1", media.MediaContent.GetMediaID()).
-							Str("media_id_2", media.MediaContent.GetMediaID2()).
+							Str("media_id", media.MediaContent.GetMediaID()).
+							Str("thumbnail_media_id", media.MediaContent.GetThumbnailMediaID()).
 							Int64("size", media.MediaContent.GetSize()).
 							Int64("width", media.MediaContent.GetDimensions().GetWidth()).
 							Int64("height", media.MediaContent.GetDimensions().GetHeight()).
-							Bool("has_key_1", len(media.MediaContent.GetDecryptionKey()) > 0).
-							Bool("has_key_2", len(media.MediaContent.GetDecryptionKey2()) > 0).
+							Bool("has_key", len(media.MediaContent.GetDecryptionKey()) > 0).
+							Bool("has_thumbnail_key", len(media.MediaContent.GetThumbnailDecryptionKey()) > 0).
 							Bool("has_unknown_fields", len(media.MediaContent.ProtoReflect().GetUnknown()) > 0),
 					)
 				} else {
@@ -592,7 +646,9 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	if chatIDChanged {
 		log = log.With().Str("old_chat_id", dbMsg.Chat.ID).Logger()
 		if downloadPendingStatusMessage(newStatus) != "" && !portal.IsPrivateChat() {
-			log.Debug().Msg("Ignoring chat ID change from group chat as update is a pending download")
+			log.Debug().
+				Dict("message_change_debug_data", changes).
+				Msg("Ignoring chat ID change from group chat as update is a pending download")
 			return
 		}
 		log.Debug().
@@ -610,6 +666,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		Str("old_status", dbMsg.Status.Type.String()).
 		Bool("has_pending_media", hasPendingMedia).
 		Bool("updated_media_is_complete", updatedMediaIsComplete).
+		Dict("message_change_debug_data", changes).
 		Msg("Message status changed")
 	switch {
 	case newStatus == gmproto.MessageStatusType_MESSAGE_DELETED:
@@ -623,6 +680,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 	case chatIDChanged,
 		dbMsg.Status.MediaStatus != downloadPendingStatusMessage(newStatus),
 		hasPendingMedia && updatedMediaIsComplete,
+		messageWasEdited,
 		dbMsg.Status.PartCount != len(evt.MessageInfo):
 		converted := portal.convertGoogleMessage(ctx, source, evt, false, raw)
 		if converted == nil {
@@ -633,19 +691,18 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 		if dbMsg.Status.MediaParts == nil {
 			dbMsg.Status.MediaParts = make(map[string]database.MediaPart)
 		}
+		dbMsg.Status.TextHash = converted.TextHash
 		eventIDs := make([]id.EventID, 0, len(converted.Parts))
 		for i, part := range converted.Parts {
-			isEdit := true
 			ts := time.Now().UnixMilli()
 			if chatIDChanged {
-				isEdit = false
+				ts = converted.Timestamp.UnixMilli()
 			} else if i == 0 {
 				part.SetEdit(dbMsg.MXID)
 			} else if existingPart, ok := dbMsg.Status.MediaParts[part.ID]; ok {
 				part.SetEdit(existingPart.EventID)
 			} else {
 				ts = converted.Timestamp.UnixMilli()
-				isEdit = false
 			}
 			resp, err := portal.sendMessage(ctx, converted.Intent, event.EventMessage, part.Content, part.Extra, ts)
 			if err != nil {
@@ -658,9 +715,17 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 				if chatIDChanged {
 					dbMsg.MXID = resp.EventID
 				}
-				dbMsg.Status.MediaParts[""] = database.MediaPart{PendingMedia: part.PendingMedia}
-			} else if !isEdit {
-				dbMsg.Status.MediaParts[part.ID] = database.MediaPart{EventID: resp.EventID, PendingMedia: part.PendingMedia}
+				if part.MediaMeta.MediaID != "" || part.MediaMeta.PendingMedia {
+					dbMsg.Status.MediaParts[""] = part.MediaMeta
+				}
+			} else if part.MediaMeta.MediaID != "" {
+				existingPart, ok := dbMsg.Status.MediaParts[part.ID]
+				if ok {
+					part.MediaMeta.EventID = existingPart.EventID
+				} else {
+					part.MediaMeta.EventID = resp.EventID
+				}
+				dbMsg.Status.MediaParts[part.ID] = part.MediaMeta
 			}
 		}
 		if len(eventIDs) > 0 {
@@ -851,12 +916,10 @@ func (portal *Portal) sendMessageParts(ctx context.Context, converted *Converted
 		} else {
 			eventIDs = append(eventIDs, resp.EventID)
 			if len(eventIDs) > 1 {
-				mediaParts[part.ID] = database.MediaPart{
-					EventID:      resp.EventID,
-					PendingMedia: part.PendingMedia,
-				}
-			} else if part.PendingMedia {
-				mediaParts[""] = database.MediaPart{PendingMedia: true}
+				part.MediaMeta.EventID = resp.EventID
+				mediaParts[part.ID] = part.MediaMeta
+			} else if part.MediaMeta.PendingMedia || part.MediaMeta.MediaID != "" {
+				mediaParts[""] = part.MediaMeta
 			}
 		}
 	}
@@ -947,10 +1010,10 @@ func (portal *Portal) syncReactions(ctx context.Context, source *User, message *
 }
 
 type ConvertedMessagePart struct {
-	ID           string
-	PendingMedia bool
-	Content      *event.MessageEventContent
-	Extra        map[string]any
+	ID        string
+	MediaMeta database.MediaPart
+	Content   *event.MessageEventContent
+	Extra     map[string]any
 }
 
 func (cmp *ConvertedMessagePart) SetEdit(eventID id.EventID) {
@@ -976,6 +1039,7 @@ type ConvertedMessage struct {
 
 	Status      gmproto.MessageStatusType
 	MediaStatus string
+	TextHash    string
 }
 
 func (portal *Portal) getIntent(ctx context.Context, source *User, participant string) *appservice.IntentAPI {
@@ -1087,18 +1151,25 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 	}
 
 	subject := evt.GetSubject()
+	textHasher := sha256.New()
+	textHasher.Write([]byte(subject))
+	textHasher.Write([]byte{0x00})
+	hasText := len(subject) > 0
 	downloadStatus := downloadPendingStatusMessage(evt.GetMessageStatus().GetStatus())
 	cm.MediaStatus = downloadStatus
 	for _, part := range evt.MessageInfo {
 		var content event.MessageEventContent
 		var extra map[string]any
-		pendingMedia := false
+		var mediaPart database.MediaPart
 		switch data := part.GetData().(type) {
 		case *gmproto.MessageInfo_MessageContent:
 			content = event.MessageEventContent{
 				MsgType: event.MsgText,
 				Body:    data.MessageContent.GetContent(),
 			}
+			hasText = true
+			textHasher.Write([]byte(content.Body))
+			textHasher.Write([]byte{0x00})
 			if subject != "" {
 				addSubject(&content, subject)
 				subject = ""
@@ -1108,20 +1179,31 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 				downloadStatus = ""
 			}
 		case *gmproto.MessageInfo_MediaContent:
-			if data.MediaContent.MediaID == "" && data.MediaContent.MediaID2 == "" {
-				pendingMedia = true
+			if data.MediaContent.MediaID == "" && data.MediaContent.ThumbnailMediaID == "" {
+				mediaPart = database.MediaPart{
+					PendingMedia:    true,
+					ActionMessageID: part.GetActionMessageID(),
+				}
 				content = event.MessageEventContent{
 					MsgType: event.MsgNotice,
 					Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 				}
-			} else if contentPtr, extraMap, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
-				pendingMedia = true
+			} else if contentPtr, extraMap, mediaID, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
+				mediaPart = database.MediaPart{
+					PendingMedia:    true,
+					MediaID:         mediaID,
+					ActionMessageID: part.GetActionMessageID(),
+				}
 				log.Err(err).Msg("Failed to copy attachment")
 				content = event.MessageEventContent{
 					MsgType: event.MsgNotice,
 					Body:    fmt.Sprintf("Failed to transfer attachment %s", data.MediaContent.GetMediaName()),
 				}
 			} else {
+				mediaPart = database.MediaPart{
+					MediaID:         mediaID,
+					ActionMessageID: part.GetActionMessageID(),
+				}
 				content = *contentPtr
 				extra = extraMap
 			}
@@ -1132,10 +1214,10 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 			content.RelatesTo = &event.RelatesTo{InReplyTo: &event.InReplyTo{EventID: replyTo}}
 		}
 		cm.Parts = append(cm.Parts, ConvertedMessagePart{
-			ID:           part.GetActionMessageID(),
-			PendingMedia: pendingMedia,
-			Content:      &content,
-			Extra:        extra,
+			ID:        part.GetActionMessageID(),
+			MediaMeta: mediaPart,
+			Content:   &content,
+			Extra:     extra,
 		})
 	}
 	if downloadStatus != "" {
@@ -1156,6 +1238,9 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 				Body:    subject,
 			},
 		})
+	}
+	if hasText {
+		cm.TextHash = hex.EncodeToString(textHasher.Sum(nil))
 	}
 	if portal.bridge.Config.Bridge.BeeperGalleries {
 		cm.MergeGallery()
@@ -1181,7 +1266,8 @@ func (msg *ConvertedMessage) MergeGallery() {
 	var pendingMedia bool
 
 	for _, part := range msg.Parts {
-		pendingMedia = pendingMedia || part.PendingMedia
+		// TODO this loses all the other media meta
+		pendingMedia = pendingMedia || part.MediaMeta.PendingMedia
 		switch part.Content.MsgType {
 		case event.MsgText:
 			textPart = &part
@@ -1216,8 +1302,10 @@ func (msg *ConvertedMessage) MergeGallery() {
 
 	if len(imageParts) == 0 {
 		msg.Parts = []ConvertedMessagePart{{
-			ID:           msg.Parts[0].ID,
-			PendingMedia: pendingMedia,
+			ID: msg.Parts[0].ID,
+			MediaMeta: database.MediaPart{
+				PendingMedia: pendingMedia,
+			},
 			Content: &event.MessageEventContent{
 				MsgType:       event.MsgText,
 				Body:          caption,
@@ -1227,8 +1315,10 @@ func (msg *ConvertedMessage) MergeGallery() {
 		}}
 	} else {
 		msg.Parts = []ConvertedMessagePart{{
-			ID:           msg.Parts[0].ID,
-			PendingMedia: pendingMedia,
+			ID: msg.Parts[0].ID,
+			MediaMeta: database.MediaPart{
+				PendingMedia: pendingMedia,
+			},
 			Content: &event.MessageEventContent{
 				MsgType: event.MsgBeeperGallery,
 				Body:    "Sent a gallery",
@@ -1284,18 +1374,21 @@ func (msg *ConvertedMessage) MergeCaption() {
 	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
-func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, map[string]any, error) {
+func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, map[string]any, string, error) {
 	var data []byte
 	var err error
+	var mediaID string
 	if msg.MediaID != "" {
+		mediaID = msg.MediaID
 		data, err = source.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
-	} else if msg.MediaID2 != "" {
-		data, err = source.Client.DownloadMedia(msg.MediaID2, msg.DecryptionKey2)
+	} else if msg.ThumbnailMediaID != "" {
+		mediaID = msg.ThumbnailMediaID
+		data, err = source.Client.DownloadMedia(msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
 	} else {
 		err = fmt.Errorf("no media ID found")
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, mediaID, err
 	}
 	mime := libgm.FormatToMediaType[msg.GetFormat()].Format
 	if mime == "" {
@@ -1315,7 +1408,7 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 		if mime != "audio/ogg" {
 			data, err = ffmpeg.ConvertBytes(ctx, data, ".ogg", []string{}, []string{"-c:a", "libopus"}, mime)
 			if err != nil {
-				return nil, nil, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
+				return nil, nil, mediaID, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
 			}
 			fileName += ".ogg"
 			mime = "audio/ogg"
@@ -1330,7 +1423,7 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 			Size:     len(data),
 		},
 	}
-	return content, extra, portal.uploadMedia(ctx, intent, data, content)
+	return content, extra, mediaID, portal.uploadMedia(ctx, intent, data, content)
 }
 
 func (portal *Portal) isRecentlyHandled(id string) bool {
@@ -1355,6 +1448,7 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, medi
 	msg.Status.PartCount = cm.PartCount
 	msg.Status.MediaStatus = cm.MediaStatus
 	msg.Status.MediaParts = mediaParts
+	msg.Status.TextHash = cm.TextHash
 	err := msg.Insert(context.TODO())
 	if err != nil {
 		portal.zlog.Err(err).Str("message_id", cm.ID).Msg("Failed to insert message to database")

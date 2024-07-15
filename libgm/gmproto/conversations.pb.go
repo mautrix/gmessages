@@ -1541,16 +1541,16 @@ type MediaContent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Format         MediaFormats `protobuf:"varint,1,opt,name=format,proto3,enum=conversations.MediaFormats" json:"format,omitempty"`
-	MediaID        string       `protobuf:"bytes,2,opt,name=mediaID,proto3" json:"mediaID,omitempty"`
-	MediaName      string       `protobuf:"bytes,4,opt,name=mediaName,proto3" json:"mediaName,omitempty"`
-	Size           int64        `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
-	Dimensions     *Dimensions  `protobuf:"bytes,6,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
-	MediaData      []byte       `protobuf:"bytes,7,opt,name=mediaData,proto3" json:"mediaData,omitempty"`
-	MediaID2       string       `protobuf:"bytes,9,opt,name=mediaID2,proto3" json:"mediaID2,omitempty"`
-	DecryptionKey  []byte       `protobuf:"bytes,11,opt,name=decryptionKey,proto3" json:"decryptionKey,omitempty"`
-	DecryptionKey2 []byte       `protobuf:"bytes,12,opt,name=decryptionKey2,proto3" json:"decryptionKey2,omitempty"`
-	MimeType       string       `protobuf:"bytes,14,opt,name=mimeType,proto3" json:"mimeType,omitempty"`
+	Format                 MediaFormats `protobuf:"varint,1,opt,name=format,proto3,enum=conversations.MediaFormats" json:"format,omitempty"`
+	MediaID                string       `protobuf:"bytes,2,opt,name=mediaID,proto3" json:"mediaID,omitempty"`
+	MediaName              string       `protobuf:"bytes,4,opt,name=mediaName,proto3" json:"mediaName,omitempty"`
+	Size                   int64        `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
+	Dimensions             *Dimensions  `protobuf:"bytes,6,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
+	MediaData              []byte       `protobuf:"bytes,7,opt,name=mediaData,proto3" json:"mediaData,omitempty"`
+	ThumbnailMediaID       string       `protobuf:"bytes,9,opt,name=thumbnailMediaID,proto3" json:"thumbnailMediaID,omitempty"`
+	DecryptionKey          []byte       `protobuf:"bytes,11,opt,name=decryptionKey,proto3" json:"decryptionKey,omitempty"`
+	ThumbnailDecryptionKey []byte       `protobuf:"bytes,12,opt,name=thumbnailDecryptionKey,proto3" json:"thumbnailDecryptionKey,omitempty"`
+	MimeType               string       `protobuf:"bytes,14,opt,name=mimeType,proto3" json:"mimeType,omitempty"`
 }
 
 func (x *MediaContent) Reset() {
@@ -1627,9 +1627,9 @@ func (x *MediaContent) GetMediaData() []byte {
 	return nil
 }
 
-func (x *MediaContent) GetMediaID2() string {
+func (x *MediaContent) GetThumbnailMediaID() string {
 	if x != nil {
-		return x.MediaID2
+		return x.ThumbnailMediaID
 	}
 	return ""
 }
@@ -1641,9 +1641,9 @@ func (x *MediaContent) GetDecryptionKey() []byte {
 	return nil
 }
 
-func (x *MediaContent) GetDecryptionKey2() []byte {
+func (x *MediaContent) GetThumbnailDecryptionKey() []byte {
 	if x != nil {
-		return x.DecryptionKey2
+		return x.ThumbnailDecryptionKey
 	}
 	return nil
 }

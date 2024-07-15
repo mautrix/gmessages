@@ -93,8 +93,10 @@ func (mq *MessageQuery) DeleteAllInChat(ctx context.Context, chat Key) error {
 }
 
 type MediaPart struct {
-	EventID      id.EventID `json:"mxid,omitempty"`
-	PendingMedia bool       `json:"pending_media,omitempty"`
+	EventID         id.EventID `json:"mxid,omitempty"`
+	PendingMedia    bool       `json:"pending_media,omitempty"`
+	MediaID         string     `json:"media_id,omitempty"`
+	ActionMessageID string     `json:"action_message_id,omitempty"`
 }
 
 type MessageStatus struct {
@@ -103,6 +105,7 @@ type MessageStatus struct {
 	MediaStatus string               `json:"media_status,omitempty"`
 	MediaParts  map[string]MediaPart `json:"media_parts,omitempty"`
 	PartCount   int                  `json:"part_count,omitempty"`
+	TextHash    string               `json:"text_hash,omitempty"`
 
 	MSSSent         bool `json:"mss_sent,omitempty"`
 	MSSFailSent     bool `json:"mss_fail_sent,omitempty"`

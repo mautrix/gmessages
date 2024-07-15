@@ -127,9 +127,9 @@ message MediaContent {
     int64 size = 5;
     Dimensions dimensions = 6;
     bytes mediaData = 7;
-    string mediaID2 = 9;
+    string thumbnailMediaID = 9;
     bytes decryptionKey = 11;
-    bytes decryptionKey2 = 12;
+    bytes thumbnailDecryptionKey = 12;
     string mimeType = 14;
 }
 

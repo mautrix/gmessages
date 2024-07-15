@@ -230,14 +230,12 @@ func (portal *Portal) backfillSendBatch(ctx context.Context, converted []*Conver
 			events = append(events, evt)
 			if dbm.MXID == "" {
 				dbm.MXID = evt.ID
-				if part.PendingMedia {
-					dbm.Status.MediaParts[""] = database.MediaPart{PendingMedia: true}
+				if part.MediaMeta.PendingMedia || part.MediaMeta.MediaID != "" {
+					dbm.Status.MediaParts[""] = part.MediaMeta
 				}
 			} else {
-				dbm.Status.MediaParts[part.ID] = database.MediaPart{
-					EventID:      evt.ID,
-					PendingMedia: part.PendingMedia,
-				}
+				part.MediaMeta.EventID = evt.ID
+				dbm.Status.MediaParts[part.ID] = part.MediaMeta
 			}
 		}
 		if dbm.MXID != "" {

@@ -43,6 +43,7 @@ var responseType = map[gmproto.ActionType]proto.Message{
 	gmproto.ActionType_LIST_TOP_CONTACTS:          &gmproto.ListTopContactsResponse{},
 	gmproto.ActionType_GET_OR_CREATE_CONVERSATION: &gmproto.GetOrCreateConversationResponse{},
 	gmproto.ActionType_UPDATE_CONVERSATION:        &gmproto.UpdateConversationResponse{},
+	gmproto.ActionType_GET_FULL_SIZE_IMAGE:        &gmproto.GetFullSizeImageResponse{},
 }
 
 func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*IncomingRPCMessage, error) {

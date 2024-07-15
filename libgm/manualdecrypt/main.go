@@ -46,6 +46,9 @@ var requestType = map[gmproto.ActionType]proto.Message{
 	gmproto.ActionType_LIST_TOP_CONTACTS:          &gmproto.ListTopContactsRequest{},
 	gmproto.ActionType_GET_OR_CREATE_CONVERSATION: &gmproto.GetOrCreateConversationRequest{},
 	gmproto.ActionType_UPDATE_CONVERSATION:        &gmproto.UpdateConversationRequest{},
+	gmproto.ActionType_RESEND_MESSAGE:             &gmproto.ResendMessageRequest{},
+	gmproto.ActionType_TYPING_UPDATES:             &gmproto.TypingUpdateRequest{},
+	gmproto.ActionType_GET_FULL_SIZE_IMAGE:        &gmproto.GetFullSizeImageRequest{},
 
 	gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT:     &gmproto.GaiaPairingRequestContainer{},
 	gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED: &gmproto.GaiaPairingRequestContainer{},
