@@ -1188,7 +1188,7 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 					MsgType: event.MsgNotice,
 					Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 				}
-			} else if contentPtr, extraMap, mediaID, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
+			} else if contentPtr, extraMap, mediaID, isThumbnail, err := portal.convertGoogleMedia(ctx, source, cm.Intent, data.MediaContent); err != nil {
 				mediaPart = database.MediaPart{
 					PendingMedia:    true,
 					MediaID:         mediaID,
@@ -1200,6 +1200,14 @@ func (portal *Portal) convertGoogleMessage(ctx context.Context, source *User, ev
 					Body:    fmt.Sprintf("Failed to transfer attachment %s", data.MediaContent.GetMediaName()),
 				}
 			} else {
+				log.Debug().
+					Str("part_id", part.GetActionMessageID()).
+					Str("media_id", mediaID).
+					Bool("is_thumbnail", isThumbnail).
+					Msg("Reuploaded media from Google Messages")
+				if isThumbnail {
+					go source.requestFullMedia(evt.MessageID, part.GetActionMessageID())
+				}
 				mediaPart = database.MediaPart{
 					MediaID:         mediaID,
 					ActionMessageID: part.GetActionMessageID(),
@@ -1374,21 +1382,23 @@ func (msg *ConvertedMessage) MergeCaption() {
 	msg.Parts = []ConvertedMessagePart{filePart}
 }
 
-func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, map[string]any, string, error) {
+func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, intent *appservice.IntentAPI, msg *gmproto.MediaContent) (*event.MessageEventContent, map[string]any, string, bool, error) {
 	var data []byte
 	var err error
 	var mediaID string
+	var isThumbnail bool
 	if msg.MediaID != "" {
 		mediaID = msg.MediaID
 		data, err = source.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
 	} else if msg.ThumbnailMediaID != "" {
 		mediaID = msg.ThumbnailMediaID
 		data, err = source.Client.DownloadMedia(msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
+		isThumbnail = true
 	} else {
 		err = fmt.Errorf("no media ID found")
 	}
 	if err != nil {
-		return nil, nil, mediaID, err
+		return nil, nil, mediaID, isThumbnail, err
 	}
 	mime := libgm.FormatToMediaType[msg.GetFormat()].Format
 	if mime == "" {
@@ -1408,7 +1418,7 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 		if mime != "audio/ogg" {
 			data, err = ffmpeg.ConvertBytes(ctx, data, ".ogg", []string{}, []string{"-c:a", "libopus"}, mime)
 			if err != nil {
-				return nil, nil, mediaID, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
+				return nil, nil, mediaID, isThumbnail, fmt.Errorf("%w (%s to ogg): %w", errMediaConvertFailed, mime, err)
 			}
 			fileName += ".ogg"
 			mime = "audio/ogg"
@@ -1423,7 +1433,7 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 			Size:     len(data),
 		},
 	}
-	return content, extra, mediaID, portal.uploadMedia(ctx, intent, data, content)
+	return content, extra, mediaID, isThumbnail, portal.uploadMedia(ctx, intent, data, content)
 }
 
 func (portal *Portal) isRecentlyHandled(id string) bool {

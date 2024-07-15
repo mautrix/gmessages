@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exsync"
 	"google.golang.org/protobuf/proto"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/appservice"
@@ -87,6 +88,8 @@ type User struct {
 	ongoingLoginChan <-chan qrChannelItem
 	lastQRCode       string
 	cancelLogin      func()
+
+	fullMediaRequests *exsync.Set[fullMediaRequestKey]
 
 	googleAsyncPairErrChan atomic.Pointer[chan error]
 
@@ -230,6 +233,7 @@ func (br *GMBridge) NewUser(dbUser *database.User) *User {
 	}
 	user.longPollingError = errors.New("not connected")
 	user.phoneResponding = true
+	user.fullMediaRequests = exsync.NewSet[fullMediaRequestKey]()
 
 	user.PermissionLevel = user.bridge.Config.Bridge.Permissions.Get(user.MXID)
 	user.Whitelisted = user.PermissionLevel >= bridgeconfig.PermissionLevelUser
@@ -1364,5 +1368,39 @@ func (user *User) markUnread(ctx context.Context, portal *Portal, unread bool) {
 			Msg("Failed to mark room as unread")
 	} else {
 		log.Debug().Str("event_type", "com.famedly.marked_unread").Msg("Marked room as unread")
+	}
+}
+
+type fullMediaRequestKey struct {
+	MessageID       string
+	ActionMessageID string
+}
+
+func (user *User) requestFullMedia(messageID, actionMessageID string) {
+	if actionMessageID == "" {
+		return
+	}
+	key := fullMediaRequestKey{MessageID: messageID, ActionMessageID: actionMessageID}
+	if !user.fullMediaRequests.Add(key) {
+		user.zlog.Debug().
+			Str("action", "request full size media").
+			Str("message_id", messageID).
+			Str("part_id", actionMessageID).
+			Msg("Not re-requesting full size media")
+		return
+	}
+	_, err := user.Client.GetFullSizeImage(messageID, actionMessageID)
+	if err != nil {
+		user.zlog.Err(err).
+			Str("action", "request full size media").
+			Str("message_id", messageID).
+			Str("part_id", actionMessageID).
+			Msg("Failed to request full media")
+	} else {
+		user.zlog.Debug().
+			Str("action", "request full size media").
+			Str("message_id", messageID).
+			Str("part_id", actionMessageID).
+			Msg("Requested full size media")
 	}
 }
