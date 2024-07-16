@@ -1,3 +1,10 @@
+# v0.4.3 (2024-07-16)
+
+* Added support for new protocol version in Google account pairing.
+* Added support for handling messages being modified, e.g. full-res media
+  arriving later than the thumbnail.
+  * This may or may not cover actual RCS edits if/when those are rolled out.
+
 # v0.4.2 (2024-06-16)
 
 * Added error message if phone doesn't send echo for outgoing message in
