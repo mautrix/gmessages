@@ -405,6 +405,11 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 			return ErrPairingCancelled
 		case 6, 2, 3:
 			return fmt.Errorf("%w (code: %d/%d)", ErrPairingTimeout, finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
+		case 10:
+			if finishResp.GetFinishErrorCode() == 27 {
+				return fmt.Errorf("%w (user chose 'this is not me' option)", ErrPairingCancelled)
+			}
+			fallthrough
 		default:
 			return fmt.Errorf("unknown error pairing: %d/%d", finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
 		}
