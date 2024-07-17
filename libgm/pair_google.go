@@ -288,8 +288,9 @@ var (
 const GaiaInitTimeout = 20 * time.Second
 
 type primaryDeviceID struct {
-	regID      string
-	unknownInt uint64
+	RegID      string
+	UnknownInt uint64
+	LastSeen   time.Time
 }
 
 func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) error {
@@ -306,30 +307,42 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		Str("maybe_browser_uuid", sigResp.MaybeBrowserUUID).
 		Any("device_data", sigResp.DeviceData).
 		Msg("Gaia devices response")
-	var primaryDevices []primaryDeviceID
+	var primaryDevices []*primaryDeviceID
+	primaryDeviceMap := make(map[string]*primaryDeviceID)
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
 		if dev.GetUnknownInt4() == 1 {
-			primaryDevices = append(primaryDevices, primaryDeviceID{
-				regID:      dev.GetDestOrSourceUUID(),
-				unknownInt: dev.GetUnknownBigInt7(),
-			})
+			pd := &primaryDeviceID{
+				RegID:      dev.GetDestOrSourceUUID(),
+				UnknownInt: dev.GetUnknownBigInt7(),
+			}
+			primaryDeviceMap[pd.RegID] = pd
+			primaryDevices = append(primaryDevices, pd)
+		}
+	}
+	for _, dev := range sigResp.GetDeviceData().GetUnknownItems3() {
+		if pd, ok := primaryDeviceMap[dev.GetDestOrSourceUUID()]; ok {
+			pd.LastSeen = time.UnixMicro(dev.GetUnknownTimestampMicroseconds())
 		}
 	}
 	if len(primaryDevices) == 0 {
 		return ErrNoDevicesFound
 	} else if len(primaryDevices) > 1 {
+		// Sort by last seen time, newest first
+		slices.SortFunc(primaryDevices, func(a, b *primaryDeviceID) int {
+			return b.LastSeen.Compare(a.LastSeen)
+		})
 		zerolog.Ctx(ctx).Warn().
 			Any("devices", primaryDevices).
 			Int("hacky_device_switcher", c.GaiaHackyDeviceSwitcher).
 			Msg("Found multiple primary-looking devices for gaia pairing")
 	}
-	destRegID := primaryDevices[c.GaiaHackyDeviceSwitcher%len(primaryDevices)].regID
-	destRegUnknownInt := primaryDevices[c.GaiaHackyDeviceSwitcher%len(primaryDevices)].unknownInt
+	destRegDev := primaryDevices[c.GaiaHackyDeviceSwitcher%len(primaryDevices)]
 	zerolog.Ctx(ctx).Debug().
-		Str("dest_reg_uuid", destRegID).
-		Uint64("dest_reg_unknown_int", destRegUnknownInt).
+		Str("dest_reg_uuid", destRegDev.RegID).
+		Uint64("dest_reg_unknown_int", destRegDev.UnknownInt).
+		Time("dest_reg_last_seen", destRegDev.LastSeen).
 		Msg("Found UUID to use for gaia pairing")
-	destRegUUID, err := uuid.Parse(destRegID)
+	destRegUUID, err := uuid.Parse(destRegDev.RegID)
 	if err != nil {
 		return fmt.Errorf("failed to parse destination UUID: %w", err)
 	}
@@ -415,7 +428,7 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		return fmt.Errorf("unsupported key derivation version %d", serverInit.GetConfirmedKeyDerivationVersion())
 	}
 	c.AuthData.PairingID = ps.UUID
-	c.triggerEvent(&events.PairSuccessful{PhoneID: fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), destRegUnknownInt)})
+	c.triggerEvent(&events.PairSuccessful{PhoneID: fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), destRegDev.UnknownInt)})
 
 	go func() {
 		err := c.Reconnect()
