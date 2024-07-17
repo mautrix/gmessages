@@ -373,6 +373,10 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		}
 		return fmt.Errorf("failed to send client init: %w", err)
 	}
+	zerolog.Ctx(ctx).Debug().
+		Int32("key_derivation_version", serverInit.GetConfirmedKeyDerivationVersion()).
+		Int32("verification_code_version", serverInit.GetConfirmedVerificationCodeVersion()).
+		Msg("Received server init")
 	pairingEmoji, err := ps.ProcessServerInit(serverInit)
 	if err != nil {
 		cancelErr := c.cancelGaiaPairing(ps)
