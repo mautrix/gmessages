@@ -3,16 +3,16 @@ module go.mau.fi/mautrix-gmessages
 go 1.21
 
 require (
-	github.com/gabriel-vasile/mimetype v1.4.4
+	github.com/gabriel-vasile/mimetype v1.4.5
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/rs/zerolog v1.33.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.4.3
 	go.mau.fi/util v0.6.1-0.20240722085753-2d7945696c9b
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	google.golang.org/protobuf v1.34.2
-	maunium.net/go/mautrix v0.19.0
+	maunium.net/go/mautrix v0.19.1-0.20240729220122-7701ba1a49b2
 )
 
 require (
