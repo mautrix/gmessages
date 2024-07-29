@@ -1638,6 +1638,12 @@ func (portal *Portal) UpdateMetadata(ctx context.Context, user *User, info *gmpr
 		portal.SendMode = info.SendMode
 		update = true
 	}
+	err := user.AddSelfParticipantID(ctx, info.DefaultOutgoingID)
+	if err != nil {
+		portal.zlog.Warn().Err(err).
+			Str("participant_id", info.DefaultOutgoingID).
+			Msg("Failed to save default outgoing ID as a self participant ID")
+	}
 	if portal.OutgoingID != info.DefaultOutgoingID {
 		portal.zlog.Debug().
 			Str("old_id", portal.OutgoingID).
