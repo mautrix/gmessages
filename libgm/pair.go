@@ -58,18 +58,22 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 	c.AuthData.Mobile = data.Mobile
 	c.AuthData.Browser = data.Browser
 
-	c.triggerEvent(&events.PairSuccessful{PhoneID: data.GetMobile().GetSourceID(), QRData: data})
+	if cb := c.PairCallback.Load(); cb != nil {
+		(*cb)(data)
+	} else {
+		c.triggerEvent(&events.PairSuccessful{PhoneID: data.GetMobile().GetSourceID(), QRData: data})
 
-	go func() {
-		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
-		// the phone won't recognize the session the bridge will get unpaired.
-		time.Sleep(2 * time.Second)
+		go func() {
+			// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
+			// the phone won't recognize the session the bridge will get unpaired.
+			time.Sleep(2 * time.Second)
 
-		err := c.Reconnect()
-		if err != nil {
-			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
-		}
-	}()
+			err := c.Reconnect()
+			if err != nil {
+				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
+			}
+		}()
+	}
 }
 
 func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {

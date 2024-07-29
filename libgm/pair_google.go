@@ -106,19 +106,23 @@ type PairingSession struct {
 	UUID          uuid.UUID
 	Start         time.Time
 	PairingKeyDSA *ecdsa.PrivateKey
+	DestRegDevice primaryDeviceID
+	ServerInit    *gmproto.GaiaPairingResponseContainer
 	InitPayload   []byte
+	FinishPayload []byte
 	NextKey       []byte
 }
 
-func NewPairingSession() PairingSession {
+func NewPairingSession(destRegDevice primaryDeviceID) *PairingSession {
 	ec, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
-	return PairingSession{
+	return &PairingSession{
 		UUID:          uuid.New(),
 		Start:         time.Now(),
 		PairingKeyDSA: ec,
+		DestRegDevice: destRegDevice,
 	}
 }
 
@@ -148,6 +152,7 @@ func (ps *PairingSession) PreparePayloads() ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal finish message: %w", err)
 	}
+	ps.FinishPayload = finish
 
 	keyCommitment := sha512.Sum512(finish)
 	initPayload, err := proto.Marshal(&gmproto.Ukey2ClientInit{
@@ -210,6 +215,7 @@ func GetEmojiSVG(emoji string) string {
 }
 
 func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseContainer) (string, error) {
+	ps.ServerInit = msg
 	var ukeyMessage gmproto.Ukey2Message
 	err := proto.Unmarshal(msg.GetData(), &ukeyMessage)
 	if err != nil {
@@ -294,13 +300,38 @@ type primaryDeviceID struct {
 	LastSeen   time.Time
 }
 
+type GaiaPairingState struct {
+	*PairingSession
+}
+
 func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) error {
+	pairingEmoji, ps, err := c.StartGaiaPairing(ctx)
+	if err != nil {
+		return err
+	}
+	emojiCallback(pairingEmoji)
+	phoneID, err := c.FinishGaiaPairing(ctx, ps)
+	if err != nil {
+		return err
+	}
+	c.triggerEvent(&events.PairSuccessful{PhoneID: phoneID})
+
+	go func() {
+		err := c.Reconnect()
+		if err != nil {
+			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
+		}
+	}()
+	return nil
+}
+
+func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession, error) {
 	if !c.AuthData.HasCookies() {
-		return ErrNoCookies
+		return "", nil, ErrNoCookies
 	}
 	sigResp, err := c.signInGaiaGetToken(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to prepare gaia pairing: %w", err)
+		return "", nil, fmt.Errorf("failed to prepare gaia pairing: %w", err)
 	}
 	// Don't log the whole object as it also contains the tachyon token
 	zerolog.Ctx(ctx).Debug().
@@ -326,7 +357,7 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		}
 	}
 	if len(primaryDevices) == 0 {
-		return ErrNoDevicesFound
+		return "", nil, ErrNoDevicesFound
 	} else if len(primaryDevices) > 1 {
 		// Sort by last seen time, newest first
 		slices.SortFunc(primaryDevices, func(a, b *primaryDeviceID) int {
@@ -345,17 +376,17 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		Msg("Found UUID to use for gaia pairing")
 	destRegUUID, err := uuid.Parse(destRegDev.RegID)
 	if err != nil {
-		return fmt.Errorf("failed to parse destination UUID: %w", err)
+		return "", nil, fmt.Errorf("failed to parse destination UUID: %w", err)
 	}
 	c.AuthData.DestRegID = destRegUUID
 	var longPollConnectWait sync.WaitGroup
 	longPollConnectWait.Add(1)
 	go c.doLongPoll(false, longPollConnectWait.Done)
 	longPollConnectWait.Wait()
-	ps := NewPairingSession()
-	clientInit, clientFinish, err := ps.PreparePayloads()
+	ps := NewPairingSession(*destRegDev)
+	clientInit, _, err := ps.PreparePayloads()
 	if err != nil {
-		return fmt.Errorf("failed to prepare pairing payloads: %w", err)
+		return "", nil, fmt.Errorf("failed to prepare pairing payloads: %w", err)
 	}
 	initCtx, cancel := context.WithTimeout(ctx, GaiaInitTimeout)
 	serverInit, err := c.sendGaiaPairingMessage(initCtx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
@@ -370,9 +401,9 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 			if len(primaryDevices) > 1 {
 				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrHadMultipleDevices)
 			}
-			return err
+			return "", nil, err
 		}
-		return fmt.Errorf("failed to send client init: %w", err)
+		return "", nil, fmt.Errorf("failed to send client init: %w", err)
 	}
 	zerolog.Ctx(ctx).Debug().
 		Int32("key_derivation_version", serverInit.GetConfirmedKeyDerivationVersion()).
@@ -384,10 +415,13 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		if cancelErr != nil {
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after error processing server init")
 		}
-		return fmt.Errorf("error processing server init: %w", err)
+		return "", nil, fmt.Errorf("error processing server init: %w", err)
 	}
-	emojiCallback(pairingEmoji)
-	finishResp, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, clientFinish)
+	return pairingEmoji, ps, nil
+}
+
+func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (string, error) {
+	finishResp, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, ps.FinishPayload)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			zerolog.Ctx(ctx).Debug().Msg("Sending gaia pairing cancel after context was canceled")
@@ -396,28 +430,28 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 				zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after context was canceled")
 			}
 		}
-		return fmt.Errorf("failed to send client finish: %w", err)
+		return "", fmt.Errorf("failed to send client finish: %w", err)
 	}
 	if finishResp.GetFinishErrorType() != 0 {
 		switch finishResp.GetFinishErrorCode() {
 		case 5:
-			return ErrIncorrectEmoji
+			return "", ErrIncorrectEmoji
 		case 7:
-			return ErrPairingCancelled
+			return "", ErrPairingCancelled
 		case 6, 2, 3:
-			return fmt.Errorf("%w (code: %d/%d)", ErrPairingTimeout, finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
+			return "", fmt.Errorf("%w (code: %d/%d)", ErrPairingTimeout, finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
 		case 10:
 			if finishResp.GetFinishErrorCode() == 27 {
-				return fmt.Errorf("%w (user chose 'this is not me' option)", ErrPairingCancelled)
+				return "", fmt.Errorf("%w (user chose 'this is not me' option)", ErrPairingCancelled)
 			}
 			fallthrough
 		default:
-			return fmt.Errorf("unknown error pairing: %d/%d", finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
+			return "", fmt.Errorf("unknown error pairing: %d/%d", finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
 		}
 	}
 	ukey2ClientKey := doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))
 	ukey2ServerKey := doHKDF(ps.NextKey, encryptionKeyInfo, []byte("server"))
-	switch serverInit.GetConfirmedKeyDerivationVersion() {
+	switch ps.ServerInit.GetConfirmedKeyDerivationVersion() {
 	case 0:
 		c.AuthData.RequestCrypto.AESKey = ukey2ClientKey
 		c.AuthData.RequestCrypto.HMACKey = ukey2ServerKey
@@ -435,18 +469,10 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 		c.AuthData.RequestCrypto.AESKey = doHKDF(concattedHash[:], []byte("Ditto salt 1"), []byte("Ditto info 1"))
 		c.AuthData.RequestCrypto.HMACKey = doHKDF(concattedHash[:], []byte("Ditto salt 2"), []byte("Ditto info 2"))
 	default:
-		return fmt.Errorf("unsupported key derivation version %d", serverInit.GetConfirmedKeyDerivationVersion())
+		return "", fmt.Errorf("unsupported key derivation version %d", ps.ServerInit.GetConfirmedKeyDerivationVersion())
 	}
 	c.AuthData.PairingID = ps.UUID
-	c.triggerEvent(&events.PairSuccessful{PhoneID: fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), destRegDev.UnknownInt)})
-
-	go func() {
-		err := c.Reconnect()
-		if err != nil {
-			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
-		}
-	}()
-	return nil
+	return fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), ps.DestRegDevice.UnknownInt), nil
 }
 
 func byteHash(bytes []byte) (out int32) {
@@ -457,7 +483,7 @@ func byteHash(bytes []byte) (out int32) {
 	return out
 }
 
-func (c *Client) cancelGaiaPairing(sess PairingSession) error {
+func (c *Client) cancelGaiaPairing(sess *PairingSession) error {
 	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
 		Action:      gmproto.ActionType_CANCEL_GAIA_PAIRING,
 		RequestID:   sess.UUID.String(),
@@ -467,7 +493,7 @@ func (c *Client) cancelGaiaPairing(sess PairingSession) error {
 	})
 }
 
-func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
+func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess *PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
 	reqContainer := &gmproto.GaiaPairingRequestContainer{
 		PairingAttemptID: sess.UUID.String(),
 		BrowserDetails:   util.BrowserDetailsMessage,

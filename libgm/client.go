@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -122,6 +123,8 @@ type Client struct {
 	conversationsFetchedOnce bool
 
 	GaiaHackyDeviceSwitcher int
+
+	PairCallback atomic.Pointer[func(data *gmproto.PairedData)]
 
 	AuthData *AuthData
 	cfg      *gmproto.Config
