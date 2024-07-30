@@ -12,7 +12,8 @@ require (
 	go.mau.fi/util v0.6.1-0.20240722085753-2d7945696c9b
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	google.golang.org/protobuf v1.34.2
-	maunium.net/go/mautrix v0.19.1-0.20240729220122-7701ba1a49b2
+	gopkg.in/yaml.v3 v3.0.1
+	maunium.net/go/mautrix v0.19.1-0.20240731125734-11e8d6296914
 )
 
 require (
@@ -36,7 +37,6 @@ require (
 	golang.org/x/sys v0.22.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	maunium.net/go/mauflag v1.0.0 // indirect
 )
 

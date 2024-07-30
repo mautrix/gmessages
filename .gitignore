@@ -9,6 +9,7 @@
 *.db
 *.log
 *.log.gz
+*.bak
 
 /mautrix-gmessages
 /start
