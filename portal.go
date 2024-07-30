@@ -1063,7 +1063,7 @@ type ConvertedMessage struct {
 }
 
 func (portal *Portal) getIntent(ctx context.Context, source *User, participant string) *appservice.IntentAPI {
-	if source.IsSelfParticipantID(participant) {
+	if source.IsSelfParticipantID(participant) || participant == "1" {
 		intent := source.DoublePuppetIntent
 		if intent == nil {
 			zerolog.Ctx(ctx).Debug().Msg("Dropping message from self as double puppeting is not enabled")
@@ -1515,6 +1515,9 @@ func (portal *Portal) SyncParticipants(ctx context.Context, source *User, metada
 		filteredParticipants = append(filteredParticipants, participant)
 	}
 	for _, participant := range filteredParticipants {
+		if participant.ID.ParticipantID == "1" {
+			portal.zlog.Warn().Any("participant", participant).Msg("Found non-self participant with ID 1")
+		}
 		puppet := source.GetPuppetByID(participant.ID.ParticipantID, participant.ID.Number)
 		if puppet == nil {
 			portal.zlog.Error().Any("participant_id", participant.ID).Msg("Failed to get puppet for participant")
