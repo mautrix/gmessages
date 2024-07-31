@@ -106,29 +106,6 @@ func (puppet *Puppet) GetMXID() id.UserID {
 	return puppet.MXID
 }
 
-func (br *GMBridge) loadManyPuppets(query func(ctx context.Context) ([]*database.Puppet, error)) []*Puppet {
-	br.puppetsLock.Lock()
-	defer br.puppetsLock.Unlock()
-	dbPuppets, err := query(context.TODO())
-	if err != nil {
-		br.ZLog.Err(err).Msg("Failed to load all puppets from database")
-		return []*Puppet{}
-	}
-	output := make([]*Puppet, len(dbPuppets))
-	for index, dbPuppet := range dbPuppets {
-		if dbPuppet == nil {
-			continue
-		}
-		puppet, ok := br.puppetsByKey[dbPuppet.Key]
-		if !ok {
-			puppet = br.NewPuppet(dbPuppet)
-			br.puppetsByKey[puppet.Key] = puppet
-		}
-		output[index] = puppet
-	}
-	return output
-}
-
 func (br *GMBridge) FormatPuppetMXID(key database.Key) id.UserID {
 	return id.NewUserID(
 		br.Config.Bridge.FormatUsername(key.String()),
@@ -254,7 +231,7 @@ func (puppet *Puppet) updatePortalAvatar(ctx context.Context) {
 	}
 	_, err := portal.MainIntent().SetRoomAvatar(ctx, portal.MXID, puppet.AvatarMXC)
 	if err != nil {
-		puppet.log.Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to update DM room avatar")
+		puppet.log.Err(err).Stringer("room_id", portal.MXID).Msg("Failed to update DM room avatar")
 	}
 }
 

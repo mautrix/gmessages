@@ -23,10 +23,10 @@ import (
 	"sync"
 
 	"go.mau.fi/util/jsontime"
+	"maunium.net/go/mautrix/bridgev2/database"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"maunium.net/go/mautrix/bridgev2/database"
 )
 
 func (gc *GMConnector) GetDBMetaTypes() database.MetaTypes {

@@ -31,16 +31,16 @@ import (
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ffmpeg"
 	"golang.org/x/exp/maps"
-
-	"go.mau.fi/mautrix-gmessages/libgm"
-	"go.mau.fi/mautrix-gmessages/libgm/events"
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 	"maunium.net/go/mautrix/event"
+
+	"go.mau.fi/mautrix-gmessages/libgm"
+	"go.mau.fi/mautrix-gmessages/libgm/events"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func (gc *GMClient) handleGMEvent(rawEvt any) {
@@ -257,12 +257,13 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	default:
 		return
 	}
+	//lint:ignore SA9003 -
 	if becameInactive {
-		if gc.Main.Config.AggressiveReconnect {
-			//go gc.aggressiveSetActive()
-		} else {
-			//go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
-		}
+		//	if gc.Main.Config.AggressiveReconnect {
+		//		go gc.aggressiveSetActive()
+		//	} else {
+		//		go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
+		//	}
 	}
 	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 }
@@ -846,6 +847,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			log.Debug().
 				Str("sender_id", string(dbm[0].SenderID)).
 				Msg("Redacting events from old room")
+			//lint:ignore SA1019 -
 			oldPortal.Internal().RedactMessageParts(ctx, dbm, intent, time.Time{})
 		}
 	}

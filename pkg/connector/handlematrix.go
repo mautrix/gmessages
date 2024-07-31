@@ -25,13 +25,13 @@ import (
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/variationselector"
-
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/util"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
+
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/libgm/util"
 )
 
 var (

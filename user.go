@@ -220,7 +220,9 @@ func (br *GMBridge) loadDBUser(dbUser *database.User, mxid *id.UserID) *User {
 	user := br.NewUser(dbUser)
 	br.usersByMXID[user.MXID] = user
 	if len(user.ManagementRoom) > 0 {
+		br.managementRoomsLock.Lock()
 		br.managementRooms[user.ManagementRoom] = user
+		br.managementRoomsLock.Unlock()
 	}
 	return user
 }
@@ -229,7 +231,7 @@ func (br *GMBridge) NewUser(dbUser *database.User) *User {
 	user := &User{
 		User:   dbUser,
 		bridge: br,
-		zlog:   br.ZLog.With().Str("user_id", dbUser.MXID.String()).Logger(),
+		zlog:   br.ZLog.With().Stringer("user_id", dbUser.MXID).Logger(),
 	}
 	user.longPollingError = errors.New("not connected")
 	user.phoneResponding = true
@@ -258,7 +260,7 @@ func (user *User) ensureInvited(ctx context.Context, intent *appservice.IntentAP
 		ok = true
 		return
 	} else if err != nil {
-		user.zlog.Warn().Err(err).Str("room_id", roomID.String()).Msg("Failed to invite user to room")
+		user.zlog.Warn().Err(err).Stringer("room_id", roomID).Msg("Failed to invite user to room")
 	} else {
 		ok = true
 	}
@@ -266,7 +268,7 @@ func (user *User) ensureInvited(ctx context.Context, intent *appservice.IntentAP
 	if user.DoublePuppetIntent != nil {
 		err = user.DoublePuppetIntent.EnsureJoined(ctx, roomID, appservice.EnsureJoinedParams{IgnoreCache: true})
 		if err != nil {
-			user.zlog.Warn().Err(err).Str("room_id", roomID.String()).Msg("Failed to auto-join room")
+			user.zlog.Warn().Err(err).Stringer("room_id", roomID).Msg("Failed to auto-join room")
 			ok = false
 		} else {
 			ok = true
@@ -359,6 +361,8 @@ func (user *User) SetManagementRoom(roomID id.RoomID) {
 		Str("action", "SetManagementRoom").
 		Logger()
 	ctx := context.TODO()
+	user.bridge.managementRoomsLock.Lock()
+	defer user.bridge.managementRoomsLock.Unlock()
 	existingUser, ok := user.bridge.managementRooms[roomID]
 	if ok {
 		existingUser.ManagementRoom = ""
@@ -1225,17 +1229,17 @@ func (user *User) updateChatTag(ctx context.Context, portal *Portal, tag event.R
 	var err error
 	currentTag, ok := existingTags.Tags[tag]
 	if active && !ok {
-		user.zlog.Debug().Str("tag", string(tag)).Str("room_id", portal.MXID.String()).Msg("Adding room tag")
+		user.zlog.Debug().Str("tag", string(tag)).Stringer("room_id", portal.MXID).Msg("Adding room tag")
 		data := CustomTagData{Order: "0.5", DoublePuppet: user.bridge.Name}
 		err = user.DoublePuppetIntent.AddTagWithCustomData(ctx, portal.MXID, tag, &data)
 	} else if !active && ok && currentTag.DoublePuppet == user.bridge.Name {
-		user.zlog.Debug().Str("tag", string(tag)).Str("room_id", portal.MXID.String()).Msg("Removing room tag")
+		user.zlog.Debug().Str("tag", string(tag)).Stringer("room_id", portal.MXID).Msg("Removing room tag")
 		err = user.DoublePuppetIntent.RemoveTag(ctx, portal.MXID, tag)
 	} else {
 		err = nil
 	}
 	if err != nil {
-		user.zlog.Warn().Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to update room tag")
+		user.zlog.Warn().Err(err).Stringer("room_id", portal.MXID).Msg("Failed to update room tag")
 	}
 }
 
@@ -1297,7 +1301,7 @@ func (user *User) syncChatDoublePuppetDetails(ctx context.Context, portal *Porta
 		var existingTags CustomTagEventContent
 		err := user.DoublePuppetIntent.GetTagsWithCustomData(ctx, portal.MXID, &existingTags)
 		if err != nil && !errors.Is(err, mautrix.MNotFound) {
-			user.zlog.Warn().Err(err).Str("room_id", portal.MXID.String()).Msg("Failed to get existing room tags")
+			user.zlog.Warn().Err(err).Stringer("room_id", portal.MXID).Msg("Failed to get existing room tags")
 		}
 		user.updateChatTag(ctx, portal, user.bridge.Config.Bridge.ArchiveTag, conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED, existingTags)
 		user.updateChatTag(ctx, portal, user.bridge.Config.Bridge.PinnedTag, conv.Pinned, existingTags)
@@ -1344,30 +1348,6 @@ func (user *User) UpdateDirectChats(ctx context.Context, chats map[id.UserID][]i
 	}
 	if err != nil {
 		user.zlog.Err(err).Msg("Failed to update m.direct list")
-	}
-}
-
-func (user *User) markUnread(ctx context.Context, portal *Portal, unread bool) {
-	if user.DoublePuppetIntent == nil {
-		return
-	}
-
-	log := user.zlog.With().Str("room_id", portal.MXID.String()).Logger()
-
-	err := user.DoublePuppetIntent.SetRoomAccountData(ctx, portal.MXID, "m.marked_unread", map[string]bool{"unread": unread})
-	if err != nil {
-		log.Warn().Err(err).Str("event_type", "m.marked_unread").
-			Msg("Failed to mark room as unread")
-	} else {
-		log.Debug().Str("event_type", "m.marked_unread").Msg("Marked room as unread")
-	}
-
-	err = user.DoublePuppetIntent.SetRoomAccountData(ctx, portal.MXID, "com.famedly.marked_unread", map[string]bool{"unread": unread})
-	if err != nil {
-		log.Warn().Err(err).Str("event_type", "com.famedly.marked_unread").
-			Msg("Failed to mark room as unread")
-	} else {
-		log.Debug().Str("event_type", "com.famedly.marked_unread").Msg("Marked room as unread")
 	}
 }
 

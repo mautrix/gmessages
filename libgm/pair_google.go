@@ -69,6 +69,7 @@ func (c *Client) baseSignInGaiaPayload() *gmproto.SignInGaiaRequest {
 	}
 }
 
+//lint:ignore U1000 -
 func (c *Client) signInGaiaInitial(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
 	payload := c.baseSignInGaiaPayload()
 	payload.UnknownInt3 = 1

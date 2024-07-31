@@ -52,8 +52,6 @@ type GMBridge struct {
 
 	usersByMXID         map[id.UserID]*User
 	usersLock           sync.Mutex
-	spaceRooms          map[id.RoomID]*User
-	spaceRoomsLock      sync.Mutex
 	managementRooms     map[id.RoomID]*User
 	managementRoomsLock sync.Mutex
 	portalsByMXID       map[id.RoomID]*Portal
@@ -141,7 +139,7 @@ func (br *GMBridge) Stop() {
 		if user.Client == nil {
 			continue
 		}
-		br.ZLog.Debug().Str("user_id", user.MXID.String()).Msg("Disconnecting user")
+		br.ZLog.Debug().Stringer("user_id", user.MXID).Msg("Disconnecting user")
 		user.Client.Disconnect()
 	}
 }
@@ -161,7 +159,6 @@ func (br *GMBridge) GetConfigPtr() interface{} {
 func main() {
 	br := &GMBridge{
 		usersByMXID:        make(map[id.UserID]*User),
-		spaceRooms:         make(map[id.RoomID]*User),
 		managementRooms:    make(map[id.RoomID]*User),
 		portalsByMXID:      make(map[id.RoomID]*Portal),
 		portalsByKey:       make(map[database.Key]*Portal),

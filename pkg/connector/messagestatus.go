@@ -20,8 +20,9 @@ import (
 	"errors"
 	"strings"
 
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"maunium.net/go/mautrix/bridgev2"
+
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func isSuccessfullySentStatus(status gmproto.MessageStatusType) bool {

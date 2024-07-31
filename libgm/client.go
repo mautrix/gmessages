@@ -330,11 +330,6 @@ func (c *Client) diffVersionFormat(curr *gmproto.ConfigVersion, latest *gmproto.
 	return fmt.Sprintf("%d.%d.%d -> %d.%d.%d", curr.Year, curr.Month, curr.Day, latest.Year, latest.Month, latest.Day)
 }
 
-func (c *Client) updateWebEncryptionKey(key []byte) {
-	c.Logger.Debug().Msg("Updated WebEncryptionKey")
-	c.AuthData.WebEncryptionKey = key
-}
-
 func (c *Client) updateTachyonAuthToken(data *gmproto.TokenData) {
 	c.AuthData.TachyonAuthToken = data.GetTachyonAuthToken()
 	validForDuration := time.Duration(data.GetTTL()) * time.Microsecond

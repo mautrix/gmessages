@@ -25,13 +25,12 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exsync"
-
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 type conversationMeta struct {

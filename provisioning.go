@@ -73,10 +73,7 @@ func (prov *ProvisioningAPI) Init() {
 
 func (prov *ProvisioningAPI) AuthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		if strings.HasPrefix(auth, "Bearer ") {
-			auth = auth[len("Bearer "):]
-		}
+		auth := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if auth != prov.bridge.Config.Bridge.Provisioning.SharedSecret {
 			hlog.FromRequest(r).Warn().Msg("Authentication token does not match shared secret")
 			jsonResponse(w, http.StatusForbidden, map[string]interface{}{
@@ -87,6 +84,7 @@ func (prov *ProvisioningAPI) AuthMiddleware(h http.Handler) http.Handler {
 		}
 		userID := r.URL.Query().Get("user_id")
 		user := prov.bridge.GetUserByMXID(id.UserID(userID))
+		//lint:ignore SA1029 -
 		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "user", user)))
 	})
 }

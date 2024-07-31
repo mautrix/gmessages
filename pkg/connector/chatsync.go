@@ -22,11 +22,11 @@ import (
 
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
-
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
 func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
@@ -157,14 +157,14 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 	if evt.OnlyBackfill {
 		return false
 	}
+	if evt.Conv.Participants == nil {
+		return false
+	}
 	switch evt.Conv.GetStatus() {
 	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED:
 		// continue to other checks
 	default:
 		// Don't create portal for keep_archived/spam/blocked/deleted
-		return false
-	}
-	if evt.Conv.Participants == nil {
 		return false
 	}
 	return true

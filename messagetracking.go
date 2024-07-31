@@ -124,7 +124,7 @@ func (portal *Portal) sendErrorMessage(ctx context.Context, evt *event.Event, er
 	}
 	msg := fmt.Sprintf("\u26a0 Your %s %s bridged: %v", msgType, certainty, err)
 	if errors.Is(err, errEchoTimeout) {
-		msg = fmt.Sprintf("\u26a0 Your phone has not echoed the message, it may have been lost")
+		msg = "\u26a0 Your phone has not echoed the message, it may have been lost"
 	}
 	content := &event.MessageEventContent{
 		MsgType: event.MsgNotice,
@@ -137,7 +137,7 @@ func (portal *Portal) sendErrorMessage(ctx context.Context, evt *event.Event, er
 	}
 	resp, err := portal.sendMainIntentMessage(ctx, content)
 	if err != nil {
-		portal.zlog.Warn().Err(err).Str("event_id", evt.ID.String()).Msg("Failed to send bridging error message")
+		portal.zlog.Warn().Err(err).Stringer("event_id", evt.ID).Msg("Failed to send bridging error message")
 		return ""
 	}
 	return resp.EventID
@@ -189,11 +189,11 @@ func (portal *Portal) sendStatusEvent(ctx context.Context, evtID, lastRetry id.E
 		content.Status = event.MessageStatusSuccess
 	} else {
 		content.Reason, content.Status, _, _, content.Message = errorToStatusReason(err)
-		content.Error = err.Error()
+		content.InternalError = err.Error()
 	}
 	_, err = intent.SendMessageEvent(ctx, portal.MXID, event.BeeperMessageStatus, &content)
 	if err != nil {
-		portal.zlog.Warn().Err(err).Str("event_id", evtID.String()).Msg("Failed to send message status event")
+		portal.zlog.Warn().Err(err).Stringer("event_id", evtID).Msg("Failed to send message status event")
 	}
 }
 
@@ -201,7 +201,7 @@ func (portal *Portal) sendDeliveryReceipt(ctx context.Context, eventID id.EventI
 	if portal.bridge.Config.Bridge.DeliveryReceipts {
 		err := portal.bridge.Bot.SendReceipt(ctx, portal.MXID, eventID, event.ReceiptTypeRead, nil)
 		if err != nil {
-			portal.zlog.Warn().Err(err).Str("event_id", eventID.String()).Msg("Failed to send delivery receipt")
+			portal.zlog.Warn().Err(err).Stringer("event_id", eventID).Msg("Failed to send delivery receipt")
 		}
 	}
 }
@@ -262,7 +262,7 @@ func (portal *Portal) sendMessageMetrics(ctx context.Context, user *User, evt *e
 		}
 	}
 	if ms != nil {
-		portal.zlog.Debug().EmbedObject(ms.timings).Str("event_id", evt.ID.String()).Msg("Timings for Matrix event")
+		portal.zlog.Debug().EmbedObject(ms.timings).Stringer("event_id", evt.ID).Msg("Timings for Matrix event")
 	}
 }
 

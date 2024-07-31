@@ -60,7 +60,7 @@ func (br *GMBridge) GetPortalByMXID(mxid id.RoomID) *Portal {
 	if !ok {
 		dbPortal, err := br.DB.Portal.GetByMXID(context.TODO(), mxid)
 		if err != nil {
-			br.ZLog.Err(err).Str("mxid", mxid.String()).Msg("Failed to get portal from database")
+			br.ZLog.Err(err).Stringer("mxid", mxid).Msg("Failed to get portal from database")
 			return nil
 		}
 		return br.loadDBPortal(dbPortal, nil)
@@ -240,8 +240,6 @@ func (br *GMBridge) NewPortal(dbPortal *database.Portal) *Portal {
 	return portal
 }
 
-const recentlyHandledLength = 100
-
 type PortalMessage struct {
 	evt    *gmproto.Message
 	source *User
@@ -269,8 +267,6 @@ type Portal struct {
 
 	roomCreateLock sync.Mutex
 	encryptLock    sync.Mutex
-	backfillLock   sync.Mutex
-	avatarLock     sync.Mutex
 
 	forwardBackfillLock sync.Mutex
 	lastMessageTS       time.Time
@@ -279,15 +275,8 @@ type Portal struct {
 
 	pendingRecentBackfill atomic.Pointer[pendingBackfill]
 
-	recentlyHandled      [recentlyHandledLength]string
-	recentlyHandledLock  sync.Mutex
-	recentlyHandledIndex uint8
-
 	outgoingMessages     map[string]*outgoingMessage
 	outgoingMessagesLock sync.Mutex
-
-	currentlyTyping     []id.UserID
-	currentlyTypingLock sync.Mutex
 
 	messages       chan PortalMessage
 	matrixMessages chan PortalMatrixMessage
@@ -812,7 +801,7 @@ func (portal *Portal) handleExistingMessageUpdate(ctx context.Context, source *U
 func (portal *Portal) handleExistingMessage(ctx context.Context, source *User, evt *gmproto.Message, outgoingOnly bool, raw []byte) bool {
 	log := zerolog.Ctx(ctx)
 	if existingMsg := portal.isOutgoingMessage(evt); existingMsg != nil {
-		log.Debug().Str("event_id", existingMsg.MXID.String()).Msg("Got echo for outgoing message")
+		log.Debug().Stringer("event_id", existingMsg.MXID).Msg("Got echo for outgoing message")
 		portal.handleExistingMessageUpdate(ctx, source, existingMsg, evt, raw)
 		return true
 	} else if outgoingOnly {
@@ -1456,16 +1445,6 @@ func (portal *Portal) convertGoogleMedia(ctx context.Context, source *User, inte
 	return content, extra, mediaID, isThumbnail, portal.uploadMedia(ctx, intent, data, content)
 }
 
-func (portal *Portal) isRecentlyHandled(id string) bool {
-	start := portal.recentlyHandledIndex
-	for i := start; i != start; i = (i - 1) % recentlyHandledLength {
-		if portal.recentlyHandled[i] == id {
-			return true
-		}
-	}
-	return false
-}
-
 func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, mediaParts map[string]database.MediaPart, recent bool) *database.Message {
 	msg := portal.bridge.DB.Message.New()
 	msg.Chat = portal.Key
@@ -1484,13 +1463,6 @@ func (portal *Portal) markHandled(cm *ConvertedMessage, eventID id.EventID, medi
 		portal.zlog.Err(err).Str("message_id", cm.ID).Msg("Failed to insert message to database")
 	}
 
-	if recent {
-		portal.recentlyHandledLock.Lock()
-		index := portal.recentlyHandledIndex
-		portal.recentlyHandledIndex = (portal.recentlyHandledIndex + 1) % recentlyHandledLength
-		portal.recentlyHandledLock.Unlock()
-		portal.recentlyHandled[index] = cm.ID
-	}
 	return msg
 }
 
@@ -1673,7 +1645,7 @@ func (portal *Portal) UpdateMetadata(ctx context.Context, user *User, info *gmpr
 			if err != nil {
 				portal.zlog.Warn().Err(err).Msg("Failed to update power levels")
 			} else {
-				portal.zlog.Debug().Str("event_id", resp.EventID.String()).Msg("Updated power levels")
+				portal.zlog.Debug().Stringer("event_id", resp.EventID).Msg("Updated power levels")
 			}
 		}
 	}
@@ -1906,7 +1878,7 @@ func (portal *Portal) CreateMatrixRoom(ctx context.Context, user *User, conv *gm
 	if err != nil {
 		return err
 	}
-	portal.zlog.Info().Str("new_room_id", resp.RoomID.String()).Msg("Matrix room created")
+	portal.zlog.Info().Stringer("new_room_id", resp.RoomID).Msg("Matrix room created")
 	portal.InSpace = false
 	portal.NameSet = len(req.Name) > 0
 	portal.forwardBackfillLock.Lock()
@@ -1961,10 +1933,10 @@ func (portal *Portal) addToPersonalSpace(ctx context.Context, user *User, update
 		Via: []string{portal.bridge.Config.Homeserver.Domain},
 	})
 	if err != nil {
-		portal.zlog.Err(err).Str("space_id", spaceID.String()).Msg("Failed to add room to user's personal filtering space")
+		portal.zlog.Err(err).Stringer("space_id", spaceID).Msg("Failed to add room to user's personal filtering space")
 		portal.InSpace = false
 	} else {
-		portal.zlog.Debug().Str("space_id", spaceID.String()).Msg("Added room to user's personal filtering space")
+		portal.zlog.Debug().Stringer("space_id", spaceID).Msg("Added room to user's personal filtering space")
 		portal.InSpace = true
 	}
 	if updateInfo {
@@ -2110,9 +2082,9 @@ func (portal *Portal) convertMatrixMessage(ctx context.Context, sender *User, co
 	if replyToMXID != "" {
 		replyToMsg, err := portal.bridge.DB.Message.GetByMXID(ctx, replyToMXID)
 		if err != nil {
-			log.Err(err).Str("reply_to_mxid", replyToMXID.String()).Msg("Failed to get reply target message")
+			log.Err(err).Stringer("reply_to_mxid", replyToMXID).Msg("Failed to get reply target message")
 		} else if replyToMsg == nil {
-			log.Warn().Str("reply_to_mxid", replyToMXID.String()).Msg("Reply target message not found")
+			log.Warn().Stringer("reply_to_mxid", replyToMXID).Msg("Reply target message not found")
 		} else {
 			req.Reply = &gmproto.ReplyPayload{MessageID: replyToMsg.ID}
 		}

@@ -7,13 +7,14 @@
 package gmproto
 
 import (
+	reflect "reflect"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
-	reflect "reflect"
-)
 
-import _ "embed"
+	_ "embed"
+)
 
 const (
 	// Verify that this generated code is sufficiently up-to-date.
