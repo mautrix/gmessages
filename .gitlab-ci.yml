@@ -3,3 +3,6 @@ include:
   file: '/go.yml'
 - project: 'mautrix/ci'
   file: '/gov2.yml'
+
+variables:
+  BINARY_NAME_V2: mautrix-gmessages
