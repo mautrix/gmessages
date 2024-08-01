@@ -73,7 +73,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			gc.pollErrorAlertSent = false
 		}
 	case *events.PhoneNotResponding:
-		gc.phoneResponding = false
+		gc.PhoneResponding = false
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		// TODO make this properly configurable
 		if log.Trace().Enabled() && !gc.phoneNotRespondingAlertSent {
@@ -81,7 +81,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			gc.phoneNotRespondingAlertSent = true
 		}
 	case *events.PhoneRespondingAgain:
-		gc.phoneResponding = true
+		gc.PhoneResponding = true
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 		if gc.phoneNotRespondingAlertSent {
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Phone is responding again")
@@ -179,9 +179,9 @@ func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountCh
 		Bool("enabled", v.GetEnabled()).
 		Bool("fake", v.IsFake).
 		Msg("Got account change event")
-	gc.switchedToGoogleLogin = v.GetEnabled() || v.IsFake
+	gc.SwitchedToGoogleLogin = v.GetEnabled() || v.IsFake
 	if !v.IsFake {
-		if gc.switchedToGoogleLogin {
+		if gc.SwitchedToGoogleLogin {
 			//go gc.sendMarkdownBridgeAlert(ctx, true, "Switched to Google account pairing, please switch back or relogin with `login-google`.")
 		} else {
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Switched back to QR pairing, bridge should be reconnected")
@@ -339,7 +339,7 @@ func (gc *GMClient) hackyResetActive() {
 	gc.noDataReceivedRecently = false
 	gc.lastDataReceived = time.Time{}
 	time.Sleep(7 * time.Second)
-	if !gc.ready && gc.phoneResponding {
+	if !gc.ready && gc.PhoneResponding {
 		gc.UserLogin.Log.Warn().Msg("Client is still not ready, trying to re-set active session")
 		err := gc.Client.SetActiveSession()
 		if err != nil {
@@ -347,7 +347,7 @@ func (gc *GMClient) hackyResetActive() {
 		} else {
 			time.Sleep(7 * time.Second)
 		}
-		if !gc.ready && gc.phoneResponding {
+		if !gc.ready && gc.PhoneResponding {
 			gc.UserLogin.Log.Warn().Msg("Client is still not ready, reconnecting")
 			gc.ResetClient()
 			err = gc.Connect(context.TODO())

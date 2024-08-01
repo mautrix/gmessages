@@ -50,10 +50,10 @@ type GMClient struct {
 
 	longPollingError            error
 	browserInactiveType         status.BridgeStateErrorCode
-	switchedToGoogleLogin       bool
+	SwitchedToGoogleLogin       bool
 	batteryLow                  bool
 	mobileData                  bool
-	phoneResponding             bool
+	PhoneResponding             bool
 	ready                       bool
 	sessionID                   string
 	batteryLowAlertSent         time.Time
@@ -76,7 +76,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		Meta:      login.Metadata.(*UserLoginMetadata),
 
 		longPollingError:  errors.New("not connected"),
-		phoneResponding:   true,
+		PhoneResponding:   true,
 		fullMediaRequests: exsync.NewSet[fullMediaRequestKey](),
 		conversationMeta:  make(map[string]*conversationMeta),
 	}
@@ -98,9 +98,9 @@ func (gc *GMClient) Connect(ctx context.Context) error {
 
 func (gc *GMClient) Disconnect() {
 	gc.longPollingError = errors.New("not connected")
-	gc.phoneResponding = true
+	gc.PhoneResponding = true
 	gc.batteryLow = false
-	gc.switchedToGoogleLogin = false
+	gc.SwitchedToGoogleLogin = false
 	gc.ready = false
 	gc.browserInactiveType = ""
 	if cli := gc.Client; cli != nil {

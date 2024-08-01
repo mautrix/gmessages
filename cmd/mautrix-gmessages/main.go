@@ -17,6 +17,8 @@
 package main
 
 import (
+	"net/http"
+
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector"
@@ -46,6 +48,18 @@ func main() {
 			m.LegacyMigrateSimple(legacyMigrateRenameTables, legacyMigrateCopyData, 14),
 			true,
 		)
+	}
+	m.PostStart = func() {
+		if m.Matrix.Provisioning != nil {
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/ping", legacyProvPing).Methods(http.MethodGet)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/login", legacyProvQRLogin).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/google_login/emoji", legacyProvGoogleLoginStart).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/google_login/wait", legacyProvGoogleLoginWait).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/logout", legacyProvLogout).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/delete_session", legacyProvDeleteSession).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/contacts", legacyProvListContacts).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("/v1/start_chat", legacyProvStartChat).Methods(http.MethodPost)
+		}
 	}
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
