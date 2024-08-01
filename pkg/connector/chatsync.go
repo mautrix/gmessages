@@ -25,6 +25,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
@@ -61,21 +62,33 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	}
 }
 
-func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string) {
+func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *conversationMeta, suspiciousUnmarkedSpam bool) {
 	gc.conversationMetaLock.Lock()
-	meta, ok := gc.conversationMeta[v.ConversationID]
+	defer gc.conversationMetaLock.Unlock()
+	var ok bool
+	meta, ok = gc.conversationMeta[v.ConversationID]
 	if !ok {
 		meta = &conversationMeta{}
 		gc.conversationMeta[v.ConversationID] = meta
 	}
-	suspiciousUnmarkedSpam := false
+	if !v.Unread {
+		meta.readUpTo = v.LatestMessageID
+		meta.readUpToTS = time.UnixMicro(v.LastMessageTimestamp)
+	} else if meta.readUpTo == v.LatestMessageID {
+		meta.readUpTo = ""
+		meta.readUpToTS = time.Time{}
+	}
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER:
 		meta.markedSpamAt = time.Now()
 	default:
 		suspiciousUnmarkedSpam = time.Since(meta.markedSpamAt) < 1*time.Minute
 	}
-	gc.conversationMetaLock.Unlock()
+	return
+}
+
+func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string) {
+	meta, suspiciousUnmarkedSpam := gc.syncConversationMeta(v)
 
 	log := zerolog.Ctx(ctx).With().
 		Str("action", "sync conversation").
@@ -96,6 +109,18 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		g:             gc,
 		Conv:          v,
 		AllowBackfill: time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
+	}
+	var markReadEvt *simplevent.Receipt
+	if !v.Unread {
+		markReadEvt = &simplevent.Receipt{
+			EventMeta: simplevent.EventMeta{
+				Type:      bridgev2.RemoteEventReadReceipt,
+				PortalKey: gc.MakePortalKey(v.ConversationID),
+				Sender:    bridgev2.EventSender{IsFromMe: true},
+			},
+			LastTarget: gc.MakeMessageID(meta.readUpTo),
+			ReadUpTo:   meta.readUpToTS,
+		}
 	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
 	if !evt.AllowBackfill {
@@ -123,7 +148,10 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 				return
 			}
 			gc.Main.br.QueueRemoteEvent(gc.UserLogin, backfillEvt)
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
 		}()
+	} else {
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
 	}
 }
 

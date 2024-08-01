@@ -36,6 +36,8 @@ import (
 type conversationMeta struct {
 	markedSpamAt          time.Time
 	cancelPendingBackfill atomic.Pointer[context.CancelFunc]
+	readUpTo              string
+	readUpToTS            time.Time
 }
 
 type GMClient struct {
@@ -73,6 +75,8 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		UserLogin: login,
 		Meta:      login.Metadata.(*UserLoginMetadata),
 
+		longPollingError:  errors.New("not connected"),
+		phoneResponding:   true,
 		fullMediaRequests: exsync.NewSet[fullMediaRequestKey](),
 		conversationMeta:  make(map[string]*conversationMeta),
 	}

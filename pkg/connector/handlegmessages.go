@@ -37,6 +37,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/libgm"
 	"go.mau.fi/mautrix-gmessages/libgm/events"
@@ -257,15 +258,36 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	default:
 		return
 	}
-	//lint:ignore SA9003 -
 	if becameInactive {
-		//	if gc.Main.Config.AggressiveReconnect {
-		//		go gc.aggressiveSetActive()
-		//	} else {
-		//		go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
-		//	}
+		if gc.Main.Config.AggressiveReconnect {
+			go gc.aggressiveSetActive()
+		} /* else {
+			go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
+		}*/
 	}
 	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+}
+
+func (gc *GMClient) aggressiveSetActive() {
+	sleepTimes := []int{5, 10, 30}
+	for i := 0; i < 3; i++ {
+		sleep := time.Duration(sleepTimes[i]) * time.Second
+		gc.UserLogin.Log.Info().
+			Int("sleep_seconds", int(sleep.Seconds())).
+			Msg("Aggressively reactivating bridge session after sleep")
+		time.Sleep(sleep)
+		if gc.browserInactiveType == "" {
+			gc.UserLogin.Log.Info().Msg("Bridge session became active on its own, not reactivating")
+			return
+		}
+		gc.UserLogin.Log.Info().Msg("Now reactivating bridge session")
+		err := gc.Client.SetActiveSession()
+		if err != nil {
+			gc.UserLogin.Log.Warn().Err(err).Msg("Failed to set self as active session")
+		} else {
+			break
+		}
+	}
 }
 
 func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settings) {
@@ -352,7 +374,7 @@ func (r *ReactionSyncEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (r *ReactionSyncEvent) AddLogContext(c zerolog.Context) zerolog.Context {
-	return c.Str("message_id", r.MessageID)
+	return c.Str("message_id", r.MessageID).Stringer("message_status", r.GetMessageStatus().GetStatus())
 }
 
 func (r *ReactionSyncEvent) GetSender() bridgev2.EventSender {
@@ -424,7 +446,7 @@ func (m *MessageUpdateEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageUpdateEvent) AddLogContext(c zerolog.Context) zerolog.Context {
-	return c.Str("message_id", m.MessageID)
+	return c.Str("message_id", m.MessageID).Stringer("message_status", m.GetMessageStatus().GetStatus())
 }
 
 func (m *MessageUpdateEvent) GetSender() bridgev2.EventSender {
@@ -512,7 +534,7 @@ func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {
-	return c.Str("message_id", m.MessageID)
+	return c.Str("message_id", m.MessageID).Stringer("message_status", m.GetMessageStatus().GetStatus())
 }
 
 func (m *MessageEvent) GetSender() bridgev2.EventSender {
@@ -525,14 +547,14 @@ func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.Event
 	if status >= 200 && status < 300 {
 		return bridgev2.EventSender{}
 	}
-	// TODO force DM other user in DMs
 	return gc.makeEventSender(m.ParticipantID)
 }
 
 func (gc *GMClient) makeEventSender(participantID string) bridgev2.EventSender {
 	return bridgev2.EventSender{
-		IsFromMe: participantID == "1" || gc.Meta.IsSelfParticipantID(participantID),
-		Sender:   gc.MakeUserID(participantID),
+		IsFromMe:    participantID == "1" || gc.Meta.IsSelfParticipantID(participantID),
+		Sender:      gc.MakeUserID(participantID),
+		ForceDMUser: true,
 	}
 }
 
@@ -788,7 +810,12 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		(hasPendingMedia && updatedMediaIsComplete) ||
 		messageWasEdited ||
 		existingMeta.GlobalPartCount != len(m.MessageInfo)
-	if existingMeta.Type == newStatus && !doMessageResync {
+	needsMSSEvent := !existingMeta.MSSSent && isSuccessfullySentStatus(newStatus)
+	needsMSSFailureEvent := !existingMeta.MSSFailSent && !existingMeta.MSSSent && getFailMessage(newStatus) != ""
+	needsMSSDeliveryEvent := !existingMeta.MSSDeliverySent && portal.RoomType == database.RoomTypeDM && (newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED || newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED)
+	needsReadReceipt := !existingMeta.ReadReceiptSent && portal.RoomType == database.RoomTypeDM && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED
+	needsSomeMSSEvent := needsMSSEvent || needsMSSFailureEvent || needsMSSDeliveryEvent || needsReadReceipt
+	if existingMeta.Type == newStatus && !doMessageResync && !needsSomeMSSEvent {
 		logEvt := log.Debug().
 			Stringer("old_status", existingMeta.Type).
 			Bool("has_pending_media", hasPendingMedia).
@@ -828,6 +855,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		Int("new_part_count", len(m.MessageInfo)).
 		Dict("message_change_debug_data", changes).
 		Bool("do_message_resync", doMessageResync).
+		Bool("needs_some_mss_event", needsSomeMSSEvent).
 		Msg("Message status changed")
 	if chatIDChanged {
 		log = log.With().Str("old_chat_id", string(dbm[0].Room.ID)).Logger()
@@ -860,14 +888,22 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		}
 		result.SubEvents = []bridgev2.RemoteEvent{editEvt, reactionSyncEvt}
 	}
-	if !existingMeta.MSSSent && isSuccessfullySentStatus(newStatus) {
+
+	if needsMSSEvent {
 		existingMeta.MSSSent = true
-		portal.Bridge.Matrix.SendMessageStatus(ctx, &bridgev2.MessageStatus{Status: event.MessageStatusSuccess}, &bridgev2.MessageStatusEventInfo{
+		var deliveredTo []id.UserID
+		if portal.RoomType == database.RoomTypeDM && portal.Metadata.(*PortalMetadata).Type == gmproto.ConversationType_RCS {
+			deliveredTo = []id.UserID{}
+		}
+		portal.Bridge.Matrix.SendMessageStatus(ctx, &bridgev2.MessageStatus{
+			Status:      event.MessageStatusSuccess,
+			DeliveredTo: deliveredTo,
+		}, &bridgev2.MessageStatusEventInfo{
 			RoomID:  portal.MXID,
 			EventID: dbm[0].MXID,
 			Sender:  dbm[0].SenderMXID,
 		})
-	} else if !existingMeta.MSSFailSent && !existingMeta.MSSSent && getFailMessage(newStatus) != "" {
+	} else if needsMSSFailureEvent {
 		existingMeta.MSSFailSent = true
 		msgStatus := wrapStatusInError(newStatus).(bridgev2.MessageStatus)
 		portal.Bridge.Matrix.SendMessageStatus(ctx, &msgStatus, &bridgev2.MessageStatusEventInfo{
@@ -876,7 +912,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			Sender:  dbm[0].SenderMXID,
 		})
 	}
-	if !existingMeta.MSSDeliverySent && portal.RoomType == database.RoomTypeDM && (newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED || newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED) {
+	if needsMSSDeliveryEvent {
 		existingMeta.MSSDeliverySent = true
 		result.SubEvents = append(result.SubEvents, &simplevent.Receipt{
 			EventMeta: simplevent.EventMeta{
@@ -884,10 +920,10 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 				PortalKey: portal.PortalKey,
 				Sender:    bridgev2.EventSender{Sender: portal.OtherUserID},
 			},
-			LastTarget: dbm[0].ID,
+			Targets: []networkid.MessageID{dbm[0].ID},
 		})
 	}
-	if !existingMeta.ReadReceiptSent && portal.RoomType == database.RoomTypeDM && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED {
+	if needsReadReceipt {
 		existingMeta.ReadReceiptSent = true
 		result.SubEvents = append(result.SubEvents, &simplevent.Receipt{
 			EventMeta: simplevent.EventMeta{

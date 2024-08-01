@@ -51,7 +51,7 @@ func (db *GMDB) GetLoginPrefix(ctx context.Context, id networkid.UserLoginID) (s
 	err := db.QueryRow(ctx, `
 		INSERT INTO gmessages_login_prefix (login_id)
 		VALUES ($1)
-		ON CONFLICT (login_id) DO UPDATE SET login_id=login_id
+		ON CONFLICT (login_id) DO UPDATE SET login_id=gmessages_login_prefix.login_id
 		RETURNING prefix
 	`, id).Scan(&rowID)
 	return strconv.FormatInt(rowID, 10), err

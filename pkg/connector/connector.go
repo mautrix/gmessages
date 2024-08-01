@@ -21,6 +21,8 @@ import (
 
 	"maunium.net/go/mautrix/bridgev2"
 
+	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/libgm/util"
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
 )
 
@@ -35,6 +37,20 @@ var _ bridgev2.NetworkConnector = (*GMConnector)(nil)
 func (gc *GMConnector) Init(bridge *bridgev2.Bridge) {
 	gc.DB = gmdb.New(bridge.DB.Database, bridge.Log.With().Str("db_section", "gmessages").Logger())
 	gc.br = bridge
+
+	util.BrowserDetailsMessage.OS = gc.Config.DeviceMeta.OS
+	browserVal, ok := gmproto.BrowserType_value[gc.Config.DeviceMeta.Browser]
+	if !ok {
+		gc.br.Log.Error().Str("browser_value", gc.Config.DeviceMeta.Browser).Msg("Invalid browser value")
+	} else {
+		util.BrowserDetailsMessage.BrowserType = gmproto.BrowserType(browserVal)
+	}
+	deviceVal, ok := gmproto.DeviceType_value[gc.Config.DeviceMeta.Type]
+	if !ok {
+		gc.br.Log.Error().Str("device_type_value", gc.Config.DeviceMeta.Type).Msg("Invalid device type value")
+	} else {
+		util.BrowserDetailsMessage.DeviceType = gmproto.DeviceType(deviceVal)
+	}
 }
 
 func (gc *GMConnector) Start(ctx context.Context) error {

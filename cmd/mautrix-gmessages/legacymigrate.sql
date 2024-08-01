@@ -19,6 +19,9 @@ INSERT INTO gmessages_login_prefix (prefix, login_id)
 SELECT rowid, COALESCE(phone_id, CAST(rowid AS TEXT))
 FROM user_old;
 
+-- only: postgres
+SELECT setval('gmessages_login_prefix_prefix_seq', (SELECT MAX(prefix)+1 FROM gmessages_login_prefix), FALSE);
+
 INSERT INTO user_login (bridge_id, user_mxid, id, remote_name, space_room, metadata)
 SELECT
     '', -- bridge_id
@@ -75,6 +78,8 @@ SELECT
         'avatar_update_ts', avatar_update_ts
     ) -- metadata
 FROM puppet_old;
+
+UPDATE ghost SET avatar_id='', avatar_hash='' WHERE avatar_hash='0000000000000000000000000000000000000000000000000000000000000000';
 
 INSERT INTO portal (
     bridge_id, id, receiver, mxid, other_user_id, name, topic, avatar_id, avatar_hash, avatar_mxc,

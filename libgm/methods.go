@@ -57,10 +57,7 @@ func (c *Client) GetConversation(conversationID string) (*gmproto.Conversation, 
 }
 
 func (c *Client) FetchMessages(conversationID string, count int64, cursor *gmproto.Cursor) (*gmproto.ListMessagesResponse, error) {
-	payload := &gmproto.ListMessagesRequest{ConversationID: conversationID, Count: count}
-	if cursor != nil {
-		payload.Cursor = cursor
-	}
+	payload := &gmproto.ListMessagesRequest{ConversationID: conversationID, Count: count, Cursor: cursor}
 	actionType := gmproto.ActionType_LIST_MESSAGES
 	return typedResponse[*gmproto.ListMessagesResponse](c.sessionHandler.sendMessage(actionType, payload))
 }

@@ -58,7 +58,6 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			WithIsCertain(true).WithSendNotice(true).WithErrorAsMessage()
 	}
 	return &bridgev2.MatrixMessageResponse{
-		// TODO figure out how to get db metadata accurately
 		DB:         &database.Message{},
 		Pending:    networkid.TransactionID(txnID),
 		HandleEcho: gc.handleRemoteEcho,
@@ -66,26 +65,14 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 }
 
 func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *database.Message) (saveMessage bool, statusErr error) {
-	saveMessage = true
 	evt := rawEvt.(*MessageEvent)
 	_, textHash := getTextPart(evt.Message)
-	isSuccess := isSuccessfullySentStatus(evt.GetMessageStatus().GetStatus())
-	meta := &MessageMetadata{
+	dbMessage.Metadata = &MessageMetadata{
 		Type:            evt.GetMessageStatus().GetStatus(),
 		TextHash:        textHash,
 		GlobalPartCount: len(evt.MessageInfo),
-		MSSSent:         isSuccess,
 	}
-	if !isSuccess {
-		statusErr = wrapStatusInError(evt.GetMessageStatus().GetStatus())
-		if statusErr == nil {
-			statusErr = bridgev2.ErrNoStatus
-		} else {
-			meta.MSSFailSent = true
-		}
-	}
-	dbMessage.Metadata = meta
-	return
+	return true, bridgev2.ErrNoStatus
 }
 
 func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage, txnID string) (*gmproto.SendMessageRequest, error) {

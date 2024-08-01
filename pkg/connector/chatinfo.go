@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -120,7 +121,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		UserLocal: &bridgev2.UserLocalPortalInfo{
 			Tag: &tag,
 		},
-		CanBackfill: false,
+		CanBackfill: true,
 		ExtraUpdates: func(ctx context.Context, portal *bridgev2.Portal) (changed bool) {
 			meta := portal.Metadata.(*PortalMetadata)
 			if meta.Type != conv.Type {
@@ -146,7 +147,7 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	meta := ghost.Metadata.(*GhostMetadata)
 	if time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval {
 		return false, nil
-	} else if meta.ContactID == "" {
+	} else if meta.ContactID == "" && !phoneNumberMightHaveAvatar(meta.Phone) {
 		// Removing avatar when ContactID is empty is handled in wrapUserInfo
 		return false, nil
 	}
@@ -159,7 +160,7 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 		return false, fmt.Errorf("failed to get participant thumbnail: %w", err)
 	}
 	meta.AvatarUpdateTS = jsontime.UnixMilliNow()
-	if len(resp.Thumbnail) == 0 {
+	if len(resp.Thumbnail) == 0 || len(resp.Thumbnail[0].GetData().GetImageBuffer()) == 0 {
 		return ghost.UpdateAvatar(ctx, &bridgev2.Avatar{Remove: true}), nil
 	} else {
 		data := resp.Thumbnail[0].GetData().GetImageBuffer()
@@ -172,10 +173,20 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	}
 }
 
+const GeminiPhoneNumber = "+18339913448"
+
+func phoneNumberMightHaveAvatar(phone string) bool {
+	return strings.HasSuffix(phone, ".goog") || phone == GeminiPhoneNumber
+}
+
 func (gc *GMClient) wrapUserInfo(contact *gmproto.Participant) *bridgev2.UserInfo {
 	var identifiers []string
+	phone := contact.GetID().GetNumber()
+	if phone != "" {
+		identifiers = append(identifiers, fmt.Sprintf("tel:%s", phone))
+	}
 	var avatar *bridgev2.Avatar
-	if contact.ContactID == "" {
+	if contact.ContactID == "" && !phoneNumberMightHaveAvatar(phone) {
 		avatar = &bridgev2.Avatar{Remove: true}
 	} // if there may be an avatar, we'll update it in ExtraUpdates because it requires extra fetching
 	return &bridgev2.UserInfo{
@@ -189,9 +200,9 @@ func (gc *GMClient) wrapUserInfo(contact *gmproto.Participant) *bridgev2.UserInf
 				changed = true
 				meta.ContactID = contact.GetContactID()
 			}
-			if meta.Phone != contact.GetID().GetNumber() {
+			if meta.Phone != phone {
 				changed = true
-				meta.Phone = contact.GetID().GetNumber()
+				meta.Phone = phone
 			}
 			avatarChanged, err := gc.updateGhostAvatar(ctx, ghost)
 			if err != nil {
