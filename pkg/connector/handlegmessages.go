@@ -1044,6 +1044,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 		}
 		cm.Parts = append(cm.Parts, &bridgev2.ConvertedMessagePart{
 			ID:         partID,
+			Type:       event.EventMessage,
 			Content:    &content,
 			DBMetadata: dbMeta,
 			DontBridge: dontBridge,
