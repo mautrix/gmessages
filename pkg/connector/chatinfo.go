@@ -98,7 +98,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		} else {
 			members.Members = append(members.Members, bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
-				UserInfo:    gc.wrapUserInfo(pcp),
+				UserInfo:    gc.wrapParticipantInfo(pcp),
 			})
 		}
 	}
@@ -148,7 +148,7 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	if time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval {
 		return false, nil
 	} else if meta.ContactID == "" && !phoneNumberMightHaveAvatar(meta.Phone) {
-		// Removing avatar when ContactID is empty is handled in wrapUserInfo
+		// Removing avatar when ContactID is empty is handled in makeUserInfo
 		return false, nil
 	}
 	participantID, err := gc.ParseUserID(ghost.ID)
@@ -179,26 +179,45 @@ func phoneNumberMightHaveAvatar(phone string) bool {
 	return strings.HasSuffix(phone, ".goog") || phone == GeminiPhoneNumber
 }
 
-func (gc *GMClient) wrapUserInfo(contact *gmproto.Participant) *bridgev2.UserInfo {
+func (gc *GMClient) wrapParticipantInfo(contact *gmproto.Participant) *bridgev2.UserInfo {
+	return gc.makeUserInfo(
+		contact.GetID().GetNumber(),
+		contact.GetFormattedNumber(),
+		contact.GetContactID(),
+		contact.GetFullName(),
+		contact.GetFirstName(),
+	)
+}
+
+func (gc *GMClient) wrapContactInfo(contact *gmproto.Contact) *bridgev2.UserInfo {
+	return gc.makeUserInfo(
+		contact.GetNumber().GetNumber(),
+		contact.GetNumber().GetFormattedNumber(),
+		contact.GetContactID(),
+		contact.GetName(),
+		"",
+	)
+}
+
+func (gc *GMClient) makeUserInfo(phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
 	var identifiers []string
-	phone := contact.GetID().GetNumber()
 	if phone != "" {
 		identifiers = append(identifiers, fmt.Sprintf("tel:%s", phone))
 	}
 	var avatar *bridgev2.Avatar
-	if contact.ContactID == "" && !phoneNumberMightHaveAvatar(phone) {
+	if contactID == "" && !phoneNumberMightHaveAvatar(phone) {
 		avatar = &bridgev2.Avatar{Remove: true}
 	} // if there may be an avatar, we'll update it in ExtraUpdates because it requires extra fetching
 	return &bridgev2.UserInfo{
 		Identifiers: identifiers,
-		Name:        ptr.Ptr(gc.Main.Config.FormatDisplayname(contact.GetFormattedNumber(), contact.GetFullName(), contact.GetFirstName())),
+		Name:        ptr.Ptr(gc.Main.Config.FormatDisplayname(formattedNumber, fullName, firstName)),
 		IsBot:       ptr.Ptr(false),
 		Avatar:      avatar,
 		ExtraUpdates: func(ctx context.Context, ghost *bridgev2.Ghost) (changed bool) {
 			meta := ghost.Metadata.(*GhostMetadata)
-			if meta.ContactID != contact.GetContactID() {
+			if meta.ContactID != contactID {
 				changed = true
-				meta.ContactID = contact.GetContactID()
+				meta.ContactID = contactID
 			}
 			if meta.Phone != phone {
 				changed = true
