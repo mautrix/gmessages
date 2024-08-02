@@ -148,9 +148,11 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 				return
 			}
 			gc.Main.br.QueueRemoteEvent(gc.UserLogin, backfillEvt)
-			gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
+			if markReadEvt != nil {
+				gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
+			}
 		}()
-	} else {
+	} else if markReadEvt != nil {
 		gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
 	}
 }
