@@ -35,9 +35,9 @@ import (
 )
 
 var (
-	_ bridgev2.ReactionHandlingNetworkAPI    = &GMClient{}
-	_ bridgev2.RedactionHandlingNetworkAPI   = &GMClient{}
-	_ bridgev2.ReadReceiptHandlingNetworkAPI = &GMClient{}
+	_ bridgev2.ReactionHandlingNetworkAPI    = (*GMClient)(nil)
+	_ bridgev2.RedactionHandlingNetworkAPI   = (*GMClient)(nil)
+	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
 )
 
 func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
