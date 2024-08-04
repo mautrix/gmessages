@@ -161,16 +161,17 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	}
 	meta.AvatarUpdateTS = jsontime.UnixMilliNow()
 	if len(resp.Thumbnail) == 0 || len(resp.Thumbnail[0].GetData().GetImageBuffer()) == 0 {
-		return ghost.UpdateAvatar(ctx, &bridgev2.Avatar{Remove: true}), nil
+		ghost.UpdateAvatar(ctx, &bridgev2.Avatar{Remove: true})
 	} else {
 		data := resp.Thumbnail[0].GetData().GetImageBuffer()
-		return ghost.UpdateAvatar(ctx, &bridgev2.Avatar{
+		ghost.UpdateAvatar(ctx, &bridgev2.Avatar{
 			ID: networkid.AvatarID(fmt.Sprintf("hash:%x", sha256.Sum256(data))),
 			Get: func(ctx context.Context) ([]byte, error) {
 				return data, nil
 			},
-		}), nil
+		})
 	}
+	return true, nil
 }
 
 const GeminiPhoneNumber = "+18339913448"
