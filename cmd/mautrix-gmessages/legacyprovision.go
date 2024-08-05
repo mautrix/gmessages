@@ -77,7 +77,7 @@ func legacyProvDeleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, login := range logins {
-		login.Delete(r.Context(), status.BridgeState{StateEvent: status.StateLoggedOut}, false)
+		login.Delete(r.Context(), status.BridgeState{StateEvent: status.StateLoggedOut}, bridgev2.DeleteOpts{})
 	}
 	jsonResponse(w, http.StatusOK, Response{true, "Session information purged"})
 }
@@ -206,16 +206,16 @@ func jsonResponse(w http.ResponseWriter, status int, response interface{}) {
 
 func legacyProvLogout(w http.ResponseWriter, r *http.Request) {
 	user := m.Matrix.Provisioning.GetUser(r)
-	logins := user.GetCachedUserLogins()
-	if len(logins) == 0 {
+	allLogins := user.GetCachedUserLogins()
+	if len(allLogins) == 0 {
 		jsonResponse(w, http.StatusOK, Error{
 			Error:   "You're not logged in",
 			ErrCode: "not logged in",
 		})
 		return
 	}
-	for _, login := range logins {
-		login.Logout(r.Context())
+	for _, login := range allLogins {
+		login.Client.LogoutRemote(r.Context())
 	}
 	jsonResponse(w, http.StatusOK, Response{true, "Logged out successfully"})
 }
@@ -403,6 +403,7 @@ func legacyProvGoogleLoginWait(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	handleLoginComplete(r.Context(), user, nextStep.CompleteParams.UserLogin)
 	jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 }
 
@@ -487,10 +488,20 @@ func legacyProvQRLogin(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "qr", Code: nextStep.DisplayAndWaitParams.Data})
 	} else if nextStep.StepID == connector.LoginStepIDComplete {
 		logins.Delete(user.MXID)
+		handleLoginComplete(r.Context(), user, nextStep.CompleteParams.UserLogin)
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 	} else {
 		logins.Delete(user.MXID)
 		log.Warn().Str("step_id", nextStep.StepID).Msg("Unexpected step after waiting for QR login")
 		jsonResponse(w, http.StatusInternalServerError, Error{Error: "Unexpected step after waiting for QR login", ErrCode: "unknown"})
+	}
+}
+
+func handleLoginComplete(ctx context.Context, user *bridgev2.User, newLogin *bridgev2.UserLogin) {
+	allLogins := user.GetCachedUserLogins()
+	for _, login := range allLogins {
+		if login.ID != newLogin.ID {
+			login.Delete(ctx, status.BridgeState{StateEvent: status.StateLoggedOut, Reason: "LOGIN_OVERRIDDEN"}, bridgev2.DeleteOpts{})
+		}
 	}
 }
