@@ -114,6 +114,19 @@ FROM portal_old;
 -- only: sqlite
 UPDATE portal SET metadata=replace(replace(metadata, '"force_rcs":1', '"force_rcs":true'), '"force_rcs":0', '"force_rcs":false');
 
+INSERT INTO user_portal (
+    bridge_id, user_mxid, login_id, portal_id, portal_receiver, in_space, preferred
+)
+SELECT
+    '', -- bridge_id
+    (SELECT mxid FROM user_old WHERE rowid=receiver), -- user_mxid
+    (SELECT login_id FROM gmessages_login_prefix WHERE prefix=portal_old.receiver), -- login_id
+    (CAST(receiver AS TEXT) || '.' || id), -- portal_id
+    (SELECT login_id FROM gmessages_login_prefix WHERE prefix=portal_old.receiver), -- portal_receiver
+    in_space,
+    false
+FROM portal_old;
+
 INSERT INTO ghost (
     bridge_id, id, name, avatar_id, avatar_hash, avatar_mxc,
     name_set, avatar_set, contact_info_set, is_bot, identifiers, metadata
