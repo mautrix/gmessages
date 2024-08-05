@@ -34,11 +34,11 @@ SELECT
 -- only: sqlite (line commented)
 --  json_object
     (
-        'session', session,
+        'session', json(session),
         'id_prefix', CAST(rowid AS TEXT),
-        'self_participant_ids', self_participant_ids,
-        'sim_metadata', sim_metadata,
-        'settings', settings
+        'self_participant_ids', json(self_participant_ids),
+        'sim_metadata', json(sim_metadata),
+        'settings', json(settings)
     ) -- metadata
 FROM user_old WHERE phone_id<>'';
 
@@ -111,12 +111,20 @@ SELECT
         'force_rcs', force_rcs
     ) -- metadata
 FROM portal_old;
+-- only: sqlite
+UPDATE portal SET metadata=replace(replace(metadata, '"force_rcs":1', '"force_rcs":true'), '"force_rcs":0', '"force_rcs":false');
 
 INSERT INTO ghost (
     bridge_id, id, name, avatar_id, avatar_hash, avatar_mxc,
     name_set, avatar_set, contact_info_set, is_bot, identifiers, metadata
 )
-SELECT DISTINCT '', CAST(conv_receiver AS TEXT) || '.' || sender, '', '', '', '', false, false, false, false, CAST('[]' AS jsonb), CAST('{}' AS jsonb)
+SELECT DISTINCT
+    '', CAST(conv_receiver AS TEXT) || '.' || sender, '', '', '', '', false, false, false, false,
+    -- only: postgres
+    '[]'::jsonb,
+    -- only: sqlite (line commented)
+--   '[]',
+    '{}'
 FROM message_old
 WHERE true
 ON CONFLICT DO NOTHING;
