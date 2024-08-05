@@ -118,6 +118,7 @@ INSERT INTO ghost (
 )
 SELECT DISTINCT '', CAST(conv_receiver AS TEXT) || '.' || sender, '', '', '', '', false, false, false, false, CAST('[]' AS jsonb), CAST('{}' AS jsonb)
 FROM message_old
+WHERE true
 ON CONFLICT DO NOTHING;
 
 INSERT INTO message (
