@@ -339,15 +339,14 @@ func (gc *GMClient) hackyResetActive() {
 	gc.noDataReceivedRecently = false
 	gc.lastDataReceived = time.Time{}
 	time.Sleep(7 * time.Second)
-	if !gc.ready && gc.PhoneResponding {
+	if !gc.ready && gc.PhoneResponding && gc.Client != nil {
 		gc.UserLogin.Log.Warn().Msg("Client is still not ready, trying to re-set active session")
 		err := gc.Client.SetActiveSession()
 		if err != nil {
 			gc.UserLogin.Log.Err(err).Msg("Failed to re-set active session")
-		} else {
-			time.Sleep(7 * time.Second)
 		}
-		if !gc.ready && gc.PhoneResponding {
+		time.Sleep(7 * time.Second)
+		if !gc.ready && gc.PhoneResponding && gc.Client != nil {
 			gc.UserLogin.Log.Warn().Msg("Client is still not ready, reconnecting")
 			gc.ResetClient()
 			err = gc.Connect(context.TODO())
