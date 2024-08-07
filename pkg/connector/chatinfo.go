@@ -148,7 +148,6 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	if time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval {
 		return false, nil
 	} else if meta.ContactID == "" && !phoneNumberMightHaveAvatar(meta.Phone) {
-		// Removing avatar when ContactID is empty is handled in makeUserInfo
 		return false, nil
 	}
 	participantID, err := gc.ParseUserID(ghost.ID)
@@ -205,15 +204,10 @@ func (gc *GMClient) makeUserInfo(phone, formattedNumber, contactID, fullName, fi
 	if phone != "" {
 		identifiers = append(identifiers, fmt.Sprintf("tel:%s", phone))
 	}
-	var avatar *bridgev2.Avatar
-	if contactID == "" && !phoneNumberMightHaveAvatar(phone) {
-		avatar = &bridgev2.Avatar{Remove: true}
-	} // if there may be an avatar, we'll update it in ExtraUpdates because it requires extra fetching
 	return &bridgev2.UserInfo{
 		Identifiers: identifiers,
 		Name:        ptr.Ptr(gc.Main.Config.FormatDisplayname(formattedNumber, fullName, firstName)),
 		IsBot:       ptr.Ptr(false),
-		Avatar:      avatar,
 		ExtraUpdates: func(ctx context.Context, ghost *bridgev2.Ghost) (changed bool) {
 			meta := ghost.Metadata.(*GhostMetadata)
 			if meta.ContactID != contactID {
