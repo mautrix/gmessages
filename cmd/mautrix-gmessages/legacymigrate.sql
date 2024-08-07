@@ -178,3 +178,9 @@ SELECT
     reaction, -- emoji
     '{}' -- metadata
 FROM reaction_old
+
+DROP TABLE portal_old;
+DROP TABLE puppet_old;
+DROP TABLE message_old;
+DROP TABLE reaction_old;
+DROP TABLE user_old;
