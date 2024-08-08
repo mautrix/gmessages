@@ -20,8 +20,10 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -32,26 +34,62 @@ import (
 
 var _ bridgev2.BackfillingNetworkAPI = (*GMClient)(nil)
 
+func makePaginationCursor(cursor *gmproto.Cursor) networkid.PaginationCursor {
+	if cursor == nil {
+		return ""
+	}
+	return networkid.PaginationCursor(fmt.Sprintf("%s:%d", cursor.LastItemID, cursor.LastItemTimestamp))
+}
+
+func parsePaginationCursor(cursor networkid.PaginationCursor) (*gmproto.Cursor, error) {
+	var id int64
+	var ts int64
+	_, err := fmt.Sscanf(string(cursor), "%d:%d", &id, &ts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse pagination cursor: %w", err)
+	}
+	return &gmproto.Cursor{
+		LastItemID:        strconv.FormatInt(id, 10),
+		LastItemTimestamp: ts,
+	}, nil
+}
+
 func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	convID, err := gc.ParsePortalID(params.Portal.ID)
 	if err != nil {
 		return nil, err
 	}
-	var cursor *gmproto.Cursor
+	var cursor, anchorMsgCursor *gmproto.Cursor
+	if params.Cursor != "" {
+		cursor, _ = parsePaginationCursor(params.Cursor)
+	}
 	if !params.Forward && params.AnchorMessage != nil {
 		msgID, err := gc.ParseMessageID(params.AnchorMessage.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse anchor message ID: %w", err)
 		}
-		cursor = &gmproto.Cursor{
+		tsMilli := params.AnchorMessage.Timestamp.UnixMilli()
+		anchorMsgCursor = &gmproto.Cursor{
 			LastItemID:        msgID,
-			LastItemTimestamp: params.AnchorMessage.Timestamp.UnixMilli(),
+			LastItemTimestamp: tsMilli,
+		}
+		if cursor == nil || tsMilli < cursor.LastItemTimestamp {
+			cursor = anchorMsgCursor
 		}
 	}
 	resp, err := gc.Client.FetchMessages(convID, int64(params.Count), cursor)
 	if err != nil {
 		return nil, err
 	}
+	zerolog.Ctx(ctx).Debug().
+		Str("param_cursor", string(params.Cursor)).
+		Str("anchor_cursor", string(makePaginationCursor(anchorMsgCursor))).
+		Str("used_cursor", string(makePaginationCursor(cursor))).
+		Str("response_cursor", string(makePaginationCursor(resp.Cursor))).
+		Int("message_count", len(resp.Messages)).
+		Int64("total_messages", resp.TotalMessages).
+		Bool("forward", params.Forward).
+		Msg("Google Messages fetch response")
 	slices.Reverse(resp.Messages)
 	fetchResp := &bridgev2.FetchMessagesResponse{
 		Messages:         make([]*bridgev2.BackfillMessage, 0, len(resp.Messages)),
@@ -88,6 +126,8 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			fetchResp.MarkRead = !meta.readUpToTS.Before(fetchResp.Messages[len(fetchResp.Messages)-1].Timestamp)
 		}
 		gc.conversationMetaLock.Unlock()
+	} else {
+		fetchResp.Cursor = makePaginationCursor(resp.Cursor)
 	}
 	return fetchResp, nil
 }
