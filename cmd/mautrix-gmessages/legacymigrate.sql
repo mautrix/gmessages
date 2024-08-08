@@ -177,7 +177,8 @@ SELECT
     (SELECT (timestamp * 1000) + 1 FROM message_old WHERE conv_receiver=reaction_old.conv_receiver and id=reaction_old.msg_id), -- timestamp
     reaction, -- emoji
     '{}' -- metadata
-FROM reaction_old;
+FROM reaction_old
+WHERE EXISTS(SELECT 1 FROM message_old WHERE message_old.conv_receiver=reaction_old.conv_receiver and message_old.id=reaction_old.msg_id);
 
 DROP TABLE portal_old;
 DROP TABLE puppet_old;
