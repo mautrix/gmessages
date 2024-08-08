@@ -38,7 +38,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		return nil, err
 	}
 	var cursor *gmproto.Cursor
-	if !params.Forward {
+	if !params.Forward && params.AnchorMessage != nil {
 		msgID, err := gc.ParseMessageID(params.AnchorMessage.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse anchor message ID: %w", err)
