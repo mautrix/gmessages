@@ -22,7 +22,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -66,14 +65,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			continue
 		}
 		sender := gc.getEventSenderFromMessage(msg)
-		ghost, err := gc.Main.br.GetGhostByID(ctx, sender.Sender)
-		if err != nil {
-			zerolog.Ctx(ctx).Err(err).Str("ghost_id", string(sender.Sender)).Msg("Failed to get ghost for backfill message")
-		}
-		intent := gc.Main.br.Bot
-		if ghost != nil {
-			intent = ghost.Intent
-		}
+		intent := params.Portal.GetIntentFor(ctx, sender, gc.UserLogin, bridgev2.RemoteEventBackfill)
 		rawData, _ := proto.Marshal(msg)
 		backfillMsg := &bridgev2.BackfillMessage{
 			ConvertedMessage: gc.ConvertGoogleMessage(ctx, params.Portal, intent, &libgm.WrappedMessage{
