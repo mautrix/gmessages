@@ -99,7 +99,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 	}
 	for _, msg := range resp.Messages {
 		msgTS := time.UnixMicro(msg.Timestamp)
-		if !params.Forward && (params.AnchorMessage == nil || !msgTS.Before(params.AnchorMessage.Timestamp)) {
+		if !params.Forward && cursor != nil && msgTS.UnixMilli() >= cursor.LastItemTimestamp {
 			continue
 		}
 		sender := gc.getEventSenderFromMessage(msg)
