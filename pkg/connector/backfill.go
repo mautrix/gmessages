@@ -131,7 +131,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		if fetchResp.Cursor == "" && len(resp.Messages) > 0 {
 			fetchResp.Cursor = makePaginationCursor(&gmproto.Cursor{
 				LastItemID:        resp.Messages[0].MessageID,
-				LastItemTimestamp: resp.Messages[0].Timestamp,
+				LastItemTimestamp: time.UnixMicro(resp.Messages[0].Timestamp).UnixMilli(),
 			})
 		}
 	}
