@@ -99,7 +99,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 	}
 	for _, msg := range resp.Messages {
 		msgTS := time.UnixMicro(msg.Timestamp)
-		if !params.Forward && !msgTS.Before(params.AnchorMessage.Timestamp) {
+		if !params.Forward && (params.AnchorMessage == nil || !msgTS.Before(params.AnchorMessage.Timestamp)) {
 			continue
 		}
 		sender := gc.getEventSenderFromMessage(msg)
@@ -128,6 +128,12 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		gc.conversationMetaLock.Unlock()
 	} else {
 		fetchResp.Cursor = makePaginationCursor(resp.Cursor)
+		if fetchResp.Cursor == "" && len(resp.Messages) > 0 {
+			fetchResp.Cursor = makePaginationCursor(&gmproto.Cursor{
+				LastItemID:        resp.Messages[0].MessageID,
+				LastItemTimestamp: resp.Messages[0].Timestamp,
+			})
+		}
 	}
 	return fetchResp, nil
 }
