@@ -18,7 +18,9 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -40,6 +42,30 @@ const (
 	LoginStepIDGoogle   = "fi.mau.gmessages.google_account"
 	LoginStepIDEmoji    = "fi.mau.gmessages.emoji"
 	LoginStepIDComplete = "fi.mau.gmessages.complete"
+)
+
+const (
+	pairingErrMsgNoDevices        = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
+	pairingErrPhoneNotResponding  = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations. Alternatively, try QR pairing"
+	pairingErrMsgIncorrectEmoji   = "Incorrect emoji chosen on phone, please try again"
+	pairingErrMsgCancelled        = "Pairing cancelled on phone"
+	pairingErrMsgTimeout          = "Pairing timed out, please try again"
+	pairingErrMsgQRTimeout        = "Scanning QR code timed out, please try again"
+	pairingErrMsgStartUnknown     = "Failed to start login"
+	pairingErrMsgWaitUnknown      = "Failed to finish login"
+	pairingErrMsgQRRefreshUnknown = "Failed to refresh QR code"
+)
+
+var (
+	ErrPairNoDevices          = bridgev2.RespError{Err: pairingErrMsgNoDevices, ErrCode: "FI.MAU.GMESSAGES.PAIR_NO_DEVICES", StatusCode: http.StatusBadRequest}
+	ErrPairPhoneNotResponding = bridgev2.RespError{Err: pairingErrPhoneNotResponding, ErrCode: "FI.MAU.GMESSAGES.PAIR_INIT_TIMEOUT", StatusCode: http.StatusBadRequest}
+	ErrPairIncorrectEmoji     = bridgev2.RespError{Err: pairingErrMsgIncorrectEmoji, ErrCode: "FI.MAU.GMESSAGES.PAIR_INCORRECT_EMOJI", StatusCode: http.StatusBadRequest}
+	ErrPairCancelled          = bridgev2.RespError{Err: pairingErrMsgCancelled, ErrCode: "FI.MAU.GMESSAGES.PAIR_CANCELLED", StatusCode: http.StatusBadRequest}
+	ErrPairTimeout            = bridgev2.RespError{Err: pairingErrMsgTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_TIMEOUT", StatusCode: http.StatusBadRequest}
+	ErrPairQRTimeout          = bridgev2.RespError{Err: pairingErrMsgQRTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_QR_TIMEOUT", StatusCode: http.StatusBadRequest}
+	ErrPairStartUnknown       = bridgev2.RespError{Err: pairingErrMsgStartUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
+	ErrPairWaitUnknown        = bridgev2.RespError{Err: pairingErrMsgWaitUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
+	ErrPairQRRefreshUnknown   = bridgev2.RespError{Err: pairingErrMsgQRRefreshUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
 )
 
 var loginFlows = []bridgev2.LoginFlow{{
@@ -90,7 +116,7 @@ func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error
 	ql.Client.PairCallback.Store(&callback)
 	qr, err := ql.Client.StartLogin()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
 	}
 	ql.PrevStart = time.Now()
 	return &bridgev2.LoginStep{
@@ -121,12 +147,12 @@ func (ql *QRLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error)
 		ql.MaxAttempts--
 		if ql.MaxAttempts <= 0 {
 			ql.Client.Disconnect()
-			return nil, fmt.Errorf("login timed out")
+			return nil, ErrPairQRTimeout
 		}
 		newQR, err := ql.Client.RefreshPhoneRelay()
 		if err != nil {
 			ql.Client.Disconnect()
-			return nil, fmt.Errorf("failed to refresh QR code: %w", err)
+			return nil, fmt.Errorf("%w: %w", ErrPairQRRefreshUnknown, err)
 		}
 		ql.PrevStart = time.Now()
 		return &bridgev2.LoginStep{
@@ -205,7 +231,14 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	emoji, gl.Sess, err = gl.Client.StartGaiaPairing(ctx)
 	if err != nil {
 		gl.Client.Disconnect()
-		return nil, fmt.Errorf("failed to start pairing: %w", err)
+		switch {
+		case errors.Is(err, libgm.ErrNoDevicesFound):
+			return nil, ErrPairNoDevices
+		case errors.Is(err, libgm.ErrPairingInitTimeout):
+			return nil, ErrPairPhoneNotResponding
+		default:
+			return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
+		}
 	}
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeDisplayAndWait,
@@ -223,7 +256,19 @@ func (gl *GoogleLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, er
 	phoneID, err := gl.Client.FinishGaiaPairing(ctx, gl.Sess)
 	if err != nil {
 		gl.Client.Disconnect()
-		return nil, err
+		switch {
+		case errors.Is(err, libgm.ErrIncorrectEmoji):
+			return nil, ErrPairIncorrectEmoji
+		case errors.Is(err, libgm.ErrPairingCancelled):
+			return nil, ErrPairCancelled
+		case errors.Is(err, libgm.ErrPairingTimeout):
+			return nil, ErrPairTimeout
+		case errors.Is(err, context.Canceled):
+			// This should only happen if the client already disconnected, so clients will probably never see this error code.
+			return nil, err
+		default:
+			return nil, fmt.Errorf("%w: %w", ErrPairWaitUnknown, err)
+		}
 	}
 	return gl.Main.finishLogin(ctx, gl.User, gl.Client, false, phoneID, gl.Client.AuthData.Mobile.GetSourceID())
 }

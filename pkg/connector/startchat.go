@@ -20,10 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
 	"google.golang.org/protobuf/proto"
+	"maunium.net/go/mautrix"
 
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -35,12 +37,57 @@ var (
 	_ bridgev2.IdentifierResolvingNetworkAPI = (*GMClient)(nil)
 	_ bridgev2.GroupCreatingNetworkAPI       = (*GMClient)(nil)
 	_ bridgev2.ContactListingNetworkAPI      = (*GMClient)(nil)
+	_ bridgev2.IdentifierValidatingNetwork   = (*GMConnector)(nil)
 )
 
+func (gc *GMConnector) ValidateUserID(id networkid.UserID) bool {
+	p1, p2 := parseAnyID(string(id))
+	if len(p1) == 0 || len(p2) == 0 {
+		return false
+	}
+	for _, d := range p1 {
+		if d < '0' || d > '9' {
+			return false
+		}
+	}
+	for _, d := range p2 {
+		if d < '0' || d > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
-	phone, err := bridgev2.CleanNonInternationalPhoneNumber(identifier)
-	if err != nil {
-		return nil, err
+	var phone string
+	netID := networkid.UserID(identifier)
+	if gc.Main.ValidateUserID(netID) {
+		ghost, err := gc.Main.br.GetExistingGhostByID(ctx, netID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get ghost by ID: %w", err)
+		} else if ghost != nil {
+			prefix, _ := parseAnyID(string(ghost.ID))
+			if prefix != gc.Meta.IDPrefix {
+				return nil, fmt.Errorf("%w: prefix mismatch", bridgev2.ErrResolveIdentifierTryNext)
+			}
+			phone = ghost.Metadata.(*GhostMetadata).Phone
+			if phone == "" {
+				return nil, fmt.Errorf("phone number of ghost %s not known", netID)
+			}
+			if !createChat {
+				return &bridgev2.ResolveIdentifierResponse{
+					Ghost:  ghost,
+					UserID: ghost.ID,
+				}, nil
+			}
+		}
+	}
+	if phone == "" {
+		var err error
+		phone, err = bridgev2.CleanNonInternationalPhoneNumber(identifier)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if !createChat {
 		// All phone numbers are probably reachable, just return a fake response
@@ -106,8 +153,8 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 }
 
 var (
-	ErrRCSGroupRequiresName = errors.New("RCS group creation requires a name")
-	ErrMinimumTwoUsers      = errors.New("need at least 2 users to create a group")
+	ErrRCSGroupRequiresName = bridgev2.WrapRespErrManual(errors.New("RCS group creation requires a name"), "FI.MAU.GMESSAGES.RCS_REQUIRES_NAME", http.StatusBadRequest)
+	ErrMinimumTwoUsers      = bridgev2.WrapRespErr(errors.New("need at least 2 users to create a group"), mautrix.MInvalidParam)
 )
 
 func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...networkid.UserID) (*bridgev2.CreateChatResponse, error) {

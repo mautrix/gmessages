@@ -35,8 +35,6 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector"
-
-	"go.mau.fi/mautrix-gmessages/libgm"
 )
 
 type inProgressLogin struct {
@@ -309,12 +307,12 @@ func legacyProvGoogleLoginStart(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Err(err).Msg("Failed to start login")
 		switch {
-		case errors.Is(err, libgm.ErrNoDevicesFound):
+		case errors.Is(err, connector.ErrPairNoDevices):
 			jsonResponse(w, http.StatusBadRequest, Error{
 				Error:   pairingErrMsgNoDevices,
 				ErrCode: "no-devices-found",
 			})
-		case errors.Is(err, libgm.ErrPairingInitTimeout):
+		case errors.Is(err, connector.ErrPairPhoneNotResponding):
 			errMsg := pairingErrPhoneNotResponding
 			if strings.Contains(r.UserAgent(), "; Android") {
 				errMsg += " using the desktop app"
@@ -367,17 +365,17 @@ func legacyProvGoogleLoginWait(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Err(err).Msg("Failed to wait for google login")
 		switch {
-		case errors.Is(err, libgm.ErrIncorrectEmoji):
+		case errors.Is(err, connector.ErrPairIncorrectEmoji):
 			jsonResponse(w, http.StatusBadRequest, Error{
 				Error:   pairingErrMsgIncorrectEmoji,
 				ErrCode: "incorrect-emoji",
 			})
-		case errors.Is(err, libgm.ErrPairingCancelled):
+		case errors.Is(err, connector.ErrPairCancelled):
 			jsonResponse(w, http.StatusBadRequest, Error{
 				Error:   pairingErrMsgCancelled,
 				ErrCode: "pairing-cancelled",
 			})
-		case errors.Is(err, libgm.ErrPairingTimeout):
+		case errors.Is(err, connector.ErrPairTimeout):
 			jsonResponse(w, http.StatusBadRequest, Error{
 				Error:   pairingErrMsgTimeout,
 				ErrCode: "timeout",
@@ -476,7 +474,7 @@ func legacyProvQRLogin(w http.ResponseWriter, r *http.Request) {
 	ipl.step = nextStep
 	if err != nil {
 		logins.Delete(user.MXID)
-		if err.Error() == "login timed out" {
+		if errors.Is(err, connector.ErrPairQRTimeout) {
 			jsonResponse(w, http.StatusOK, LoginResponse{Status: "fail", ErrCode: "timeout", Error: "Scanning QR code timed out"})
 			return
 		} else {
