@@ -34,6 +34,19 @@ import (
 	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
 )
 
+var _ bridgev2.PortalBridgeInfoFillingNetwork = (*GMConnector)(nil)
+
+func (gc *GMConnector) FillPortalBridgeInfo(portal *bridgev2.Portal, content *event.BridgeEventContent) {
+	switch portal.Metadata.(*PortalMetadata).Type {
+	case gmproto.ConversationType_SMS:
+		content.Protocol.ID = "gmessages-sms"
+		content.Protocol.DisplayName = "Google Messages (SMS)"
+	case gmproto.ConversationType_RCS:
+		content.Protocol.ID = "gmessages-rcs"
+		content.Protocol.DisplayName = "Google Messages (RCS)"
+	}
+}
+
 func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
 	conversationID, err := gc.ParsePortalID(portal.ID)
 	if err != nil {
