@@ -102,6 +102,8 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		if !params.Forward && cursor != nil && msgTS.UnixMilli() >= cursor.LastItemTimestamp {
 			continue
 		}
+		log := zerolog.Ctx(ctx).With().Str("message_id", msg.MessageID).Time("message_ts", msgTS).Logger()
+		ctx := log.WithContext(ctx)
 		sender := gc.getEventSenderFromMessage(msg)
 		intent := params.Portal.GetIntentFor(ctx, sender, gc.UserLogin, bridgev2.RemoteEventBackfill)
 		rawData, _ := proto.Marshal(msg)
