@@ -1044,6 +1044,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 			partID = ""
 			dbMeta.GlobalPartCount = len(m.MessageInfo)
 			dbMeta.GlobalMediaStatus = downloadPendingStatusMessage(m.GetMessageStatus().GetStatus())
+			isFirstPart = false
 		}
 		if data.MediaContent.MediaID == "" && data.MediaContent.ThumbnailMediaID == "" {
 			dbMeta.MediaPending = true
