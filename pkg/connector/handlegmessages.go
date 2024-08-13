@@ -498,6 +498,9 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 		if existingPart, ok := existingPartMap[part.ID]; ok {
 			delete(existingPartMap, part.ID)
 			editPart := part.ToEditPart(existingPart)
+			if editPart.TopLevelExtra == nil {
+				editPart.TopLevelExtra = make(map[string]any)
+			}
 			editPart.TopLevelExtra["com.beeper.dont_render_edited"] = true
 			modifiedParts = append(modifiedParts, editPart)
 		} else if m.chatIDChanged || time.Since(time.UnixMicro(m.Timestamp)) < MaxDelayForNewMessagePart {
