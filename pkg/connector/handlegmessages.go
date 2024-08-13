@@ -800,6 +800,8 @@ func (m *MessageEvent) hasInProgressMedia() bool {
 	return false
 }
 
+const DeleteAndResendThreshold = 7 * 24 * time.Hour
+
 func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (bridgev2.UpsertResult, error) {
 	var result bridgev2.UpsertResult
 	log := *zerolog.Ctx(ctx)
@@ -813,6 +815,16 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			Stringer("old_status", existingMeta.Type).
 			Stringer("new_status", newStatus).
 			Msg("Ignoring message status change as it's a downgrade")
+		return result, nil
+	}
+	if m.GetTimestamp().Sub(existing[0].Timestamp) > DeleteAndResendThreshold {
+		err := m.g.Main.br.DB.Message.DeleteAllParts(ctx, portal.Receiver, existing[0].ID)
+		log.Warn().
+			AnErr("delete_error", err).
+			Time("orig_timestamp", existing[0].Timestamp).
+			Time("new_timestamp", m.GetTimestamp()).
+			Msg("Got message update with very different timestamp, sending it as a new message")
+		result.ContinueMessageHandling = true
 		return result, nil
 	}
 	reactionSyncEvt := &ReactionSyncEvent{Message: m.Message, g: m.g}
