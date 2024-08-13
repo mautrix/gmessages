@@ -19,6 +19,8 @@ type GaiaLoggedOut struct{}
 
 type NoDataReceived struct{}
 
+type RecentlyDisconnected struct{}
+
 type AccountChange struct {
 	*gmproto.AccountChangeOrSomethingEvent
 	IsFake bool
