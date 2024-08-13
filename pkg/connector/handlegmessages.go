@@ -490,7 +490,9 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 	for _, part := range converted.Parts {
 		if existingPart, ok := existingPartMap[part.ID]; ok {
 			delete(existingPartMap, part.ID)
-			modifiedParts = append(modifiedParts, part.ToEditPart(existingPart))
+			editPart := part.ToEditPart(existingPart)
+			editPart.TopLevelExtra["com.beeper.dont_render_edited"] = true
+			modifiedParts = append(modifiedParts, editPart)
 		} else {
 			newParts = append(newParts, part)
 		}
