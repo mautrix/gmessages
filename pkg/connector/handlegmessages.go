@@ -373,7 +373,9 @@ func (r *ReactionSyncEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (r *ReactionSyncEvent) AddLogContext(c zerolog.Context) zerolog.Context {
-	return c.Str("message_id", r.MessageID).Stringer("message_status", r.GetMessageStatus().GetStatus())
+	return c.
+		Str("message_id", r.MessageID).
+		Stringer("message_status", r.GetMessageStatus().GetStatus())
 }
 
 func (r *ReactionSyncEvent) GetSender() bridgev2.EventSender {
@@ -425,9 +427,9 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 
 type MessageUpdateEvent struct {
 	*libgm.WrappedMessage
-	g            *GMClient
-	bundle       []*database.Message
-	useTimestamp bool
+	g             *GMClient
+	bundle        []*database.Message
+	chatIDChanged bool
 }
 
 var (
@@ -445,7 +447,10 @@ func (m *MessageUpdateEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageUpdateEvent) AddLogContext(c zerolog.Context) zerolog.Context {
-	return c.Str("message_id", m.MessageID).Stringer("message_status", m.GetMessageStatus().GetStatus())
+	return c.
+		Str("message_id", m.MessageID).
+		Stringer("message_status", m.GetMessageStatus().GetStatus()).
+		Time("message_ts", time.UnixMicro(m.Timestamp))
 }
 
 func (m *MessageUpdateEvent) GetSender() bridgev2.EventSender {
@@ -461,11 +466,13 @@ func (m *MessageUpdateEvent) GetTargetDBMessage() []*database.Message {
 }
 
 func (m *MessageUpdateEvent) GetTimestamp() time.Time {
-	if m.useTimestamp {
+	if m.chatIDChanged {
 		return time.UnixMicro(m.Timestamp)
 	}
 	return time.Time{}
 }
+
+const MaxDelayForNewMessagePart = 24 * time.Hour
 
 func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (*bridgev2.ConvertedEdit, error) {
 	converted := m.g.ConvertGoogleMessage(ctx, portal, intent, m.WrappedMessage, len(existing) == 1)
@@ -493,8 +500,13 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			editPart := part.ToEditPart(existingPart)
 			editPart.TopLevelExtra["com.beeper.dont_render_edited"] = true
 			modifiedParts = append(modifiedParts, editPart)
-		} else {
+		} else if m.chatIDChanged || time.Since(time.UnixMicro(m.Timestamp)) < MaxDelayForNewMessagePart {
 			newParts = append(newParts, part)
+		} else {
+			zerolog.Ctx(ctx).Warn().
+				Any("existing_parts", maps.Keys(existingPartMap)).
+				Str("part_id", string(part.ID)).
+				Msg("Dropping message part in edit as old message doesn't have enough parts to edit")
 		}
 	}
 	converted.Parts = newParts
@@ -535,7 +547,10 @@ func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {
-	return c.Str("message_id", m.MessageID).Stringer("message_status", m.GetMessageStatus().GetStatus())
+	return c.
+		Str("message_id", m.MessageID).
+		Stringer("message_status", m.GetMessageStatus().GetStatus()).
+		Time("message_ts", m.GetTimestamp())
 }
 
 func (m *MessageEvent) GetSender() bridgev2.EventSender {
@@ -885,7 +900,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			WrappedMessage: m.WrappedMessage,
 			g:              m.g,
 			bundle:         dbm,
-			useTimestamp:   chatIDChanged,
+			chatIDChanged:  chatIDChanged,
 		}
 		result.SubEvents = []bridgev2.RemoteEvent{editEvt, reactionSyncEvt}
 	}
