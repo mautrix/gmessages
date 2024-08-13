@@ -194,7 +194,7 @@ func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...netwo
 	resp, err := gc.Client.GetOrCreateConversation(reqData)
 	if resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
 		if name == "" {
-			return nil, ErrRCSGroupRequiresName
+			reqData.RCSGroupName = ptr.Ptr("")
 		}
 		reqData.CreateRCSGroup = ptr.Ptr(true)
 		resp, err = gc.Client.GetOrCreateConversation(reqData)
