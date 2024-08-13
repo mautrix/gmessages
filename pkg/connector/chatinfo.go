@@ -71,7 +71,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		Members: []bridgev2.ChatMember{{
 			EventSender: bridgev2.EventSender{IsFromMe: true},
 		}},
-		PowerLevels: &bridgev2.PowerLevelChanges{
+		PowerLevels: &bridgev2.PowerLevelOverrides{
 			Events: map[event.Type]int{
 				event.StateRoomName:   0,
 				event.StateRoomAvatar: 0,
