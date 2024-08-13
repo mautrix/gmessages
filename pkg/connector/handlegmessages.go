@@ -998,6 +998,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	}
 	textPart, _ := getTextPart(m.Message)
 	if textPart != nil {
+		textPart.DontBridge = dontBridge
 		cm.Parts = append(cm.Parts, textPart)
 	}
 	isFirstPart := textPart == nil
