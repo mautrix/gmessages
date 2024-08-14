@@ -73,7 +73,12 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 	}
 	if !v.Unread {
 		meta.readUpTo = v.LatestMessageID
-		meta.readUpToTS = time.UnixMicro(v.LastMessageTimestamp)
+		newLastMsgTS := time.UnixMicro(v.LastMessageTimestamp)
+		// Don't allow read up to timestamp to move backwards.
+		// There are some weird race conditions where it causes backfills to be left unread.
+		if meta.readUpToTS.Before(newLastMsgTS) {
+			meta.readUpToTS = newLastMsgTS
+		}
 	} else if meta.readUpTo == v.LatestMessageID {
 		meta.readUpTo = ""
 		meta.readUpToTS = time.Time{}

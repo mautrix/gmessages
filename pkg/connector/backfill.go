@@ -125,7 +125,9 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		gc.conversationMetaLock.Lock()
 		meta := gc.conversationMeta[convID]
 		if meta != nil {
-			fetchResp.MarkRead = !meta.readUpToTS.Before(fetchResp.Messages[len(fetchResp.Messages)-1].Timestamp)
+			lastWrappedMsg := fetchResp.Messages[len(fetchResp.Messages)-1]
+			lastRawMsg := resp.Messages[len(resp.Messages)-1]
+			fetchResp.MarkRead = !meta.readUpToTS.Before(lastWrappedMsg.Timestamp) || meta.readUpTo == lastRawMsg.MessageID
 		}
 		gc.conversationMetaLock.Unlock()
 	} else {
