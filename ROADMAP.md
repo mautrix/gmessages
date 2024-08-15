@@ -22,4 +22,4 @@
   * [x] Automatic portal creation
     * [x] After login
     * [x] When receiving message
-  * [ ] Private chat creation by inviting Matrix ghost of remote user to new room
+  * [x] Private chat creation by inviting Matrix ghost of remote user to new room
