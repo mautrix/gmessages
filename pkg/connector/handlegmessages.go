@@ -233,6 +233,9 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
+	case gmproto.AlertType_MOBILE_DATABASE_SYNC_COMPLETE:
+		log.Debug().Msg("Making minimal sync due to mobile database sync complete event")
+		go gc.SyncConversations(ctx, gc.lastDataReceived, true)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
