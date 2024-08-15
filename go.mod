@@ -9,11 +9,11 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/mautrix-gmessages/libgm v0.4.3
-	go.mau.fi/util v0.6.1-0.20240811184504-b00aa5c5af3a
+	go.mau.fi/util v0.6.1-0.20240815104112-77362c9b05dd
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.19.1-0.20240813164351-4f5dea4ca22f
+	maunium.net/go/mautrix v0.19.1-0.20240815104211-9e031496a01c
 )
 
 require (
@@ -24,7 +24,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/petermattis/goid v0.0.0-20240716203034-badd1c0974d6 // indirect
+	github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/tidwall/gjson v1.17.3 // indirect
