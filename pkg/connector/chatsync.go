@@ -84,6 +84,8 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 		if meta.markedSpamAt.IsZero() {
 			meta.markedSpamAt = time.Now()
 		}
+	case gmproto.ConversationStatus_DELETED:
+		// no-op
 	default:
 		suspiciousUnmarkedSpam = time.Since(meta.markedSpamAt) < 1*time.Minute
 	}
@@ -126,6 +128,11 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		}
 	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
+	switch v.Status {
+	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED:
+		// Don't send read/backfill events if the chat is being deleted
+		return
+	}
 	if !evt.AllowBackfill {
 		backfillEvt := &GMChatResync{
 			g:             gc,
