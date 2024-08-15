@@ -133,11 +133,12 @@ INSERT INTO ghost (
 )
 SELECT DISTINCT
     '', CAST(conv_receiver AS TEXT) || '.' || sender, '', '', '', '', false, false, false, false,
-    -- only: postgres
+    -- only: postgres for next 2 lines
     '[]'::jsonb,
-    -- only: sqlite (line commented)
---   '[]',
-    '{}'
+    '{}'::jsonb
+    -- only: sqlite for next 2 lines (lines commented)
+--  '[]',
+--  '{}'
 FROM message_old
 WHERE true
 ON CONFLICT DO NOTHING;
@@ -176,7 +177,10 @@ SELECT
     mxid,
     (SELECT (timestamp * 1000) + 1 FROM message_old WHERE conv_receiver=reaction_old.conv_receiver and id=reaction_old.msg_id), -- timestamp
     reaction, -- emoji
-    '{}' -- metadata
+    -- only: postgres
+    '{}'::jsonb
+    -- only: sqlite (line commented)
+--  '{}'
 FROM reaction_old
 WHERE EXISTS(SELECT 1 FROM message_old WHERE message_old.conv_receiver=reaction_old.conv_receiver and message_old.id=reaction_old.msg_id);
 
