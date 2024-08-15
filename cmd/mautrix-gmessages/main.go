@@ -19,6 +19,7 @@ package main
 import (
 	"net/http"
 
+	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector"
@@ -40,6 +41,7 @@ var m = mxmain.BridgeMain{
 }
 
 func main() {
+	bridgeconfig.HackyMigrateLegacyNetworkConfig = migrateLegacyConfig
 	m.PostInit = func() {
 		m.CheckLegacyDB(
 			10,

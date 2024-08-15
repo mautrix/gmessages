@@ -18,6 +18,9 @@ package main
 
 import (
 	_ "embed"
+
+	up "go.mau.fi/util/configupgrade"
+	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 )
 
 const legacyMigrateRenameTables = `
@@ -30,3 +33,13 @@ ALTER TABLE "user" RENAME TO user_old;
 
 //go:embed legacymigrate.sql
 var legacyMigrateCopyData string
+
+func migrateLegacyConfig(helper up.Helper) {
+	helper.Set(up.Str, "go.mau.fi/mautrix-gmessages", "encryption", "pickle_key")
+	bridgeconfig.CopyToOtherLocation(helper, up.Str, []string{"bridge", "displayname_template"}, []string{"network", "displayname_template"})
+	bridgeconfig.CopyToOtherLocation(helper, up.Str, []string{"google_messages", "os"}, []string{"network", "device_meta", "os"})
+	bridgeconfig.CopyToOtherLocation(helper, up.Str, []string{"google_messages", "browser"}, []string{"network", "device_meta", "browser"})
+	bridgeconfig.CopyToOtherLocation(helper, up.Str, []string{"google_messages", "device"}, []string{"network", "device_meta", "type"})
+	bridgeconfig.CopyToOtherLocation(helper, up.Bool, []string{"google_messages", "aggressive_reconnect"}, []string{"network", "aggressive_reconnect"})
+	bridgeconfig.CopyToOtherLocation(helper, up.Int, []string{"bridge", "initial_chat_sync_count"}, []string{"network", "initial_chat_sync_count"})
+}
