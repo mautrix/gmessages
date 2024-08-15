@@ -133,12 +133,10 @@ INSERT INTO ghost (
 )
 SELECT DISTINCT
     '', CAST(conv_receiver AS TEXT) || '.' || sender, '', '', '', '', false, false, false, false,
-    -- only: postgres for next 2 lines
-    '[]'::jsonb,
-    '{}'::jsonb
-    -- only: sqlite for next 2 lines (lines commented)
---  '[]',
---  '{}'
+    -- only: postgres
+    '[]'::jsonb, '{}'::jsonb
+    -- only: sqlite (line commented)
+--  '[]', '{}'
 FROM message_old
 WHERE true
 ON CONFLICT DO NOTHING;
@@ -184,8 +182,8 @@ SELECT
 FROM reaction_old
 WHERE EXISTS(SELECT 1 FROM message_old WHERE message_old.conv_receiver=reaction_old.conv_receiver and message_old.id=reaction_old.msg_id);
 
-DROP TABLE portal_old;
-DROP TABLE puppet_old;
-DROP TABLE message_old;
 DROP TABLE reaction_old;
+DROP TABLE message_old;
+DROP TABLE puppet_old;
+DROP TABLE portal_old;
 DROP TABLE user_old;
