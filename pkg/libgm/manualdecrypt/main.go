@@ -13,9 +13,9 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"go.mau.fi/mautrix-gmessages/libgm/crypto"
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/pblite"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/crypto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/pblite"
 )
 
 func must[T any](t T, err error) T {

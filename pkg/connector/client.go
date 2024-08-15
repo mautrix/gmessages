@@ -29,8 +29,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
-	"go.mau.fi/mautrix-gmessages/libgm"
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
 type conversationMeta struct {

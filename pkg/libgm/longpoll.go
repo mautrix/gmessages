@@ -17,11 +17,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
-	"go.mau.fi/mautrix-gmessages/libgm/events"
-	"go.mau.fi/mautrix-gmessages/libgm/pblite"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/pblite"
 
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/util"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
 
 const defaultPingTimeout = 1 * time.Minute

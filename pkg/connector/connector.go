@@ -21,9 +21,9 @@ import (
 
 	"maunium.net/go/mautrix/bridgev2"
 
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/libgm/util"
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
 
 type GMConnector struct {

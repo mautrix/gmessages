@@ -1,7 +1,7 @@
 package events
 
 import (
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
 type QR struct {

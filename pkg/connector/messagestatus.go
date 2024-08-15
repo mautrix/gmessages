@@ -22,7 +22,7 @@ import (
 
 	"maunium.net/go/mautrix/bridgev2"
 
-	"go.mau.fi/mautrix-gmessages/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
 func isSuccessfullySentStatus(status gmproto.MessageStatusType) bool {
