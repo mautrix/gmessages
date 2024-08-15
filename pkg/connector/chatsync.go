@@ -81,7 +81,9 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 	}
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER:
-		meta.markedSpamAt = time.Now()
+		if meta.markedSpamAt.IsZero() {
+			meta.markedSpamAt = time.Now()
+		}
 	default:
 		suspiciousUnmarkedSpam = time.Since(meta.markedSpamAt) < 1*time.Minute
 	}
