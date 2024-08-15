@@ -184,6 +184,6 @@ WHERE EXISTS(SELECT 1 FROM message_old WHERE message_old.conv_receiver=reaction_
 
 DROP TABLE reaction_old;
 DROP TABLE message_old;
-DROP TABLE puppet_old;
 DROP TABLE portal_old;
+DROP TABLE puppet_old;
 DROP TABLE user_old;
