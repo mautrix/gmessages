@@ -75,8 +75,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	}
 	userLoginChanged := false
 	eventsDefaultPL := 0
-	// Ignore read-only flag for RCS groups because it's incorrectly set for those sometimes
-	if conv.ReadOnly && !(conv.Type == gmproto.ConversationType_RCS && conv.IsGroupChat) {
+	if conv.ReadOnly {
 		eventsDefaultPL = 99
 	}
 	members := &bridgev2.ChatMemberList{
