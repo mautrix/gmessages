@@ -1,3 +1,11 @@
+# v0.5.0 (unreleased)
+
+* Bumped minimum Go version to 1.22.
+* Rewrote bridge using bridgev2 architecture.
+  * It is recommended to check the config file after upgrading. If you have
+    prevented the bridge from writing to the config, you should update it
+    manually.
+
 # v0.4.3 (2024-07-16)
 
 * Added support for new protocol version in Google account pairing.
