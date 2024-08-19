@@ -76,7 +76,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	userLoginChanged := false
 	eventsDefaultPL := 0
 	if conv.ReadOnly {
-		eventsDefaultPL = 99
+		eventsDefaultPL = 50
 	}
 	members := &bridgev2.ChatMemberList{
 		IsFull: true,
@@ -111,6 +111,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			members.Members = append(members.Members, bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
 				UserInfo:    gc.wrapParticipantInfo(pcp),
+				PowerLevel:  ptr.Ptr(50),
 			})
 		}
 	}
