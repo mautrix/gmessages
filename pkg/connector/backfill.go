@@ -55,6 +55,9 @@ func parsePaginationCursor(cursor networkid.PaginationCursor) (*gmproto.Cursor, 
 }
 
 func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
+	if gc.Client == nil {
+		return nil, bridgev2.ErrNotLoggedIn
+	}
 	convID, err := gc.ParsePortalID(params.Portal.ID)
 	if err != nil {
 		return nil, err

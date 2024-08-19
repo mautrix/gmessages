@@ -41,6 +41,9 @@ var (
 )
 
 func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
+	if gc.Client == nil {
+		return nil, bridgev2.ErrNotLoggedIn
+	}
 	txnID := util.GenerateTmpID()
 	req, err := gc.ConvertMatrixMessage(ctx, msg, txnID)
 	if err != nil {
@@ -170,6 +173,9 @@ func (gc *GMClient) reuploadMedia(ctx context.Context, content *event.MessageEve
 var ErrNonSuccessResponse = bridgev2.WrapErrorInStatus(errors.New("got non-success response")).WithErrorAsMessage().WithSendNotice(true)
 
 func (gc *GMClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
 	msgID, err := gc.ParseMessageID(msg.TargetMessage.ID)
 	if err != nil {
 		return err
@@ -191,6 +197,9 @@ func (gc *GMClient) PreHandleMatrixReaction(ctx context.Context, msg *bridgev2.M
 }
 
 func (gc *GMClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.MatrixReaction) (reaction *database.Reaction, err error) {
+	if gc.Client == nil {
+		return nil, bridgev2.ErrNotLoggedIn
+	}
 	action := gmproto.SendReactionRequest_ADD
 	if msg.ReactionToOverride != nil {
 		action = gmproto.SendReactionRequest_SWITCH
@@ -214,6 +223,9 @@ func (gc *GMClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.Matr
 }
 
 func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev2.MatrixReactionRemove) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
 	msgID, err := gc.ParseMessageID(msg.TargetReaction.MessageID)
 	if err != nil {
 		return err
@@ -232,6 +244,9 @@ func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev
 }
 
 func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
 	targetMessage := msg.ExactMessage
 	if targetMessage == nil {
 		var err error
