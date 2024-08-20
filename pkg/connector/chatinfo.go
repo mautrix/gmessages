@@ -99,10 +99,6 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			Redact:        ptr.Ptr(0),
 		},
 	}
-	if gc.Meta.AddSelfParticipantID(conv.GetDefaultOutgoingID()) {
-		log.Debug().Str("default_outgoing_id", conv.GetDefaultOutgoingID()).Msg("Added default outgoing ID to self participant IDs")
-		userLoginChanged = true
-	}
 	for _, pcp := range conv.Participants {
 		if pcp.IsMe {
 			if gc.Meta.AddSelfParticipantID(pcp.ID.ParticipantID) {
