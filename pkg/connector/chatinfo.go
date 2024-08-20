@@ -99,10 +99,16 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			Redact:        ptr.Ptr(0),
 		},
 	}
-	userLoginChanged = gc.Meta.AddSelfParticipantID(conv.GetDefaultOutgoingID()) || userLoginChanged
+	if gc.Meta.AddSelfParticipantID(conv.GetDefaultOutgoingID()) {
+		log.Debug().Str("default_outgoing_id", conv.GetDefaultOutgoingID()).Msg("Added default outgoing ID to self participant IDs")
+		userLoginChanged = true
+	}
 	for _, pcp := range conv.Participants {
 		if pcp.IsMe {
-			userLoginChanged = gc.Meta.AddSelfParticipantID(pcp.ID.ParticipantID) || userLoginChanged
+			if gc.Meta.AddSelfParticipantID(pcp.ID.ParticipantID) {
+				log.Debug().Any("participant", pcp).Msg("Added conversation participant to self participant IDs")
+				userLoginChanged = true
+			}
 		} else if pcp.ID.Number == "" {
 			log.Warn().Any("participant", pcp).Msg("No number found in non-self participant entry")
 		} else if !pcp.IsVisible {
