@@ -404,7 +404,7 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 			data.Users[userID] = reacts
 		}
 		reacts.Reactions = append(reacts.Reactions, &bridgev2.BackfillReaction{
-			Sender: r.g.makeEventSender(participantID),
+			Sender: r.g.makeEventSender(participantID, false),
 			Emoji:  emoji,
 		})
 	}
@@ -569,14 +569,17 @@ func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.Event
 	if status >= 200 && status < 300 {
 		return bridgev2.EventSender{}
 	}
-	return gc.makeEventSender(m.ParticipantID)
+	// Statuses between 1 and 100 are outgoing types
+	forceOutgoing := status >= 1 && status < 100
+	return gc.makeEventSender(m.ParticipantID, forceOutgoing)
 }
 
-func (gc *GMClient) makeEventSender(participantID string) bridgev2.EventSender {
+func (gc *GMClient) makeEventSender(participantID string, forceOutgoing bool) bridgev2.EventSender {
+	isFromMe := forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID)
 	return bridgev2.EventSender{
-		IsFromMe:    participantID == "1" || gc.Meta.IsSelfParticipantID(participantID),
+		IsFromMe:    isFromMe,
 		Sender:      gc.MakeUserID(participantID),
-		ForceDMUser: true,
+		ForceDMUser: !isFromMe,
 	}
 }
 
