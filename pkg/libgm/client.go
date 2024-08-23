@@ -62,7 +62,7 @@ func (ad *AuthData) AddCookiesToRequest(req *http.Request) {
 	}
 	sapisid, ok := ad.Cookies["SAPISID"]
 	if ok {
-		req.Header.Set("Authorization", sapisidHash(util.MessagesBaseURL, sapisid))
+		req.Header.Set("Authorization", SAPISIDHash(util.MessagesBaseURL, sapisid))
 	}
 }
 

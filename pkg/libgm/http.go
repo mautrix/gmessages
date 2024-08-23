@@ -60,7 +60,7 @@ func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string,
 	return res, nil
 }
 
-func sapisidHash(origin, sapisid string) string {
+func SAPISIDHash(origin, sapisid string) string {
 	ts := time.Now().Unix()
 	hash := sha1.Sum([]byte(fmt.Sprintf("%d %s %s", ts, sapisid, origin)))
 	return fmt.Sprintf("SAPISIDHASH %d_%x", ts, hash[:])
