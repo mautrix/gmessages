@@ -5,7 +5,7 @@ option go_package = "../gmproto";
 
 import "authentication.proto";
 import "util.proto";
-import "pblite.proto";
+import "vendor/pblite.proto";
 
 message StartAckMessage {
     optional int32 count = 1;

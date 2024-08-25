@@ -1,7 +1,7 @@
 syntax = "proto3";
 package pblite;
 
-option go_package = "../gmproto";
+option go_package = "go.mau.fi/util/pblite";
 
 import "google/protobuf/descriptor.proto";
 

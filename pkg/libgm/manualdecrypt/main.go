@@ -11,11 +11,11 @@ import (
 	"os"
 	"os/exec"
 
+	"go.mau.fi/util/pblite"
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/pblite"
 )
 
 func must[T any](t T, err error) T {

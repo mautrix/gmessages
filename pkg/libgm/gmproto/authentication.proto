@@ -4,7 +4,7 @@ package authentication;
 option go_package = "../gmproto";
 
 import "util.proto";
-import "pblite.proto";
+import "vendor/pblite.proto";
 
 enum BrowserType {
     UNKNOWN_BROWSER_TYPE = 0;

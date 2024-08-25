@@ -5,12 +5,12 @@ import (
 	"io"
 	"os"
 
+	"go.mau.fi/util/pblite"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/pblite"
 )
 
 func must[T any](t T, err error) T {
