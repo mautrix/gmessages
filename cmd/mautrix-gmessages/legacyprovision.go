@@ -66,7 +66,7 @@ type Response struct {
 
 func legacyProvDeleteSession(w http.ResponseWriter, r *http.Request) {
 	user := m.Matrix.Provisioning.GetUser(r)
-	logins := user.GetCachedUserLogins()
+	logins := user.GetUserLogins()
 	if len(logins) == 0 {
 		jsonResponse(w, http.StatusNotFound, Error{
 			Error:   "Nothing to purge: no session information stored and no active connection.",
@@ -204,7 +204,7 @@ func jsonResponse(w http.ResponseWriter, status int, response interface{}) {
 
 func legacyProvLogout(w http.ResponseWriter, r *http.Request) {
 	user := m.Matrix.Provisioning.GetUser(r)
-	allLogins := user.GetCachedUserLogins()
+	allLogins := user.GetUserLogins()
 	if len(allLogins) == 0 {
 		jsonResponse(w, http.StatusOK, Error{
 			Error:   "You're not logged in",
@@ -496,7 +496,7 @@ func legacyProvQRLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLoginComplete(ctx context.Context, user *bridgev2.User, newLogin *bridgev2.UserLogin) {
-	allLogins := user.GetCachedUserLogins()
+	allLogins := user.GetUserLogins()
 	for _, login := range allLogins {
 		if login.ID != newLogin.ID {
 			login.Delete(ctx, status.BridgeState{StateEvent: status.StateLoggedOut, Reason: "LOGIN_OVERRIDDEN"}, bridgev2.DeleteOpts{})

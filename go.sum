@@ -1,3 +1,5 @@
+filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
+filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
 github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ+JlNzwDqpNU=
 github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8iXXhfZs=
@@ -90,5 +92,5 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 maunium.net/go/mauflag v1.0.0 h1:YiaRc0tEI3toYtJMRIfjP+jklH45uDHtT80nUamyD4M=
 maunium.net/go/mauflag v1.0.0/go.mod h1:nLivPOpTpHnpzEh8jEdSL9UqO9+/KBJFmNRlwKfkPeA=
-maunium.net/go/mautrix v0.20.1-0.20240820132941-4b7fa711cedb h1:igH5z8eHJ+C3XsuF12gVfUg+HVcZYFnWd1seojJYB7c=
-maunium.net/go/mautrix v0.20.1-0.20240820132941-4b7fa711cedb/go.mod h1:NhWZ4jpQ2CW+t6TmGrnydAIL0htdoXmGiNTdHb2PzL4=
+maunium.net/go/mautrix v0.20.1-0.20240824231714-649a637350a0 h1:pIpgiOZw7TKae1TEtdu5vC9SX+I+ES1aB07DJo3sACg=
+maunium.net/go/mautrix v0.20.1-0.20240824231714-649a637350a0/go.mod h1:gjaQwhKXiw0MDWmGpYvbBbIkmI5bUC7PVgrvn1DgYjI=

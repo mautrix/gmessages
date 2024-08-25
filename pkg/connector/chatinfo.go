@@ -80,9 +80,9 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	}
 	members := &bridgev2.ChatMemberList{
 		IsFull: true,
-		Members: []bridgev2.ChatMember{{
-			EventSender: bridgev2.EventSender{IsFromMe: true},
-		}},
+		MemberMap: map[networkid.UserID]bridgev2.ChatMember{
+			"": {EventSender: bridgev2.EventSender{IsFromMe: true}},
+		},
 		PowerLevels: &bridgev2.PowerLevelOverrides{
 			Events: map[event.Type]int{
 				event.StateRoomName:   0,
@@ -110,11 +110,12 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		} else if !pcp.IsVisible {
 			log.Debug().Any("participant", pcp).Msg("Ignoring fake participant")
 		} else {
-			members.Members = append(members.Members, bridgev2.ChatMember{
+			userID := gc.MakeUserID(pcp.ID.ParticipantID)
+			members.MemberMap[userID] = bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
 				UserInfo:    gc.wrapParticipantInfo(pcp),
 				PowerLevel:  ptr.Ptr(50),
-			})
+			}
 		}
 	}
 	if userLoginChanged {
