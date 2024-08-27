@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
+	"slices"
 	"time"
 
 	"maunium.net/go/mautrix/bridgev2"
@@ -185,23 +185,34 @@ var (
 var loginStepCookies *bridgev2.LoginStep
 
 func init() {
-	cookies := []string{"SID", "HSID", "SSID", "OSID", "APISID", "SAPISID", "__Secure-1PSIDTS"}
+	cookies := map[string]string{
+		"OSID":             "messages.google.com",
+		"SID":              ".google.com",
+		"HSID":             ".google.com",
+		"SSID":             ".google.com",
+		"APISID":           ".google.com",
+		"SAPISID":          ".google.com",
+		"__Secure-1PSIDTS": ".google.com",
+	}
+	requiredCookies := []string{"SID", "HSID", "OSID", "SSID", "APISID", "SAPISID"}
 	cookieFields := make([]bridgev2.LoginCookieField, len(cookies))
-	for i, cookie := range cookies {
+	i := 0
+	for cookie, domain := range cookies {
 		cookieFields[i] = bridgev2.LoginCookieField{
 			ID:       cookie,
-			Required: !strings.HasPrefix(cookie, "__"),
+			Required: slices.Contains(requiredCookies, cookie),
 			Sources: []bridgev2.LoginCookieFieldSource{{
 				Type:         bridgev2.LoginCookieTypeCookie,
 				Name:         cookie,
-				CookieDomain: "messages.google.com",
+				CookieDomain: domain,
 			}},
 		}
+		i++
 	}
 	loginStepCookies = &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeCookies,
 		StepID:       LoginStepIDGoogle,
-		Instructions: "", // TODO
+		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools.",
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:    "https://accounts.google.com/AccountChooser?continue=https://messages.google.com/web/config",
 			Fields: []bridgev2.LoginCookieField{},
