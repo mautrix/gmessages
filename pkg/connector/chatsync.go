@@ -236,7 +236,9 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 		return false, nil
 	}
 	lastMessageTS := time.UnixMicro(evt.Conv.LastMessageTimestamp)
-	return evt.Conv.LastMessageTimestamp != 0 && (latestMessage == nil || lastMessageTS.After(latestMessage.Timestamp)), nil
+	return evt.Conv.LastMessageTimestamp != 0 && (latestMessage == nil ||
+		(lastMessageTS.After(latestMessage.Timestamp) &&
+			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID)), nil
 }
 
 func (evt *GMChatResync) DeleteOnlyForMe() bool {
