@@ -536,6 +536,7 @@ var (
 	_ bridgev2.RemoteMessageWithTransactionID = (*MessageEvent)(nil)
 	_ bridgev2.RemoteMessageUpsert            = (*MessageEvent)(nil)
 	_ bridgev2.RemoteMessageRemove            = (*MessageEvent)(nil)
+	_ bridgev2.RemoteEventThatMayCreatePortal = (*MessageEvent)(nil)
 	_ bridgev2.RemoteEventWithTimestamp       = (*MessageEvent)(nil)
 )
 
@@ -550,6 +551,22 @@ func (m *MessageEvent) GetType() bridgev2.RemoteEventType {
 
 func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 	return m.g.MakePortalKey(m.ConversationID)
+}
+
+func (m *MessageEvent) ShouldCreatePortal() bool {
+	switch m.GetMessageStatus().GetStatus() {
+	case gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_OUTGOING_COMPLETE,
+		gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
+		m.g.UserLogin.Log.Warn().
+			Str("message_id", m.MessageID).
+			Str("conversation_id", m.ConversationID).
+			Str("participant_id", m.ParticipantID).
+			Str("status", m.GetMessageStatus().GetStatus().String()).
+			Msg("Portal doesn't exist for normal message, allowing creation")
+		return true
+	default:
+		return false
+	}
 }
 
 func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {
