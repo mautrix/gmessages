@@ -160,6 +160,20 @@ SELECT
 FROM message_old;
 -- TODO split out parts from status?
 
+INSERT INTO ghost (
+    bridge_id, id, name, avatar_id, avatar_hash, avatar_mxc,
+    name_set, avatar_set, contact_info_set, is_bot, identifiers, metadata
+)
+SELECT DISTINCT
+    '', CAST(conv_receiver AS TEXT) || '.' || sender, '', '', '', '', false, false, false, false,
+    -- only: postgres
+    '[]'::jsonb, '{}'::jsonb
+-- only: sqlite (line commented)
+--  '[]', '{}'
+FROM reaction_old
+WHERE true
+ON CONFLICT DO NOTHING;
+
 INSERT INTO reaction (
     bridge_id, message_id, message_part_id, sender_id, emoji_id,
     room_id, room_receiver, mxid, timestamp, emoji, metadata
