@@ -394,6 +394,13 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 		Users:       make(map[networkid.UserID]*bridgev2.ReactionSyncUser),
 		HasAllUsers: true,
 	}
+	var extraData map[string]any
+	if time.Since(time.UnixMicro(r.Timestamp)) > 1*24*time.Hour {
+		// Extremely hacky hack to prevent notifications for reactions to old messages
+		extraData = map[string]any{
+			"org.matrix.msc2716.historical": true,
+		}
+	}
 	addReaction := func(participantID, emoji string) {
 		userID := r.g.MakeUserID(participantID)
 		reacts, ok := data.Users[userID]
@@ -404,8 +411,9 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 			data.Users[userID] = reacts
 		}
 		reacts.Reactions = append(reacts.Reactions, &bridgev2.BackfillReaction{
-			Sender: r.g.makeEventSender(participantID, false),
-			Emoji:  emoji,
+			Sender:       r.g.makeEventSender(participantID, false),
+			Emoji:        emoji,
+			ExtraContent: extraData,
 		})
 	}
 	for _, reaction := range r.Reactions {
