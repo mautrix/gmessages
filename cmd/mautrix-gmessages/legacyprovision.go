@@ -116,6 +116,9 @@ func legacyProvStartChat(w http.ResponseWriter, r *http.Request) {
 			ErrCode: "bad json",
 		})
 	}
+	for i, num := range req.Numbers {
+		req.Numbers[i] = strings.TrimPrefix(num, "tel:")
+	}
 	api := userLogin.Client.(bridgev2.GroupCreatingNetworkAPI)
 	var err error
 	var resp *bridgev2.CreateChatResponse
