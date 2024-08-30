@@ -86,7 +86,8 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		var err error
 		phone, err = bridgev2.CleanNonInternationalPhoneNumber(identifier)
 		if err != nil {
-			return nil, err
+			zerolog.Ctx(ctx).Debug().Str("input_identifier", identifier).Msg("Invalid phone number passed to ResolveIdentifier")
+			return nil, bridgev2.WrapRespErrManual(err, mautrix.MInvalidParam.ErrCode, http.StatusBadRequest)
 		}
 	}
 	if !createChat {
