@@ -594,7 +594,7 @@ func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.Event
 	if status >= 200 && status < 300 {
 		return bridgev2.EventSender{}
 	}
-	// Statuses between 1 and 100 are outgoing types, 100-200 are incoming
+	// Statuses between 1 and 99 are outgoing types, 100-199 are incoming
 	forceOutgoing := status >= 1 && status < 100
 	forceIncoming := status >= 100 && status < 200
 	return gc.makeEventSender(m.ParticipantID, forceOutgoing, forceIncoming)
