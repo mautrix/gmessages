@@ -411,7 +411,7 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 			data.Users[userID] = reacts
 		}
 		reacts.Reactions = append(reacts.Reactions, &bridgev2.BackfillReaction{
-			Sender:       r.g.makeEventSender(participantID, false),
+			Sender:       r.g.makeEventSender(participantID, false, false),
 			Emoji:        emoji,
 			ExtraContent: extraData,
 		})
@@ -594,13 +594,14 @@ func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.Event
 	if status >= 200 && status < 300 {
 		return bridgev2.EventSender{}
 	}
-	// Statuses between 1 and 100 are outgoing types
+	// Statuses between 1 and 100 are outgoing types, 100-200 are incoming
 	forceOutgoing := status >= 1 && status < 100
-	return gc.makeEventSender(m.ParticipantID, forceOutgoing)
+	forceIncoming := status >= 100 && status < 200
+	return gc.makeEventSender(m.ParticipantID, forceOutgoing, forceIncoming)
 }
 
-func (gc *GMClient) makeEventSender(participantID string, forceOutgoing bool) bridgev2.EventSender {
-	isFromMe := forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID)
+func (gc *GMClient) makeEventSender(participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
+	isFromMe := !forceIncoming && (forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID))
 	return bridgev2.EventSender{
 		IsFromMe:    isFromMe,
 		Sender:      gc.MakeUserID(participantID),
