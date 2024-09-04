@@ -44,27 +44,26 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 	if gc.Client == nil {
 		return nil, bridgev2.ErrNotLoggedIn
 	}
-	txnID := util.GenerateTmpID()
+	txnID := networkid.TransactionID(util.GenerateTmpID())
 	req, err := gc.ConvertMatrixMessage(ctx, msg, txnID)
 	if err != nil {
 		return nil, err
 	}
+	msg.AddPendingToSave(nil, txnID, gc.handleRemoteEcho)
 	zerolog.Ctx(ctx).Debug().
-		Str("tmp_id", txnID).
+		Str("tmp_id", string(txnID)).
 		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
 		Msg("Sending Matrix message to Google Messages")
 	resp, err := gc.Client.SendMessage(req)
 	if err != nil {
+		msg.RemovePending(txnID)
 		return nil, err
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
+		msg.RemovePending(txnID)
 		return nil, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
 			WithIsCertain(true).WithSendNotice(true).WithErrorAsMessage()
 	}
-	return &bridgev2.MatrixMessageResponse{
-		DB:         &database.Message{},
-		Pending:    networkid.TransactionID(txnID),
-		HandleEcho: gc.handleRemoteEcho,
-	}, nil
+	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
 }
 
 func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *database.Message) (saveMessage bool, statusErr error) {
@@ -78,7 +77,7 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 	return true, bridgev2.ErrNoStatus
 }
 
-func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage, txnID string) (*gmproto.SendMessageRequest, error) {
+func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage, txnID networkid.TransactionID) (*gmproto.SendMessageRequest, error) {
 	portalMeta := msg.Portal.Metadata.(*PortalMetadata)
 	sim := gc.GetSIM(msg.Portal)
 	conversationID, err := gc.ParsePortalID(msg.Portal.ID)
@@ -88,14 +87,14 @@ func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.Matr
 	req := &gmproto.SendMessageRequest{
 		ConversationID: conversationID,
 		MessagePayload: &gmproto.MessagePayload{
-			TmpID:                 txnID,
+			TmpID:                 string(txnID),
 			MessagePayloadContent: nil,
 			ConversationID:        conversationID,
 			ParticipantID:         portalMeta.OutgoingID,
-			TmpID2:                txnID,
+			TmpID2:                string(txnID),
 		},
 		SIMPayload: sim.GetSIMData().GetSIMPayload(),
-		TmpID:      txnID,
+		TmpID:      string(txnID),
 		ForceRCS: portalMeta.Type == gmproto.ConversationType_RCS &&
 			portalMeta.SendMode == gmproto.ConversationSendMode_SEND_MODE_AUTO &&
 			portalMeta.ForceRCS,
