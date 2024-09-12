@@ -20,7 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
-	"sync"
+
+	sync "github.com/sasha-s/go-deadlock"
 
 	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2/database"

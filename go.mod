@@ -6,13 +6,14 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.5
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
+	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/stretchr/testify v1.9.0
 	go.mau.fi/util v0.7.1-0.20240904173517-ca3b3fe376c2
 	golang.org/x/crypto v0.26.0
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.20.1-0.20240905211528-059d9a36e5cf
+	maunium.net/go/mautrix v0.20.1-0.20240912130037-80d5daa6fff7
 )
 
 require (
