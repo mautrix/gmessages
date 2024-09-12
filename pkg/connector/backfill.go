@@ -135,7 +135,10 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		}
 		fetchResp.Messages = append(fetchResp.Messages, backfillMsg)
 	}
-	fetchResp.HasMore = len(fetchResp.Messages) > 0
+	if len(fetchResp.Messages) == 0 {
+		return fetchResp, nil
+	}
+	fetchResp.HasMore = true
 	if params.Forward {
 		fetchResp.AggressiveDeduplication = params.AnchorMessage != nil
 		gc.conversationMetaLock.Lock()
