@@ -8,7 +8,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.5
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
-	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/stretchr/testify v1.9.0
 	go.mau.fi/util v0.7.1-0.20240913091524-7617daa66719
 	golang.org/x/crypto v0.27.0

@@ -32,9 +32,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
-
-	sync "github.com/sasha-s/go-deadlock"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"

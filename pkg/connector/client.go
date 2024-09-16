@@ -19,10 +19,9 @@ package connector
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"time"
-
-	sync "github.com/sasha-s/go-deadlock"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exsync"

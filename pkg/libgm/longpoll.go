@@ -10,10 +10,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
-
-	sync "github.com/sasha-s/go-deadlock"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
