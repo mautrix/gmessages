@@ -218,6 +218,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, timeoutCount i
 const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
 
 func (dp *dittoPinger) Loop() {
+	var lastDataReceiveCheck time.Time
 	for {
 		var pingStart time.Time
 		select {
@@ -235,11 +236,18 @@ func (dp *dittoPinger) Loop() {
 			return
 		}
 		if dp.client.shouldDoDataReceiveCheck() {
-			dp.log.Warn().Msg("No data received recently, sending extra GET_UPDATES call")
+			dp.log.Warn().
+				Time("last_data_receive_check", lastDataReceiveCheck).
+				Msg("No data received recently, sending extra GET_UPDATES call")
 			go dp.HandleNoRecentUpdates()
-		} else if time.Since(pingStart) > 5*time.Minute {
-			dp.log.Warn().Msg("Was disconnected for over 5 minutes, sending extra GET_UPDATES call")
+			lastDataReceiveCheck = time.Now()
+		} else if time.Since(pingStart) > 5*time.Minute || (time.Since(pingStart) > 1*time.Minute && time.Since(lastDataReceiveCheck) > 30*time.Minute) {
+			dp.log.Warn().
+				Time("ping_start", pingStart).
+				Time("last_data_receive_check", lastDataReceiveCheck).
+				Msg("Was disconnected for over a minute, sending extra GET_UPDATES call")
 			go dp.HandleNoRecentUpdates()
+			lastDataReceiveCheck = time.Now()
 		}
 	}
 }
