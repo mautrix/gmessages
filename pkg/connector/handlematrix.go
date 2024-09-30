@@ -70,6 +70,7 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 	evt := rawEvt.(*MessageEvent)
 	_, textHash := getTextPart(evt.Message)
 	dbMessage.Metadata = &MessageMetadata{
+		IsOutgoing:      true,
 		Type:            evt.GetMessageStatus().GetStatus(),
 		TextHash:        textHash,
 		GlobalPartCount: len(evt.MessageInfo),

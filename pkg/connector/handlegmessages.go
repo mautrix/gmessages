@@ -505,6 +505,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 
 	prevMainMeta := existing[0].Metadata.(*MessageMetadata)
 	newMainMeta := converted.Parts[0].DBMetadata.(*MessageMetadata)
+	newMainMeta.IsOutgoing = prevMainMeta.IsOutgoing
 	newMainMeta.MSSSent = prevMainMeta.MSSSent
 	newMainMeta.MSSFailSent = prevMainMeta.MSSFailSent
 	newMainMeta.MSSDeliverySent = prevMainMeta.MSSDeliverySent
@@ -878,7 +879,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		(hasPendingMedia && updatedMediaIsComplete) ||
 		messageWasEdited ||
 		existingMeta.GlobalPartCount != len(m.MessageInfo)
-	needsMSSEvent := !existingMeta.MSSSent && isSuccessfullySentStatus(newStatus)
+	needsMSSEvent := existingMeta.IsOutgoing && !existingMeta.MSSSent && isSuccessfullySentStatus(newStatus)
 	needsMSSFailureEvent := !existingMeta.MSSFailSent && !existingMeta.MSSSent && getFailMessage(newStatus) != ""
 	needsMSSDeliveryEvent := !existingMeta.MSSDeliverySent && portal.RoomType == database.RoomTypeDM && (newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED || newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED)
 	needsReadReceipt := !existingMeta.ReadReceiptSent && portal.RoomType == database.RoomTypeDM && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED
