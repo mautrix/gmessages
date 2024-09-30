@@ -404,7 +404,7 @@ func legacyProvGoogleLoginWait(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	handleLoginComplete(r.Context(), user, nextStep.CompleteParams.UserLogin)
+	go handleLoginComplete(context.WithoutCancel(r.Context()), user, nextStep.CompleteParams.UserLogin)
 	jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 }
 
@@ -489,7 +489,7 @@ func legacyProvQRLogin(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "qr", Code: nextStep.DisplayAndWaitParams.Data})
 	} else if nextStep.StepID == connector.LoginStepIDComplete {
 		logins.Delete(user.MXID)
-		handleLoginComplete(r.Context(), user, nextStep.CompleteParams.UserLogin)
+		go handleLoginComplete(context.WithoutCancel(r.Context()), user, nextStep.CompleteParams.UserLogin)
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 	} else {
 		logins.Delete(user.MXID)
