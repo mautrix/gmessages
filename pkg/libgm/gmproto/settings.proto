@@ -37,10 +37,11 @@ message SIMPayload {
 
 message SIMData {
     SIMPayload SIMPayload = 1;
-    bool bool1 = 2;
+    bool bool1 = 2; // maybe isDefault?
     string carrierName = 3;
-    string hexHash = 4;
+    string colorHex = 4;
     int64 int1 = 5;
+    string formattedPhoneNumber = 6;
 }
 
 message UnknownMessage {

@@ -20,9 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 
 	"go.mau.fi/util/jsontime"
+	"golang.org/x/exp/maps"
 	"maunium.net/go/mautrix/bridgev2/database"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
@@ -100,6 +102,7 @@ type bridgeStateSIMMeta struct {
 	ColorHex      string `json:"color_hex"`
 	ParticipantID string `json:"participant_id"`
 	RCSEnabled    bool   `json:"rcs_enabled"`
+	PhoneNumber   string `json:"phone_number"`
 }
 
 type serializableUserLoginMetadata struct {
@@ -178,12 +181,22 @@ func (ulm *UserLoginMetadata) GetSIMsForBridgeState() []bridgeStateSIMMeta {
 	for _, sim := range ulm.simMetadata {
 		data = append(data, bridgeStateSIMMeta{
 			CarrierName:   sim.GetSIMData().GetCarrierName(),
-			ColorHex:      sim.GetSIMData().GetHexHash(),
+			ColorHex:      sim.GetSIMData().GetColorHex(),
 			ParticipantID: sim.GetSIMParticipant().GetID(),
 			RCSEnabled:    sim.GetRCSChats().GetEnabled(),
+			PhoneNumber:   sim.GetSIMData().GetFormattedPhoneNumber(),
 		})
 	}
+	slices.SortFunc(data, func(a, b bridgeStateSIMMeta) int {
+		return strings.Compare(a.ParticipantID, b.ParticipantID)
+	})
 	return data
+}
+
+func (ulm *UserLoginMetadata) GetSIMs() []*gmproto.SIMCard {
+	ulm.lock.RLock()
+	defer ulm.lock.RUnlock()
+	return maps.Values(ulm.simMetadata)
 }
 
 func (ulm *UserLoginMetadata) GetSIM(participantID string) *gmproto.SIMCard {

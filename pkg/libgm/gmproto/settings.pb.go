@@ -351,11 +351,12 @@ type SIMData struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SIMPayload  *SIMPayload `protobuf:"bytes,1,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
-	Bool1       bool        `protobuf:"varint,2,opt,name=bool1,proto3" json:"bool1,omitempty"`
-	CarrierName string      `protobuf:"bytes,3,opt,name=carrierName,proto3" json:"carrierName,omitempty"`
-	HexHash     string      `protobuf:"bytes,4,opt,name=hexHash,proto3" json:"hexHash,omitempty"`
-	Int1        int64       `protobuf:"varint,5,opt,name=int1,proto3" json:"int1,omitempty"`
+	SIMPayload           *SIMPayload `protobuf:"bytes,1,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
+	Bool1                bool        `protobuf:"varint,2,opt,name=bool1,proto3" json:"bool1,omitempty"`
+	CarrierName          string      `protobuf:"bytes,3,opt,name=carrierName,proto3" json:"carrierName,omitempty"`
+	ColorHex             string      `protobuf:"bytes,4,opt,name=colorHex,proto3" json:"colorHex,omitempty"`
+	Int1                 int64       `protobuf:"varint,5,opt,name=int1,proto3" json:"int1,omitempty"`
+	FormattedPhoneNumber string      `protobuf:"bytes,6,opt,name=formattedPhoneNumber,proto3" json:"formattedPhoneNumber,omitempty"`
 }
 
 func (x *SIMData) Reset() {
@@ -411,9 +412,9 @@ func (x *SIMData) GetCarrierName() string {
 	return ""
 }
 
-func (x *SIMData) GetHexHash() string {
+func (x *SIMData) GetColorHex() string {
 	if x != nil {
-		return x.HexHash
+		return x.ColorHex
 	}
 	return ""
 }
@@ -423,6 +424,13 @@ func (x *SIMData) GetInt1() int64 {
 		return x.Int1
 	}
 	return 0
+}
+
+func (x *SIMData) GetFormattedPhoneNumber() string {
+	if x != nil {
+		return x.FormattedPhoneNumber
+	}
+	return ""
 }
 
 type UnknownMessage struct {

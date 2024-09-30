@@ -145,6 +145,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Str("message_id", evt.GetMessageID()).
 			Str("message_status", evt.GetMessageStatus().GetStatus().String()).
 			Int64("message_ts", evt.GetTimestamp()).
+			Int64("message_type", evt.GetType()).
 			Str("tmp_id", evt.GetTmpID()).
 			Bool("is_old", evt.IsOld).
 			Msg("Received message")
@@ -315,6 +316,10 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		changed = true
 	}
 	if changed {
+		log.Debug().
+			Any("sims", gc.Meta.GetSIMs()).
+			Any("rcs_settings", gc.Meta.Settings).
+			Msg("Settings changed, saving")
 		err := gc.UserLogin.Save(ctx)
 		if err != nil {
 			log.Err(err).Msg("Failed to save SIM details")

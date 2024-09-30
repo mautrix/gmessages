@@ -933,7 +933,7 @@ type Message struct {
 	ConversationID string           `protobuf:"bytes,7,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
 	ParticipantID  string           `protobuf:"bytes,9,opt,name=participantID,proto3" json:"participantID,omitempty"`
 	MessageInfo    []*MessageInfo   `protobuf:"bytes,10,rep,name=messageInfo,proto3" json:"messageInfo,omitempty"`
-	Type           int64            `protobuf:"varint,11,opt,name=type,proto3" json:"type,omitempty"`
+	Type           int64            `protobuf:"varint,11,opt,name=type,proto3" json:"type,omitempty"` // 1 = sms, 2 = downloaded mms, 3 = undownloaded mms, 4 = rcs?
 	TmpID          string           `protobuf:"bytes,12,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
 	Subject        *string          `protobuf:"bytes,14,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
 	SomeInt        int64            `protobuf:"varint,16,opt,name=someInt,proto3" json:"someInt,omitempty"`

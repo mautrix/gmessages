@@ -28,7 +28,7 @@ message Message {
     string conversationID = 7;
     string participantID = 9;
     repeated MessageInfo messageInfo = 10;
-    int64 type = 11;
+    int64 type = 11; // 1 = sms, 2 = downloaded mms, 3 = undownloaded mms, 4 = rcs?
     string tmpID = 12;
     optional string subject = 14;
     int64 someInt = 16;
