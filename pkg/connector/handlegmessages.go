@@ -968,17 +968,19 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			Status:      event.MessageStatusSuccess,
 			DeliveredTo: deliveredTo,
 		}, &bridgev2.MessageStatusEventInfo{
-			RoomID:  portal.MXID,
-			EventID: dbm[0].MXID,
-			Sender:  dbm[0].SenderMXID,
+			RoomID:        portal.MXID,
+			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
+			NewEventID:    dbm[0].MXID,
+			Sender:        dbm[0].SenderMXID,
 		})
 	} else if needsMSSFailureEvent {
 		existingMeta.MSSFailSent = true
 		msgStatus := wrapStatusInError(newStatus).(bridgev2.MessageStatus)
 		portal.Bridge.Matrix.SendMessageStatus(ctx, &msgStatus, &bridgev2.MessageStatusEventInfo{
-			RoomID:  portal.MXID,
-			EventID: dbm[0].MXID,
-			Sender:  dbm[0].SenderMXID,
+			RoomID:        portal.MXID,
+			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
+			NewEventID:    dbm[0].MXID,
+			Sender:        dbm[0].SenderMXID,
 		})
 	}
 	if needsMSSDeliveryEvent {

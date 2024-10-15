@@ -26,6 +26,7 @@ import (
 	"go.mau.fi/util/jsontime"
 	"golang.org/x/exp/maps"
 	"maunium.net/go/mautrix/bridgev2/database"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
@@ -79,6 +80,15 @@ type MessageMetadata struct {
 	MSSFailSent     bool `json:"mss_fail_sent,omitempty"`
 	MSSDeliverySent bool `json:"mss_delivery_sent,omitempty"`
 	ReadReceiptSent bool `json:"read_receipt_sent,omitempty"`
+
+	OrigMXID id.EventID `json:"orig_mxid,omitempty"`
+}
+
+func (m *MessageMetadata) GetOrigMXID(mxid id.EventID) id.EventID {
+	if m.OrigMXID != "" {
+		return m.OrigMXID
+	}
+	return mxid
 }
 
 type UserLoginMetadata struct {

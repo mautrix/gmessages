@@ -75,6 +75,9 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 		TextHash:        textHash,
 		GlobalPartCount: len(evt.MessageInfo),
 	}
+	if gc.Main.br.Config.OutgoingMessageReID {
+		dbMessage.Metadata.(*MessageMetadata).OrigMXID = dbMessage.MXID
+	}
 	return true, bridgev2.ErrNoStatus
 }
 
