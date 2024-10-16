@@ -1,3 +1,7 @@
+# v0.5.1 (2024-10-16)
+
+* Fixed some cases of not receiving messages after a brief disconnection.
+
 # v0.5.0 (2024-09-16)
 
 * Bumped minimum Go version to 1.22.

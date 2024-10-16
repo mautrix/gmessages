@@ -9,12 +9,12 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
-	go.mau.fi/util v0.8.1-0.20241015132414-c3f7e22b3de9
+	go.mau.fi/util v0.8.1
 	golang.org/x/crypto v0.28.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.21.1-0.20241015140451-df65202dacf0
+	maunium.net/go/mautrix v0.21.1
 )
 
 require (
