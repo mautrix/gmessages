@@ -77,6 +77,8 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	var name *string
 	if conv.IsGroupChat {
 		name = &conv.Name
+	} else {
+		name = bridgev2.DefaultChatName
 	}
 	userLoginChanged := false
 	eventsDefaultPL := 0
