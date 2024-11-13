@@ -2,19 +2,19 @@ module go.mau.fi/mautrix-gmessages
 
 go 1.22.0
 
-toolchain go1.23.2
+toolchain go1.23.3
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.6
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
-	go.mau.fi/util v0.8.2-0.20241106111346-576742786fe9
-	golang.org/x/crypto v0.28.0
-	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
+	go.mau.fi/util v0.8.2-0.20241113135441-636f8643f367
+	golang.org/x/crypto v0.29.0
+	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.21.2-0.20241108092512-702a0e047c2d
+	maunium.net/go/mautrix v0.21.2-0.20241113163141-3f9a63784ec5
 )
 
 require (
@@ -28,7 +28,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect
-	github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 // indirect
+	github.com/petermattis/goid v0.0.0-20241025130422-66cb2e6d7274 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
@@ -39,10 +39,10 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	go.mau.fi/zeroconfig v0.1.3 // indirect
-	golang.org/x/net v0.30.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/sync v0.9.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	maunium.net/go/mauflag v1.0.0 // indirect
