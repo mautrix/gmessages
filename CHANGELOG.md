@@ -1,3 +1,8 @@
+# v0.5.2 (2024-11-16)
+
+* Fixed room names not being automatically fixed in cases where Google Messages
+  reuses an existing chat ID for a different chat.
+
 # v0.5.1 (2024-10-16)
 
 * Fixed some cases of not receiving messages after a brief disconnection.
