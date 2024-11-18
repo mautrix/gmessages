@@ -706,7 +706,8 @@ func shouldIgnoreStatus(status gmproto.MessageStatusType, isDM bool) bool {
 		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_GROUP_PROTOCOL_SWITCH_RCS_TO_E2EE,
 		gmproto.MessageStatusType_TOMBSTONE_RCS_GROUP_CREATED,
 		gmproto.MessageStatusType_TOMBSTONE_MMS_GROUP_CREATED,
-		gmproto.MessageStatusType_TOMBSTONE_SMS_BROADCAST_CREATED:
+		gmproto.MessageStatusType_TOMBSTONE_SMS_BROADCAST_CREATED,
+		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PARTICIPANT_THEME_CHANGE:
 		return true
 	case gmproto.MessageStatusType_TOMBSTONE_SHOW_LINK_PREVIEWS:
 		return true
