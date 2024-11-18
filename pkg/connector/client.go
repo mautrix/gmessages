@@ -30,6 +30,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -94,7 +95,26 @@ func (gc *GMClient) Connect(ctx context.Context) error {
 		})
 		return nil
 	}
-	return gc.Client.Connect()
+	err := gc.Client.Connect()
+	if err != nil {
+		if errors.Is(err, events.ErrRequestedEntityNotFound) {
+			go gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpaired404,
+				Info: map[string]any{
+					"go_error": err.Error(),
+				},
+			})
+		} else {
+			gc.UserLogin.BridgeState.Send(status.BridgeState{
+				StateEvent: status.StateUnknownError,
+				Info: map[string]any{
+					"go_error": err.Error(),
+				},
+			})
+		}
+	}
+	return nil
 }
 
 func (gc *GMClient) Disconnect() {
