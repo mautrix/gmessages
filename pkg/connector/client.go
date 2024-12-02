@@ -87,13 +87,13 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 	return nil
 }
 
-func (gc *GMClient) Connect(ctx context.Context) error {
+func (gc *GMClient) Connect(ctx context.Context) {
 	if gc.Client == nil {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedIn,
 		})
-		return nil
+		return
 	}
 	err := gc.Client.Connect()
 	if err != nil {
@@ -114,7 +114,6 @@ func (gc *GMClient) Connect(ctx context.Context) error {
 			})
 		}
 	}
-	return nil
 }
 
 func (gc *GMClient) Disconnect() {

@@ -309,10 +309,7 @@ func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, cli
 		// the phone won't recognize the session the bridge will get unpaired.
 		time.Sleep(2 * time.Second)
 	}
-	err = ul.Client.Connect(ul.Log.WithContext(context.Background()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect after login: %w", err)
-	}
+	ul.Client.Connect(ul.Log.WithContext(context.Background()))
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeComplete,
 		StepID:       LoginStepIDComplete,

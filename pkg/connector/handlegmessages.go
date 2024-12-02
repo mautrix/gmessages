@@ -357,10 +357,7 @@ func (gc *GMClient) hackyResetActive() {
 		if !gc.ready && gc.PhoneResponding && gc.Client != nil {
 			gc.UserLogin.Log.Warn().Msg("Client is still not ready, reconnecting")
 			gc.ResetClient()
-			err = gc.Connect(context.TODO())
-			if err != nil {
-				gc.UserLogin.Log.Err(err).Msg("Failed to reconnect after force reset")
-			}
+			gc.Connect(gc.UserLogin.Log.WithContext(context.TODO()))
 		}
 	}
 }
