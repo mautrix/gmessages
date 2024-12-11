@@ -49,11 +49,27 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	ctx := log.WithContext(context.TODO())
 	switch evt := rawEvt.(type) {
 	case *events.ListenFatalError:
-		go gc.invalidateSession(ctx, status.BridgeState{
-			StateEvent: status.StateUnknownError,
-			Error:      GMFatalError,
-			Info:       map[string]any{"go_error": evt.Error.Error()},
-		})
+		if errors.Is(evt.Error, events.ErrInvalidCredentials) {
+			go gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpairedInvalidCreds,
+				Info:       map[string]any{"go_error": evt.Error.Error()},
+			})
+		} else {
+			gc.UserLogin.BridgeState.Send(status.BridgeState{
+				StateEvent: status.StateUnknownError,
+				Error:      GMFatalError,
+				Info:       map[string]any{"go_error": evt.Error.Error()},
+			})
+		}
+		/* TODO determine if this should always invalidate
+		else if evt.Error.Error() == "http 401 while polling" {
+			go gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpaired401,
+				Info:       map[string]any{"go_error": evt.Error.Error()},
+			})
+		}*/
 	case *events.ListenTemporaryError:
 		gc.longPollingError = evt.Error
 		gc.UserLogin.BridgeState.Send(status.BridgeState{

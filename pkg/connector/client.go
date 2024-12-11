@@ -105,9 +105,18 @@ func (gc *GMClient) Connect(ctx context.Context) {
 					"go_error": err.Error(),
 				},
 			})
+		} else if errors.Is(err, events.ErrInvalidCredentials) {
+			go gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpairedInvalidCreds,
+				Info: map[string]any{
+					"go_error": err.Error(),
+				},
+			})
 		} else {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,
+				Error:      GMConnectionFailed,
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},

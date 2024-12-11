@@ -34,6 +34,13 @@ var ErrRequestedEntityNotFound = RequestError{
 	},
 }
 
+var ErrInvalidCredentials = RequestError{
+	Data: &gmproto.ErrorResponse{
+		Type:    16,
+		Message: "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+	},
+}
+
 type RequestError struct {
 	Data *gmproto.ErrorResponse
 	HTTP *HTTPError
