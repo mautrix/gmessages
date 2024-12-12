@@ -113,7 +113,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 			},
 		})
 		return
-	} else if gc.Meta.Session.HasCookies() && gc.Client.Config.GetDeviceInfo().GetEmail() == "" {
+	} else if gc.Meta.Session.AuthNetwork() == util.GoogleNetwork && gc.Client.Config.GetDeviceInfo().GetEmail() == "" {
 		zerolog.Ctx(ctx).Error().Msg("No email in config, invalidating session")
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
