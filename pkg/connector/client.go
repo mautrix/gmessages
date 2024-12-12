@@ -104,15 +104,15 @@ func (gc *GMClient) Connect(ctx context.Context) {
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},
-			})
-		} else if errors.Is(err, events.ErrInvalidCredentials) {
+			}, true)
+		} else if errors.Is(err, events.ErrInvalidCredentials) || err.Error() == "http 401 while polling" {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpairedInvalidCreds,
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},
-			})
+			}, false)
 		} else {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,

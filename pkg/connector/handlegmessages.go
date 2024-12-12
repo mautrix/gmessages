@@ -49,12 +49,12 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	ctx := log.WithContext(context.TODO())
 	switch evt := rawEvt.(type) {
 	case *events.ListenFatalError:
-		if errors.Is(evt.Error, events.ErrInvalidCredentials) {
+		if errors.Is(evt.Error, events.ErrInvalidCredentials) || evt.Error.Error() == "http 401 while polling" {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpairedInvalidCreds,
 				Info:       map[string]any{"go_error": evt.Error.Error()},
-			})
+			}, false)
 		} else {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,
@@ -68,7 +68,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpaired401,
 				Info:       map[string]any{"go_error": evt.Error.Error()},
-			})
+			}, false)
 		}*/
 	case *events.ListenTemporaryError:
 		gc.longPollingError = evt.Error
@@ -113,7 +113,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 				Info: map[string]any{
 					"go_error": evt.Error.Error(),
 				},
-			})
+			}, true)
 		} else if evt.ErrorCount > 1 {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,
@@ -128,14 +128,14 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
-		})
+		}, true)
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.GaiaLoggedOut:
 		log.Info().Msg("Got gaia logout event")
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
-		})
+		}, true)
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
 		go func() {
@@ -344,14 +344,20 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 	}
 }
 
-func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeState) {
-	gc.Meta.Session = nil
+func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeState, deleteFull bool) {
+	if deleteFull {
+		gc.Meta.Session = nil
+	} else {
+		gc.Meta.Session.SetCookies(nil)
+	}
 	err := gc.UserLogin.Save(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to save user login after invalidating session")
 	}
 	gc.Disconnect()
-	gc.Client = nil
+	if deleteFull {
+		gc.Client = nil
+	}
 	gc.UserLogin.BridgeState.Send(state)
 }
 

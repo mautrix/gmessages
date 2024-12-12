@@ -24,6 +24,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -171,15 +173,17 @@ func (ql *QRLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error)
 }
 
 type GoogleLoginProcess struct {
-	Main   *GMConnector
-	User   *bridgev2.User
-	Client *libgm.Client
-	Sess   *libgm.PairingSession
+	Main     *GMConnector
+	User     *bridgev2.User
+	Client   *libgm.Client
+	Sess     *libgm.PairingSession
+	Override *bridgev2.UserLogin
 }
 
 var (
 	_ bridgev2.LoginProcessDisplayAndWait = (*GoogleLoginProcess)(nil)
 	_ bridgev2.LoginProcessCookies        = (*GoogleLoginProcess)(nil)
+	_ bridgev2.LoginProcessWithOverride   = (*GoogleLoginProcess)(nil)
 )
 
 var loginStepCookies *bridgev2.LoginStep
@@ -230,7 +234,43 @@ func (gl *GoogleLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, e
 	return loginStepCookies, nil
 }
 
+func (gl *GoogleLoginProcess) StartWithOverride(ctx context.Context, override *bridgev2.UserLogin) (*bridgev2.LoginStep, error) {
+	meta := override.Metadata.(*UserLoginMetadata)
+	// Only allow reauth if the target login has crypto keys and was signed in with Google.
+	if meta != nil && meta.Session != nil && meta.Session.TachyonAuthToken != nil && meta.Session.PairingID != uuid.Nil {
+		gl.Override = override
+	}
+	return loginStepCookies, nil
+}
+
 func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[string]string) (*bridgev2.LoginStep, error) {
+	if gl.Override != nil {
+		meta := gl.Override.Metadata.(*UserLoginMetadata)
+		cli := gl.Override.Client.(*GMClient)
+		meta.Session.SetCookies(cookies)
+		cfg, err := cli.Client.FetchConfig()
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config after Google relogin")
+		} else if cfg.GetDeviceInfo().GetEmail() != meta.Session.Mobile.GetSourceID() {
+			zerolog.Ctx(ctx).Err(err).
+				Str("old_login", meta.Session.Mobile.GetSourceID()).
+				Str("new_login", cfg.GetDeviceInfo().GetEmail()).
+				Msg("Reauthenticated with wrong account")
+		} else if err = cli.Client.Connect(); err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to reconnect existing client after Google relogin")
+		} else {
+			return &bridgev2.LoginStep{
+				Type:         bridgev2.LoginStepTypeComplete,
+				StepID:       LoginStepIDComplete,
+				Instructions: "Successfully re-authenticated",
+				CompleteParams: &bridgev2.LoginCompleteParams{
+					UserLoginID: gl.Override.ID,
+					UserLogin:   gl.Override,
+				},
+			}, nil
+		}
+		meta.Session.SetCookies(nil)
+	}
 	ad := libgm.NewAuthData()
 	ad.Cookies = cookies
 	gl.Client = libgm.NewClient(ad, gl.User.Log.With().Str("component", "libgm").Str("parent_action", "google pair").Logger())
