@@ -155,7 +155,7 @@ func (gc *GMClient) NewClient() {
 }
 
 func (gc *GMClient) IsLoggedIn() bool {
-	return gc.Client != nil
+	return gc.Client.IsLoggedIn()
 }
 
 func (gc *GMClient) LogoutRemote(ctx context.Context) {

@@ -80,6 +80,8 @@ func (ad *AuthData) UpdateCookiesFromResponse(resp *http.Response) {
 func (ad *AuthData) HasCookies() bool {
 	if ad == nil {
 		return false
+	} else if ad.AuthNetwork() == "" {
+		return true
 	}
 	ad.CookiesLock.RLock()
 	defer ad.CookiesLock.RUnlock()
@@ -87,7 +89,7 @@ func (ad *AuthData) HasCookies() bool {
 }
 
 func (ad *AuthData) AuthNetwork() string {
-	if ad.HasCookies() {
+	if ad.SessionID != uuid.Nil || ad.DestRegID != uuid.Nil {
 		return util.GoogleNetwork
 	}
 	return ""
@@ -270,7 +272,7 @@ func (c *Client) IsConnected() bool {
 }
 
 func (c *Client) IsLoggedIn() bool {
-	return c.AuthData != nil && c.AuthData.Browser != nil
+	return c != nil && c.AuthData != nil && c.AuthData.Browser != nil && c.AuthData.HasCookies()
 }
 
 func (c *Client) Reconnect() error {
