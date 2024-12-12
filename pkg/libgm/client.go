@@ -81,7 +81,7 @@ func (ad *AuthData) UpdateCookiesFromResponse(resp *http.Response) {
 func (ad *AuthData) HasCookies() bool {
 	if ad == nil {
 		return false
-	} else if ad.AuthNetwork() == "" {
+	} else if !ad.IsGoogleAccount() {
 		return true
 	}
 	ad.CookiesLock.RLock()
@@ -89,8 +89,12 @@ func (ad *AuthData) HasCookies() bool {
 	return ad.Cookies != nil
 }
 
+func (ad *AuthData) IsGoogleAccount() bool {
+	return ad.DestRegID != uuid.Nil
+}
+
 func (ad *AuthData) AuthNetwork() string {
-	if ad.DestRegID != uuid.Nil {
+	if ad.IsGoogleAccount() {
 		return util.GoogleNetwork
 	}
 	return ""

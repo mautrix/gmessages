@@ -32,7 +32,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
 
 type conversationMeta struct {
@@ -95,7 +94,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 			Error:      GMNotLoggedIn,
 		})
 		return
-	} else if gc.Meta.Session.AuthNetwork() == util.GoogleNetwork && !gc.Meta.Session.HasCookies() {
+	} else if gc.Meta.Session.IsGoogleAccount() && !gc.Meta.Session.HasCookies() {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedInCanReauth,
@@ -113,7 +112,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 			},
 		})
 		return
-	} else if gc.Meta.Session.AuthNetwork() == util.GoogleNetwork && gc.Client.Config.GetDeviceInfo().GetEmail() == "" {
+	} else if gc.Meta.Session.IsGoogleAccount() && gc.Client.Config.GetDeviceInfo().GetEmail() == "" {
 		zerolog.Ctx(ctx).Error().Msg("No email in config, invalidating session")
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
