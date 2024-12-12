@@ -24,13 +24,12 @@ const (
 	GMListenError               status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError                status.BridgeStateErrorCode = "gm-listen-fatal-error"
 	GMUnpaired                  status.BridgeStateErrorCode = "gm-unpaired"
-	GMUnpairedGaia              status.BridgeStateErrorCode = "gm-unpaired-gaia"
 	GMUnpaired404               status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
-	GMUnpaired401               status.BridgeStateErrorCode = "gm-unpaired-401-polling"
-	GMUnpairedInvalidCreds      status.BridgeStateErrorCode = "gm-unpaired-invalid-credentials"
-	GMUnpairedNoEmailInConfig   status.BridgeStateErrorCode = "gm-unpaired-no-email-in-config"
+	GMLoggedOut401              status.BridgeStateErrorCode = "gm-logged-out-401-polling"
+	GMLoggedOutInvalidCreds     status.BridgeStateErrorCode = "gm-logged-out-invalid-credentials"
+	GMLoggedOutNoEmailInConfig  status.BridgeStateErrorCode = "gm-logged-out-no-email-in-config"
 	GMNotLoggedIn               status.BridgeStateErrorCode = "gm-not-logged-in"
-	GMNotConnected              status.BridgeStateErrorCode = "gm-not-connected"
+	GMNotLoggedInCanReauth      status.BridgeStateErrorCode = "gm-not-logged-in-can-reauth"
 	GMConnecting                status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed          status.BridgeStateErrorCode = "gm-connection-failed"
 	GMConfigFetchFailed         status.BridgeStateErrorCode = "gm-config-fetch-failed"
@@ -47,14 +46,14 @@ func init() {
 	status.BridgeStateHumanErrors.Update(status.BridgeStateErrorMap{
 		GMListenError:               "Error polling messages from Google Messages server, the bridge will try to reconnect",
 		GMFatalError:                "Fatal error polling messages from Google Messages server",
-		GMConnectionFailed:          "Failed to connect to Google Messages",
+		GMConfigFetchFailed:         "Failed to initialize connection to Google Messages",
 		GMNotLoggedIn:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMNotLoggedInCanReauth:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
-		GMUnpaired401:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
-		GMUnpairedInvalidCreds:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
-		GMUnpairedNoEmailInConfig:   "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
-		GMUnpairedGaia:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMLoggedOutInvalidCreds:     "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMLoggedOutNoEmailInConfig:  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",

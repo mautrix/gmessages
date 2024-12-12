@@ -89,10 +89,16 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 }
 
 func (gc *GMClient) Connect(ctx context.Context) {
-	if gc.Client == nil || (gc.Meta.Session.AuthNetwork() == util.GoogleNetwork && !gc.Meta.Session.HasCookies()) {
+	if gc.Client == nil {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedIn,
+		})
+		return
+	} else if gc.Meta.Session.AuthNetwork() == util.GoogleNetwork && !gc.Meta.Session.HasCookies() {
+		gc.UserLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMNotLoggedInCanReauth,
 		})
 		return
 	}
@@ -111,7 +117,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 		zerolog.Ctx(ctx).Error().Msg("No email in config, invalidating session")
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
-			Error:      GMUnpairedInvalidCreds,
+			Error:      GMLoggedOutNoEmailInConfig,
 		}, false)
 		return
 	}
@@ -125,10 +131,10 @@ func (gc *GMClient) Connect(ctx context.Context) {
 					"go_error": err.Error(),
 				},
 			}, true)
-		} else if errors.Is(err, events.ErrInvalidCredentials) || err.Error() == "http 401 while polling" {
+		} else if errors.Is(err, events.ErrInvalidCredentials) {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
-				Error:      GMUnpairedInvalidCreds,
+				Error:      GMLoggedOutInvalidCreds,
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},
