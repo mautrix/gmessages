@@ -28,10 +28,12 @@ const (
 	GMUnpaired404               status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
 	GMUnpaired401               status.BridgeStateErrorCode = "gm-unpaired-401-polling"
 	GMUnpairedInvalidCreds      status.BridgeStateErrorCode = "gm-unpaired-invalid-credentials"
+	GMUnpairedNoEmailInConfig   status.BridgeStateErrorCode = "gm-unpaired-no-email-in-config"
 	GMNotLoggedIn               status.BridgeStateErrorCode = "gm-not-logged-in"
 	GMNotConnected              status.BridgeStateErrorCode = "gm-not-connected"
 	GMConnecting                status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed          status.BridgeStateErrorCode = "gm-connection-failed"
+	GMConfigFetchFailed         status.BridgeStateErrorCode = "gm-config-fetch-failed"
 	GMPingFailed                status.BridgeStateErrorCode = "gm-ping-failed"
 	GMNotDefaultSMSApp          status.BridgeStateErrorCode = "gm-not-default-sms-app"
 	GMBrowserInactive           status.BridgeStateErrorCode = "gm-browser-inactive"
@@ -51,6 +53,7 @@ func init() {
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired401:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpairedInvalidCreds:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpairedNoEmailInConfig:   "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpairedGaia:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
 		GMBrowserInactive:           "Google Messages opened in another browser",

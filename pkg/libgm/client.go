@@ -1,6 +1,7 @@
 package libgm
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
@@ -89,7 +90,7 @@ func (ad *AuthData) HasCookies() bool {
 }
 
 func (ad *AuthData) AuthNetwork() string {
-	if ad.SessionID != uuid.Nil || ad.DestRegID != uuid.Nil {
+	if ad.DestRegID != uuid.Nil {
 		return util.GoogleNetwork
 	}
 	return ""
@@ -129,7 +130,7 @@ type Client struct {
 	PairCallback atomic.Pointer[func(data *gmproto.PairedData)]
 
 	AuthData *AuthData
-	cfg      *gmproto.Config
+	Config   *gmproto.Config
 
 	httpTransport *http.Transport
 	http          *http.Client
@@ -164,16 +165,6 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 		pingShortCircuit: make(chan struct{}),
 	}
 	sessionHandler.client = cli
-	var err error
-	cli.cfg, err = cli.FetchConfig()
-	if err != nil {
-		cli.Logger.Err(err).Msg("Failed to fetch web config")
-	} else if deviceID := cli.cfg.GetDeviceInfo().GetDeviceID(); deviceID != "" {
-		authData.SessionID, err = uuid.Parse(deviceID)
-		if err != nil {
-			cli.Logger.Err(err).Str("device_id", deviceID).Msg("Failed to parse device ID")
-		}
-	}
 	return cli
 }
 
@@ -292,8 +283,23 @@ func (c *Client) triggerEvent(evt interface{}) {
 	}
 }
 
-func (c *Client) FetchConfig() (*gmproto.Config, error) {
-	req, err := http.NewRequest(http.MethodGet, util.ConfigURL, nil)
+func (c *Client) FetchConfig(ctx context.Context) error {
+	config, err := c.fetchConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch config: %w", err)
+	}
+	if deviceID := config.GetDeviceInfo().GetDeviceID(); deviceID != "" && c.AuthData != nil {
+		c.AuthData.SessionID, err = uuid.Parse(deviceID)
+		if err != nil {
+			c.Logger.Err(err).Str("device_id", deviceID).Msg("Failed to parse device ID")
+		}
+	}
+	c.Config = config
+	return nil
+}
+
+func (c *Client) fetchConfig(ctx context.Context) (*gmproto.Config, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, util.ConfigURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}

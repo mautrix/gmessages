@@ -116,6 +116,10 @@ func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error
 		ql.PairSuccess <- data
 	}
 	ql.Client.PairCallback.Store(&callback)
+	err := ql.Client.FetchConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
+	}
 	qr, err := ql.Client.StartLogin()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
@@ -247,14 +251,17 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	if gl.Override != nil {
 		meta := gl.Override.Metadata.(*UserLoginMetadata)
 		cli := gl.Override.Client.(*GMClient)
+		if cli.Client == nil {
+			cli.NewClient()
+		}
 		meta.Session.SetCookies(cookies)
-		cfg, err := cli.Client.FetchConfig()
+		err := cli.Client.FetchConfig(ctx)
 		if err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config after Google relogin")
-		} else if cfg.GetDeviceInfo().GetEmail() != meta.Session.Mobile.GetSourceID() {
+		} else if cli.Client.Config.GetDeviceInfo().GetEmail() != meta.Session.Mobile.GetSourceID() {
 			zerolog.Ctx(ctx).Err(err).
 				Str("old_login", meta.Session.Mobile.GetSourceID()).
-				Str("new_login", cfg.GetDeviceInfo().GetEmail()).
+				Str("new_login", cli.Client.Config.GetDeviceInfo().GetEmail()).
 				Msg("Reauthenticated with wrong account")
 		} else if err = cli.Client.Connect(); err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to reconnect existing client after Google relogin")
@@ -277,8 +284,11 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	gl.Client.SetEventHandler(func(evt any) {
 		gl.Client.Logger.Warn().Type("event_type", evt).Msg("Unexpected pre-pairing event")
 	})
+	err := gl.Client.FetchConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
+	}
 	var emoji string
-	var err error
 	emoji, gl.Sess, err = gl.Client.StartGaiaPairing(ctx)
 	if err != nil {
 		gl.Client.Disconnect()

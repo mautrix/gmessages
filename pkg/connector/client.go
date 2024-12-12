@@ -32,6 +32,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
 
 type conversationMeta struct {
@@ -88,14 +89,33 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 }
 
 func (gc *GMClient) Connect(ctx context.Context) {
-	if gc.Client == nil {
+	if gc.Client == nil || (gc.Meta.Session.AuthNetwork() == util.GoogleNetwork && !gc.Meta.Session.HasCookies()) {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedIn,
 		})
 		return
 	}
-	err := gc.Client.Connect()
+	err := gc.Client.FetchConfig(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config")
+		gc.UserLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateUnknownError,
+			Error:      GMConfigFetchFailed,
+			Info: map[string]any{
+				"go_error": err.Error(),
+			},
+		})
+		return
+	} else if gc.Meta.Session.HasCookies() && gc.Client.Config.GetDeviceInfo().GetEmail() == "" {
+		zerolog.Ctx(ctx).Error().Msg("No email in config, invalidating session")
+		go gc.invalidateSession(ctx, status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMUnpairedInvalidCreds,
+		}, false)
+		return
+	}
+	err = gc.Client.Connect()
 	if err != nil {
 		if errors.Is(err, events.ErrRequestedEntityNotFound) {
 			go gc.invalidateSession(ctx, status.BridgeState{
