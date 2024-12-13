@@ -216,6 +216,11 @@ func legacyProvLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, login := range allLogins {
+		meta := login.Metadata.(*connector.UserLoginMetadata)
+		if meta.Session != nil && meta.Session.IsGoogleAccount() && !meta.Session.HasCookies() {
+			// Don't log out google accounts with no cookies, they can be relogined
+			continue
+		}
 		login.Client.LogoutRemote(r.Context())
 	}
 	jsonResponse(w, http.StatusOK, Response{true, "Logged out successfully"})
@@ -297,7 +302,7 @@ func legacyProvGoogleLoginStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	login := exerrors.Must(m.Connector.CreateLogin(r.Context(), user, connector.LoginFlowIDGoogle))
-	nextStep := exerrors.Must(login.Start(r.Context()))
+	nextStep := exerrors.Must(login.(bridgev2.LoginProcessWithOverride).StartWithOverride(r.Context(), existingLogin))
 	if nextStep.StepID != connector.LoginStepIDGoogle {
 		log.Warn().Str("step_id", nextStep.StepID).Msg("Unexpected step after starting login")
 		jsonResponse(w, http.StatusInternalServerError, Error{
@@ -331,6 +336,9 @@ func legacyProvGoogleLoginStart(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 		return
+	} else if nextStep.StepID == connector.LoginStepIDComplete {
+		go handleLoginComplete(context.WithoutCancel(r.Context()), user, nextStep.CompleteParams.UserLogin)
+		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
 	} else if nextStep.StepID != connector.LoginStepIDEmoji {
 		log.Warn().Str("step_id", nextStep.StepID).Msg("Unexpected step after submitting cookies")
 		jsonResponse(w, http.StatusInternalServerError, Error{
