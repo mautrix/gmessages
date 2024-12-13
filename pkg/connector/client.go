@@ -104,14 +104,14 @@ func (gc *GMClient) Connect(ctx context.Context) {
 	err := gc.Client.FetchConfig(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config")
-		gc.UserLogin.BridgeState.Send(status.BridgeState{
+		/*gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateUnknownError,
 			Error:      GMConfigFetchFailed,
 			Info: map[string]any{
 				"go_error": err.Error(),
 			},
 		})
-		return
+		return*/
 	} else if gc.Meta.Session.IsGoogleAccount() && gc.Client.Config.GetDeviceInfo().GetEmail() == "" {
 		zerolog.Ctx(ctx).Error().Msg("No email in config, invalidating session")
 		go gc.invalidateSession(ctx, status.BridgeState{
