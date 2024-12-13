@@ -302,7 +302,12 @@ func legacyProvGoogleLoginStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	login := exerrors.Must(m.Connector.CreateLogin(r.Context(), user, connector.LoginFlowIDGoogle))
-	nextStep := exerrors.Must(login.(bridgev2.LoginProcessWithOverride).StartWithOverride(r.Context(), existingLogin))
+	var nextStep *bridgev2.LoginStep
+	if existingLogin != nil {
+		nextStep = exerrors.Must(login.(bridgev2.LoginProcessWithOverride).StartWithOverride(r.Context(), existingLogin))
+	} else {
+		nextStep = exerrors.Must(login.Start(r.Context()))
+	}
 	if nextStep.StepID != connector.LoginStepIDGoogle {
 		log.Warn().Str("step_id", nextStep.StepID).Msg("Unexpected step after starting login")
 		jsonResponse(w, http.StatusInternalServerError, Error{
