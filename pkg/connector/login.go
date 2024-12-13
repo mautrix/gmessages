@@ -266,6 +266,10 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 		} else if err = cli.Client.Connect(); err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to reconnect existing client after Google relogin")
 		} else {
+			err = gl.Override.Save(ctx)
+			if err != nil {
+				err = fmt.Errorf("failed to save cookies after relogin: %w", err)
+			}
 			return &bridgev2.LoginStep{
 				Type:         bridgev2.LoginStepTypeComplete,
 				StepID:       LoginStepIDComplete,
@@ -274,7 +278,7 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 					UserLoginID: gl.Override.ID,
 					UserLogin:   gl.Override,
 				},
-			}, nil
+			}, err
 		}
 		meta.Session.SetCookies(nil)
 	}
