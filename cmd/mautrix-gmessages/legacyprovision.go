@@ -339,6 +339,7 @@ func legacyProvGoogleLoginStart(w http.ResponseWriter, r *http.Request) {
 	} else if nextStep.StepID == connector.LoginStepIDComplete {
 		go handleLoginComplete(context.WithoutCancel(r.Context()), user, nextStep.CompleteParams.UserLogin)
 		jsonResponse(w, http.StatusOK, LoginResponse{Status: "success"})
+		return
 	} else if nextStep.StepID != connector.LoginStepIDEmoji {
 		log.Warn().Str("step_id", nextStep.StepID).Msg("Unexpected step after submitting cookies")
 		jsonResponse(w, http.StatusInternalServerError, Error{
