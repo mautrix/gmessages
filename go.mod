@@ -5,16 +5,16 @@ go 1.22.0
 toolchain go1.23.4
 
 require (
-	github.com/gabriel-vasile/mimetype v1.4.6
+	github.com/gabriel-vasile/mimetype v1.4.7
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
-	go.mau.fi/util v0.8.3-0.20241212004537-24c1a9b1d8f6
+	go.mau.fi/util v0.8.3
 	golang.org/x/crypto v0.31.0
-	golang.org/x/exp v0.0.0-20241210194714-1829a127f884
+	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.22.1-0.20241212004632-bfdd0efd0e2e
+	maunium.net/go/mautrix v0.22.1
 )
 
 require (
