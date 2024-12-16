@@ -1,3 +1,10 @@
+# v0.6.0 (2024-12-16)
+
+* Added support for re-authenticating expired Google logins without having to
+  re-pair to the phone.
+* Stopped bridging theme change messages.
+* Updated Docker image to Alpine 3.21.
+
 # v0.5.2 (2024-11-16)
 
 * Fixed room names not being automatically fixed in cases where Google Messages
