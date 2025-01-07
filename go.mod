@@ -5,16 +5,16 @@ go 1.22.0
 toolchain go1.23.4
 
 require (
-	github.com/gabriel-vasile/mimetype v1.4.7
+	github.com/gabriel-vasile/mimetype v1.4.8
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
-	go.mau.fi/util v0.8.3
-	golang.org/x/crypto v0.31.0
-	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
-	google.golang.org/protobuf v1.35.2
+	go.mau.fi/util v0.8.4-0.20250106152331-30b8c95e7d7a
+	golang.org/x/crypto v0.32.0
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
+	google.golang.org/protobuf v1.36.2
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.22.1
+	maunium.net/go/mautrix v0.22.2-0.20250107114437-ceb9c7b866e1
 )
 
 require (
@@ -39,9 +39,9 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	go.mau.fi/zeroconfig v0.1.3 // indirect
-	golang.org/x/net v0.32.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
