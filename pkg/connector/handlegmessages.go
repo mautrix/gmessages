@@ -1185,6 +1185,9 @@ func (gc *GMClient) convertGoogleMedia(ctx context.Context, portal *bridgev2.Por
 	if content.Info.MimeType == "" {
 		content.Info.MimeType = mimetype.Detect(data).String()
 	}
+	if !strings.ContainsRune(content.Body, '.') {
+		content.Body += mimetype.Lookup(content.Info.MimeType).Extension()
+	}
 	switch strings.Split(content.Info.MimeType, "/")[0] {
 	case "image":
 		content.MsgType = event.MsgImage
