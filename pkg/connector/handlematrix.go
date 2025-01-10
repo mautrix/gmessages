@@ -158,7 +158,7 @@ func (gc *GMClient) reuploadMedia(ctx context.Context, content *event.MessageEve
 	if content.FileName != "" {
 		fileName = content.FileName
 	}
-	if content.MSC3245Voice != nil {
+	if content.MSC3245Voice != nil && content.Info.MimeType != "audio/mp4" && ffmpeg.Supported() {
 		data, err = ffmpeg.ConvertBytes(ctx, data, ".m4a", []string{}, []string{"-c:a", "aac"}, content.Info.MimeType)
 		if err != nil {
 			return nil, fmt.Errorf("%w (ogg to m4a): %w", bridgev2.ErrMediaConvertFailed, err)
