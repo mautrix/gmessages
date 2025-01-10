@@ -71,7 +71,6 @@ var imageMimes = map[string]event.CapabilitySupportLevel{
 var audioMimes = map[string]event.CapabilitySupportLevel{
 	"audio/aac":      event.CapLevelFullySupported,
 	"audio/amr":      event.CapLevelFullySupported,
-	"audio/mp3":      event.CapLevelFullySupported,
 	"audio/mpeg":     event.CapLevelFullySupported,
 	"audio/mp4":      event.CapLevelFullySupported,
 	"audio/mp4-latm": event.CapLevelFullySupported,
