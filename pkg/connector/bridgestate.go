@@ -17,7 +17,7 @@
 package connector
 
 import (
-	"maunium.net/go/mautrix/bridge/status"
+	"maunium.net/go/mautrix/bridgev2/status"
 )
 
 const (

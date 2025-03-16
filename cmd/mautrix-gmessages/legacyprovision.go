@@ -29,9 +29,9 @@ import (
 	"go.mau.fi/util/exslices"
 	"go.mau.fi/util/exsync"
 
-	"maunium.net/go/mautrix/bridge/status"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/status"
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector"

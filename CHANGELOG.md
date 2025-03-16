@@ -1,3 +1,9 @@
+# v0.6.1 (2025-03-16)
+
+* Bumped minimum Go version to 1.23.
+* Added support for signaling supported features to clients using the
+  `com.beeper.room_features` state event.
+
 # v0.6.0 (2024-12-16)
 
 * Added support for re-authenticating expired Google logins without having to
