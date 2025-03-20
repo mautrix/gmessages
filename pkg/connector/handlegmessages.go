@@ -1205,12 +1205,12 @@ func (gc *GMClient) convertGoogleMedia(ctx context.Context, portal *bridgev2.Por
 				err = fmt.Errorf("%w (%s to ogg): %w", bridgev2.ErrMediaConvertFailed, content.Info.MimeType, err)
 				return
 			}
-			content.FileName += ".ogg"
+			content.Body += ".ogg"
 			content.Info.MimeType = "audio/ogg"
 		}
 		content.MSC3245Voice = &event.MSC3245Voice{}
 	}
-	content.URL, content.File, err = intent.UploadMedia(ctx, portal.MXID, data, content.FileName, content.Info.MimeType)
+	content.URL, content.File, err = intent.UploadMedia(ctx, portal.MXID, data, content.Body, content.Info.MimeType)
 	if err != nil {
 		err = fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, err)
 	}
