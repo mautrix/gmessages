@@ -807,6 +807,9 @@ func (dbm DBMessages) findMediaPart(actionMessageID string) *database.Message {
 func (dbm DBMessages) MessageWasEdited(new *gmproto.Message) (edited bool, changes *zerolog.Event) {
 	changes = zerolog.Dict()
 	for _, part := range new.GetMessageInfo() {
+		if dbm.GetMainMeta().IsOutgoing {
+			break
+		}
 		data, ok := part.Data.(*gmproto.MessageInfo_MediaContent)
 		if !ok {
 			continue
