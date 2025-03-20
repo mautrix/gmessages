@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"time"
 
 	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/ptr"
@@ -31,6 +32,13 @@ import (
 var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 	DisappearingMessages: false,
 	AggressiveUpdateInfo: false,
+	OutgoingMessageTimeouts: &bridgev2.OutgoingTimeoutConfig{
+		NoEchoTimeout: 1 * time.Minute,
+		NoEchoMessage: "phone has not confirmed message delivery",
+		NoAckTimeout:  3 * time.Minute,
+		NoAckMessage:  "phone is not responding",
+		CheckInterval: 1 * time.Minute,
+	},
 }
 
 func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
