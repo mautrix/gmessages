@@ -58,7 +58,7 @@ func init() {
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
-		GMPhoneNotResponding:        "Your Google Messages app is not responding. You may need to open the Messages app on your phone and/or disable battery optimizations for it to reconnect.",
+		GMPhoneNotResponding:        "Your Google Messages app is not responding. Open the Google Messages app on your phone, ensure messages send, and battery optimization is off. If needed, remove and re-add the connection.",
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
 	})
 }
