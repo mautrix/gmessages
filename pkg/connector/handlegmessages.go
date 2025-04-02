@@ -722,9 +722,9 @@ func shouldIgnoreStatus(status gmproto.MessageStatusType, isDM bool) bool {
 		gmproto.MessageStatusType_TOMBSTONE_RCS_GROUP_CREATED,
 		gmproto.MessageStatusType_TOMBSTONE_MMS_GROUP_CREATED,
 		gmproto.MessageStatusType_TOMBSTONE_SMS_BROADCAST_CREATED,
-		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PARTICIPANT_THEME_CHANGE:
-		return true
-	case gmproto.MessageStatusType_TOMBSTONE_SHOW_LINK_PREVIEWS:
+		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_PARTICIPANT_THEME_CHANGE,
+		gmproto.MessageStatusType_TOMBSTONE_SHOW_LINK_PREVIEWS,
+		gmproto.MessageStatusType_MESSAGE_STATUS_TOMBSTONE_ACTIVE_SELF_IDENTITY_CHANGED:
 		return true
 	default:
 		return false
