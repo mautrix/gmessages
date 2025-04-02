@@ -44,6 +44,16 @@ const (
 	AlertType_MOBILE_DATABASE_PARTIAL_SYNC_STARTED   AlertType = 15 // Emitted whenever the paired device has begun syncing a chunk of the db
 	AlertType_CONTACTS_REFRESH_STARTED               AlertType = 16 // Emitted whenever the paired device has begun refreshing contacts
 	AlertType_CONTACTS_REFRESH_COMPLETED             AlertType = 17 // Emitted whenever the paired device has successfully refreshed contacts
+	AlertType_DISCONNECTED_FROM_SATELLITE            AlertType = 18
+	AlertType_BR_MESSAGE_RESTORING                   AlertType = 19
+	AlertType_BR_MESSAGE_RESTORE_COMPLETED           AlertType = 20
+	AlertType_BR_MESSAGE_RESTORE_STARTED             AlertType = 21
+	AlertType_PUSH_THROTTLING                        AlertType = 22
+	AlertType_PUSH_THROTTLE_STARTED                  AlertType = 23
+	AlertType_PUSH_THROTTLE_ENDED                    AlertType = 24
+	AlertType_PUSH_THROTTLE_STARTED_IN_DARK_LAUNCH   AlertType = 25
+	AlertType_PUSH_THROTTLE_ENDED_IN_DARK_LAUNCH     AlertType = 26
+	AlertType_PUSH_THROTTLING_IN_DARK_LAUNCH         AlertType = 27
 )
 
 // Enum value maps for AlertType.
@@ -67,6 +77,16 @@ var (
 		15: "MOBILE_DATABASE_PARTIAL_SYNC_STARTED",
 		16: "CONTACTS_REFRESH_STARTED",
 		17: "CONTACTS_REFRESH_COMPLETED",
+		18: "DISCONNECTED_FROM_SATELLITE",
+		19: "BR_MESSAGE_RESTORING",
+		20: "BR_MESSAGE_RESTORE_COMPLETED",
+		21: "BR_MESSAGE_RESTORE_STARTED",
+		22: "PUSH_THROTTLING",
+		23: "PUSH_THROTTLE_STARTED",
+		24: "PUSH_THROTTLE_ENDED",
+		25: "PUSH_THROTTLE_STARTED_IN_DARK_LAUNCH",
+		26: "PUSH_THROTTLE_ENDED_IN_DARK_LAUNCH",
+		27: "PUSH_THROTTLING_IN_DARK_LAUNCH",
 	}
 	AlertType_value = map[string]int32{
 		"ALERT_TYPE_UNKNOWN":                     0,
@@ -87,6 +107,16 @@ var (
 		"MOBILE_DATABASE_PARTIAL_SYNC_STARTED":   15,
 		"CONTACTS_REFRESH_STARTED":               16,
 		"CONTACTS_REFRESH_COMPLETED":             17,
+		"DISCONNECTED_FROM_SATELLITE":            18,
+		"BR_MESSAGE_RESTORING":                   19,
+		"BR_MESSAGE_RESTORE_COMPLETED":           20,
+		"BR_MESSAGE_RESTORE_STARTED":             21,
+		"PUSH_THROTTLING":                        22,
+		"PUSH_THROTTLE_STARTED":                  23,
+		"PUSH_THROTTLE_ENDED":                    24,
+		"PUSH_THROTTLE_STARTED_IN_DARK_LAUNCH":   25,
+		"PUSH_THROTTLE_ENDED_IN_DARK_LAUNCH":     26,
+		"PUSH_THROTTLING_IN_DARK_LAUNCH":         27,
 	}
 )
 

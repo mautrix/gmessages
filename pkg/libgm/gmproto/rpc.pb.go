@@ -126,6 +126,9 @@ const (
 	ActionType_UNPAIR_GAIA_PAIRING                    ActionType = 46
 	ActionType_CANCEL_GAIA_PAIRING                    ActionType = 47
 	ActionType_PREWARM                                ActionType = 48
+	ActionType_CONVERSATION_GROUP_NAME_SEARCH         ActionType = 49
+	ActionType_LINK_RCS_IDENTITY                      ActionType = 50
+	ActionType_UNLINK_RCS_IDENTITY                    ActionType = 51
 )
 
 // Enum value maps for ActionType.
@@ -178,6 +181,9 @@ var (
 		46: "UNPAIR_GAIA_PAIRING",
 		47: "CANCEL_GAIA_PAIRING",
 		48: "PREWARM",
+		49: "CONVERSATION_GROUP_NAME_SEARCH",
+		50: "LINK_RCS_IDENTITY",
+		51: "UNLINK_RCS_IDENTITY",
 	}
 	ActionType_value = map[string]int32{
 		"UNSPECIFIED":                            0,
@@ -227,6 +233,9 @@ var (
 		"UNPAIR_GAIA_PAIRING":                    46,
 		"CANCEL_GAIA_PAIRING":                    47,
 		"PREWARM":                                48,
+		"CONVERSATION_GROUP_NAME_SEARCH":         49,
+		"LINK_RCS_IDENTITY":                      50,
+		"UNLINK_RCS_IDENTITY":                    51,
 	}
 )
 

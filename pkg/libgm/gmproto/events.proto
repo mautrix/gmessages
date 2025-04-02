@@ -89,6 +89,16 @@ enum AlertType {
     MOBILE_DATABASE_PARTIAL_SYNC_STARTED = 15; // Emitted whenever the paired device has begun syncing a chunk of the db
     CONTACTS_REFRESH_STARTED = 16; // Emitted whenever the paired device has begun refreshing contacts
     CONTACTS_REFRESH_COMPLETED = 17; // Emitted whenever the paired device has successfully refreshed contacts
+    DISCONNECTED_FROM_SATELLITE = 18;
+    BR_MESSAGE_RESTORING = 19;
+    BR_MESSAGE_RESTORE_COMPLETED = 20;
+    BR_MESSAGE_RESTORE_STARTED = 21;
+    PUSH_THROTTLING = 22;
+    PUSH_THROTTLE_STARTED = 23;
+    PUSH_THROTTLE_ENDED = 24;
+    PUSH_THROTTLE_STARTED_IN_DARK_LAUNCH = 25;
+    PUSH_THROTTLE_ENDED_IN_DARK_LAUNCH = 26;
+    PUSH_THROTTLING_IN_DARK_LAUNCH = 27;
 }
 
 enum TypingTypes {

@@ -352,6 +352,18 @@ const (
 	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_SENT                                   MessageStatusType = 256
 	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_CONFIRMED                            MessageStatusType = 257
 	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_CONFIRMED                              MessageStatusType = 258
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_ACTIVE_SELF_IDENTITY_CHANGED                             MessageStatusType = 259
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_GROUP_ICON_CHANGED_GLOBAL                                MessageStatusType = 260
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_GROUP_ICON_CLEARED_GLOBAL                                MessageStatusType = 261
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_ERROR                                MessageStatusType = 262
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_ERROR                                  MessageStatusType = 263
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_EMERGENCY_CONVERSATION_CREATED                           MessageStatusType = 264
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_SENSITIVE_CONTENT_WARNING_TOOLSTONE                      MessageStatusType = 265
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_CONFIRMED_NO_LINK                    MessageStatusType = 266
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_CONFIRMED_NO_LINK                      MessageStatusType = 267
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_EMERGENCY_QUESTIONNAIRE                                  MessageStatusType = 268
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_SENT_NO_LINK                         MessageStatusType = 269
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_SENT_NO_LINK                           MessageStatusType = 270
 	MessageStatusType_MESSAGE_DELETED                                                                   MessageStatusType = 300
 )
 
@@ -455,6 +467,18 @@ var (
 		256: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_SENT",
 		257: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_CONFIRMED",
 		258: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_CONFIRMED",
+		259: "MESSAGE_STATUS_TOMBSTONE_ACTIVE_SELF_IDENTITY_CHANGED",
+		260: "MESSAGE_STATUS_TOMBSTONE_GROUP_ICON_CHANGED_GLOBAL",
+		261: "MESSAGE_STATUS_TOMBSTONE_GROUP_ICON_CLEARED_GLOBAL",
+		262: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_ERROR",
+		263: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_ERROR",
+		264: "MESSAGE_STATUS_TOMBSTONE_EMERGENCY_CONVERSATION_CREATED",
+		265: "MESSAGE_STATUS_TOMBSTONE_SENSITIVE_CONTENT_WARNING_TOOLSTONE",
+		266: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_CONFIRMED_NO_LINK",
+		267: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_CONFIRMED_NO_LINK",
+		268: "MESSAGE_STATUS_TOMBSTONE_EMERGENCY_QUESTIONNAIRE",
+		269: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_SENT_NO_LINK",
+		270: "MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_SENT_NO_LINK",
 		300: "MESSAGE_DELETED",
 	}
 	MessageStatusType_value = map[string]int32{
@@ -555,6 +579,18 @@ var (
 		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_SENT":                                   256,
 		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_CONFIRMED":                            257,
 		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_CONFIRMED":                              258,
+		"MESSAGE_STATUS_TOMBSTONE_ACTIVE_SELF_IDENTITY_CHANGED":                             259,
+		"MESSAGE_STATUS_TOMBSTONE_GROUP_ICON_CHANGED_GLOBAL":                                260,
+		"MESSAGE_STATUS_TOMBSTONE_GROUP_ICON_CLEARED_GLOBAL":                                261,
+		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_ERROR":                                262,
+		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_ERROR":                                  263,
+		"MESSAGE_STATUS_TOMBSTONE_EMERGENCY_CONVERSATION_CREATED":                           264,
+		"MESSAGE_STATUS_TOMBSTONE_SENSITIVE_CONTENT_WARNING_TOOLSTONE":                      265,
+		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_CONFIRMED_NO_LINK":                    266,
+		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_CONFIRMED_NO_LINK":                      267,
+		"MESSAGE_STATUS_TOMBSTONE_EMERGENCY_QUESTIONNAIRE":                                  268,
+		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_UNSUBSCRIBE_SENT_NO_LINK":                         269,
+		"MESSAGE_STATUS_TOMBSTONE_CHATBOT_SUBSCRIBE_SENT_NO_LINK":                           270,
 		"MESSAGE_DELETED":                                                                   300,
 	}
 )
@@ -596,6 +632,7 @@ const (
 	ConversationStatus_KEEP_ARCHIVED               ConversationStatus = 4
 	ConversationStatus_SPAM_FOLDER                 ConversationStatus = 5
 	ConversationStatus_BLOCKED_FOLDER              ConversationStatus = 6
+	ConversationStatus_CROSS_COUNTRY_FOLDER        ConversationStatus = 7
 )
 
 // Enum value maps for ConversationStatus.
@@ -608,6 +645,7 @@ var (
 		4: "KEEP_ARCHIVED",
 		5: "SPAM_FOLDER",
 		6: "BLOCKED_FOLDER",
+		7: "CROSS_COUNTRY_FOLDER",
 	}
 	ConversationStatus_value = map[string]int32{
 		"UNKNOWN_CONVERSATION_STATUS": 0,
@@ -617,6 +655,7 @@ var (
 		"KEEP_ARCHIVED":               4,
 		"SPAM_FOLDER":                 5,
 		"BLOCKED_FOLDER":              6,
+		"CROSS_COUNTRY_FOLDER":        7,
 	}
 )
 
