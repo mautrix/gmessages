@@ -223,7 +223,7 @@ func init() {
 		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools.",
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:    "https://accounts.google.com/AccountChooser?continue=https://messages.google.com/web/config",
-			Fields: []bridgev2.LoginCookieField{},
+			Fields: cookieFields,
 		},
 	}
 }
