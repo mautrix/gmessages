@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -134,6 +135,7 @@ type Client struct {
 	PairCallback atomic.Pointer[func(data *gmproto.PairedData)]
 
 	AuthData *AuthData
+	PushKeys *PushKeys
 	Config   *gmproto.Config
 
 	httpTransport *http.Transport
@@ -148,7 +150,7 @@ func NewAuthData() *AuthData {
 	}
 }
 
-func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
+func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client {
 	sessionHandler := &SessionHandler{
 		responseWaiters: make(map[string]chan<- *IncomingRPCMessage),
 	}
@@ -159,6 +161,7 @@ func NewClient(authData *AuthData, logger zerolog.Logger) *Client {
 	}
 	cli := &Client{
 		AuthData:       authData,
+		PushKeys:       pk,
 		Logger:         logger,
 		sessionHandler: sessionHandler,
 
@@ -197,7 +200,7 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("not logged in")
 	}
 
-	err := c.refreshAuthToken()
+	err := c.refreshAuthToken(nil)
 	if err != nil {
 		return fmt.Errorf("failed to refresh auth token: %w", err)
 	}
@@ -356,13 +359,35 @@ func (c *Client) updateTachyonAuthToken(data *gmproto.TokenData) {
 		Msg("Updated tachyon token")
 }
 
-func (c *Client) refreshAuthToken() error {
-	if c.AuthData.Browser == nil || time.Until(c.AuthData.TachyonExpiry) > RefreshTachyonBuffer {
+type PushKeys struct {
+	URL    string
+	P256DH []byte
+	Auth   []byte
+}
+
+func (c *Client) RegisterPush(keys *PushKeys) error {
+	if c.PushKeys == nil || c.PushKeys.URL != keys.URL {
+		err := c.refreshAuthToken(keys)
+		if err != nil {
+			return fmt.Errorf("failed to refresh auth token: %w", err)
+		}
+	}
+	err := c.UpdateSettings(&gmproto.SettingsUpdateRequest{
+		PushSettings: &gmproto.SettingsUpdateRequest_PushSettings{
+			Enabled: true,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update settings to enable push: %w", err)
+	}
+	c.PushKeys = keys
+	return nil
+}
+
+func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {
+	if c.AuthData.Browser == nil || (time.Until(c.AuthData.TachyonExpiry) > RefreshTachyonBuffer && pushKeyOverride == nil) {
 		return nil
 	}
-	c.Logger.Debug().
-		Time("tachyon_expiry", c.AuthData.TachyonExpiry).
-		Msg("Refreshing auth token")
 	jwk := c.AuthData.RefreshKey
 	requestID := uuid.NewString()
 	timestamp := time.Now().UnixMilli() * 1000
@@ -372,6 +397,28 @@ func (c *Client) refreshAuthToken() error {
 	if err != nil {
 		return err
 	}
+
+	var moreParams *gmproto.RegisterRefreshRequest_MoreParameters
+	keys := c.PushKeys
+	if pushKeyOverride != nil {
+		keys = pushKeyOverride
+	}
+	if keys != nil {
+		moreParams = &gmproto.RegisterRefreshRequest_MoreParameters{
+			Three: 3,
+		}
+		moreParams.PushReg = &gmproto.RegisterRefreshRequest_PushRegistration{
+			Type:   "messages_web",
+			Url:    keys.URL,
+			P256Dh: base64.RawURLEncoding.EncodeToString(keys.P256DH),
+			Auth:   base64.RawURLEncoding.EncodeToString(keys.Auth),
+		}
+	}
+	c.Logger.Debug().
+		Time("tachyon_expiry", c.AuthData.TachyonExpiry).
+		Bool("force_refresh", pushKeyOverride != nil).
+		Bool("include_push_keys", moreParams.GetPushReg() != nil).
+		Msg("Refreshing auth token")
 
 	payload := &gmproto.RegisterRefreshRequest{
 		MessageAuth: &gmproto.AuthMessage{
@@ -383,8 +430,11 @@ func (c *Client) refreshAuthToken() error {
 		CurrBrowserDevice: c.AuthData.Browser,
 		UnixTimestamp:     timestamp,
 		Signature:         sig,
-		EmptyRefreshArr:   &gmproto.RegisterRefreshRequest_NestedEmptyArr{EmptyArr: &gmproto.EmptyArr{}},
-		MessageType:       2, // hmm
+		Parameters: &gmproto.RegisterRefreshRequest_Parameters{
+			EmptyArr:       &gmproto.EmptyArr{},
+			MoreParameters: moreParams,
+		},
+		MessageType: 2, // hmm
 	}
 
 	resp, err := typedHTTPResponse[*gmproto.RegisterRefreshResponse](

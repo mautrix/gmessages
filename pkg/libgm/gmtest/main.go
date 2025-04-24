@@ -54,7 +54,7 @@ func main() {
 		log.Info().Msg("Loaded session?")
 	}
 	_ = file.Close()
-	cli = libgm.NewClient(&sess, log)
+	cli = libgm.NewClient(&sess, nil, log)
 	cli.SetEventHandler(evtHandler)
 	if doLogin {
 		err = cli.DoGaiaPairing(context.TODO(), func(emoji string) {

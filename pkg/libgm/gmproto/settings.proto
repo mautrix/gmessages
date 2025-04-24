@@ -54,6 +54,7 @@ message SIMParticipant {
 }
 
 message SomeData {
+    bool pushEnabled = 3;
     bool field7 = 7;
     bool field12 = 12;
     repeated bytes someEmojis = 15;

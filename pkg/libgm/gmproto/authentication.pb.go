@@ -1006,13 +1006,13 @@ func (*RevokeRelayPairingResponse) Descriptor() ([]byte, []int) {
 }
 
 type RegisterRefreshRequest struct {
-	state             protoimpl.MessageState                 `protogen:"open.v1"`
-	MessageAuth       *AuthMessage                           `protobuf:"bytes,1,opt,name=messageAuth,proto3" json:"messageAuth,omitempty"`
-	CurrBrowserDevice *Device                                `protobuf:"bytes,2,opt,name=currBrowserDevice,proto3" json:"currBrowserDevice,omitempty"`
-	UnixTimestamp     int64                                  `protobuf:"varint,3,opt,name=unixTimestamp,proto3" json:"unixTimestamp,omitempty"`
-	Signature         []byte                                 `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
-	EmptyRefreshArr   *RegisterRefreshRequest_NestedEmptyArr `protobuf:"bytes,13,opt,name=emptyRefreshArr,proto3" json:"emptyRefreshArr,omitempty"`
-	MessageType       int32                                  `protobuf:"varint,16,opt,name=messageType,proto3" json:"messageType,omitempty"`
+	state             protoimpl.MessageState             `protogen:"open.v1"`
+	MessageAuth       *AuthMessage                       `protobuf:"bytes,1,opt,name=messageAuth,proto3" json:"messageAuth,omitempty"`
+	CurrBrowserDevice *Device                            `protobuf:"bytes,2,opt,name=currBrowserDevice,proto3" json:"currBrowserDevice,omitempty"`
+	UnixTimestamp     int64                              `protobuf:"varint,3,opt,name=unixTimestamp,proto3" json:"unixTimestamp,omitempty"`
+	Signature         []byte                             `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
+	Parameters        *RegisterRefreshRequest_Parameters `protobuf:"bytes,13,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	MessageType       int32                              `protobuf:"varint,16,opt,name=messageType,proto3" json:"messageType,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1075,9 +1075,9 @@ func (x *RegisterRefreshRequest) GetSignature() []byte {
 	return nil
 }
 
-func (x *RegisterRefreshRequest) GetEmptyRefreshArr() *RegisterRefreshRequest_NestedEmptyArr {
+func (x *RegisterRefreshRequest) GetParameters() *RegisterRefreshRequest_Parameters {
 	if x != nil {
-		return x.EmptyRefreshArr
+		return x.Parameters
 	}
 	return nil
 }
@@ -2477,27 +2477,30 @@ func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownBytes() []byte {
 	return nil
 }
 
-type RegisterRefreshRequest_NestedEmptyArr struct {
+type RegisterRefreshRequest_PushRegistration struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EmptyArr      *EmptyArr              `protobuf:"bytes,9,opt,name=emptyArr,proto3" json:"emptyArr,omitempty"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Url           string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	P256Dh        string                 `protobuf:"bytes,3,opt,name=p256dh,proto3" json:"p256dh,omitempty"`
+	Auth          string                 `protobuf:"bytes,4,opt,name=auth,proto3" json:"auth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RegisterRefreshRequest_NestedEmptyArr) Reset() {
-	*x = RegisterRefreshRequest_NestedEmptyArr{}
+func (x *RegisterRefreshRequest_PushRegistration) Reset() {
+	*x = RegisterRefreshRequest_PushRegistration{}
 	mi := &file_authentication_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegisterRefreshRequest_NestedEmptyArr) String() string {
+func (x *RegisterRefreshRequest_PushRegistration) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterRefreshRequest_NestedEmptyArr) ProtoMessage() {}
+func (*RegisterRefreshRequest_PushRegistration) ProtoMessage() {}
 
-func (x *RegisterRefreshRequest_NestedEmptyArr) ProtoReflect() protoreflect.Message {
+func (x *RegisterRefreshRequest_PushRegistration) ProtoReflect() protoreflect.Message {
 	mi := &file_authentication_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2509,14 +2512,139 @@ func (x *RegisterRefreshRequest_NestedEmptyArr) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterRefreshRequest_NestedEmptyArr.ProtoReflect.Descriptor instead.
-func (*RegisterRefreshRequest_NestedEmptyArr) Descriptor() ([]byte, []int) {
+// Deprecated: Use RegisterRefreshRequest_PushRegistration.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshRequest_PushRegistration) Descriptor() ([]byte, []int) {
 	return file_authentication_proto_rawDescGZIP(), []int{13, 0}
 }
 
-func (x *RegisterRefreshRequest_NestedEmptyArr) GetEmptyArr() *EmptyArr {
+func (x *RegisterRefreshRequest_PushRegistration) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RegisterRefreshRequest_PushRegistration) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *RegisterRefreshRequest_PushRegistration) GetP256Dh() string {
+	if x != nil {
+		return x.P256Dh
+	}
+	return ""
+}
+
+func (x *RegisterRefreshRequest_PushRegistration) GetAuth() string {
+	if x != nil {
+		return x.Auth
+	}
+	return ""
+}
+
+type RegisterRefreshRequest_MoreParameters struct {
+	state         protoimpl.MessageState                   `protogen:"open.v1"`
+	Three         int32                                    `protobuf:"varint,1,opt,name=three,proto3" json:"three,omitempty"`
+	PushReg       *RegisterRefreshRequest_PushRegistration `protobuf:"bytes,102,opt,name=pushReg,proto3" json:"pushReg,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterRefreshRequest_MoreParameters) Reset() {
+	*x = RegisterRefreshRequest_MoreParameters{}
+	mi := &file_authentication_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterRefreshRequest_MoreParameters) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRefreshRequest_MoreParameters) ProtoMessage() {}
+
+func (x *RegisterRefreshRequest_MoreParameters) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRefreshRequest_MoreParameters.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshRequest_MoreParameters) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{13, 1}
+}
+
+func (x *RegisterRefreshRequest_MoreParameters) GetThree() int32 {
+	if x != nil {
+		return x.Three
+	}
+	return 0
+}
+
+func (x *RegisterRefreshRequest_MoreParameters) GetPushReg() *RegisterRefreshRequest_PushRegistration {
+	if x != nil {
+		return x.PushReg
+	}
+	return nil
+}
+
+type RegisterRefreshRequest_Parameters struct {
+	state          protoimpl.MessageState                 `protogen:"open.v1"`
+	EmptyArr       *EmptyArr                              `protobuf:"bytes,9,opt,name=emptyArr,proto3,oneof" json:"emptyArr,omitempty"`
+	MoreParameters *RegisterRefreshRequest_MoreParameters `protobuf:"bytes,23,opt,name=moreParameters,proto3,oneof" json:"moreParameters,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RegisterRefreshRequest_Parameters) Reset() {
+	*x = RegisterRefreshRequest_Parameters{}
+	mi := &file_authentication_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterRefreshRequest_Parameters) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRefreshRequest_Parameters) ProtoMessage() {}
+
+func (x *RegisterRefreshRequest_Parameters) ProtoReflect() protoreflect.Message {
+	mi := &file_authentication_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRefreshRequest_Parameters.ProtoReflect.Descriptor instead.
+func (*RegisterRefreshRequest_Parameters) Descriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{13, 2}
+}
+
+func (x *RegisterRefreshRequest_Parameters) GetEmptyArr() *EmptyArr {
 	if x != nil {
 		return x.EmptyArr
+	}
+	return nil
+}
+
+func (x *RegisterRefreshRequest_Parameters) GetMoreParameters() *RegisterRefreshRequest_MoreParameters {
+	if x != nil {
+		return x.MoreParameters
 	}
 	return nil
 }
@@ -2530,7 +2658,7 @@ type ErrorResponse_ErrorClass struct {
 
 func (x *ErrorResponse_ErrorClass) Reset() {
 	*x = ErrorResponse_ErrorClass{}
-	mi := &file_authentication_proto_msgTypes[40]
+	mi := &file_authentication_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2542,7 +2670,7 @@ func (x *ErrorResponse_ErrorClass) String() string {
 func (*ErrorResponse_ErrorClass) ProtoMessage() {}
 
 func (x *ErrorResponse_ErrorClass) ProtoReflect() protoreflect.Message {
-	mi := &file_authentication_proto_msgTypes[40]
+	mi := &file_authentication_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2675,16 +2803,30 @@ const file_authentication_proto_rawDesc = "" +
 	"\x19RevokeRelayPairingRequest\x12=\n" +
 	"\vauthMessage\x18\x01 \x01(\v2\x1b.authentication.AuthMessageR\vauthMessage\x120\n" +
 	"\abrowser\x18\x02 \x01(\v2\x16.authentication.DeviceR\abrowser\"\x1c\n" +
-	"\x1aRevokeRelayPairingResponse\"\xa2\x03\n" +
+	"\x1aRevokeRelayPairingResponse\"\xfb\x05\n" +
 	"\x16RegisterRefreshRequest\x12=\n" +
 	"\vmessageAuth\x18\x01 \x01(\v2\x1b.authentication.AuthMessageR\vmessageAuth\x12D\n" +
 	"\x11currBrowserDevice\x18\x02 \x01(\v2\x16.authentication.DeviceR\x11currBrowserDevice\x12$\n" +
 	"\runixTimestamp\x18\x03 \x01(\x03R\runixTimestamp\x12\x1c\n" +
-	"\tsignature\x18\x04 \x01(\fR\tsignature\x12_\n" +
-	"\x0femptyRefreshArr\x18\r \x01(\v25.authentication.RegisterRefreshRequest.NestedEmptyArrR\x0femptyRefreshArr\x12 \n" +
-	"\vmessageType\x18\x10 \x01(\x05R\vmessageType\x1a<\n" +
-	"\x0eNestedEmptyArr\x12*\n" +
-	"\bemptyArr\x18\t \x01(\v2\x0e.util.EmptyArrR\bemptyArr\"R\n" +
+	"\tsignature\x18\x04 \x01(\fR\tsignature\x12Q\n" +
+	"\n" +
+	"parameters\x18\r \x01(\v21.authentication.RegisterRefreshRequest.ParametersR\n" +
+	"parameters\x12 \n" +
+	"\vmessageType\x18\x10 \x01(\x05R\vmessageType\x1ad\n" +
+	"\x10PushRegistration\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x16\n" +
+	"\x06p256dh\x18\x03 \x01(\tR\x06p256dh\x12\x12\n" +
+	"\x04auth\x18\x04 \x01(\tR\x04auth\x1ay\n" +
+	"\x0eMoreParameters\x12\x14\n" +
+	"\x05three\x18\x01 \x01(\x05R\x05three\x12Q\n" +
+	"\apushReg\x18f \x01(\v27.authentication.RegisterRefreshRequest.PushRegistrationR\apushReg\x1a\xc1\x01\n" +
+	"\n" +
+	"Parameters\x12/\n" +
+	"\bemptyArr\x18\t \x01(\v2\x0e.util.EmptyArrH\x00R\bemptyArr\x88\x01\x01\x12b\n" +
+	"\x0emoreParameters\x18\x17 \x01(\v25.authentication.RegisterRefreshRequest.MoreParametersH\x01R\x0emoreParameters\x88\x01\x01B\v\n" +
+	"\t_emptyArrB\x11\n" +
+	"\x0f_moreParameters\"R\n" +
 	"\x17RegisterRefreshResponse\x127\n" +
 	"\ttokenData\x18\x02 \x01(\v2\x19.authentication.TokenDataR\ttokenData\"\xac\x02\n" +
 	"\x1aRegisterPhoneRelayResponse\x12C\n" +
@@ -2779,7 +2921,7 @@ func file_authentication_proto_rawDescGZIP() []byte {
 }
 
 var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_authentication_proto_goTypes = []any{
 	(BrowserType)(0),                                    // 0: authentication.BrowserType
 	(DeviceType)(0),                                     // 1: authentication.DeviceType
@@ -2822,9 +2964,11 @@ var file_authentication_proto_goTypes = []any{
 	(*RPCGaiaData_UnknownContainer_Item4)(nil),          // 38: authentication.RPCGaiaData.UnknownContainer.Item4
 	(*RPCGaiaData_UnknownContainer_Item2_Item1)(nil),    // 39: authentication.RPCGaiaData.UnknownContainer.Item2.Item1
 	(*RPCGaiaData_UnknownContainer_Item4_Item8)(nil),    // 40: authentication.RPCGaiaData.UnknownContainer.Item4.Item8
-	(*RegisterRefreshRequest_NestedEmptyArr)(nil),       // 41: authentication.RegisterRefreshRequest.NestedEmptyArr
-	(*ErrorResponse_ErrorClass)(nil),                    // 42: authentication.ErrorResponse.ErrorClass
-	(*EmptyArr)(nil),                                    // 43: util.EmptyArr
+	(*RegisterRefreshRequest_PushRegistration)(nil),     // 41: authentication.RegisterRefreshRequest.PushRegistration
+	(*RegisterRefreshRequest_MoreParameters)(nil),       // 42: authentication.RegisterRefreshRequest.MoreParameters
+	(*RegisterRefreshRequest_Parameters)(nil),           // 43: authentication.RegisterRefreshRequest.Parameters
+	(*ErrorResponse_ErrorClass)(nil),                    // 44: authentication.ErrorResponse.ErrorClass
+	(*EmptyArr)(nil),                                    // 45: util.EmptyArr
 }
 var file_authentication_proto_depIdxs = []int32{
 	0,  // 0: authentication.BrowserDetails.browserType:type_name -> authentication.BrowserType
@@ -2845,14 +2989,14 @@ var file_authentication_proto_depIdxs = []int32{
 	3,  // 15: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
 	12, // 16: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
 	3,  // 17: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
-	41, // 18: authentication.RegisterRefreshRequest.emptyRefreshArr:type_name -> authentication.RegisterRefreshRequest.NestedEmptyArr
+	43, // 18: authentication.RegisterRefreshRequest.parameters:type_name -> authentication.RegisterRefreshRequest.Parameters
 	27, // 19: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.TokenData
 	18, // 20: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
 	3,  // 21: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
 	27, // 22: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.TokenData
 	18, // 23: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
 	18, // 24: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
-	42, // 25: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
+	44, // 25: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
 	3,  // 26: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
 	3,  // 27: authentication.KeyData.mobile:type_name -> authentication.Device
 	22, // 28: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
@@ -2872,12 +3016,14 @@ var file_authentication_proto_depIdxs = []int32{
 	38, // 42: authentication.RPCGaiaData.UnknownContainer.item4:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
 	39, // 43: authentication.RPCGaiaData.UnknownContainer.Item2.item1:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
 	40, // 44: authentication.RPCGaiaData.UnknownContainer.Item4.item8:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4.Item8
-	43, // 45: authentication.RegisterRefreshRequest.NestedEmptyArr.emptyArr:type_name -> util.EmptyArr
-	46, // [46:46] is the sub-list for method output_type
-	46, // [46:46] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	41, // 45: authentication.RegisterRefreshRequest.MoreParameters.pushReg:type_name -> authentication.RegisterRefreshRequest.PushRegistration
+	45, // 46: authentication.RegisterRefreshRequest.Parameters.emptyArr:type_name -> util.EmptyArr
+	42, // 47: authentication.RegisterRefreshRequest.Parameters.moreParameters:type_name -> authentication.RegisterRefreshRequest.MoreParameters
+	48, // [48:48] is the sub-list for method output_type
+	48, // [48:48] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_authentication_proto_init() }
@@ -2890,13 +3036,14 @@ func file_authentication_proto_init() {
 		(*AuthenticationContainer_KeyData)(nil),
 		(*AuthenticationContainer_DeviceData)(nil),
 	}
+	file_authentication_proto_msgTypes[41].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_authentication_proto_rawDesc), len(file_authentication_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   41,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

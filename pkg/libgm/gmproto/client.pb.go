@@ -2776,6 +2776,50 @@ func (x *TypingUpdateRequest) GetData() *TypingUpdateRequest_Data {
 	return nil
 }
 
+type SettingsUpdateRequest struct {
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	PushSettings  *SettingsUpdateRequest_PushSettings `protobuf:"bytes,3,opt,name=pushSettings,proto3" json:"pushSettings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SettingsUpdateRequest) Reset() {
+	*x = SettingsUpdateRequest{}
+	mi := &file_client_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SettingsUpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SettingsUpdateRequest) ProtoMessage() {}
+
+func (x *SettingsUpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SettingsUpdateRequest.ProtoReflect.Descriptor instead.
+func (*SettingsUpdateRequest) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *SettingsUpdateRequest) GetPushSettings() *SettingsUpdateRequest_PushSettings {
+	if x != nil {
+		return x.PushSettings
+	}
+	return nil
+}
+
 type GetFullSizeImageRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	MessageID       string                 `protobuf:"bytes,1,opt,name=messageID,proto3" json:"messageID,omitempty"`
@@ -2786,7 +2830,7 @@ type GetFullSizeImageRequest struct {
 
 func (x *GetFullSizeImageRequest) Reset() {
 	*x = GetFullSizeImageRequest{}
-	mi := &file_client_proto_msgTypes[46]
+	mi := &file_client_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2798,7 +2842,7 @@ func (x *GetFullSizeImageRequest) String() string {
 func (*GetFullSizeImageRequest) ProtoMessage() {}
 
 func (x *GetFullSizeImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[46]
+	mi := &file_client_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2811,7 +2855,7 @@ func (x *GetFullSizeImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFullSizeImageRequest.ProtoReflect.Descriptor instead.
 func (*GetFullSizeImageRequest) Descriptor() ([]byte, []int) {
-	return file_client_proto_rawDescGZIP(), []int{46}
+	return file_client_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *GetFullSizeImageRequest) GetMessageID() string {
@@ -2836,7 +2880,7 @@ type GetFullSizeImageResponse struct {
 
 func (x *GetFullSizeImageResponse) Reset() {
 	*x = GetFullSizeImageResponse{}
-	mi := &file_client_proto_msgTypes[47]
+	mi := &file_client_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2848,7 +2892,7 @@ func (x *GetFullSizeImageResponse) String() string {
 func (*GetFullSizeImageResponse) ProtoMessage() {}
 
 func (x *GetFullSizeImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[47]
+	mi := &file_client_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2861,7 +2905,7 @@ func (x *GetFullSizeImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFullSizeImageResponse.ProtoReflect.Descriptor instead.
 func (*GetFullSizeImageResponse) Descriptor() ([]byte, []int) {
-	return file_client_proto_rawDescGZIP(), []int{47}
+	return file_client_proto_rawDescGZIP(), []int{48}
 }
 
 type ReceiveMessagesRequest_UnknownEmptyObject1 struct {
@@ -2872,7 +2916,7 @@ type ReceiveMessagesRequest_UnknownEmptyObject1 struct {
 
 func (x *ReceiveMessagesRequest_UnknownEmptyObject1) Reset() {
 	*x = ReceiveMessagesRequest_UnknownEmptyObject1{}
-	mi := &file_client_proto_msgTypes[48]
+	mi := &file_client_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2884,7 +2928,7 @@ func (x *ReceiveMessagesRequest_UnknownEmptyObject1) String() string {
 func (*ReceiveMessagesRequest_UnknownEmptyObject1) ProtoMessage() {}
 
 func (x *ReceiveMessagesRequest_UnknownEmptyObject1) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[48]
+	mi := &file_client_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2909,7 +2953,7 @@ type ReceiveMessagesRequest_UnknownEmptyObject2 struct {
 
 func (x *ReceiveMessagesRequest_UnknownEmptyObject2) Reset() {
 	*x = ReceiveMessagesRequest_UnknownEmptyObject2{}
-	mi := &file_client_proto_msgTypes[49]
+	mi := &file_client_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2921,7 +2965,7 @@ func (x *ReceiveMessagesRequest_UnknownEmptyObject2) String() string {
 func (*ReceiveMessagesRequest_UnknownEmptyObject2) ProtoMessage() {}
 
 func (x *ReceiveMessagesRequest_UnknownEmptyObject2) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[49]
+	mi := &file_client_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2954,7 +2998,7 @@ type AckMessageRequest_Message struct {
 
 func (x *AckMessageRequest_Message) Reset() {
 	*x = AckMessageRequest_Message{}
-	mi := &file_client_proto_msgTypes[50]
+	mi := &file_client_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2966,7 +3010,7 @@ func (x *AckMessageRequest_Message) String() string {
 func (*AckMessageRequest_Message) ProtoMessage() {}
 
 func (x *AckMessageRequest_Message) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[50]
+	mi := &file_client_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3007,7 +3051,7 @@ type GetThumbnailResponse_Thumbnail struct {
 
 func (x *GetThumbnailResponse_Thumbnail) Reset() {
 	*x = GetThumbnailResponse_Thumbnail{}
-	mi := &file_client_proto_msgTypes[51]
+	mi := &file_client_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3019,7 +3063,7 @@ func (x *GetThumbnailResponse_Thumbnail) String() string {
 func (*GetThumbnailResponse_Thumbnail) ProtoMessage() {}
 
 func (x *GetThumbnailResponse_Thumbnail) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[51]
+	mi := &file_client_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3058,7 +3102,7 @@ type ThumbnailData_MysteriousData struct {
 
 func (x *ThumbnailData_MysteriousData) Reset() {
 	*x = ThumbnailData_MysteriousData{}
-	mi := &file_client_proto_msgTypes[52]
+	mi := &file_client_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3070,7 +3114,7 @@ func (x *ThumbnailData_MysteriousData) String() string {
 func (*ThumbnailData_MysteriousData) ProtoMessage() {}
 
 func (x *ThumbnailData_MysteriousData) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[52]
+	mi := &file_client_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3103,7 +3147,7 @@ type TypingUpdateRequest_Data struct {
 
 func (x *TypingUpdateRequest_Data) Reset() {
 	*x = TypingUpdateRequest_Data{}
-	mi := &file_client_proto_msgTypes[53]
+	mi := &file_client_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3115,7 +3159,7 @@ func (x *TypingUpdateRequest_Data) String() string {
 func (*TypingUpdateRequest_Data) ProtoMessage() {}
 
 func (x *TypingUpdateRequest_Data) ProtoReflect() protoreflect.Message {
-	mi := &file_client_proto_msgTypes[53]
+	mi := &file_client_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3141,6 +3185,50 @@ func (x *TypingUpdateRequest_Data) GetConversationID() string {
 func (x *TypingUpdateRequest_Data) GetTyping() bool {
 	if x != nil {
 		return x.Typing
+	}
+	return false
+}
+
+type SettingsUpdateRequest_PushSettings struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SettingsUpdateRequest_PushSettings) Reset() {
+	*x = SettingsUpdateRequest_PushSettings{}
+	mi := &file_client_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SettingsUpdateRequest_PushSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SettingsUpdateRequest_PushSettings) ProtoMessage() {}
+
+func (x *SettingsUpdateRequest_PushSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_client_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SettingsUpdateRequest_PushSettings.ProtoReflect.Descriptor instead.
+func (*SettingsUpdateRequest_PushSettings) Descriptor() ([]byte, []int) {
+	return file_client_proto_rawDescGZIP(), []int{46, 0}
+}
+
+func (x *SettingsUpdateRequest_PushSettings) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
 	}
 	return false
 }
@@ -3349,7 +3437,11 @@ const file_client_proto_rawDesc = "" +
 	"\x04data\x18\x02 \x01(\v2 .client.TypingUpdateRequest.DataR\x04data\x1aF\n" +
 	"\x04Data\x12&\n" +
 	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12\x16\n" +
-	"\x06typing\x18\x03 \x01(\bR\x06typing\"a\n" +
+	"\x06typing\x18\x03 \x01(\bR\x06typing\"\x91\x01\n" +
+	"\x15SettingsUpdateRequest\x12N\n" +
+	"\fpushSettings\x18\x03 \x01(\v2*.client.SettingsUpdateRequest.PushSettingsR\fpushSettings\x1a(\n" +
+	"\fPushSettings\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\"a\n" +
 	"\x17GetFullSizeImageRequest\x12\x1c\n" +
 	"\tmessageID\x18\x01 \x01(\tR\tmessageID\x12(\n" +
 	"\x0factionMessageID\x18\x02 \x01(\tR\x0factionMessageID\"\x1a\n" +
@@ -3378,7 +3470,7 @@ func file_client_proto_rawDescGZIP() []byte {
 }
 
 var file_client_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_client_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
+var file_client_proto_msgTypes = make([]protoimpl.MessageInfo, 56)
 var file_client_proto_goTypes = []any{
 	(ConversationActionStatus)(0),                      // 0: client.ConversationActionStatus
 	(ConversationMuteStatus)(0),                        // 1: client.ConversationMuteStatus
@@ -3432,81 +3524,84 @@ var file_client_proto_goTypes = []any{
 	(*SendReactionResponse)(nil),                       // 49: client.SendReactionResponse
 	(*ResendMessageRequest)(nil),                       // 50: client.ResendMessageRequest
 	(*TypingUpdateRequest)(nil),                        // 51: client.TypingUpdateRequest
-	(*GetFullSizeImageRequest)(nil),                    // 52: client.GetFullSizeImageRequest
-	(*GetFullSizeImageResponse)(nil),                   // 53: client.GetFullSizeImageResponse
-	(*ReceiveMessagesRequest_UnknownEmptyObject1)(nil), // 54: client.ReceiveMessagesRequest.UnknownEmptyObject1
-	(*ReceiveMessagesRequest_UnknownEmptyObject2)(nil), // 55: client.ReceiveMessagesRequest.UnknownEmptyObject2
-	(*AckMessageRequest_Message)(nil),                  // 56: client.AckMessageRequest.Message
-	(*GetThumbnailResponse_Thumbnail)(nil),             // 57: client.GetThumbnailResponse.Thumbnail
-	(*ThumbnailData_MysteriousData)(nil),               // 58: client.ThumbnailData.MysteriousData
-	(*TypingUpdateRequest_Data)(nil),                   // 59: client.TypingUpdateRequest.Data
-	(*AuthMessage)(nil),                                // 60: authentication.AuthMessage
-	(*EmptyArr)(nil),                                   // 61: util.EmptyArr
-	(*Device)(nil),                                     // 62: authentication.Device
-	(*Dimensions)(nil),                                 // 63: conversations.Dimensions
-	(*Message)(nil),                                    // 64: conversations.Message
-	(*Contact)(nil),                                    // 65: conversations.Contact
-	(*Conversation)(nil),                               // 66: conversations.Conversation
-	(*ContactNumber)(nil),                              // 67: conversations.ContactNumber
-	(ConversationStatus)(0),                            // 68: conversations.ConversationStatus
-	(*SIMPayload)(nil),                                 // 69: settings.SIMPayload
-	(*MessageInfo)(nil),                                // 70: conversations.MessageInfo
-	(*MessageContent)(nil),                             // 71: conversations.MessageContent
-	(*AccountChangeOrSomethingEvent)(nil),              // 72: events.AccountChangeOrSomethingEvent
-	(*ReactionData)(nil),                               // 73: conversations.ReactionData
+	(*SettingsUpdateRequest)(nil),                      // 52: client.SettingsUpdateRequest
+	(*GetFullSizeImageRequest)(nil),                    // 53: client.GetFullSizeImageRequest
+	(*GetFullSizeImageResponse)(nil),                   // 54: client.GetFullSizeImageResponse
+	(*ReceiveMessagesRequest_UnknownEmptyObject1)(nil), // 55: client.ReceiveMessagesRequest.UnknownEmptyObject1
+	(*ReceiveMessagesRequest_UnknownEmptyObject2)(nil), // 56: client.ReceiveMessagesRequest.UnknownEmptyObject2
+	(*AckMessageRequest_Message)(nil),                  // 57: client.AckMessageRequest.Message
+	(*GetThumbnailResponse_Thumbnail)(nil),             // 58: client.GetThumbnailResponse.Thumbnail
+	(*ThumbnailData_MysteriousData)(nil),               // 59: client.ThumbnailData.MysteriousData
+	(*TypingUpdateRequest_Data)(nil),                   // 60: client.TypingUpdateRequest.Data
+	(*SettingsUpdateRequest_PushSettings)(nil),         // 61: client.SettingsUpdateRequest.PushSettings
+	(*AuthMessage)(nil),                                // 62: authentication.AuthMessage
+	(*EmptyArr)(nil),                                   // 63: util.EmptyArr
+	(*Device)(nil),                                     // 64: authentication.Device
+	(*Dimensions)(nil),                                 // 65: conversations.Dimensions
+	(*Message)(nil),                                    // 66: conversations.Message
+	(*Contact)(nil),                                    // 67: conversations.Contact
+	(*Conversation)(nil),                               // 68: conversations.Conversation
+	(*ContactNumber)(nil),                              // 69: conversations.ContactNumber
+	(ConversationStatus)(0),                            // 70: conversations.ConversationStatus
+	(*SIMPayload)(nil),                                 // 71: settings.SIMPayload
+	(*MessageInfo)(nil),                                // 72: conversations.MessageInfo
+	(*MessageContent)(nil),                             // 73: conversations.MessageContent
+	(*AccountChangeOrSomethingEvent)(nil),              // 74: events.AccountChangeOrSomethingEvent
+	(*ReactionData)(nil),                               // 75: conversations.ReactionData
 }
 var file_client_proto_depIdxs = []int32{
-	60, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
-	55, // 1: client.ReceiveMessagesRequest.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject2
-	60, // 2: client.AckMessageRequest.authData:type_name -> authentication.AuthMessage
-	61, // 3: client.AckMessageRequest.emptyArr:type_name -> util.EmptyArr
-	56, // 4: client.AckMessageRequest.acks:type_name -> client.AckMessageRequest.Message
+	62, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
+	56, // 1: client.ReceiveMessagesRequest.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject2
+	62, // 2: client.AckMessageRequest.authData:type_name -> authentication.AuthMessage
+	63, // 3: client.AckMessageRequest.emptyArr:type_name -> util.EmptyArr
+	57, // 4: client.AckMessageRequest.acks:type_name -> client.AckMessageRequest.Message
 	12, // 5: client.DownloadAttachmentRequest.info:type_name -> client.AttachmentInfo
-	60, // 6: client.DownloadAttachmentRequest.authData:type_name -> authentication.AuthMessage
-	60, // 7: client.StartMediaUploadRequest.authData:type_name -> authentication.AuthMessage
-	62, // 8: client.StartMediaUploadRequest.mobile:type_name -> authentication.Device
+	62, // 6: client.DownloadAttachmentRequest.authData:type_name -> authentication.AuthMessage
+	62, // 7: client.StartMediaUploadRequest.authData:type_name -> authentication.AuthMessage
+	64, // 8: client.StartMediaUploadRequest.mobile:type_name -> authentication.Device
 	15, // 9: client.UploadMediaResponse.media:type_name -> client.UploadedMedia
-	57, // 10: client.GetThumbnailResponse.thumbnail:type_name -> client.GetThumbnailResponse.Thumbnail
-	63, // 11: client.ThumbnailData.dimensions:type_name -> conversations.Dimensions
-	58, // 12: client.ThumbnailData.mysteriousData:type_name -> client.ThumbnailData.MysteriousData
+	58, // 10: client.GetThumbnailResponse.thumbnail:type_name -> client.GetThumbnailResponse.Thumbnail
+	65, // 11: client.ThumbnailData.dimensions:type_name -> conversations.Dimensions
+	59, // 12: client.ThumbnailData.mysteriousData:type_name -> client.ThumbnailData.MysteriousData
 	19, // 13: client.ListMessagesRequest.cursor:type_name -> client.Cursor
-	64, // 14: client.ListMessagesResponse.messages:type_name -> conversations.Message
+	66, // 14: client.ListMessagesResponse.messages:type_name -> conversations.Message
 	19, // 15: client.ListMessagesResponse.cursor:type_name -> client.Cursor
-	65, // 16: client.ListContactsResponse.contacts:type_name -> conversations.Contact
-	65, // 17: client.ListTopContactsResponse.contacts:type_name -> conversations.Contact
+	67, // 16: client.ListContactsResponse.contacts:type_name -> conversations.Contact
+	67, // 17: client.ListTopContactsResponse.contacts:type_name -> conversations.Contact
 	2,  // 18: client.ListConversationsRequest.folder:type_name -> client.ListConversationsRequest.Folder
 	19, // 19: client.ListConversationsRequest.cursor:type_name -> client.Cursor
-	66, // 20: client.ListConversationsResponse.conversations:type_name -> conversations.Conversation
+	68, // 20: client.ListConversationsResponse.conversations:type_name -> conversations.Conversation
 	19, // 21: client.ListConversationsResponse.cursor:type_name -> client.Cursor
-	67, // 22: client.GetOrCreateConversationRequest.numbers:type_name -> conversations.ContactNumber
-	66, // 23: client.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
+	69, // 22: client.GetOrCreateConversationRequest.numbers:type_name -> conversations.ContactNumber
+	68, // 23: client.GetOrCreateConversationResponse.conversation:type_name -> conversations.Conversation
 	3,  // 24: client.GetOrCreateConversationResponse.status:type_name -> client.GetOrCreateConversationResponse.Status
 	34, // 25: client.UpdateConversationRequest.data:type_name -> client.UpdateConversationData
 	0,  // 26: client.UpdateConversationRequest.action:type_name -> client.ConversationActionStatus
 	33, // 27: client.UpdateConversationRequest.action5:type_name -> client.ConversationAction5
-	68, // 28: client.UpdateConversationData.status:type_name -> conversations.ConversationStatus
+	70, // 28: client.UpdateConversationData.status:type_name -> conversations.ConversationStatus
 	1,  // 29: client.UpdateConversationData.mute:type_name -> client.ConversationMuteStatus
-	66, // 30: client.GetConversationResponse.conversation:type_name -> conversations.Conversation
+	68, // 30: client.GetConversationResponse.conversation:type_name -> conversations.Conversation
 	45, // 31: client.SendMessageRequest.messagePayload:type_name -> client.MessagePayload
-	69, // 32: client.SendMessageRequest.SIMPayload:type_name -> settings.SIMPayload
+	71, // 32: client.SendMessageRequest.SIMPayload:type_name -> settings.SIMPayload
 	44, // 33: client.SendMessageRequest.reply:type_name -> client.ReplyPayload
 	46, // 34: client.MessagePayload.messagePayloadContent:type_name -> client.MessagePayloadContent
-	70, // 35: client.MessagePayload.messageInfo:type_name -> conversations.MessageInfo
-	71, // 36: client.MessagePayloadContent.messageContent:type_name -> conversations.MessageContent
-	72, // 37: client.SendMessageResponse.googleAccountSwitch:type_name -> events.AccountChangeOrSomethingEvent
+	72, // 35: client.MessagePayload.messageInfo:type_name -> conversations.MessageInfo
+	73, // 36: client.MessagePayloadContent.messageContent:type_name -> conversations.MessageContent
+	74, // 37: client.SendMessageResponse.googleAccountSwitch:type_name -> events.AccountChangeOrSomethingEvent
 	4,  // 38: client.SendMessageResponse.status:type_name -> client.SendMessageResponse.Status
-	73, // 39: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
+	75, // 39: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
 	5,  // 40: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
-	69, // 41: client.SendReactionRequest.SIMPayload:type_name -> settings.SIMPayload
-	59, // 42: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
-	54, // 43: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
-	62, // 44: client.AckMessageRequest.Message.device:type_name -> authentication.Device
-	18, // 45: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
-	46, // [46:46] is the sub-list for method output_type
-	46, // [46:46] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	71, // 41: client.SendReactionRequest.SIMPayload:type_name -> settings.SIMPayload
+	60, // 42: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
+	61, // 43: client.SettingsUpdateRequest.pushSettings:type_name -> client.SettingsUpdateRequest.PushSettings
+	55, // 44: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	64, // 45: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	18, // 46: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
+	47, // [47:47] is the sub-list for method output_type
+	47, // [47:47] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_client_proto_init() }
@@ -3533,7 +3628,7 @@ func file_client_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_client_proto_rawDesc), len(file_client_proto_rawDesc)),
 			NumEnums:      6,
-			NumMessages:   54,
+			NumMessages:   56,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

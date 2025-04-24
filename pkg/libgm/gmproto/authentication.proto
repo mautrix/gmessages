@@ -165,15 +165,28 @@ message RevokeRelayPairingResponse {
 }
 
 message RegisterRefreshRequest {
-    message NestedEmptyArr {
-        util.EmptyArr emptyArr = 9;
+    message PushRegistration {
+        string type = 1;
+        string url = 2;
+        string p256dh = 3;
+        string auth = 4;
+    }
+
+    message MoreParameters {
+        int32 three = 1;
+        PushRegistration pushReg = 102;
+    }
+
+    message Parameters {
+        optional util.EmptyArr emptyArr = 9;
+        optional MoreParameters moreParameters = 23;
     }
 
     AuthMessage messageAuth = 1;
     Device currBrowserDevice = 2;
     int64 unixTimestamp = 3;
     bytes signature = 4;
-    NestedEmptyArr emptyRefreshArr = 13;
+    Parameters parameters = 13;
     int32 messageType = 16;
 }
 

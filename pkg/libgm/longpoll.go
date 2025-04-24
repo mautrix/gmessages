@@ -314,7 +314,7 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 
 	errorCount := 1
 	for c.listenID == listenID {
-		err := c.refreshAuthToken()
+		err := c.refreshAuthToken(nil)
 		if err != nil {
 			log.Err(err).Msg("Error refreshing auth token")
 			if loggedIn {

@@ -108,7 +108,7 @@ var _ bridgev2.LoginProcessDisplayAndWait = (*QRLoginProcess)(nil)
 
 func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
 	ql.PairSuccess = make(chan *gmproto.PairedData)
-	ql.Client = libgm.NewClient(libgm.NewAuthData(), ql.User.Log.With().Str("component", "libgm").Str("parent_action", "qr pair").Logger())
+	ql.Client = libgm.NewClient(libgm.NewAuthData(), nil, ql.User.Log.With().Str("component", "libgm").Str("parent_action", "qr pair").Logger())
 	ql.Client.SetEventHandler(func(evt any) {
 		ql.Client.Logger.Warn().Type("event_type", evt).Msg("Unexpected pre-pairing event")
 	})
@@ -284,7 +284,7 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	}
 	ad := libgm.NewAuthData()
 	ad.Cookies = cookies
-	gl.Client = libgm.NewClient(ad, gl.User.Log.With().Str("component", "libgm").Str("parent_action", "google pair").Logger())
+	gl.Client = libgm.NewClient(ad, nil, gl.User.Log.With().Str("component", "libgm").Str("parent_action", "google pair").Logger())
 	gl.Client.SetEventHandler(func(evt any) {
 		gl.Client.Logger.Warn().Type("event_type", evt).Msg("Unexpected pre-pairing event")
 	})

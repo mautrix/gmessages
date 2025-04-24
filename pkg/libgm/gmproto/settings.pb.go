@@ -512,6 +512,7 @@ func (x *SIMParticipant) GetID() string {
 
 type SomeData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	PushEnabled   bool                   `protobuf:"varint,3,opt,name=pushEnabled,proto3" json:"pushEnabled,omitempty"`
 	Field7        bool                   `protobuf:"varint,7,opt,name=field7,proto3" json:"field7,omitempty"`
 	Field12       bool                   `protobuf:"varint,12,opt,name=field12,proto3" json:"field12,omitempty"`
 	SomeEmojis    [][]byte               `protobuf:"bytes,15,rep,name=someEmojis,proto3" json:"someEmojis,omitempty"`
@@ -549,6 +550,13 @@ func (x *SomeData) ProtoReflect() protoreflect.Message {
 // Deprecated: Use SomeData.ProtoReflect.Descriptor instead.
 func (*SomeData) Descriptor() ([]byte, []int) {
 	return file_settings_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SomeData) GetPushEnabled() bool {
+	if x != nil {
+		return x.PushEnabled
+	}
+	return false
 }
 
 func (x *SomeData) GetField7() bool {
@@ -874,8 +882,9 @@ const file_settings_proto_rawDesc = "" +
 	"\x04int1\x18\x01 \x01(\x03R\x04int1\x12\x12\n" +
 	"\x04int2\x18\x02 \x01(\x03R\x04int2\" \n" +
 	"\x0eSIMParticipant\x12\x0e\n" +
-	"\x02ID\x18\x01 \x01(\tR\x02ID\"\x98\x01\n" +
-	"\bSomeData\x12\x16\n" +
+	"\x02ID\x18\x01 \x01(\tR\x02ID\"\xba\x01\n" +
+	"\bSomeData\x12 \n" +
+	"\vpushEnabled\x18\x03 \x01(\bR\vpushEnabled\x12\x16\n" +
 	"\x06field7\x18\a \x01(\bR\x06field7\x12\x18\n" +
 	"\afield12\x18\f \x01(\bR\afield12\x12\x1e\n" +
 	"\n" +

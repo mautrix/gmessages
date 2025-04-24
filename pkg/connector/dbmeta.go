@@ -17,13 +17,17 @@
 package connector
 
 import (
+	"crypto/ecdh"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 	"sync"
 
+	"go.mau.fi/util/exerrors"
 	"go.mau.fi/util/jsontime"
+	"go.mau.fi/util/random"
 	"golang.org/x/exp/maps"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/id"
@@ -98,6 +102,23 @@ type UserLoginMetadata struct {
 	simMetadata        map[string]*gmproto.SIMCard
 	Settings           UserSettings
 	IDPrefix           string
+	PushKeys           *PushKeys
+}
+
+type PushKeys struct {
+	Token   string `json:"token"`
+	P256DH  []byte `json:"p256dh"`
+	Auth    []byte `json:"auth"`
+	Private []byte `json:"private"`
+}
+
+func (ulm *UserLoginMetadata) GeneratePushKeys() {
+	privateKey := exerrors.Must(ecdh.P256().GenerateKey(rand.Reader))
+	ulm.PushKeys = &PushKeys{
+		P256DH:  privateKey.Public().(*ecdh.PublicKey).Bytes(),
+		Auth:    random.Bytes(16),
+		Private: privateKey.Bytes(),
+	}
 }
 
 type UserSettings struct {
@@ -122,6 +143,7 @@ type serializableUserLoginMetadata struct {
 	SimMetadata        map[string]*gmproto.SIMCard `json:"sim_metadata"`
 	Settings           UserSettings                `json:"settings"`
 	IDPrefix           string                      `json:"id_prefix"`
+	PushKeys           *PushKeys                   `json:"push_keys"`
 }
 
 func (ulm *UserLoginMetadata) CopyFrom(other any) {
@@ -141,6 +163,7 @@ func (ulm *UserLoginMetadata) MarshalJSON() ([]byte, error) {
 		SimMetadata:        ulm.simMetadata,
 		Settings:           ulm.Settings,
 		IDPrefix:           ulm.IDPrefix,
+		PushKeys:           ulm.PushKeys,
 	})
 }
 
@@ -157,6 +180,7 @@ func (ulm *UserLoginMetadata) UnmarshalJSON(data []byte) error {
 	ulm.simMetadata = sulm.SimMetadata
 	ulm.Settings = sulm.Settings
 	ulm.IDPrefix = sulm.IDPrefix
+	ulm.PushKeys = sulm.PushKeys
 	return nil
 }
 
@@ -241,6 +265,17 @@ func (ulm *UserLoginMetadata) SetSIMs(sims []*gmproto.SIMCard) bool {
 		}
 	}
 	return false
+}
+
+func (ulm *UserLoginMetadata) PublicPushKeys() *libgm.PushKeys {
+	if ulm == nil || ulm.PushKeys == nil {
+		return nil
+	}
+	return &libgm.PushKeys{
+		URL:    ulm.PushKeys.Token,
+		P256DH: ulm.PushKeys.P256DH,
+		Auth:   ulm.PushKeys.Auth,
+	}
 }
 
 func simsAreEqualish(a, b *gmproto.SIMCard) bool {

@@ -114,6 +114,13 @@ func (c *Client) SetTyping(convID string) error {
 	return err
 }
 
+func (c *Client) UpdateSettings(payload *gmproto.SettingsUpdateRequest) error {
+	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action: gmproto.ActionType_SETTINGS_UPDATE,
+		Data:   payload,
+	})
+}
+
 func (c *Client) SetActiveSession() error {
 	c.sessionHandler.ResetSessionID()
 	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{

@@ -319,6 +319,16 @@ message TypingUpdateRequest {
     Data data = 2;
 }
 
+// TODO is this the same as the Settings message?
+
+message SettingsUpdateRequest {
+    message PushSettings {
+        bool enabled = 3;
+    }
+
+    PushSettings pushSettings = 3;
+}
+
 message GetFullSizeImageRequest {
     string messageID = 1;
     string actionMessageID = 2;
