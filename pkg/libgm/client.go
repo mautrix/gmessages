@@ -211,8 +211,22 @@ func (c *Client) Connect() error {
 	//	return fmt.Errorf("failed to get web encryption key: %w", err)
 	//}
 	//c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-	go c.doLongPoll(true, c.postConnect)
+	go c.doLongPoll(true, false, c.postConnect)
 	c.sessionHandler.startAckInterval()
+	return nil
+}
+
+func (c *Client) ConnectBackground() error {
+	if c.AuthData.TachyonAuthToken == nil {
+		return fmt.Errorf("no auth token")
+	} else if c.AuthData.Browser == nil {
+		return fmt.Errorf("not logged in")
+	}
+	cleanExit := c.doLongPoll(true, true, nil)
+	c.sessionHandler.sendAckRequest()
+	if !cleanExit {
+		return fmt.Errorf("polling exited uncleanly")
+	}
 	return nil
 }
 

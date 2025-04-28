@@ -290,7 +290,7 @@ func tryReadBody(resp io.ReadCloser) []byte {
 	return data
 }
 
-func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
+func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bool {
 	c.listenID++
 	listenID := c.listenID
 	listenReqID := uuid.NewString()
@@ -320,7 +320,7 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			if loggedIn {
 				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
 			}
-			return
+			return false
 		}
 		log.Trace().Msg("Starting new long-polling request")
 		payload := &gmproto.ReceiveMessagesRequest{
@@ -345,6 +345,12 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			}
 			errorCount++
 			sleepSeconds := (errorCount + 1) * 5
+			if background {
+				if errorCount >= 3 {
+					return false
+				}
+				sleepSeconds = errorCount * 2
+			}
 			log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error making listen request, retrying in a while")
 			time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			continue
@@ -358,7 +364,7 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			if loggedIn {
 				c.triggerEvent(&events.ListenFatalError{Error: events.HTTPError{Action: "polling", Resp: resp, Body: body}})
 			}
-			return
+			return false
 		} else if resp.StatusCode >= 400 {
 			if loggedIn {
 				c.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp, Body: tryReadBody(resp.Body)}})
@@ -367,6 +373,12 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			}
 			errorCount++
 			sleepSeconds := (errorCount + 1) * 5
+			if background {
+				if errorCount >= 3 {
+					return false
+				}
+				sleepSeconds = errorCount * 2
+			}
 			log.Debug().
 				Int("statusCode", resp.StatusCode).
 				Int("sleep_seconds", sleepSeconds).
@@ -393,12 +405,16 @@ func (c *Client) doLongPoll(loggedIn bool, onFirstConnect func()) {
 			go onFirstConnect()
 			onFirstConnect = nil
 		}
-		c.readLongPoll(&log, resp.Body)
+		cleanClose := c.readLongPoll(&log, resp.Body, background)
 		c.longPollingConn = nil
+		if background {
+			return cleanClose
+		}
 	}
+	return true
 }
 
-func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
+func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background bool) bool {
 	defer rc.Close()
 	c.disconnecting = false
 	reader := bufio.NewReader(rc)
@@ -407,10 +423,29 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 	n, err := reader.Read(buf[:2])
 	if err != nil {
 		log.Err(err).Msg("Error reading opening bytes")
-		return
+		return false
 	} else if n != 2 || string(buf[:2]) != "[[" {
 		log.Err(err).Msg("Opening is not [[")
-		return
+		return false
+	}
+	var closeIn *time.Timer
+	receivedEvents := false
+	onRead := func() {
+		if closeIn == nil {
+			return
+		}
+		if receivedEvents {
+			closeIn.Reset(3 * time.Second)
+		} else {
+			closeIn.Reset(5 * time.Second)
+		}
+	}
+	if background {
+		closeIn = time.NewTimer(10 * time.Second)
+		go func() {
+			<-closeIn.C
+			c.closeLongPolling()
+		}()
 	}
 	var expectEOF bool
 	for {
@@ -423,10 +458,11 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 				logEvt = log.Warn()
 			}
 			logEvt.Err(err).Msg("Stopped reading data from server")
-			return
+			return receivedEvents
 		} else if expectEOF {
 			log.Warn().Msg("Didn't get EOF after stream end marker")
 		}
+		onRead()
 		chunk := buf[:n]
 		if len(accumulatedData) == 0 {
 			if len(chunk) == 2 && string(chunk) == "]]" {
@@ -452,6 +488,8 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser) {
 		switch {
 		case msg.GetData() != nil:
 			c.HandleRPCMsg(msg.GetData())
+			receivedEvents = true
+			onRead()
 		case msg.GetAck() != nil:
 			level := zerolog.TraceLevel
 			if msg.GetAck().GetCount() > 0 {

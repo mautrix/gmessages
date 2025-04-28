@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
 )
 
@@ -62,6 +63,16 @@ func (gc *GMClient) GetPushConfigs() *bridgev2.PushConfig {
 }
 
 func (gc *GMClient) ConnectBackground(ctx context.Context, params *bridgev2.ConnectBackgroundParams) error {
-	//TODO implement me
-	panic("implement me")
+	if gc.Client == nil {
+		zerolog.Ctx(ctx).Warn().Msg("No client for ConnectBackground")
+		return nil
+	} else if gc.Meta.Session.IsGoogleAccount() && !gc.Meta.Session.HasCookies() {
+		zerolog.Ctx(ctx).Warn().Msg("No cookies for Google account in ConnectBackground")
+		return nil
+	}
+	err := gc.Client.ConnectBackground()
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Error in ConnectBackground")
+	}
+	return nil
 }

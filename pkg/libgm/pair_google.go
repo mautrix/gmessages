@@ -382,7 +382,7 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 	c.AuthData.DestRegID = destRegUUID
 	var longPollConnectWait sync.WaitGroup
 	longPollConnectWait.Add(1)
-	go c.doLongPoll(false, longPollConnectWait.Done)
+	go c.doLongPoll(false, false, longPollConnectWait.Done)
 	longPollConnectWait.Wait()
 	ps := NewPairingSession(*destRegDev)
 	clientInit, _, err := ps.PreparePayloads()
