@@ -127,6 +127,7 @@ type UserSettings struct {
 	ReadReceipts        bool `json:"read_receipts"`
 	TypingNotifications bool `json:"typing_notifications"`
 	IsDefaultSMSApp     bool `json:"is_default_sms_app"`
+	PushNotifications   bool `json:"push_notifications"`
 }
 
 type bridgeStateSIMMeta struct {

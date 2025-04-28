@@ -317,6 +317,7 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		gc.Meta.Settings.ReadReceipts != newRCSSettings.GetSendReadReceipts() ||
 		gc.Meta.Settings.TypingNotifications != newRCSSettings.GetShowTypingIndicators() ||
 		gc.Meta.Settings.IsDefaultSMSApp != newRCSSettings.GetIsDefaultSMSApp() ||
+		gc.Meta.Settings.PushNotifications != settings.GetOpCodeData().GetPushEnabled() ||
 		!gc.Meta.Settings.SettingsReceived {
 		gc.Meta.Settings = UserSettings{
 			SettingsReceived:    true,
@@ -324,6 +325,7 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 			ReadReceipts:        newRCSSettings.GetSendReadReceipts(),
 			TypingNotifications: newRCSSettings.GetShowTypingIndicators(),
 			IsDefaultSMSApp:     newRCSSettings.GetIsDefaultSMSApp(),
+			PushNotifications:   settings.GetOpCodeData().GetPushEnabled(),
 		}
 		changed = true
 	}
