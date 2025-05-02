@@ -81,6 +81,7 @@ func (gc *GMClient) FillBridgeState(state status.BridgeState) status.BridgeState
 		if !gc.PhoneResponding {
 			state.StateEvent = status.StateBadCredentials
 			state.Error = GMPhoneNotResponding
+			state.UserAction = status.UserActionOpenNative
 		}
 		if gc.SwitchedToGoogleLogin {
 			state.StateEvent = status.StateBadCredentials
