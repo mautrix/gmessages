@@ -2,7 +2,7 @@ module go.mau.fi/mautrix-gmessages
 
 go 1.23.0
 
-toolchain go1.24.1
+toolchain go1.24.3
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.8
@@ -14,7 +14,7 @@ require (
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.23.4-0.20250501230511-2b973cac00c6
+	maunium.net/go/mautrix v0.23.4-0.20250509121614-a0191c8f5847
 )
 
 require (

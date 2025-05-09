@@ -29,6 +29,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
@@ -40,11 +41,20 @@ var (
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
 )
 
+var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
+
+func (gc *GMConnector) GenerateTransactionID(userID id.UserID, roomID id.RoomID, eventType event.Type) networkid.RawTransactionID {
+	return networkid.RawTransactionID(util.GenerateTmpID())
+}
+
 func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage) (message *bridgev2.MatrixMessageResponse, err error) {
 	if gc.Client == nil {
 		return nil, bridgev2.ErrNotLoggedIn
 	}
 	txnID := networkid.TransactionID(util.GenerateTmpID())
+	if msg.InputTransactionID != "" {
+		txnID = networkid.TransactionID(msg.InputTransactionID)
+	}
 	req, err := gc.ConvertMatrixMessage(ctx, msg, txnID)
 	if err != nil {
 		return nil, err
