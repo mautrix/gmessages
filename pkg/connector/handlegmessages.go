@@ -569,6 +569,7 @@ var (
 	_ bridgev2.RemoteMessageRemove            = (*MessageEvent)(nil)
 	_ bridgev2.RemoteEventThatMayCreatePortal = (*MessageEvent)(nil)
 	_ bridgev2.RemoteEventWithTimestamp       = (*MessageEvent)(nil)
+	_ bridgev2.RemoteEventWithStreamOrder     = (*MessageEvent)(nil)
 )
 
 func (m *MessageEvent) GetType() bridgev2.RemoteEventType {
@@ -646,6 +647,11 @@ func (m *MessageEvent) GetTargetMessage() networkid.MessageID {
 
 func (m *MessageEvent) GetTimestamp() time.Time {
 	return time.UnixMicro(m.Timestamp)
+}
+
+func (m *MessageEvent) GetStreamOrder() int64 {
+	// The phone's local clock is the source of truth, so it should be fine for stream orders
+	return m.Timestamp
 }
 
 func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) {
@@ -993,6 +999,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
 			NewEventID:    dbm[0].MXID,
 			Sender:        dbm[0].SenderMXID,
+			StreamOrder:   m.GetStreamOrder(),
 		})
 	} else if needsMSSFailureEvent {
 		existingMeta.MSSFailSent = true
@@ -1002,6 +1009,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
 			NewEventID:    dbm[0].MXID,
 			Sender:        dbm[0].SenderMXID,
+			StreamOrder:   m.GetStreamOrder(),
 		})
 	}
 	if needsMSSDeliveryEvent {

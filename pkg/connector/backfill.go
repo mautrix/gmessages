@@ -127,11 +127,12 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 				Message: msg,
 				Data:    rawData,
 			}, true),
-			Sender:    sender,
-			ID:        gc.MakeMessageID(msg.MessageID),
-			TxnID:     networkid.TransactionID(msg.TmpID),
-			Timestamp: msgTS,
-			Reactions: (&ReactionSyncEvent{Message: msg, g: gc}).GetReactions().ToBackfill(),
+			Sender:      sender,
+			ID:          gc.MakeMessageID(msg.MessageID),
+			TxnID:       networkid.TransactionID(msg.TmpID),
+			Timestamp:   msgTS,
+			StreamOrder: msg.Timestamp,
+			Reactions:   (&ReactionSyncEvent{Message: msg, g: gc}).GetReactions().ToBackfill(),
 		}
 		fetchResp.Messages = append(fetchResp.Messages, backfillMsg)
 	}
