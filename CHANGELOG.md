@@ -1,3 +1,10 @@
+# v0.6.2 (2025-05-16)
+
+* Fixed cookie login not working properly by pasting a cURL command.
+* Fixed unnecessary edits being bridged when sending media.
+* Fixed file names in incoming voice messages.
+* Stopped bridging own SIM change messages.
+
 # v0.6.1 (2025-03-16)
 
 * Bumped minimum Go version to 1.23.
