@@ -65,6 +65,7 @@ type GMClient struct {
 	noDataReceivedRecently      bool
 	lastDataReceived            time.Time
 
+	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 }
@@ -81,6 +82,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		PhoneResponding:   true,
 		fullMediaRequests: exsync.NewSet[fullMediaRequestKey](),
 		conversationMeta:  make(map[string]*conversationMeta),
+		chatInfoCache:     exsync.NewMap[string, *gmproto.Conversation](),
 	}
 	gcli.NewClient()
 	login.Client = gcli

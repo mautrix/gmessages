@@ -141,6 +141,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			}
 		}()
 	case *gmproto.Conversation:
+		gc.chatInfoCache.Set(evt.ConversationID, evt)
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
 		go gc.syncConversation(ctx, evt, "event")
@@ -433,7 +434,7 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 			data.Users[userID] = reacts
 		}
 		reacts.Reactions = append(reacts.Reactions, &bridgev2.BackfillReaction{
-			Sender:       r.g.makeEventSender(participantID, false, false),
+			Sender:       r.g.makeEventSender(r.ConversationID, participantID, false, false),
 			Emoji:        emoji,
 			ExtraContent: extraData,
 		})
@@ -605,7 +606,8 @@ func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {
 	return c.
 		Str("message_id", m.MessageID).
 		Stringer("message_status", m.GetMessageStatus().GetStatus()).
-		Time("message_ts", m.GetTimestamp())
+		Time("message_ts", m.GetTimestamp()).
+		Str("participant_id", m.ParticipantID)
 }
 
 func (m *MessageEvent) GetSender() bridgev2.EventSender {
@@ -621,11 +623,35 @@ func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.Event
 	// Statuses between 1 and 99 are outgoing types, 100-199 are incoming
 	forceOutgoing := status >= 1 && status < 100
 	forceIncoming := status >= 100 && status < 200
-	return gc.makeEventSender(m.ParticipantID, forceOutgoing, forceIncoming)
+	return gc.makeEventSender(m.ConversationID, m.ParticipantID, forceOutgoing, forceIncoming)
 }
 
-func (gc *GMClient) makeEventSender(participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
+func findAlternateParticipantID(chatInfo *gmproto.Conversation, participantID string) string {
+	var matchedParticipant *gmproto.Participant
+	for _, participant := range chatInfo.GetParticipants() {
+		if !participant.IsVisible && participant.GetID().GetParticipantID() == participantID && participant.GetID().GetNumber() != "" {
+			matchedParticipant = participant
+		}
+	}
+	if matchedParticipant == nil {
+		return participantID
+	}
+	for _, participant := range chatInfo.GetParticipants() {
+		if participant.IsVisible && participant.GetID().GetNumber() == matchedParticipant.GetID().GetNumber() {
+			return participant.GetID().GetParticipantID()
+		}
+	}
+	return participantID
+}
+
+func (gc *GMClient) makeEventSender(conversationID, participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
 	isFromMe := !forceIncoming && (forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID))
+	if !isFromMe {
+		chatInfo, ok := gc.chatInfoCache.Get(conversationID)
+		if ok {
+			participantID = findAlternateParticipantID(chatInfo, participantID)
+		}
+	}
 	return bridgev2.EventSender{
 		IsFromMe:    isFromMe,
 		Sender:      gc.MakeUserID(participantID),
