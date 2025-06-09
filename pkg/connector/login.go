@@ -70,7 +70,7 @@ var (
 	ErrPairQRRefreshUnknown   = bridgev2.RespError{Err: pairingErrMsgQRRefreshUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
 )
 
-var loginFlows = []bridgev2.LoginFlow{{
+var LoginFlows = []bridgev2.LoginFlow{{
 	Name:        "Google Account",
 	Description: "Log in with your Google account and pair by tapping an emoji on your phone",
 	ID:          LoginFlowIDGoogle,
@@ -81,7 +81,7 @@ var loginFlows = []bridgev2.LoginFlow{{
 }}
 
 func (gc *GMConnector) GetLoginFlows() []bridgev2.LoginFlow {
-	return loginFlows
+	return LoginFlows
 }
 
 func (gc *GMConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flowID string) (bridgev2.LoginProcess, error) {
