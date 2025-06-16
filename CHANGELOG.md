@@ -1,3 +1,9 @@
+# v0.6.3 (2025-06-16)
+
+* Updated Docker image to Alpine 3.22.
+* Fixed MMS messages sometimes coming from a different ghost user than the ones
+  visible in the member list.
+
 # v0.6.2 (2025-05-16)
 
 * Fixed cookie login not working properly by pasting a cURL command.

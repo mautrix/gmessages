@@ -604,7 +604,6 @@ func (m *MessageEvent) ShouldCreatePortal() bool {
 
 func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {
 	return c.
-		Str("message_id", m.MessageID).
 		Stringer("message_status", m.GetMessageStatus().GetStatus()).
 		Time("message_ts", m.GetTimestamp()).
 		Str("participant_id", m.ParticipantID)

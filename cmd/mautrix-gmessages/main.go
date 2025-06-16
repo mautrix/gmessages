@@ -36,7 +36,7 @@ var m = mxmain.BridgeMain{
 	Name:        "mautrix-gmessages",
 	Description: "A Matrix-Google Messages puppeting bridge",
 	URL:         "https://github.com/mautrix/gmessages",
-	Version:     "0.6.2",
+	Version:     "0.6.3",
 	Connector:   c,
 }
 

@@ -255,6 +255,7 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 			cli.NewClient()
 		}
 		meta.Session.SetCookies(cookies)
+		zerolog.Ctx(ctx).Debug().Msg("Trying to re-authenticate existing pairing with new cookies")
 		err := cli.Client.FetchConfig(ctx)
 		if err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config after Google relogin")
