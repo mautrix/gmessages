@@ -120,7 +120,10 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		}
 		ctx := log.WithContext(ctx)
 		sender := gc.getEventSenderFromMessage(msg)
-		intent := params.Portal.GetIntentFor(ctx, sender, gc.UserLogin, bridgev2.RemoteEventBackfill)
+		intent, ok := params.Portal.GetIntentFor(ctx, sender, gc.UserLogin, bridgev2.RemoteEventBackfill)
+		if !ok {
+			continue
+		}
 		rawData, _ := proto.Marshal(msg)
 		backfillMsg := &bridgev2.BackfillMessage{
 			ConvertedMessage: gc.ConvertGoogleMessage(ctx, params.Portal, intent, &libgm.WrappedMessage{
