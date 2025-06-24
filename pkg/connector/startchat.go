@@ -59,6 +59,8 @@ func (gc *GMConnector) ValidateUserID(id networkid.UserID) bool {
 }
 
 func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, createChat bool) (*bridgev2.ResolveIdentifierResponse, error) {
+	log := zerolog.Ctx(ctx)
+
 	var phone string
 	netID := networkid.UserID(identifier)
 	if gc.Main.ValidateUserID(netID) {
@@ -75,6 +77,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 				return nil, fmt.Errorf("phone number of ghost %s not known", netID)
 			}
 			if !createChat {
+				log.Debug().Str("ghost_id", string(ghost.ID)).Msg("Returning ghost identifier")
 				return &bridgev2.ResolveIdentifierResponse{
 					Ghost:  ghost,
 					UserID: ghost.ID,
@@ -86,12 +89,13 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		var err error
 		phone, err = bridgev2.CleanNonInternationalPhoneNumber(identifier)
 		if err != nil {
-			zerolog.Ctx(ctx).Debug().Str("input_identifier", identifier).Msg("Invalid phone number passed to ResolveIdentifier")
+			log.Debug().Str("input_identifier", identifier).Msg("Invalid phone number passed to ResolveIdentifier")
 			return nil, bridgev2.WrapRespErrManual(err, mautrix.MInvalidParam.ErrCode, http.StatusBadRequest)
 		}
 	}
 	if !createChat {
 		// All phone numbers are probably reachable, just return a fake response
+		log.Debug().Str("phone", phone).Msg("Returning fake phone number response")
 		return &bridgev2.ResolveIdentifierResponse{
 			UserID: networkid.UserID(phone),
 		}, nil
@@ -109,7 +113,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 	}
 	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
 	convCopy.LatestMessage = nil
-	zerolog.Ctx(ctx).Debug().Any("conversation_data", convCopy).Msg("Got conversation data for DM")
+	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for DM")
 	if resp.GetConversation().GetConversationID() == "" {
 		return nil, fmt.Errorf("no conversation ID in response")
 	}
@@ -122,7 +126,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 			continue
 		}
 		if otherUserID != "" {
-			zerolog.Ctx(ctx).Warn().
+			log.Warn().
 				Str("portal_id", string(portalKey.ID)).
 				Str("previous_other_user_id", string(otherUserID)).
 				Str("new_other_user_id", string(gc.MakeUserID(member.GetID().GetParticipantID()))).
@@ -133,7 +137,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 	}
 	var ghost *bridgev2.Ghost
 	if otherUserID == "" {
-		zerolog.Ctx(ctx).Warn().
+		log.Warn().
 			Str("portal_id", string(portalKey.ID)).
 			Msg("No visible participants in DM")
 	} else {
@@ -142,6 +146,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 			return nil, fmt.Errorf("failed to get ghost: %w", err)
 		}
 	}
+	log.Debug().Str("other_user_id", string(otherUserID)).Str("portal_key", string(portalKey.ID)).Msg("Returning new chat response")
 	return &bridgev2.ResolveIdentifierResponse{
 		Ghost:    ghost,
 		UserID:   otherUserID,
@@ -159,6 +164,8 @@ var (
 )
 
 func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...networkid.UserID) (*bridgev2.CreateChatResponse, error) {
+	log := zerolog.Ctx(ctx)
+
 	if len(users) < 2 {
 		return nil, ErrMinimumTwoUsers
 	}
@@ -205,7 +212,7 @@ func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...netwo
 	}
 	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
 	convCopy.LatestMessage = nil
-	zerolog.Ctx(ctx).Debug().Any("conversation_data", convCopy).Msg("Got conversation data for new group")
+	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for new group")
 	if resp.GetConversation().GetConversationID() == "" {
 		return nil, fmt.Errorf("no conversation ID in response (status: %s)", resp.GetStatus())
 	}
