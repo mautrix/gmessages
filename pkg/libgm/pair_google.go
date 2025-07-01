@@ -435,19 +435,18 @@ func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (str
 	}
 	if finishResp.GetFinishErrorType() != 0 {
 		switch finishResp.GetFinishErrorCode() {
-		case 5:
+		case gmproto.GaiaPairingErrorCode_WRONG_VERIFICATION_CODE_SELECTED:
 			return "", ErrIncorrectEmoji
-		case 7:
+		case gmproto.GaiaPairingErrorCode_USER_CANCELED_VERIFICATION:
 			return "", ErrPairingCancelled
-		case 6, 2, 3:
+		case gmproto.GaiaPairingErrorCode_REQUEST_OUT_OF_DATE,
+			gmproto.GaiaPairingErrorCode_REQUEST_NOT_RECEIVED_QUICKLY,
+			gmproto.GaiaPairingErrorCode_VERIFICATION_TIMED_OUT:
 			return "", fmt.Errorf("%w (code: %d/%d)", ErrPairingTimeout, finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
-		case 10:
-			if finishResp.GetFinishErrorCode() == 27 {
-				return "", fmt.Errorf("%w (user chose 'this is not me' option)", ErrPairingCancelled)
-			}
-			fallthrough
+		case gmproto.GaiaPairingErrorCode_USER_DENIED_VERIFICATION_NOT_ME:
+			return "", fmt.Errorf("%w (user chose 'this is not me' option)", ErrPairingCancelled)
 		default:
-			return "", fmt.Errorf("unknown error pairing: %d/%d", finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode())
+			return "", fmt.Errorf("unknown error pairing: %d/%s", finishResp.GetFinishErrorType(), finishResp.GetFinishErrorCode().String())
 		}
 	}
 	ukey2ClientKey := doHKDF(ps.NextKey, encryptionKeyInfo, []byte("client"))

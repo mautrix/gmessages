@@ -139,6 +139,142 @@ func (DeviceType) EnumDescriptor() ([]byte, []int) {
 	return file_authentication_proto_rawDescGZIP(), []int{1}
 }
 
+type GaiaPairingErrorCode int32
+
+const (
+	GaiaPairingErrorCode_NONE                                       GaiaPairingErrorCode = 0
+	GaiaPairingErrorCode_UKEY2_ALERT_ERROR                          GaiaPairingErrorCode = 1
+	GaiaPairingErrorCode_REQUEST_OUT_OF_DATE                        GaiaPairingErrorCode = 2
+	GaiaPairingErrorCode_REQUEST_NOT_RECEIVED_QUICKLY               GaiaPairingErrorCode = 3
+	GaiaPairingErrorCode_INVALID_USER                               GaiaPairingErrorCode = 4
+	GaiaPairingErrorCode_WRONG_VERIFICATION_CODE_SELECTED           GaiaPairingErrorCode = 5
+	GaiaPairingErrorCode_VERIFICATION_TIMED_OUT                     GaiaPairingErrorCode = 6
+	GaiaPairingErrorCode_USER_CANCELED_VERIFICATION                 GaiaPairingErrorCode = 7
+	GaiaPairingErrorCode_UKEY2_OTHER_ERROR                          GaiaPairingErrorCode = 8
+	GaiaPairingErrorCode_VERIFICATION_EMOJI_DOWNLOAD_FAILED         GaiaPairingErrorCode = 9
+	GaiaPairingErrorCode_NOT_LATEST_ATTEMPT                         GaiaPairingErrorCode = 10
+	GaiaPairingErrorCode_VERIFICATION_DATA_SERVICE_NOT_PRESENT      GaiaPairingErrorCode = 11
+	GaiaPairingErrorCode_VERIFICATION_INTENTS_NOT_PRESENT           GaiaPairingErrorCode = 12
+	GaiaPairingErrorCode_WRONG_UKEY2_MESSAGE_TYPE                   GaiaPairingErrorCode = 13
+	GaiaPairingErrorCode_REQUEST_COMPLETE_WITH_UNKNOWN_RESULT       GaiaPairingErrorCode = 14
+	GaiaPairingErrorCode_PHONE_NOT_AWAITING_CONFIRMATION            GaiaPairingErrorCode = 15
+	GaiaPairingErrorCode_UKEY2_MESSAGE_MISSING                      GaiaPairingErrorCode = 16
+	GaiaPairingErrorCode_CLIENT_INIT_TIMEOUT                        GaiaPairingErrorCode = 17
+	GaiaPairingErrorCode_CLIENT_FINISHED_TIMEOUT                    GaiaPairingErrorCode = 18
+	GaiaPairingErrorCode_UNKNOWN                                    GaiaPairingErrorCode = 19
+	GaiaPairingErrorCode_WEB_CANCEL_BUTTON_CLICKED                  GaiaPairingErrorCode = 20
+	GaiaPairingErrorCode_WEB_BACK_BUTTON_CLICKED                    GaiaPairingErrorCode = 21
+	GaiaPairingErrorCode_WEB_LEAVE_PAIR_PAGE                        GaiaPairingErrorCode = 22
+	GaiaPairingErrorCode_NEW_REQUEST_WHILE_WAITING_FOR_VERIFICATION GaiaPairingErrorCode = 23
+	GaiaPairingErrorCode_UKEY2_HANDSHAKE_ERROR                      GaiaPairingErrorCode = 24
+	GaiaPairingErrorCode_VERIFICATION_CODE_REVISION_MISMATCH        GaiaPairingErrorCode = 25
+	GaiaPairingErrorCode_USER_CANCELED_VERIFICATION_ON_WEB          GaiaPairingErrorCode = 26
+	GaiaPairingErrorCode_USER_DENIED_VERIFICATION_NOT_ME            GaiaPairingErrorCode = 27
+	GaiaPairingErrorCode_KEY_DERIVATION_REVISION_MISMATCH           GaiaPairingErrorCode = 28
+	GaiaPairingErrorCode_CMS_BACKUP_KEY_NOT_FOUND                   GaiaPairingErrorCode = 29
+	GaiaPairingErrorCode_UNABLE_TO_ENCRYPT_CMS_BACKUP_KEY           GaiaPairingErrorCode = 30
+	GaiaPairingErrorCode_UNABLE_TO_DECRYPT_CMS_BACKUP_KEY           GaiaPairingErrorCode = 31
+)
+
+// Enum value maps for GaiaPairingErrorCode.
+var (
+	GaiaPairingErrorCode_name = map[int32]string{
+		0:  "NONE",
+		1:  "UKEY2_ALERT_ERROR",
+		2:  "REQUEST_OUT_OF_DATE",
+		3:  "REQUEST_NOT_RECEIVED_QUICKLY",
+		4:  "INVALID_USER",
+		5:  "WRONG_VERIFICATION_CODE_SELECTED",
+		6:  "VERIFICATION_TIMED_OUT",
+		7:  "USER_CANCELED_VERIFICATION",
+		8:  "UKEY2_OTHER_ERROR",
+		9:  "VERIFICATION_EMOJI_DOWNLOAD_FAILED",
+		10: "NOT_LATEST_ATTEMPT",
+		11: "VERIFICATION_DATA_SERVICE_NOT_PRESENT",
+		12: "VERIFICATION_INTENTS_NOT_PRESENT",
+		13: "WRONG_UKEY2_MESSAGE_TYPE",
+		14: "REQUEST_COMPLETE_WITH_UNKNOWN_RESULT",
+		15: "PHONE_NOT_AWAITING_CONFIRMATION",
+		16: "UKEY2_MESSAGE_MISSING",
+		17: "CLIENT_INIT_TIMEOUT",
+		18: "CLIENT_FINISHED_TIMEOUT",
+		19: "UNKNOWN",
+		20: "WEB_CANCEL_BUTTON_CLICKED",
+		21: "WEB_BACK_BUTTON_CLICKED",
+		22: "WEB_LEAVE_PAIR_PAGE",
+		23: "NEW_REQUEST_WHILE_WAITING_FOR_VERIFICATION",
+		24: "UKEY2_HANDSHAKE_ERROR",
+		25: "VERIFICATION_CODE_REVISION_MISMATCH",
+		26: "USER_CANCELED_VERIFICATION_ON_WEB",
+		27: "USER_DENIED_VERIFICATION_NOT_ME",
+		28: "KEY_DERIVATION_REVISION_MISMATCH",
+		29: "CMS_BACKUP_KEY_NOT_FOUND",
+		30: "UNABLE_TO_ENCRYPT_CMS_BACKUP_KEY",
+		31: "UNABLE_TO_DECRYPT_CMS_BACKUP_KEY",
+	}
+	GaiaPairingErrorCode_value = map[string]int32{
+		"NONE":                                       0,
+		"UKEY2_ALERT_ERROR":                          1,
+		"REQUEST_OUT_OF_DATE":                        2,
+		"REQUEST_NOT_RECEIVED_QUICKLY":               3,
+		"INVALID_USER":                               4,
+		"WRONG_VERIFICATION_CODE_SELECTED":           5,
+		"VERIFICATION_TIMED_OUT":                     6,
+		"USER_CANCELED_VERIFICATION":                 7,
+		"UKEY2_OTHER_ERROR":                          8,
+		"VERIFICATION_EMOJI_DOWNLOAD_FAILED":         9,
+		"NOT_LATEST_ATTEMPT":                         10,
+		"VERIFICATION_DATA_SERVICE_NOT_PRESENT":      11,
+		"VERIFICATION_INTENTS_NOT_PRESENT":           12,
+		"WRONG_UKEY2_MESSAGE_TYPE":                   13,
+		"REQUEST_COMPLETE_WITH_UNKNOWN_RESULT":       14,
+		"PHONE_NOT_AWAITING_CONFIRMATION":            15,
+		"UKEY2_MESSAGE_MISSING":                      16,
+		"CLIENT_INIT_TIMEOUT":                        17,
+		"CLIENT_FINISHED_TIMEOUT":                    18,
+		"UNKNOWN":                                    19,
+		"WEB_CANCEL_BUTTON_CLICKED":                  20,
+		"WEB_BACK_BUTTON_CLICKED":                    21,
+		"WEB_LEAVE_PAIR_PAGE":                        22,
+		"NEW_REQUEST_WHILE_WAITING_FOR_VERIFICATION": 23,
+		"UKEY2_HANDSHAKE_ERROR":                      24,
+		"VERIFICATION_CODE_REVISION_MISMATCH":        25,
+		"USER_CANCELED_VERIFICATION_ON_WEB":          26,
+		"USER_DENIED_VERIFICATION_NOT_ME":            27,
+		"KEY_DERIVATION_REVISION_MISMATCH":           28,
+		"CMS_BACKUP_KEY_NOT_FOUND":                   29,
+		"UNABLE_TO_ENCRYPT_CMS_BACKUP_KEY":           30,
+		"UNABLE_TO_DECRYPT_CMS_BACKUP_KEY":           31,
+	}
+)
+
+func (x GaiaPairingErrorCode) Enum() *GaiaPairingErrorCode {
+	p := new(GaiaPairingErrorCode)
+	*p = x
+	return p
+}
+
+func (x GaiaPairingErrorCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GaiaPairingErrorCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_authentication_proto_enumTypes[2].Descriptor()
+}
+
+func (GaiaPairingErrorCode) Type() protoreflect.EnumType {
+	return &file_authentication_proto_enumTypes[2]
+}
+
+func (x GaiaPairingErrorCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GaiaPairingErrorCode.Descriptor instead.
+func (GaiaPairingErrorCode) EnumDescriptor() ([]byte, []int) {
+	return file_authentication_proto_rawDescGZIP(), []int{2}
+}
+
 type BrowserDetails struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserAgent     string                 `protobuf:"bytes,1,opt,name=userAgent,proto3" json:"userAgent,omitempty"`
@@ -566,7 +702,7 @@ func (x *GaiaPairingRequestContainer) GetProposedKeyDerivationVersion() int32 {
 type GaiaPairingResponseContainer struct {
 	state                            protoimpl.MessageState `protogen:"open.v1"`
 	FinishErrorType                  int32                  `protobuf:"varint,1,opt,name=finishErrorType,proto3" json:"finishErrorType,omitempty"`
-	FinishErrorCode                  int32                  `protobuf:"varint,2,opt,name=finishErrorCode,proto3" json:"finishErrorCode,omitempty"`
+	FinishErrorCode                  GaiaPairingErrorCode   `protobuf:"varint,2,opt,name=finishErrorCode,proto3,enum=authentication.GaiaPairingErrorCode" json:"finishErrorCode,omitempty"`
 	UnknownInt3                      int32                  `protobuf:"varint,3,opt,name=unknownInt3,proto3" json:"unknownInt3,omitempty"` // For init, 1
 	SessionUUID                      string                 `protobuf:"bytes,4,opt,name=sessionUUID,proto3" json:"sessionUUID,omitempty"`
 	Data                             []byte                 `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
@@ -613,11 +749,11 @@ func (x *GaiaPairingResponseContainer) GetFinishErrorType() int32 {
 	return 0
 }
 
-func (x *GaiaPairingResponseContainer) GetFinishErrorCode() int32 {
+func (x *GaiaPairingResponseContainer) GetFinishErrorCode() GaiaPairingErrorCode {
 	if x != nil {
 		return x.FinishErrorCode
 	}
-	return 0
+	return GaiaPairingErrorCode_NONE
 }
 
 func (x *GaiaPairingResponseContainer) GetUnknownInt3() int32 {
@@ -2752,10 +2888,10 @@ const file_authentication_proto_rawDesc = "" +
 	"\x0estartTimestamp\x18\x03 \x01(\x03R\x0estartTimestamp\x12\x12\n" +
 	"\x04data\x18\x04 \x01(\fR\x04data\x12H\n" +
 	"\x1fproposedVerificationCodeVersion\x18\x05 \x01(\x05R\x1fproposedVerificationCodeVersion\x12B\n" +
-	"\x1cproposedKeyDerivationVersion\x18\x06 \x01(\x05R\x1cproposedKeyDerivationVersion\"\xdc\x02\n" +
+	"\x1cproposedKeyDerivationVersion\x18\x06 \x01(\x05R\x1cproposedKeyDerivationVersion\"\x82\x03\n" +
 	"\x1cGaiaPairingResponseContainer\x12(\n" +
-	"\x0ffinishErrorType\x18\x01 \x01(\x05R\x0ffinishErrorType\x12(\n" +
-	"\x0ffinishErrorCode\x18\x02 \x01(\x05R\x0ffinishErrorCode\x12 \n" +
+	"\x0ffinishErrorType\x18\x01 \x01(\x05R\x0ffinishErrorType\x12N\n" +
+	"\x0ffinishErrorCode\x18\x02 \x01(\x0e2$.authentication.GaiaPairingErrorCodeR\x0ffinishErrorCode\x12 \n" +
 	"\vunknownInt3\x18\x03 \x01(\x05R\vunknownInt3\x12 \n" +
 	"\vsessionUUID\x18\x04 \x01(\tR\vsessionUUID\x12\x12\n" +
 	"\x04data\x18\x05 \x01(\fR\x04data\x12J\n" +
@@ -2905,7 +3041,41 @@ const file_authentication_proto_rawDesc = "" +
 	"\x03WEB\x10\x01\x12\n" +
 	"\n" +
 	"\x06TABLET\x10\x02\x12\a\n" +
-	"\x03PWA\x10\x03B\fZ\n" +
+	"\x03PWA\x10\x03*\xfe\a\n" +
+	"\x14GaiaPairingErrorCode\x12\b\n" +
+	"\x04NONE\x10\x00\x12\x15\n" +
+	"\x11UKEY2_ALERT_ERROR\x10\x01\x12\x17\n" +
+	"\x13REQUEST_OUT_OF_DATE\x10\x02\x12 \n" +
+	"\x1cREQUEST_NOT_RECEIVED_QUICKLY\x10\x03\x12\x10\n" +
+	"\fINVALID_USER\x10\x04\x12$\n" +
+	" WRONG_VERIFICATION_CODE_SELECTED\x10\x05\x12\x1a\n" +
+	"\x16VERIFICATION_TIMED_OUT\x10\x06\x12\x1e\n" +
+	"\x1aUSER_CANCELED_VERIFICATION\x10\a\x12\x15\n" +
+	"\x11UKEY2_OTHER_ERROR\x10\b\x12&\n" +
+	"\"VERIFICATION_EMOJI_DOWNLOAD_FAILED\x10\t\x12\x16\n" +
+	"\x12NOT_LATEST_ATTEMPT\x10\n" +
+	"\x12)\n" +
+	"%VERIFICATION_DATA_SERVICE_NOT_PRESENT\x10\v\x12$\n" +
+	" VERIFICATION_INTENTS_NOT_PRESENT\x10\f\x12\x1c\n" +
+	"\x18WRONG_UKEY2_MESSAGE_TYPE\x10\r\x12(\n" +
+	"$REQUEST_COMPLETE_WITH_UNKNOWN_RESULT\x10\x0e\x12#\n" +
+	"\x1fPHONE_NOT_AWAITING_CONFIRMATION\x10\x0f\x12\x19\n" +
+	"\x15UKEY2_MESSAGE_MISSING\x10\x10\x12\x17\n" +
+	"\x13CLIENT_INIT_TIMEOUT\x10\x11\x12\x1b\n" +
+	"\x17CLIENT_FINISHED_TIMEOUT\x10\x12\x12\v\n" +
+	"\aUNKNOWN\x10\x13\x12\x1d\n" +
+	"\x19WEB_CANCEL_BUTTON_CLICKED\x10\x14\x12\x1b\n" +
+	"\x17WEB_BACK_BUTTON_CLICKED\x10\x15\x12\x17\n" +
+	"\x13WEB_LEAVE_PAIR_PAGE\x10\x16\x12.\n" +
+	"*NEW_REQUEST_WHILE_WAITING_FOR_VERIFICATION\x10\x17\x12\x19\n" +
+	"\x15UKEY2_HANDSHAKE_ERROR\x10\x18\x12'\n" +
+	"#VERIFICATION_CODE_REVISION_MISMATCH\x10\x19\x12%\n" +
+	"!USER_CANCELED_VERIFICATION_ON_WEB\x10\x1a\x12#\n" +
+	"\x1fUSER_DENIED_VERIFICATION_NOT_ME\x10\x1b\x12$\n" +
+	" KEY_DERIVATION_REVISION_MISMATCH\x10\x1c\x12\x1c\n" +
+	"\x18CMS_BACKUP_KEY_NOT_FOUND\x10\x1d\x12$\n" +
+	" UNABLE_TO_ENCRYPT_CMS_BACKUP_KEY\x10\x1e\x12$\n" +
+	" UNABLE_TO_DECRYPT_CMS_BACKUP_KEY\x10\x1fB\fZ\n" +
 	"../gmprotob\x06proto3"
 
 var (
@@ -2920,110 +3090,112 @@ func file_authentication_proto_rawDescGZIP() []byte {
 	return file_authentication_proto_rawDescData
 }
 
-var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_authentication_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_authentication_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_authentication_proto_goTypes = []any{
 	(BrowserType)(0),                                    // 0: authentication.BrowserType
 	(DeviceType)(0),                                     // 1: authentication.DeviceType
-	(*BrowserDetails)(nil),                              // 2: authentication.BrowserDetails
-	(*Device)(nil),                                      // 3: authentication.Device
-	(*ConfigVersion)(nil),                               // 4: authentication.ConfigVersion
-	(*SignInGaiaRequest)(nil),                           // 5: authentication.SignInGaiaRequest
-	(*SignInGaiaResponse)(nil),                          // 6: authentication.SignInGaiaResponse
-	(*GaiaPairingRequestContainer)(nil),                 // 7: authentication.GaiaPairingRequestContainer
-	(*GaiaPairingResponseContainer)(nil),                // 8: authentication.GaiaPairingResponseContainer
-	(*RevokeGaiaPairingRequest)(nil),                    // 9: authentication.RevokeGaiaPairingRequest
-	(*RPCGaiaData)(nil),                                 // 10: authentication.RPCGaiaData
-	(*AuthenticationContainer)(nil),                     // 11: authentication.AuthenticationContainer
-	(*AuthMessage)(nil),                                 // 12: authentication.AuthMessage
-	(*RevokeRelayPairingRequest)(nil),                   // 13: authentication.RevokeRelayPairingRequest
-	(*RevokeRelayPairingResponse)(nil),                  // 14: authentication.RevokeRelayPairingResponse
-	(*RegisterRefreshRequest)(nil),                      // 15: authentication.RegisterRefreshRequest
-	(*RegisterRefreshResponse)(nil),                     // 16: authentication.RegisterRefreshResponse
-	(*RegisterPhoneRelayResponse)(nil),                  // 17: authentication.RegisterPhoneRelayResponse
-	(*CoordinateMessage)(nil),                           // 18: authentication.CoordinateMessage
-	(*RefreshPhoneRelayResponse)(nil),                   // 19: authentication.RefreshPhoneRelayResponse
-	(*WebEncryptionKeyResponse)(nil),                    // 20: authentication.WebEncryptionKeyResponse
-	(*ErrorResponse)(nil),                               // 21: authentication.ErrorResponse
-	(*ECDSAKeys)(nil),                                   // 22: authentication.ECDSAKeys
-	(*CurrentDeviceData)(nil),                           // 23: authentication.CurrentDeviceData
-	(*KeyData)(nil),                                     // 24: authentication.KeyData
-	(*WebAuthKey)(nil),                                  // 25: authentication.WebAuthKey
-	(*URLData)(nil),                                     // 26: authentication.URLData
-	(*TokenData)(nil),                                   // 27: authentication.TokenData
-	(*PairedData)(nil),                                  // 28: authentication.PairedData
-	(*RevokePairData)(nil),                              // 29: authentication.RevokePairData
-	(*SignInGaiaRequest_Inner)(nil),                     // 30: authentication.SignInGaiaRequest.Inner
-	(*SignInGaiaRequest_Inner_DeviceID)(nil),            // 31: authentication.SignInGaiaRequest.Inner.DeviceID
-	(*SignInGaiaRequest_Inner_Data)(nil),                // 32: authentication.SignInGaiaRequest.Inner.Data
-	(*SignInGaiaResponse_Header)(nil),                   // 33: authentication.SignInGaiaResponse.Header
-	(*SignInGaiaResponse_DeviceData)(nil),               // 34: authentication.SignInGaiaResponse.DeviceData
-	(*SignInGaiaResponse_DeviceData_DeviceWrapper)(nil), // 35: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
-	(*RPCGaiaData_UnknownContainer)(nil),                // 36: authentication.RPCGaiaData.UnknownContainer
-	(*RPCGaiaData_UnknownContainer_Item2)(nil),          // 37: authentication.RPCGaiaData.UnknownContainer.Item2
-	(*RPCGaiaData_UnknownContainer_Item4)(nil),          // 38: authentication.RPCGaiaData.UnknownContainer.Item4
-	(*RPCGaiaData_UnknownContainer_Item2_Item1)(nil),    // 39: authentication.RPCGaiaData.UnknownContainer.Item2.Item1
-	(*RPCGaiaData_UnknownContainer_Item4_Item8)(nil),    // 40: authentication.RPCGaiaData.UnknownContainer.Item4.Item8
-	(*RegisterRefreshRequest_PushRegistration)(nil),     // 41: authentication.RegisterRefreshRequest.PushRegistration
-	(*RegisterRefreshRequest_MoreParameters)(nil),       // 42: authentication.RegisterRefreshRequest.MoreParameters
-	(*RegisterRefreshRequest_Parameters)(nil),           // 43: authentication.RegisterRefreshRequest.Parameters
-	(*ErrorResponse_ErrorClass)(nil),                    // 44: authentication.ErrorResponse.ErrorClass
-	(*EmptyArr)(nil),                                    // 45: util.EmptyArr
+	(GaiaPairingErrorCode)(0),                           // 2: authentication.GaiaPairingErrorCode
+	(*BrowserDetails)(nil),                              // 3: authentication.BrowserDetails
+	(*Device)(nil),                                      // 4: authentication.Device
+	(*ConfigVersion)(nil),                               // 5: authentication.ConfigVersion
+	(*SignInGaiaRequest)(nil),                           // 6: authentication.SignInGaiaRequest
+	(*SignInGaiaResponse)(nil),                          // 7: authentication.SignInGaiaResponse
+	(*GaiaPairingRequestContainer)(nil),                 // 8: authentication.GaiaPairingRequestContainer
+	(*GaiaPairingResponseContainer)(nil),                // 9: authentication.GaiaPairingResponseContainer
+	(*RevokeGaiaPairingRequest)(nil),                    // 10: authentication.RevokeGaiaPairingRequest
+	(*RPCGaiaData)(nil),                                 // 11: authentication.RPCGaiaData
+	(*AuthenticationContainer)(nil),                     // 12: authentication.AuthenticationContainer
+	(*AuthMessage)(nil),                                 // 13: authentication.AuthMessage
+	(*RevokeRelayPairingRequest)(nil),                   // 14: authentication.RevokeRelayPairingRequest
+	(*RevokeRelayPairingResponse)(nil),                  // 15: authentication.RevokeRelayPairingResponse
+	(*RegisterRefreshRequest)(nil),                      // 16: authentication.RegisterRefreshRequest
+	(*RegisterRefreshResponse)(nil),                     // 17: authentication.RegisterRefreshResponse
+	(*RegisterPhoneRelayResponse)(nil),                  // 18: authentication.RegisterPhoneRelayResponse
+	(*CoordinateMessage)(nil),                           // 19: authentication.CoordinateMessage
+	(*RefreshPhoneRelayResponse)(nil),                   // 20: authentication.RefreshPhoneRelayResponse
+	(*WebEncryptionKeyResponse)(nil),                    // 21: authentication.WebEncryptionKeyResponse
+	(*ErrorResponse)(nil),                               // 22: authentication.ErrorResponse
+	(*ECDSAKeys)(nil),                                   // 23: authentication.ECDSAKeys
+	(*CurrentDeviceData)(nil),                           // 24: authentication.CurrentDeviceData
+	(*KeyData)(nil),                                     // 25: authentication.KeyData
+	(*WebAuthKey)(nil),                                  // 26: authentication.WebAuthKey
+	(*URLData)(nil),                                     // 27: authentication.URLData
+	(*TokenData)(nil),                                   // 28: authentication.TokenData
+	(*PairedData)(nil),                                  // 29: authentication.PairedData
+	(*RevokePairData)(nil),                              // 30: authentication.RevokePairData
+	(*SignInGaiaRequest_Inner)(nil),                     // 31: authentication.SignInGaiaRequest.Inner
+	(*SignInGaiaRequest_Inner_DeviceID)(nil),            // 32: authentication.SignInGaiaRequest.Inner.DeviceID
+	(*SignInGaiaRequest_Inner_Data)(nil),                // 33: authentication.SignInGaiaRequest.Inner.Data
+	(*SignInGaiaResponse_Header)(nil),                   // 34: authentication.SignInGaiaResponse.Header
+	(*SignInGaiaResponse_DeviceData)(nil),               // 35: authentication.SignInGaiaResponse.DeviceData
+	(*SignInGaiaResponse_DeviceData_DeviceWrapper)(nil), // 36: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
+	(*RPCGaiaData_UnknownContainer)(nil),                // 37: authentication.RPCGaiaData.UnknownContainer
+	(*RPCGaiaData_UnknownContainer_Item2)(nil),          // 38: authentication.RPCGaiaData.UnknownContainer.Item2
+	(*RPCGaiaData_UnknownContainer_Item4)(nil),          // 39: authentication.RPCGaiaData.UnknownContainer.Item4
+	(*RPCGaiaData_UnknownContainer_Item2_Item1)(nil),    // 40: authentication.RPCGaiaData.UnknownContainer.Item2.Item1
+	(*RPCGaiaData_UnknownContainer_Item4_Item8)(nil),    // 41: authentication.RPCGaiaData.UnknownContainer.Item4.Item8
+	(*RegisterRefreshRequest_PushRegistration)(nil),     // 42: authentication.RegisterRefreshRequest.PushRegistration
+	(*RegisterRefreshRequest_MoreParameters)(nil),       // 43: authentication.RegisterRefreshRequest.MoreParameters
+	(*RegisterRefreshRequest_Parameters)(nil),           // 44: authentication.RegisterRefreshRequest.Parameters
+	(*ErrorResponse_ErrorClass)(nil),                    // 45: authentication.ErrorResponse.ErrorClass
+	(*EmptyArr)(nil),                                    // 46: util.EmptyArr
 }
 var file_authentication_proto_depIdxs = []int32{
 	0,  // 0: authentication.BrowserDetails.browserType:type_name -> authentication.BrowserType
 	1,  // 1: authentication.BrowserDetails.deviceType:type_name -> authentication.DeviceType
-	12, // 2: authentication.SignInGaiaRequest.authMessage:type_name -> authentication.AuthMessage
-	30, // 3: authentication.SignInGaiaRequest.inner:type_name -> authentication.SignInGaiaRequest.Inner
-	33, // 4: authentication.SignInGaiaResponse.header:type_name -> authentication.SignInGaiaResponse.Header
-	34, // 5: authentication.SignInGaiaResponse.deviceData:type_name -> authentication.SignInGaiaResponse.DeviceData
-	27, // 6: authentication.SignInGaiaResponse.tokenData:type_name -> authentication.TokenData
-	2,  // 7: authentication.GaiaPairingRequestContainer.browserDetails:type_name -> authentication.BrowserDetails
-	36, // 8: authentication.RPCGaiaData.maybeServerData:type_name -> authentication.RPCGaiaData.UnknownContainer
-	12, // 9: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
-	2,  // 10: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
-	24, // 11: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
-	23, // 12: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
-	4,  // 13: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
-	12, // 14: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
-	3,  // 15: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
-	12, // 16: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
-	3,  // 17: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
-	43, // 18: authentication.RegisterRefreshRequest.parameters:type_name -> authentication.RegisterRefreshRequest.Parameters
-	27, // 19: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.TokenData
-	18, // 20: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
-	3,  // 21: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
-	27, // 22: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.TokenData
-	18, // 23: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
-	18, // 24: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
-	44, // 25: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
-	3,  // 26: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
-	3,  // 27: authentication.KeyData.mobile:type_name -> authentication.Device
-	22, // 28: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
-	25, // 29: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
-	3,  // 30: authentication.KeyData.browser:type_name -> authentication.Device
-	3,  // 31: authentication.PairedData.mobile:type_name -> authentication.Device
-	27, // 32: authentication.PairedData.tokenData:type_name -> authentication.TokenData
-	3,  // 33: authentication.PairedData.browser:type_name -> authentication.Device
-	3,  // 34: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
-	31, // 35: authentication.SignInGaiaRequest.Inner.deviceID:type_name -> authentication.SignInGaiaRequest.Inner.DeviceID
-	32, // 36: authentication.SignInGaiaRequest.Inner.someData:type_name -> authentication.SignInGaiaRequest.Inner.Data
-	35, // 37: authentication.SignInGaiaResponse.DeviceData.deviceWrapper:type_name -> authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
-	39, // 38: authentication.SignInGaiaResponse.DeviceData.unknownItems2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
-	38, // 39: authentication.SignInGaiaResponse.DeviceData.unknownItems3:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
-	3,  // 40: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper.device:type_name -> authentication.Device
-	37, // 41: authentication.RPCGaiaData.UnknownContainer.item2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2
-	38, // 42: authentication.RPCGaiaData.UnknownContainer.item4:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
-	39, // 43: authentication.RPCGaiaData.UnknownContainer.Item2.item1:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
-	40, // 44: authentication.RPCGaiaData.UnknownContainer.Item4.item8:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4.Item8
-	41, // 45: authentication.RegisterRefreshRequest.MoreParameters.pushReg:type_name -> authentication.RegisterRefreshRequest.PushRegistration
-	45, // 46: authentication.RegisterRefreshRequest.Parameters.emptyArr:type_name -> util.EmptyArr
-	42, // 47: authentication.RegisterRefreshRequest.Parameters.moreParameters:type_name -> authentication.RegisterRefreshRequest.MoreParameters
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	13, // 2: authentication.SignInGaiaRequest.authMessage:type_name -> authentication.AuthMessage
+	31, // 3: authentication.SignInGaiaRequest.inner:type_name -> authentication.SignInGaiaRequest.Inner
+	34, // 4: authentication.SignInGaiaResponse.header:type_name -> authentication.SignInGaiaResponse.Header
+	35, // 5: authentication.SignInGaiaResponse.deviceData:type_name -> authentication.SignInGaiaResponse.DeviceData
+	28, // 6: authentication.SignInGaiaResponse.tokenData:type_name -> authentication.TokenData
+	3,  // 7: authentication.GaiaPairingRequestContainer.browserDetails:type_name -> authentication.BrowserDetails
+	2,  // 8: authentication.GaiaPairingResponseContainer.finishErrorCode:type_name -> authentication.GaiaPairingErrorCode
+	37, // 9: authentication.RPCGaiaData.maybeServerData:type_name -> authentication.RPCGaiaData.UnknownContainer
+	13, // 10: authentication.AuthenticationContainer.authMessage:type_name -> authentication.AuthMessage
+	3,  // 11: authentication.AuthenticationContainer.browserDetails:type_name -> authentication.BrowserDetails
+	25, // 12: authentication.AuthenticationContainer.keyData:type_name -> authentication.KeyData
+	24, // 13: authentication.AuthenticationContainer.deviceData:type_name -> authentication.CurrentDeviceData
+	5,  // 14: authentication.AuthMessage.configVersion:type_name -> authentication.ConfigVersion
+	13, // 15: authentication.RevokeRelayPairingRequest.authMessage:type_name -> authentication.AuthMessage
+	4,  // 16: authentication.RevokeRelayPairingRequest.browser:type_name -> authentication.Device
+	13, // 17: authentication.RegisterRefreshRequest.messageAuth:type_name -> authentication.AuthMessage
+	4,  // 18: authentication.RegisterRefreshRequest.currBrowserDevice:type_name -> authentication.Device
+	44, // 19: authentication.RegisterRefreshRequest.parameters:type_name -> authentication.RegisterRefreshRequest.Parameters
+	28, // 20: authentication.RegisterRefreshResponse.tokenData:type_name -> authentication.TokenData
+	19, // 21: authentication.RegisterPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	4,  // 22: authentication.RegisterPhoneRelayResponse.browser:type_name -> authentication.Device
+	28, // 23: authentication.RegisterPhoneRelayResponse.authKeyData:type_name -> authentication.TokenData
+	19, // 24: authentication.RefreshPhoneRelayResponse.coordinates:type_name -> authentication.CoordinateMessage
+	19, // 25: authentication.WebEncryptionKeyResponse.coordinates:type_name -> authentication.CoordinateMessage
+	45, // 26: authentication.ErrorResponse.class:type_name -> authentication.ErrorResponse.ErrorClass
+	4,  // 27: authentication.CurrentDeviceData.browser:type_name -> authentication.Device
+	4,  // 28: authentication.KeyData.mobile:type_name -> authentication.Device
+	23, // 29: authentication.KeyData.ecdsaKeys:type_name -> authentication.ECDSAKeys
+	26, // 30: authentication.KeyData.webAuthKeyData:type_name -> authentication.WebAuthKey
+	4,  // 31: authentication.KeyData.browser:type_name -> authentication.Device
+	4,  // 32: authentication.PairedData.mobile:type_name -> authentication.Device
+	28, // 33: authentication.PairedData.tokenData:type_name -> authentication.TokenData
+	4,  // 34: authentication.PairedData.browser:type_name -> authentication.Device
+	4,  // 35: authentication.RevokePairData.revokedDevice:type_name -> authentication.Device
+	32, // 36: authentication.SignInGaiaRequest.Inner.deviceID:type_name -> authentication.SignInGaiaRequest.Inner.DeviceID
+	33, // 37: authentication.SignInGaiaRequest.Inner.someData:type_name -> authentication.SignInGaiaRequest.Inner.Data
+	36, // 38: authentication.SignInGaiaResponse.DeviceData.deviceWrapper:type_name -> authentication.SignInGaiaResponse.DeviceData.DeviceWrapper
+	40, // 39: authentication.SignInGaiaResponse.DeviceData.unknownItems2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
+	39, // 40: authentication.SignInGaiaResponse.DeviceData.unknownItems3:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
+	4,  // 41: authentication.SignInGaiaResponse.DeviceData.DeviceWrapper.device:type_name -> authentication.Device
+	38, // 42: authentication.RPCGaiaData.UnknownContainer.item2:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2
+	39, // 43: authentication.RPCGaiaData.UnknownContainer.item4:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4
+	40, // 44: authentication.RPCGaiaData.UnknownContainer.Item2.item1:type_name -> authentication.RPCGaiaData.UnknownContainer.Item2.Item1
+	41, // 45: authentication.RPCGaiaData.UnknownContainer.Item4.item8:type_name -> authentication.RPCGaiaData.UnknownContainer.Item4.Item8
+	42, // 46: authentication.RegisterRefreshRequest.MoreParameters.pushReg:type_name -> authentication.RegisterRefreshRequest.PushRegistration
+	46, // 47: authentication.RegisterRefreshRequest.Parameters.emptyArr:type_name -> util.EmptyArr
+	43, // 48: authentication.RegisterRefreshRequest.Parameters.moreParameters:type_name -> authentication.RegisterRefreshRequest.MoreParameters
+	49, // [49:49] is the sub-list for method output_type
+	49, // [49:49] is the sub-list for method input_type
+	49, // [49:49] is the sub-list for extension type_name
+	49, // [49:49] is the sub-list for extension extendee
+	0,  // [0:49] is the sub-list for field type_name
 }
 
 func init() { file_authentication_proto_init() }
@@ -3042,7 +3214,7 @@ func file_authentication_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_authentication_proto_rawDesc), len(file_authentication_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   0,
