@@ -35,10 +35,11 @@ type DeviceMetaConfig struct {
 }
 
 type Config struct {
-	DisplaynameTemplate  string           `yaml:"displayname_template"`
-	DeviceMeta           DeviceMetaConfig `yaml:"device_meta"`
-	AggressiveReconnect  bool             `yaml:"aggressive_reconnect"`
-	InitialChatSyncCount int              `yaml:"initial_chat_sync_count"`
+	DisplaynameTemplate   string           `yaml:"displayname_template"`
+	DeviceMeta            DeviceMetaConfig `yaml:"device_meta"`
+	AggressiveReconnect   bool             `yaml:"aggressive_reconnect"`
+	InitialChatSyncCount  int              `yaml:"initial_chat_sync_count"`
+	DeterministicIDPrefix bool             `yaml:"deterministic_id_prefix"`
 
 	displaynameTemplate *template.Template `yaml:"-"`
 }

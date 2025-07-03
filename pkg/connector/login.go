@@ -18,6 +18,8 @@ package connector
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -342,9 +344,16 @@ func (gl *GoogleLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, er
 func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, client *libgm.Client, qr bool, phoneID, remoteName string) (*bridgev2.LoginStep, error) {
 	client.Disconnect()
 	loginID := networkid.UserLoginID(phoneID)
-	idPrefix, err := gc.DB.GetLoginPrefix(ctx, loginID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get login prefix: %w", err)
+	var idPrefix string
+	if gc.Config.DeterministicIDPrefix {
+		idHash := sha256.Sum256([]byte(loginID))
+		idPrefix = hex.EncodeToString(idHash[:8])
+	} else {
+		var err error
+		idPrefix, err = gc.DB.GetLoginPrefix(ctx, loginID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get login prefix: %w", err)
+		}
 	}
 	ul, err := user.NewLogin(ctx, &database.UserLogin{
 		ID:         loginID,

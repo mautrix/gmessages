@@ -40,18 +40,26 @@ var (
 	_ bridgev2.IdentifierValidatingNetwork   = (*GMConnector)(nil)
 )
 
+func isNumber(char rune) bool {
+	return char >= '0' && char <= '9'
+}
+
+func isHexLetter(char rune) bool {
+	return char >= 'a' && char <= 'f'
+}
+
 func (gc *GMConnector) ValidateUserID(id networkid.UserID) bool {
 	p1, p2 := parseAnyID(string(id))
 	if len(p1) == 0 || len(p2) == 0 {
 		return false
 	}
 	for _, d := range p1 {
-		if d < '0' || d > '9' {
+		if !isNumber(d) && (!gc.Config.DeterministicIDPrefix || !isHexLetter(d)) {
 			return false
 		}
 	}
 	for _, d := range p2 {
-		if d < '0' || d > '9' {
+		if !isNumber(d) {
 			return false
 		}
 	}
