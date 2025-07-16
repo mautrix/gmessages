@@ -1,3 +1,8 @@
+# v0.6.4 (2025-07-16)
+
+* Added slightly better messages for unknown Google account pairing errors.
+* Improved logging for starting DMs.
+
 # v0.6.3 (2025-06-16)
 
 * Updated Docker image to Alpine 3.22.
