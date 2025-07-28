@@ -17,8 +17,6 @@
 package main
 
 import (
-	"net/http"
-
 	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
@@ -53,14 +51,14 @@ func main() {
 	}
 	m.PostStart = func() {
 		if m.Matrix.Provisioning != nil {
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/ping", legacyProvPing).Methods(http.MethodGet)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/login", legacyProvQRLogin).Methods(http.MethodPost)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/google_login/emoji", legacyProvGoogleLoginStart).Methods(http.MethodPost)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/google_login/wait", legacyProvGoogleLoginWait).Methods(http.MethodPost)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/logout", legacyProvLogout).Methods(http.MethodPost)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/delete_session", legacyProvDeleteSession).Methods(http.MethodPost)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/contacts", legacyProvListContacts).Methods(http.MethodPost)
-			m.Matrix.Provisioning.Router.HandleFunc("/v1/start_chat", legacyProvStartChat).Methods(http.MethodPost)
+			m.Matrix.Provisioning.Router.HandleFunc("GET /v1/ping", legacyProvPing)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/login", legacyProvQRLogin)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/google_login/emoji", legacyProvGoogleLoginStart)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/google_login/wait", legacyProvGoogleLoginWait)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/logout", legacyProvLogout)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/delete_session", legacyProvDeleteSession)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/contacts", legacyProvListContacts)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/start_chat", legacyProvStartChat)
 		}
 	}
 	m.InitVersion(Tag, Commit, BuildTime)
