@@ -1,3 +1,9 @@
+# v0.6.5 (2025-08-16)
+
+* Deprecated legacy provisioning API. The `/_matrix/provision/v1` endpoints will
+  be deleted in the next release.
+* Bumped minimum Go version to 1.24.
+
 # v0.6.4 (2025-07-16)
 
 * Added slightly better messages for unknown Google account pairing errors.
