@@ -14,7 +14,7 @@ require (
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
 	google.golang.org/protobuf v1.36.7
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.25.0
+	maunium.net/go/mautrix v0.25.1-0.20250902152424-709f48f2b370
 )
 
 require (

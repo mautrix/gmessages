@@ -39,6 +39,22 @@ var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 		NoAckMessage:  "phone is not responding",
 		CheckInterval: 1 * time.Minute,
 	},
+	Provisioning: bridgev2.ProvisioningCapabilities{
+		ResolveIdentifier: bridgev2.ResolveIdentifierCapabilities{
+			CreateDM:    true,
+			LookupPhone: false,
+			AnyPhone:    true,
+			ContactList: false, // we don't support pagination yet
+		},
+		GroupCreation: map[string]bridgev2.GroupTypeCapabilities{
+			// TODO allow choosing rcs or mms?
+			"group": {
+				TypeDescription: "mms/rcs group",
+				Name:            bridgev2.GroupFieldCapability{Allowed: true},
+				Participants:    bridgev2.GroupFieldCapability{Allowed: true, Required: true, MinLength: 2},
+			},
+		},
+	},
 }
 
 func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {

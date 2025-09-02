@@ -171,21 +171,17 @@ var (
 	ErrMinimumTwoUsers      = bridgev2.WrapRespErr(errors.New("need at least 2 users to create a group"), mautrix.MInvalidParam)
 )
 
-func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...networkid.UserID) (*bridgev2.CreateChatResponse, error) {
+func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreateParams) (*bridgev2.CreateChatResponse, error) {
 	log := zerolog.Ctx(ctx)
 
-	if len(users) < 2 {
+	if len(params.Participants) < 2 {
 		return nil, ErrMinimumTwoUsers
 	}
-	namePtr := &name
-	if name == "" {
-		namePtr = nil
-	}
 	reqData := &gmproto.GetOrCreateConversationRequest{
-		Numbers:      make([]*gmproto.ContactNumber, len(users)),
-		RCSGroupName: namePtr,
+		Numbers:      make([]*gmproto.ContactNumber, len(params.Participants)),
+		RCSGroupName: ptr.NonZero(ptr.Val(params.Name).Name),
 	}
-	for i, user := range users {
+	for i, user := range params.Participants {
 		var phone string
 		_, err := gc.ParseUserID(user)
 		if err == nil {
@@ -209,7 +205,7 @@ func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...netwo
 	}
 	resp, err := gc.Client.GetOrCreateConversation(reqData)
 	if resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
-		if name == "" {
+		if reqData.RCSGroupName == nil {
 			reqData.RCSGroupName = ptr.Ptr("")
 		}
 		reqData.CreateRCSGroup = ptr.Ptr(true)
@@ -224,9 +220,33 @@ func (gc *GMClient) CreateGroup(ctx context.Context, name string, users ...netwo
 	if resp.GetConversation().GetConversationID() == "" {
 		return nil, fmt.Errorf("no conversation ID in response (status: %s)", resp.GetStatus())
 	}
+	portalKey := gc.MakePortalKey(resp.Conversation.ConversationID)
+	portalInfo := gc.wrapChatInfo(ctx, resp.Conversation)
+	var portal *bridgev2.Portal
+	if params.RoomID != "" {
+		portal, err = gc.Main.br.GetPortalByKey(ctx, portalKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get portal by key: %w", err)
+		}
+		err = portal.UpdateMatrixRoomID(ctx, params.RoomID, bridgev2.UpdateMatrixRoomIDParams{
+			SyncDBMetadata: func() {
+				portal.Name = ptr.Val(params.Name).Name
+				portal.NameSet = true
+			},
+			OverwriteOldPortal: true,
+			TombstoneOldRoom:   true,
+			DeleteOldRoom:      true,
+			ChatInfo:           portalInfo,
+			ChatInfoSource:     gc.UserLogin,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &bridgev2.CreateChatResponse{
-		PortalKey:  gc.MakePortalKey(resp.Conversation.ConversationID),
-		PortalInfo: gc.wrapChatInfo(ctx, resp.Conversation),
+		PortalKey:  portalKey,
+		PortalInfo: portalInfo,
+		Portal:     portal,
 	}, nil
 }
 
