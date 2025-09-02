@@ -1,3 +1,12 @@
+# unreleased
+
+* Removed legacy provisioning API and database legacy migration.
+  Upgrading directly from versions prior to v0.5.0 is not supported.
+  * If you've been using the bridge since before v0.5.0 and have prevented the
+    bridge from writing to the config, you must either update the config
+    manually or allow the bridge to update it for you **before** upgrading to
+    this release.
+
 # v0.6.5 (2025-08-16)
 
 * Deprecated legacy provisioning API. The `/_matrix/provision/v1` endpoints will

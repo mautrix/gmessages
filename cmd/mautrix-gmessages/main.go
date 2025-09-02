@@ -17,7 +17,6 @@
 package main
 
 import (
-	"maunium.net/go/mautrix/bridgev2/bridgeconfig"
 	"maunium.net/go/mautrix/bridgev2/matrix/mxmain"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector"
@@ -29,38 +28,15 @@ var (
 	BuildTime = "unknown"
 )
 
-var c = &connector.GMConnector{}
 var m = mxmain.BridgeMain{
 	Name:        "mautrix-gmessages",
 	Description: "A Matrix-Google Messages puppeting bridge",
 	URL:         "https://github.com/mautrix/gmessages",
 	Version:     "0.6.5",
-	Connector:   c,
+	Connector:   &connector.GMConnector{},
 }
 
 func main() {
-	bridgeconfig.HackyMigrateLegacyNetworkConfig = migrateLegacyConfig
-	m.PostInit = func() {
-		m.CheckLegacyDB(
-			10,
-			"v0.4.3",
-			"v0.5.0",
-			m.LegacyMigrateSimple(legacyMigrateRenameTables, legacyMigrateCopyData, 14),
-			true,
-		)
-	}
-	m.PostStart = func() {
-		if m.Matrix.Provisioning != nil {
-			m.Matrix.Provisioning.Router.HandleFunc("GET /v1/ping", legacyProvPing)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/login", legacyProvQRLogin)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/google_login/emoji", legacyProvGoogleLoginStart)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/google_login/wait", legacyProvGoogleLoginWait)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/logout", legacyProvLogout)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/delete_session", legacyProvDeleteSession)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/contacts", legacyProvListContacts)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/start_chat", legacyProvStartChat)
-		}
-	}
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
 }
