@@ -106,8 +106,10 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			Redact:        ptr.Ptr(0),
 		},
 	}
+	hasSelf := false
 	for _, pcp := range conv.Participants {
 		if pcp.IsMe {
+			hasSelf = true
 			if gc.Meta.AddSelfParticipantID(pcp.ID.ParticipantID) {
 				log.Debug().Any("participant", pcp).Msg("Added conversation participant to self participant IDs")
 				userLoginChanged = true
@@ -124,6 +126,13 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				PowerLevel:  ptr.Ptr(50),
 			}
 		}
+	}
+	// Override read-only flag for group chats to avoid race conditions. When created, groups are
+	// initially read-only and turn writable very quickly. They're not read-only in any other case
+	// except when leaving groups, so if we're in the group, treat it as writable.
+	if conv.ReadOnly && conv.IsGroupChat && hasSelf {
+		members.PowerLevels.Events[event.EventReaction] = 0
+		members.PowerLevels.EventsDefault = ptr.Ptr(0)
 	}
 	if userLoginChanged {
 		err := gc.UserLogin.Save(ctx)
