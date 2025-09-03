@@ -28,15 +28,22 @@ var (
 	BuildTime = "unknown"
 )
 
+var c = &connector.GMConnector{}
 var m = mxmain.BridgeMain{
 	Name:        "mautrix-gmessages",
 	Description: "A Matrix-Google Messages puppeting bridge",
 	URL:         "https://github.com/mautrix/gmessages",
 	Version:     "0.6.5",
-	Connector:   &connector.GMConnector{},
+	Connector:   c,
 }
 
 func main() {
+	m.PostStart = func() {
+		if m.Matrix.Provisioning != nil {
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/contacts", legacyProvListContacts)
+			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/start_chat", legacyProvStartChat)
+		}
+	}
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
 }
