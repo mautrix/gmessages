@@ -29,6 +29,7 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exslices"
 	"go.mau.fi/util/ffmpeg"
 	"golang.org/x/exp/maps"
 	"maunium.net/go/mautrix/bridgev2"
@@ -990,6 +991,10 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 	needsMSSFailureEvent := !existingMeta.MSSFailSent && !existingMeta.MSSSent && getFailMessage(newStatus) != ""
 	needsMSSDeliveryEvent := !existingMeta.MSSDeliverySent && portal.RoomType == database.RoomTypeDM && (newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED || newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED)
 	needsReadReceipt := !existingMeta.ReadReceiptSent && portal.RoomType == database.RoomTypeDM && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED
+	needsGroupReadReceipt := portal.RoomType != database.RoomTypeDM &&
+		newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED &&
+		m.GetMessageStatus().GetStatusText() != existingMeta.GlobalStatusText &&
+		strings.HasPrefix(m.GetMessageStatus().GetStatusText(), "Read by ")
 	needsSomeMSSEvent := needsMSSEvent || needsMSSFailureEvent || needsMSSDeliveryEvent || needsReadReceipt
 	if existingMeta.Type == newStatus && !doMessageResync && !needsSomeMSSEvent {
 		logEvt := log.Debug().
@@ -1113,9 +1118,76 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			},
 			LastTarget: dbm[0].ID,
 		})
+	} else if cachedMeta, ok := m.g.chatInfoCache.Get(m.ConversationID); needsGroupReadReceipt && ok {
+		names := getNamesFromChatInfo(cachedMeta)
+		existingMeta.GlobalStatusText = m.GetMessageStatus().GetStatusText()
+		var newReadBy []string
+		for readName := range strings.SplitSeq(strings.TrimPrefix(existingMeta.GlobalStatusText, "Read by "), ", ") {
+			readName = strings.TrimSpace(readName)
+			participantID := names[readName].Pop()
+			if len(participantID) > 0 {
+				newReadBy = append(newReadBy, participantID)
+			}
+		}
+		addedReads, _ := exslices.Diff(newReadBy, existingMeta.GroupReadBy)
+		existingMeta.GroupReadBy = newReadBy
+		for _, participantID := range addedReads {
+			result.SubEvents = append(result.SubEvents, &simplevent.Receipt{
+				EventMeta: simplevent.EventMeta{
+					Type:      bridgev2.RemoteEventReadReceipt,
+					PortalKey: portal.PortalKey,
+					Sender:    m.g.makeEventSender(m.ConversationID, participantID, false, false),
+				},
+				LastTarget: dbm[0].ID,
+			})
+		}
+
 	}
 	result.SaveParts = true
 	return result, nil
+}
+
+type nameList struct {
+	visible   []string
+	invisible []string
+}
+
+func (nl *nameList) Add(id string, visible bool) {
+	if visible {
+		nl.visible = append(nl.visible, id)
+	} else {
+		nl.invisible = append(nl.invisible, id)
+	}
+}
+
+func (nl *nameList) Pop() (name string) {
+	if nl == nil {
+		return
+	}
+	if len(nl.visible) > 0 {
+		name = nl.visible[0]
+		nl.visible = nl.visible[1:]
+	} else if len(nl.invisible) > 0 {
+		name = nl.invisible[0]
+		nl.invisible = nl.invisible[1:]
+	}
+	return
+}
+
+func getNamesFromChatInfo(chatInfo *gmproto.Conversation) map[string]*nameList {
+	out := make(map[string]*nameList)
+	for _, participant := range chatInfo.GetParticipants() {
+		if participant.IsMe || participant.GetFirstName() == "" || participant.GetID().GetParticipantID() == "" {
+			continue
+		}
+		nl, ok := out[participant.FirstName]
+		if !ok {
+			nl = &nameList{}
+			out[participant.FirstName] = nl
+		}
+		nl.Add(participant.ID.ParticipantID, participant.IsVisible)
+	}
+	return out
 }
 
 func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI) (*bridgev2.ConvertedMessage, error) {

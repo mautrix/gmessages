@@ -6,6 +6,11 @@
     bridge from writing to the config, you must either update the config
     manually or allow the bridge to update it for you **before** upgrading to
     this release.
+* Added support for typing notifications in both directions.
+* Added suport for incoming read receipts in group chats.
+* Added support for creating group chats.
+* Fixed issue where new group chats would incorrectly remain as read-only in
+  some cases.
 
 # v0.6.5 (2025-08-16)
 

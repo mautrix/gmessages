@@ -71,8 +71,10 @@ type GhostMetadata struct {
 type MessageMetadata struct {
 	Type gmproto.MessageStatusType `json:"type,omitempty"`
 
-	GlobalMediaStatus string `json:"media_status,omitempty"`
-	GlobalPartCount   int    `json:"part_count,omitempty"`
+	GlobalMediaStatus string   `json:"media_status,omitempty"`
+	GlobalPartCount   int      `json:"part_count,omitempty"`
+	GlobalStatusText  string   `json:"status_text,omitempty"`
+	GroupReadBy       []string `json:"group_receipt_sent,omitempty"`
 
 	TextHash     string `json:"text_hash,omitempty"`
 	MediaPartID  string `json:"media_part_id,omitempty"`
