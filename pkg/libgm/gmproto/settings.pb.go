@@ -280,7 +280,7 @@ func (x *BoolMsg) GetBool1() bool {
 
 type SIMPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Two           int32                  `protobuf:"varint,1,opt,name=two,proto3" json:"two,omitempty"`
+	Two           int32                  `protobuf:"varint,1,opt,name=two,proto3" json:"two,omitempty"` // 1 for payloads in non-self participants?
 	SIMNumber     int32                  `protobuf:"varint,2,opt,name=SIMNumber,proto3" json:"SIMNumber,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -331,15 +331,16 @@ func (x *SIMPayload) GetSIMNumber() int32 {
 }
 
 type SIMData struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	SIMPayload           *SIMPayload            `protobuf:"bytes,1,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
-	Bool1                bool                   `protobuf:"varint,2,opt,name=bool1,proto3" json:"bool1,omitempty"` // maybe isDefault?
-	CarrierName          string                 `protobuf:"bytes,3,opt,name=carrierName,proto3" json:"carrierName,omitempty"`
-	ColorHex             string                 `protobuf:"bytes,4,opt,name=colorHex,proto3" json:"colorHex,omitempty"`
-	Int1                 int64                  `protobuf:"varint,5,opt,name=int1,proto3" json:"int1,omitempty"`
-	FormattedPhoneNumber string                 `protobuf:"bytes,6,opt,name=formattedPhoneNumber,proto3" json:"formattedPhoneNumber,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	SIMPayload               *SIMPayload            `protobuf:"bytes,1,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
+	Bool1                    bool                   `protobuf:"varint,2,opt,name=bool1,proto3" json:"bool1,omitempty"` // maybe isDefault?
+	CarrierName              string                 `protobuf:"bytes,3,opt,name=carrierName,proto3" json:"carrierName,omitempty"`
+	ColorHex                 string                 `protobuf:"bytes,4,opt,name=colorHex,proto3" json:"colorHex,omitempty"`
+	Int1                     int64                  `protobuf:"varint,5,opt,name=int1,proto3" json:"int1,omitempty"`
+	FormattedPhoneNumber     string                 `protobuf:"bytes,6,opt,name=formattedPhoneNumber,proto3" json:"formattedPhoneNumber,omitempty"`
+	InternationalPhoneNumber string                 `protobuf:"bytes,7,opt,name=internationalPhoneNumber,proto3" json:"internationalPhoneNumber,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *SIMData) Reset() {
@@ -410,6 +411,13 @@ func (x *SIMData) GetInt1() int64 {
 func (x *SIMData) GetFormattedPhoneNumber() string {
 	if x != nil {
 		return x.FormattedPhoneNumber
+	}
+	return ""
+}
+
+func (x *SIMData) GetInternationalPhoneNumber() string {
+	if x != nil {
+		return x.InternationalPhoneNumber
 	}
 	return ""
 }
@@ -868,7 +876,7 @@ const file_settings_proto_rawDesc = "" +
 	"\n" +
 	"SIMPayload\x12\x10\n" +
 	"\x03two\x18\x01 \x01(\x05R\x03two\x12\x1c\n" +
-	"\tSIMNumber\x18\x02 \x01(\x05R\tSIMNumber\"\xdb\x01\n" +
+	"\tSIMNumber\x18\x02 \x01(\x05R\tSIMNumber\"\x97\x02\n" +
 	"\aSIMData\x124\n" +
 	"\n" +
 	"SIMPayload\x18\x01 \x01(\v2\x14.settings.SIMPayloadR\n" +
@@ -877,7 +885,8 @@ const file_settings_proto_rawDesc = "" +
 	"\vcarrierName\x18\x03 \x01(\tR\vcarrierName\x12\x1a\n" +
 	"\bcolorHex\x18\x04 \x01(\tR\bcolorHex\x12\x12\n" +
 	"\x04int1\x18\x05 \x01(\x03R\x04int1\x122\n" +
-	"\x14formattedPhoneNumber\x18\x06 \x01(\tR\x14formattedPhoneNumber\"8\n" +
+	"\x14formattedPhoneNumber\x18\x06 \x01(\tR\x14formattedPhoneNumber\x12:\n" +
+	"\x18internationalPhoneNumber\x18\a \x01(\tR\x18internationalPhoneNumber\"8\n" +
 	"\x0eUnknownMessage\x12\x12\n" +
 	"\x04int1\x18\x01 \x01(\x03R\x04int1\x12\x12\n" +
 	"\x04int2\x18\x02 \x01(\x03R\x04int2\" \n" +

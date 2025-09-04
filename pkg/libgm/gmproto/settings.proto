@@ -31,7 +31,7 @@ message BoolMsg {
 }
 
 message SIMPayload {
-    int32 two = 1;
+    int32 two = 1; // 1 for payloads in non-self participants?
     int32 SIMNumber = 2;
 }
 
@@ -42,6 +42,7 @@ message SIMData {
     string colorHex = 4;
     int64 int1 = 5;
     string formattedPhoneNumber = 6;
+    string internationalPhoneNumber = 7;
 }
 
 message UnknownMessage {

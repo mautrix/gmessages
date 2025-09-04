@@ -56,7 +56,7 @@ message TypingData {
     string conversationID = 1;
     User user = 2;
     TypingTypes type = 3;
-    MoreTypingData moreData = 4;
+    conversations.SomeKindOfGroupID someKindOfGroupID = 4;
 }
 
 message MoreTypingData {

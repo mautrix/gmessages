@@ -3,6 +3,8 @@ package conversations;
 
 option go_package = "../gmproto";
 
+import "settings.proto";
+
 message Contact {
     string participantID = 1;
     string name = 2;
@@ -20,6 +22,19 @@ message ContactNumber {
     optional string formattedNumber = 4;
 }
 
+message SomeKindOfGroupID {
+    message NestedID {
+        string id = 1;
+    }
+    string conversationID = 1;
+    NestedID nestedID = 2;
+}
+
+message AnotherMessageID {
+    string messageID = 1;
+    string anotherID = 2;
+}
+
 message Message {
     string messageID = 1;
     MsgType msgType = 3;
@@ -33,7 +48,10 @@ message Message {
     optional string subject = 14;
     int64 someInt = 16;
     repeated ReactionEntry reactions = 19;
-    optional ReplyMessage replyMessage = 21;
+    ReplyMessage replyMessage = 21;
+    SomeKindOfGroupID someKindOfGroupID = 23;
+    AnotherMessageID anotherMessageID = 24;
+    Participant senderParticipant = 25;
 }
 
 message ReactionEntry {
@@ -176,6 +194,9 @@ message Conversation {
     bool pinned = 26;
     int64 unknownTimestamp = 28; // set to lastMessageTimestamp + 1000 when marking as unread?
     bool thirdType = 29;
+    SomeKindOfGroupID someKindOfGroupID = 31;
+    settings.SIMCard simCard = 32;
+    AnotherMessageID latestMessageAnoherID = 35;
 }
 
 message Participant {
@@ -184,7 +205,7 @@ message Participant {
     string fullName = 3;
     string avatarHexColor = 5;
     bool isMe = 6;
-    Muted muted = 7;
+    settings.SIMPayload simPayload = 7;
     bool isVisible = 8;
     string contactID = 10;
     int64 bs = 14;

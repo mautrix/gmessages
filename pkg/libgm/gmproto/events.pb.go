@@ -669,13 +669,13 @@ func (*BrowserPresenceCheckEvent) Descriptor() ([]byte, []int) {
 }
 
 type TypingData struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationID string                 `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	User           *User                  `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	Type           TypingTypes            `protobuf:"varint,3,opt,name=type,proto3,enum=events.TypingTypes" json:"type,omitempty"`
-	MoreData       *MoreTypingData        `protobuf:"bytes,4,opt,name=moreData,proto3" json:"moreData,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ConversationID    string                 `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	User              *User                  `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	Type              TypingTypes            `protobuf:"varint,3,opt,name=type,proto3,enum=events.TypingTypes" json:"type,omitempty"`
+	SomeKindOfGroupID *SomeKindOfGroupID     `protobuf:"bytes,4,opt,name=someKindOfGroupID,proto3" json:"someKindOfGroupID,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *TypingData) Reset() {
@@ -729,9 +729,9 @@ func (x *TypingData) GetType() TypingTypes {
 	return TypingTypes_STOPPED_TYPING
 }
 
-func (x *TypingData) GetMoreData() *MoreTypingData {
+func (x *TypingData) GetSomeKindOfGroupID() *SomeKindOfGroupID {
 	if x != nil {
-		return x.MoreData
+		return x.SomeKindOfGroupID
 	}
 	return nil
 }
@@ -950,13 +950,13 @@ const file_events_proto_rawDesc = "" +
 	"\x04data\x18\x02 \x03(\v2\x16.conversations.MessageR\x04data\"A\n" +
 	"\x0eUserAlertEvent\x12/\n" +
 	"\talertType\x18\x02 \x01(\x0e2\x11.events.AlertTypeR\talertType\"\x1b\n" +
-	"\x19BrowserPresenceCheckEvent\"\xb3\x01\n" +
+	"\x19BrowserPresenceCheckEvent\"\xcf\x01\n" +
 	"\n" +
 	"TypingData\x12&\n" +
 	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12 \n" +
 	"\x04user\x18\x02 \x01(\v2\f.events.UserR\x04user\x12'\n" +
-	"\x04type\x18\x03 \x01(\x0e2\x13.events.TypingTypesR\x04type\x122\n" +
-	"\bmoreData\x18\x04 \x01(\v2\x16.events.MoreTypingDataR\bmoreData\"P\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x13.events.TypingTypesR\x04type\x12N\n" +
+	"\x11someKindOfGroupID\x18\x04 \x01(\v2 .conversations.SomeKindOfGroupIDR\x11someKindOfGroupID\"P\n" +
 	"\x0eMoreTypingData\x12&\n" +
 	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12\x16\n" +
 	"\x06number\x18\x03 \x03(\tR\x06number\"6\n" +
@@ -1034,8 +1034,9 @@ var file_events_proto_goTypes = []any{
 	(*Settings)(nil),                      // 14: settings.Settings
 	(*Conversation)(nil),                  // 15: conversations.Conversation
 	(*Message)(nil),                       // 16: conversations.Message
-	(*PairedData)(nil),                    // 17: authentication.PairedData
-	(*RevokePairData)(nil),                // 18: authentication.RevokePairData
+	(*SomeKindOfGroupID)(nil),             // 17: conversations.SomeKindOfGroupID
+	(*PairedData)(nil),                    // 18: authentication.PairedData
+	(*RevokePairData)(nil),                // 19: authentication.RevokePairData
 }
 var file_events_proto_depIdxs = []int32{
 	5,  // 0: events.UpdateEvents.conversationEvent:type_name -> events.ConversationEvent
@@ -1052,9 +1053,9 @@ var file_events_proto_depIdxs = []int32{
 	0,  // 11: events.UserAlertEvent.alertType:type_name -> events.AlertType
 	12, // 12: events.TypingData.user:type_name -> events.User
 	1,  // 13: events.TypingData.type:type_name -> events.TypingTypes
-	11, // 14: events.TypingData.moreData:type_name -> events.MoreTypingData
-	17, // 15: events.RPCPairData.paired:type_name -> authentication.PairedData
-	18, // 16: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
+	17, // 14: events.TypingData.someKindOfGroupID:type_name -> conversations.SomeKindOfGroupID
+	18, // 15: events.RPCPairData.paired:type_name -> authentication.PairedData
+	19, // 16: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
 	17, // [17:17] is the sub-list for method output_type
 	17, // [17:17] is the sub-list for method input_type
 	17, // [17:17] is the sub-list for extension type_name
