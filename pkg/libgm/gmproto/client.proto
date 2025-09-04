@@ -317,6 +317,7 @@ message TypingUpdateRequest {
     }
 
     Data data = 2;
+    settings.SIMPayload SIMPayload = 3;
 }
 
 // TODO is this the same as the Settings message?

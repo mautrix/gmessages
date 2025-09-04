@@ -56,6 +56,13 @@ message TypingData {
     string conversationID = 1;
     User user = 2;
     TypingTypes type = 3;
+    MoreTypingData moreData = 4;
+}
+
+message MoreTypingData {
+    string conversationID = 1;
+    // Field 2 has some weird hash or something in groups?
+    repeated string number = 3;
 }
 
 message User {

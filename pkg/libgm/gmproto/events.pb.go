@@ -673,6 +673,7 @@ type TypingData struct {
 	ConversationID string                 `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
 	User           *User                  `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 	Type           TypingTypes            `protobuf:"varint,3,opt,name=type,proto3,enum=events.TypingTypes" json:"type,omitempty"`
+	MoreData       *MoreTypingData        `protobuf:"bytes,4,opt,name=moreData,proto3" json:"moreData,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -728,6 +729,66 @@ func (x *TypingData) GetType() TypingTypes {
 	return TypingTypes_STOPPED_TYPING
 }
 
+func (x *TypingData) GetMoreData() *MoreTypingData {
+	if x != nil {
+		return x.MoreData
+	}
+	return nil
+}
+
+type MoreTypingData struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationID string                 `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	// Field 2 has some weird hash or something in groups?
+	Number        []string `protobuf:"bytes,3,rep,name=number,proto3" json:"number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MoreTypingData) Reset() {
+	*x = MoreTypingData{}
+	mi := &file_events_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MoreTypingData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MoreTypingData) ProtoMessage() {}
+
+func (x *MoreTypingData) ProtoReflect() protoreflect.Message {
+	mi := &file_events_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MoreTypingData.ProtoReflect.Descriptor instead.
+func (*MoreTypingData) Descriptor() ([]byte, []int) {
+	return file_events_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *MoreTypingData) GetConversationID() string {
+	if x != nil {
+		return x.ConversationID
+	}
+	return ""
+}
+
+func (x *MoreTypingData) GetNumber() []string {
+	if x != nil {
+		return x.Number
+	}
+	return nil
+}
+
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Field1        int64                  `protobuf:"varint,1,opt,name=field1,proto3" json:"field1,omitempty"`
@@ -738,7 +799,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_events_proto_msgTypes[9]
+	mi := &file_events_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -750,7 +811,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[9]
+	mi := &file_events_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -763,7 +824,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{9}
+	return file_events_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *User) GetField1() int64 {
@@ -793,7 +854,7 @@ type RPCPairData struct {
 
 func (x *RPCPairData) Reset() {
 	*x = RPCPairData{}
-	mi := &file_events_proto_msgTypes[10]
+	mi := &file_events_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -805,7 +866,7 @@ func (x *RPCPairData) String() string {
 func (*RPCPairData) ProtoMessage() {}
 
 func (x *RPCPairData) ProtoReflect() protoreflect.Message {
-	mi := &file_events_proto_msgTypes[10]
+	mi := &file_events_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -818,7 +879,7 @@ func (x *RPCPairData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCPairData.ProtoReflect.Descriptor instead.
 func (*RPCPairData) Descriptor() ([]byte, []int) {
-	return file_events_proto_rawDescGZIP(), []int{10}
+	return file_events_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RPCPairData) GetEvent() isRPCPairData_Event {
@@ -889,12 +950,16 @@ const file_events_proto_rawDesc = "" +
 	"\x04data\x18\x02 \x03(\v2\x16.conversations.MessageR\x04data\"A\n" +
 	"\x0eUserAlertEvent\x12/\n" +
 	"\talertType\x18\x02 \x01(\x0e2\x11.events.AlertTypeR\talertType\"\x1b\n" +
-	"\x19BrowserPresenceCheckEvent\"\x7f\n" +
+	"\x19BrowserPresenceCheckEvent\"\xb3\x01\n" +
 	"\n" +
 	"TypingData\x12&\n" +
 	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12 \n" +
 	"\x04user\x18\x02 \x01(\v2\f.events.UserR\x04user\x12'\n" +
-	"\x04type\x18\x03 \x01(\x0e2\x13.events.TypingTypesR\x04type\"6\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x13.events.TypingTypesR\x04type\x122\n" +
+	"\bmoreData\x18\x04 \x01(\v2\x16.events.MoreTypingDataR\bmoreData\"P\n" +
+	"\x0eMoreTypingData\x12&\n" +
+	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12\x16\n" +
+	"\x06number\x18\x03 \x03(\tR\x06number\"6\n" +
 	"\x04User\x12\x16\n" +
 	"\x06field1\x18\x01 \x01(\x03R\x06field1\x12\x16\n" +
 	"\x06number\x18\x02 \x01(\tR\x06number\"\x88\x01\n" +
@@ -950,7 +1015,7 @@ func file_events_proto_rawDescGZIP() []byte {
 }
 
 var file_events_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_events_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_events_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_events_proto_goTypes = []any{
 	(AlertType)(0),                        // 0: events.AlertType
 	(TypingTypes)(0),                      // 1: events.TypingTypes
@@ -963,36 +1028,38 @@ var file_events_proto_goTypes = []any{
 	(*UserAlertEvent)(nil),                // 8: events.UserAlertEvent
 	(*BrowserPresenceCheckEvent)(nil),     // 9: events.BrowserPresenceCheckEvent
 	(*TypingData)(nil),                    // 10: events.TypingData
-	(*User)(nil),                          // 11: events.User
-	(*RPCPairData)(nil),                   // 12: events.RPCPairData
-	(*Settings)(nil),                      // 13: settings.Settings
-	(*Conversation)(nil),                  // 14: conversations.Conversation
-	(*Message)(nil),                       // 15: conversations.Message
-	(*PairedData)(nil),                    // 16: authentication.PairedData
-	(*RevokePairData)(nil),                // 17: authentication.RevokePairData
+	(*MoreTypingData)(nil),                // 11: events.MoreTypingData
+	(*User)(nil),                          // 12: events.User
+	(*RPCPairData)(nil),                   // 13: events.RPCPairData
+	(*Settings)(nil),                      // 14: settings.Settings
+	(*Conversation)(nil),                  // 15: conversations.Conversation
+	(*Message)(nil),                       // 16: conversations.Message
+	(*PairedData)(nil),                    // 17: authentication.PairedData
+	(*RevokePairData)(nil),                // 18: authentication.RevokePairData
 }
 var file_events_proto_depIdxs = []int32{
 	5,  // 0: events.UpdateEvents.conversationEvent:type_name -> events.ConversationEvent
 	7,  // 1: events.UpdateEvents.messageEvent:type_name -> events.MessageEvent
 	6,  // 2: events.UpdateEvents.typingEvent:type_name -> events.TypingEvent
-	13, // 3: events.UpdateEvents.settingsEvent:type_name -> settings.Settings
+	14, // 3: events.UpdateEvents.settingsEvent:type_name -> settings.Settings
 	8,  // 4: events.UpdateEvents.userAlertEvent:type_name -> events.UserAlertEvent
 	9,  // 5: events.UpdateEvents.browserPresenceCheckEvent:type_name -> events.BrowserPresenceCheckEvent
 	4,  // 6: events.UpdateEvents.accountChange:type_name -> events.AccountChangeOrSomethingEvent
 	4,  // 7: events.EncryptedData2Container.accountChange:type_name -> events.AccountChangeOrSomethingEvent
-	14, // 8: events.ConversationEvent.data:type_name -> conversations.Conversation
+	15, // 8: events.ConversationEvent.data:type_name -> conversations.Conversation
 	10, // 9: events.TypingEvent.data:type_name -> events.TypingData
-	15, // 10: events.MessageEvent.data:type_name -> conversations.Message
+	16, // 10: events.MessageEvent.data:type_name -> conversations.Message
 	0,  // 11: events.UserAlertEvent.alertType:type_name -> events.AlertType
-	11, // 12: events.TypingData.user:type_name -> events.User
+	12, // 12: events.TypingData.user:type_name -> events.User
 	1,  // 13: events.TypingData.type:type_name -> events.TypingTypes
-	16, // 14: events.RPCPairData.paired:type_name -> authentication.PairedData
-	17, // 15: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	11, // 14: events.TypingData.moreData:type_name -> events.MoreTypingData
+	17, // 15: events.RPCPairData.paired:type_name -> authentication.PairedData
+	18, // 16: events.RPCPairData.revoked:type_name -> authentication.RevokePairData
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_events_proto_init() }
@@ -1012,7 +1079,7 @@ func file_events_proto_init() {
 		(*UpdateEvents_BrowserPresenceCheckEvent)(nil),
 		(*UpdateEvents_AccountChange)(nil),
 	}
-	file_events_proto_msgTypes[10].OneofWrappers = []any{
+	file_events_proto_msgTypes[11].OneofWrappers = []any{
 		(*RPCPairData_Paired)(nil),
 		(*RPCPairData_Revoked)(nil),
 	}
@@ -1022,7 +1089,7 @@ func file_events_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_events_proto_rawDesc), len(file_events_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

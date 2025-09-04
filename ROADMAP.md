@@ -5,7 +5,7 @@
     * [x] Media/files
     * [x] Replies (RCS)
   * [x] Reactions (RCS)
-  * [ ] Typing notifications (RCS)
+  * [x] Typing notifications (RCS)
   * [x] Read receipts (RCS)
   * [x] Message deletions (own device only)
 * Google Messages → Matrix
@@ -14,7 +14,7 @@
     * [x] Media/files
     * [x] Replies (RCS)
   * [x] Reactions (RCS)
-  * [ ] Typing notifications (RCS)
+  * [x] Typing notifications (RCS)
   * [x] Read receipts in 1:1 chats (RCS)
   * [ ] Read receipts in groups (RCS)
   * [x] Message deletions (own device only)

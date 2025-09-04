@@ -166,6 +166,42 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			WrappedMessage: evt,
 			g:              gc,
 		})
+	case *gmproto.TypingData:
+		timeout := 15 * time.Second
+		if evt.Type == gmproto.TypingTypes_STOPPED_TYPING {
+			timeout = 0
+		}
+		chatInfo, ok := gc.chatInfoCache.Get(evt.ConversationID)
+		if !ok {
+			log.Debug().
+				Str("conversation_id", evt.GetConversationID()).
+				Str("number", evt.GetUser().GetNumber()).
+				Msg("Didn't find cached conversation info to find participant ID for typing notification")
+			return
+		}
+		participantID := getPhoneNumberParticipantID(chatInfo, evt.GetUser().GetNumber())
+		if participantID == "" {
+			log.Debug().
+				Str("conversation_id", evt.GetConversationID()).
+				Str("number", evt.GetUser().GetNumber()).
+				Msg("Didn't find participant ID for typing notification")
+			return
+		}
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &simplevent.Typing{
+			EventMeta: simplevent.EventMeta{
+				Type: bridgev2.RemoteEventTyping,
+				LogContext: func(c zerolog.Context) zerolog.Context {
+					return c.
+						Str("conversation_id", evt.GetConversationID()).
+						Str("participant_id", participantID).
+						Str("number", evt.GetUser().GetNumber())
+				},
+				PortalKey: gc.MakePortalKey(evt.ConversationID),
+				Sender:    gc.makeEventSender("", participantID, false, false),
+			},
+			Timeout: timeout,
+			Type:    bridgev2.TypingTypeText,
+		})
 	case *gmproto.UserAlertEvent:
 		gc.handleUserAlert(ctx, evt)
 	case *gmproto.Settings:
@@ -643,9 +679,28 @@ func findAlternateParticipantID(chatInfo *gmproto.Conversation, participantID st
 	return participantID
 }
 
+func getPhoneNumberParticipantID(chatInfo *gmproto.Conversation, phoneNumber string) string {
+	if chatInfo == nil || phoneNumber == "" {
+		return ""
+	}
+	var invisible *gmproto.Participant
+	for _, participant := range chatInfo.GetParticipants() {
+		if participant.GetID().GetNumber() == phoneNumber {
+			if participant.IsVisible {
+				return participant.GetID().GetParticipantID()
+			}
+			invisible = participant
+		}
+	}
+	if invisible != nil {
+		return invisible.GetID().GetParticipantID()
+	}
+	return ""
+}
+
 func (gc *GMClient) makeEventSender(conversationID, participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
 	isFromMe := !forceIncoming && (forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID))
-	if !isFromMe {
+	if !isFromMe && conversationID != "" {
 		chatInfo, ok := gc.chatInfoCache.Get(conversationID)
 		if ok {
 			participantID = findAlternateParticipantID(chatInfo, participantID)

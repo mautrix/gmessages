@@ -39,6 +39,7 @@ var (
 	_ bridgev2.ReactionHandlingNetworkAPI    = (*GMClient)(nil)
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*GMClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
+	_ bridgev2.TypingHandlingNetworkAPI      = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -287,4 +288,18 @@ func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.M
 		return err
 	}
 	return gc.Client.MarkRead(convID, msgID)
+}
+
+func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
+	if !msg.IsTyping {
+		return nil
+	}
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
+	convID, err := gc.ParsePortalID(msg.Portal.ID)
+	if err != nil {
+		return err
+	}
+	return gc.Client.SetTyping(convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
 }

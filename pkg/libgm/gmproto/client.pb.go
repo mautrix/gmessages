@@ -2735,6 +2735,7 @@ func (x *ResendMessageRequest) GetMessageID() string {
 type TypingUpdateRequest struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Data          *TypingUpdateRequest_Data `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	SIMPayload    *SIMPayload               `protobuf:"bytes,3,opt,name=SIMPayload,proto3" json:"SIMPayload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2772,6 +2773,13 @@ func (*TypingUpdateRequest) Descriptor() ([]byte, []int) {
 func (x *TypingUpdateRequest) GetData() *TypingUpdateRequest_Data {
 	if x != nil {
 		return x.Data
+	}
+	return nil
+}
+
+func (x *TypingUpdateRequest) GetSIMPayload() *SIMPayload {
+	if x != nil {
+		return x.SIMPayload
 	}
 	return nil
 }
@@ -3432,9 +3440,12 @@ const file_client_proto_rawDesc = "" +
 	"\x14SendReactionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"4\n" +
 	"\x14ResendMessageRequest\x12\x1c\n" +
-	"\tmessageID\x18\x02 \x01(\tR\tmessageID\"\x93\x01\n" +
+	"\tmessageID\x18\x02 \x01(\tR\tmessageID\"\xc9\x01\n" +
 	"\x13TypingUpdateRequest\x124\n" +
-	"\x04data\x18\x02 \x01(\v2 .client.TypingUpdateRequest.DataR\x04data\x1aF\n" +
+	"\x04data\x18\x02 \x01(\v2 .client.TypingUpdateRequest.DataR\x04data\x124\n" +
+	"\n" +
+	"SIMPayload\x18\x03 \x01(\v2\x14.settings.SIMPayloadR\n" +
+	"SIMPayload\x1aF\n" +
 	"\x04Data\x12&\n" +
 	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12\x16\n" +
 	"\x06typing\x18\x03 \x01(\bR\x06typing\"\x91\x01\n" +
@@ -3593,15 +3604,16 @@ var file_client_proto_depIdxs = []int32{
 	5,  // 40: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
 	71, // 41: client.SendReactionRequest.SIMPayload:type_name -> settings.SIMPayload
 	60, // 42: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
-	61, // 43: client.SettingsUpdateRequest.pushSettings:type_name -> client.SettingsUpdateRequest.PushSettings
-	55, // 44: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
-	64, // 45: client.AckMessageRequest.Message.device:type_name -> authentication.Device
-	18, // 46: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
-	47, // [47:47] is the sub-list for method output_type
-	47, // [47:47] is the sub-list for method input_type
-	47, // [47:47] is the sub-list for extension type_name
-	47, // [47:47] is the sub-list for extension extendee
-	0,  // [0:47] is the sub-list for field type_name
+	71, // 43: client.TypingUpdateRequest.SIMPayload:type_name -> settings.SIMPayload
+	61, // 44: client.SettingsUpdateRequest.pushSettings:type_name -> client.SettingsUpdateRequest.PushSettings
+	55, // 45: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	64, // 46: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	18, // 47: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
+	48, // [48:48] is the sub-list for method output_type
+	48, // [48:48] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_client_proto_init() }

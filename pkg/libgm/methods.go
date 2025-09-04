@@ -104,14 +104,14 @@ func (c *Client) MarkRead(conversationID, messageID string) error {
 	return err
 }
 
-func (c *Client) SetTyping(convID string) error {
-	payload := &gmproto.TypingUpdateRequest{
-		Data: &gmproto.TypingUpdateRequest_Data{ConversationID: convID, Typing: true},
-	}
-	actionType := gmproto.ActionType_TYPING_UPDATES
-
-	_, err := c.sessionHandler.sendMessage(actionType, payload)
-	return err
+func (c *Client) SetTyping(convID string, simPayload *gmproto.SIMPayload) error {
+	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action: gmproto.ActionType_TYPING_UPDATES,
+		Data: &gmproto.TypingUpdateRequest{
+			Data:       &gmproto.TypingUpdateRequest_Data{ConversationID: convID, Typing: true},
+			SIMPayload: simPayload,
+		},
+	})
 }
 
 func (c *Client) UpdateSettings(payload *gmproto.SettingsUpdateRequest) error {
