@@ -58,6 +58,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		return
 	}
 	for _, conv := range resp.GetConversations() {
+		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
 		gc.syncConversation(ctx, conv, "sync")
 	}
 }
