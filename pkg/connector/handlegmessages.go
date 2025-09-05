@@ -1177,13 +1177,17 @@ func (nl *nameList) Pop() (name string) {
 func getNamesFromChatInfo(chatInfo *gmproto.Conversation) map[string]*nameList {
 	out := make(map[string]*nameList)
 	for _, participant := range chatInfo.GetParticipants() {
-		if participant.IsMe || participant.GetFirstName() == "" || participant.GetID().GetParticipantID() == "" {
+		name := participant.FirstName
+		if name == "" {
+			name = participant.FormattedNumber
+		}
+		if participant.IsMe || name == "" || participant.GetID().GetParticipantID() == "" {
 			continue
 		}
-		nl, ok := out[participant.FirstName]
+		nl, ok := out[name]
 		if !ok {
 			nl = &nameList{}
-			out[participant.FirstName] = nl
+			out[name] = nl
 		}
 		nl.Add(participant.ID.ParticipantID, participant.IsVisible)
 	}
