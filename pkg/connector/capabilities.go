@@ -62,7 +62,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 1, 1
+	return 1, 2
 }
 
 const MaxFileSizeRCS = 100 * 1024 * 1024
@@ -123,7 +123,7 @@ var gifMimes = map[string]event.CapabilitySupportLevel{
 }
 
 var rcsDMCaps = &event.RoomFeatures{
-	ID: capID("rcs_dm"),
+	ID: capID("rcs_dm+1"),
 	File: event.FileFeatureMap{
 		event.MsgImage: {
 			MimeTypes: imageMimes,
@@ -150,19 +150,19 @@ var rcsDMCaps = &event.RoomFeatures{
 			MaxSize:   MaxFileSizeRCS,
 		},
 	},
-	Reply:         event.CapLevelFullySupported,
-	DeleteForMe:   true,
-	Reaction:      event.CapLevelFullySupported,
-	ReactionCount: 1,
-	ReadReceipts:  true,
+	Reply:               event.CapLevelFullySupported,
+	DeleteForMe:         true,
+	Reaction:            event.CapLevelFullySupported,
+	ReactionCount:       1,
+	ReadReceipts:        true,
+	TypingNotifications: true,
 }
 
 var rcsGroupCaps *event.RoomFeatures
 
 func init() {
 	rcsGroupCaps = ptr.Clone(rcsDMCaps)
-	rcsGroupCaps.ID = capID("rcs_group")
-	rcsGroupCaps.ReadReceipts = false
+	rcsGroupCaps.ID = capID("rcs_group+1")
 }
 
 var smsRoomCaps = &event.RoomFeatures{
