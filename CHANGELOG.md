@@ -1,11 +1,11 @@
-# unreleased
+# v0.7.0 (2025-09-16)
 
 * Removed legacy provisioning API and database legacy migration.
   Upgrading directly from versions prior to v0.5.0 is not supported.
   * If you've been using the bridge since before v0.5.0 and have prevented the
     bridge from writing to the config, you must either update the config
     manually or allow the bridge to update it for you **before** upgrading to
-    this release.
+    this release (i.e. run v0.6.5 once with config writing allowed).
 * Added support for typing notifications in both directions.
 * Added suport for incoming read receipts in group chats.
 * Added support for creating group chats.
