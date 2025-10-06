@@ -327,10 +327,6 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 			return fmt.Errorf("phone number not available for ghost %s", ghost.ID)
 		}
 	}
-	zerolog.Ctx(ctx).Info().
-		Str("conversation_id", convID).
-		Str("phone_number", phone).
-		Msg("Deleting conversation as requested from Matrix")
 	if err := gc.Client.DeleteConversation(convID, phone); err != nil {
 		return err
 	}
