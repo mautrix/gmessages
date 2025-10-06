@@ -40,6 +40,7 @@ var (
 	_ bridgev2.RedactionHandlingNetworkAPI   = (*GMClient)(nil)
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI      = (*GMClient)(nil)
+	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -302,4 +303,36 @@ func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.Matrix
 		return err
 	}
 	return gc.Client.SetTyping(convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
+}
+
+func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
+	convID, err := gc.ParsePortalID(chat.Portal.ID)
+	if err != nil {
+		return err
+	}
+	var phone string
+	if chat.Portal.RoomType != database.RoomTypeGroupDM {
+		ghost, err := gc.Main.br.GetExistingGhostByID(ctx, chat.Portal.OtherUserID)
+		if err != nil {
+			return fmt.Errorf("failed to get ghost: %w", err)
+		}
+		if ghost == nil {
+			return fmt.Errorf("ghost not found for user %s", chat.Portal.OtherUserID)
+		}
+		phone = ghost.Metadata.(*GhostMetadata).Phone
+		if phone == "" {
+			return fmt.Errorf("phone number not available for ghost %s", ghost.ID)
+		}
+	}
+	zerolog.Ctx(ctx).Info().
+		Str("conversation_id", convID).
+		Str("phone_number", phone).
+		Msg("Deleting conversation as requested from Matrix")
+	if err := gc.Client.DeleteConversation(convID, phone); err != nil {
+		return err
+	}
+	return nil
 }
