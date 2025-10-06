@@ -18,23 +18,15 @@ func (c *Client) ListConversations(count int, folder gmproto.ListConversationsRe
 }
 
 func (c *Client) DeleteConversation(conversationID, phone string) error {
-	msgType := gmproto.MessageType_BUGLE_MESSAGE
-	deleteData := gmproto.DeleteConversationData{
+	_, err := c.UpdateConversation(&gmproto.UpdateConversationRequest{
+		Action:         gmproto.ConversationActionStatus_DELETE,
 		ConversationID: conversationID,
-	}
-	if phone != "" {
-		deleteData.Phone = phone
-	}
-	_, err := c.sessionHandler.sendMessageWithParams(SendMessageParams{
-		Action: gmproto.ActionType_UPDATE_CONVERSATION,
-		Data: &gmproto.UpdateConversationRequest{
-			Action:         gmproto.ConversationActionStatus_DELETE,
-			ConversationID: conversationID,
-			Data: &gmproto.UpdateConversationRequest_DeleteData{
-				DeleteData: &deleteData,
+		Data: &gmproto.UpdateConversationRequest_DeleteData{
+			DeleteData: &gmproto.DeleteConversationData{
+				ConversationID: conversationID,
+				Phone:          phone,
 			},
 		},
-		MessageType: msgType,
 	})
 	return err
 }

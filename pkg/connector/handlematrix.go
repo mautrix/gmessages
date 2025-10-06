@@ -314,7 +314,7 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 		return err
 	}
 	var phone string
-	if chat.Portal.RoomType != database.RoomTypeGroupDM {
+	if chat.Portal.RoomType == database.RoomTypeDM {
 		ghost, err := gc.Main.br.GetExistingGhostByID(ctx, chat.Portal.OtherUserID)
 		if err != nil {
 			return fmt.Errorf("failed to get ghost: %w", err)
