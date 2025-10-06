@@ -17,6 +17,20 @@ func (c *Client) ListConversations(count int, folder gmproto.ListConversationsRe
 	}))
 }
 
+func (c *Client) DeleteConversation(conversationID, phone string) error {
+	_, err := c.UpdateConversation(&gmproto.UpdateConversationRequest{
+		Action:         gmproto.ConversationActionStatus_DELETE,
+		ConversationID: conversationID,
+		Data: &gmproto.UpdateConversationRequest_DeleteData{
+			DeleteData: &gmproto.DeleteConversationData{
+				ConversationID: conversationID,
+				Phone:          phone,
+			},
+		},
+	})
+	return err
+}
+
 func (c *Client) ListContacts() (*gmproto.ListContactsResponse, error) {
 	payload := &gmproto.ListContactsRequest{
 		I1: 1,

@@ -174,14 +174,23 @@ message DeleteMessageResponse {
 }
 
 message UpdateConversationRequest {
-    UpdateConversationData data = 1;
     ConversationActionStatus action = 2;
     string conversationID = 3;
-    ConversationAction5 action5 = 5;
+    optional ConversationAction5 action5 = 5;
+
+    oneof data {
+        DeleteConversationData deleteData = 6;
+        UpdateConversationData updateData = 1;
+    }
 }
 
 message ConversationAction5 {
     bool field2 = 2;
+}
+
+message DeleteConversationData {
+    string conversationID = 1;
+    optional string phone = 3;
 }
 
 message UpdateConversationData {
@@ -194,6 +203,7 @@ message UpdateConversationData {
 
 enum ConversationActionStatus {
     UNKNOWN_ACTION_STATUS = 0;
+    DELETE = 1;
     UNBLOCK = 2;
     BLOCK = 7;
     BLOCK_AND_REPORT = 8;

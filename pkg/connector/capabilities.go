@@ -202,6 +202,7 @@ var smsRoomCaps = &event.RoomFeatures{
 	Reaction:      event.CapLevelPartialSupport,
 	ReactionCount: 1,
 	ReadReceipts:  true,
+	DeleteChat:    true,
 }
 
 func (gc *GMClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
