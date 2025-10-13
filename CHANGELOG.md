@@ -1,3 +1,7 @@
+# v25.10 (unreleased)
+
+* Switched to calendar versioning.
+
 # v0.7.0 (2025-09-16)
 
 * Removed legacy provisioning API and database legacy migration.
