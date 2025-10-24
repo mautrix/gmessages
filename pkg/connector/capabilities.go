@@ -62,7 +62,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 1, 2
+	return 1, 3
 }
 
 const MaxFileSizeRCS = 100 * 1024 * 1024
@@ -76,7 +76,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID(chatType string) string {
-	base := "fi.mau.gmessages.capabilities.2025_01_10." + chatType
+	base := "fi.mau.gmessages.capabilities.2025_10_24." + chatType
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
