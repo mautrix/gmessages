@@ -21,9 +21,7 @@ import (
 	"time"
 
 	"go.mau.fi/util/ffmpeg"
-	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
-	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
@@ -62,11 +60,12 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 1, 3
+	return 1, 4
 }
 
-const MaxFileSizeRCS = 100 * 1024 * 1024
-const MaxFileSizeMMS = 1 * 1024 * 1024
+// The phone will compress outgoing media on MMS, so we don't need to limit it
+
+const MaxFileSize = 100 * 1024 * 1024
 
 func supportedIfFFmpeg() event.CapabilitySupportLevel {
 	if ffmpeg.Supported() {
@@ -76,7 +75,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID(chatType string) string {
-	base := "fi.mau.gmessages.capabilities.2025_10_24." + chatType
+	base := "fi.mau.gmessages.capabilities.2025_10_25." + chatType
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -122,32 +121,32 @@ var gifMimes = map[string]event.CapabilitySupportLevel{
 	"image/gif": event.CapLevelFullySupported,
 }
 
-var rcsDMCaps = &event.RoomFeatures{
-	ID: capID("rcs_dm+1"),
+var rcsCaps = &event.RoomFeatures{
+	ID: capID("rcs"),
 	File: event.FileFeatureMap{
 		event.MsgImage: {
 			MimeTypes: imageMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 		event.MsgAudio: {
 			MimeTypes: audioMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 		event.MsgVideo: {
 			MimeTypes: videoMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 		event.MsgFile: {
 			MimeTypes: fileMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 		event.CapMsgVoice: {
 			MimeTypes: voiceMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 		event.CapMsgGIF: {
 			MimeTypes: gifMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 	},
 	Reply:               event.CapLevelFullySupported,
@@ -158,44 +157,37 @@ var rcsDMCaps = &event.RoomFeatures{
 	TypingNotifications: true,
 }
 
-var rcsGroupCaps *event.RoomFeatures
-
-func init() {
-	rcsGroupCaps = ptr.Clone(rcsDMCaps)
-	rcsGroupCaps.ID = capID("rcs_group+1")
-}
-
-var smsRoomCaps = &event.RoomFeatures{
+var smsCaps = &event.RoomFeatures{
 	ID: capID("sms"),
 	File: event.FileFeatureMap{
 		event.MsgImage: {
 			MimeTypes: imageMimes,
 			Caption:   event.CapLevelFullySupported,
-			MaxSize:   MaxFileSizeMMS,
+			MaxSize:   MaxFileSize,
 		},
 		event.MsgAudio: {
 			MimeTypes: audioMimes,
 			Caption:   event.CapLevelFullySupported,
-			MaxSize:   MaxFileSizeMMS,
+			MaxSize:   MaxFileSize,
 		},
 		event.MsgVideo: {
 			MimeTypes: videoMimes,
 			Caption:   event.CapLevelFullySupported,
-			MaxSize:   MaxFileSizeMMS,
+			MaxSize:   MaxFileSize,
 		},
 		event.MsgFile: {
 			MimeTypes: fileMimes,
 			Caption:   event.CapLevelFullySupported,
-			MaxSize:   MaxFileSizeMMS,
+			MaxSize:   MaxFileSize,
 		},
 		event.CapMsgVoice: {
 			MimeTypes: voiceMimes,
-			MaxSize:   MaxFileSizeRCS,
+			MaxSize:   MaxFileSize,
 		},
 		event.CapMsgGIF: {
 			MimeTypes: gifMimes,
 			Caption:   event.CapLevelFullySupported,
-			MaxSize:   MaxFileSizeMMS,
+			MaxSize:   MaxFileSize,
 		},
 	},
 	DeleteForMe:   true,
@@ -207,12 +199,8 @@ var smsRoomCaps = &event.RoomFeatures{
 
 func (gc *GMClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	if portal.Metadata.(*PortalMetadata).Type == gmproto.ConversationType_RCS {
-		if portal.RoomType == database.RoomTypeDM {
-			return rcsDMCaps
-		} else {
-			return rcsGroupCaps
-		}
+		return rcsCaps
 	} else {
-		return smsRoomCaps
+		return smsCaps
 	}
 }
