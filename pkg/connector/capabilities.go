@@ -49,7 +49,7 @@ var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 			"group": {
 				TypeDescription: "mms/rcs group",
 				Name:            bridgev2.GroupFieldCapability{Allowed: true},
-				Participants:    bridgev2.GroupFieldCapability{Allowed: true, Required: true, MinLength: 2},
+				Participants:    bridgev2.GroupFieldCapability{Allowed: true, Required: true, MinLength: 2, SkipIdentifierValidation: true},
 			},
 		},
 	},
