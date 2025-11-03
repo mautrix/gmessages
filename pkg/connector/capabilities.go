@@ -40,7 +40,7 @@ var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 	Provisioning: bridgev2.ProvisioningCapabilities{
 		ResolveIdentifier: bridgev2.ResolveIdentifierCapabilities{
 			CreateDM:    true,
-			LookupPhone: false,
+			LookupPhone: false, // There's no lookup, you can just DM any phone number
 			AnyPhone:    true,
 			ContactList: false, // we don't support pagination yet
 		},
