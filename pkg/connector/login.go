@@ -33,6 +33,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -49,15 +50,16 @@ const (
 )
 
 const (
-	pairingErrMsgNoDevices        = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
-	pairingErrPhoneNotResponding  = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations. Alternatively, try QR pairing"
-	pairingErrMsgIncorrectEmoji   = "Incorrect emoji chosen on phone, please try again"
-	pairingErrMsgCancelled        = "Pairing cancelled on phone"
-	pairingErrMsgTimeout          = "Pairing timed out, please try again"
-	pairingErrMsgQRTimeout        = "Scanning QR code timed out, please try again"
-	pairingErrMsgStartUnknown     = "Failed to start login"
-	pairingErrMsgWaitUnknown      = "Failed to finish login"
-	pairingErrMsgQRRefreshUnknown = "Failed to refresh QR code"
+	pairingErrMsgNoDevices          = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
+	pairingErrPhoneNotResponding    = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations. Alternatively, try QR pairing"
+	pairingErrMsgIncorrectEmoji     = "Incorrect emoji chosen on phone, please try again"
+	pairingErrMsgCallerNoPermission = "That Google Account doesn't seem to have permission to use Google Messages for Web"
+	pairingErrMsgCancelled          = "Pairing cancelled on phone"
+	pairingErrMsgTimeout            = "Pairing timed out, please try again"
+	pairingErrMsgQRTimeout          = "Scanning QR code timed out, please try again"
+	pairingErrMsgStartUnknown       = "Failed to start login"
+	pairingErrMsgWaitUnknown        = "Failed to finish login"
+	pairingErrMsgQRRefreshUnknown   = "Failed to refresh QR code"
 )
 
 var (
@@ -67,6 +69,7 @@ var (
 	ErrPairCancelled          = bridgev2.RespError{Err: pairingErrMsgCancelled, ErrCode: "FI.MAU.GMESSAGES.PAIR_CANCELLED", StatusCode: http.StatusBadRequest}
 	ErrPairTimeout            = bridgev2.RespError{Err: pairingErrMsgTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_TIMEOUT", StatusCode: http.StatusBadRequest}
 	ErrPairQRTimeout          = bridgev2.RespError{Err: pairingErrMsgQRTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_QR_TIMEOUT", StatusCode: http.StatusBadRequest}
+	ErrPairCallerNoPermission = bridgev2.RespError{Err: pairingErrMsgCallerNoPermission, ErrCode: "FI.MAU.GMESSAGES.ACCOUNT_CANT_PAIR", StatusCode: http.StatusBadRequest}
 	ErrPairStartUnknown       = bridgev2.RespError{Err: pairingErrMsgStartUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
 	ErrPairWaitUnknown        = bridgev2.RespError{Err: pairingErrMsgWaitUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
 	ErrPairQRRefreshUnknown   = bridgev2.RespError{Err: pairingErrMsgQRRefreshUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
@@ -299,11 +302,16 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	emoji, gl.Sess, err = gl.Client.StartGaiaPairing(ctx)
 	if err != nil {
 		gl.Client.Disconnect()
+		var reqErr events.RequestError
 		switch {
 		case errors.Is(err, libgm.ErrNoDevicesFound):
 			return nil, ErrPairNoDevices
 		case errors.Is(err, libgm.ErrPairingInitTimeout):
 			return nil, ErrPairPhoneNotResponding
+		case errors.Is(err, events.ErrCallerNoPermission):
+			return nil, ErrPairCallerNoPermission
+		case errors.As(err, &reqErr) && reqErr.Data != nil:
+			return nil, fmt.Errorf("%w (%w)", ErrPairStartUnknown.AppendMessage(": unexpected Google error %d", reqErr.Data.Type), err)
 		default:
 			return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
 		}
@@ -324,6 +332,7 @@ func (gl *GoogleLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, er
 	phoneID, err := gl.Client.FinishGaiaPairing(ctx, gl.Sess)
 	if err != nil {
 		gl.Client.Disconnect()
+		var reqErr events.RequestError
 		switch {
 		case errors.Is(err, libgm.ErrIncorrectEmoji):
 			return nil, ErrPairIncorrectEmoji
@@ -334,6 +343,8 @@ func (gl *GoogleLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, er
 		case errors.Is(err, context.Canceled):
 			// This should only happen if the client already disconnected, so clients will probably never see this error code.
 			return nil, err
+		case errors.As(err, &reqErr) && reqErr.Data != nil:
+			return nil, fmt.Errorf("%w (%w)", ErrPairWaitUnknown.AppendMessage(": unexpected Google error %d", reqErr.Data.Type), err)
 		default:
 			return nil, fmt.Errorf("%w: %w", ErrPairWaitUnknown, err)
 		}

@@ -41,6 +41,13 @@ var ErrInvalidCredentials = RequestError{
 	},
 }
 
+var ErrCallerNoPermission = RequestError{
+	Data: &gmproto.ErrorResponse{
+		Type:    7,
+		Message: "The caller does not have permission",
+	},
+}
+
 type RequestError struct {
 	Data *gmproto.ErrorResponse
 	HTTP *HTTPError
