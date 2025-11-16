@@ -1,3 +1,8 @@
+# v25.11
+
+* Added better error messages for some login errors.
+* Removed MMS media size limits (the phone will compress all sent media).
+
 # v25.10
 
 * Switched to calendar versioning.
