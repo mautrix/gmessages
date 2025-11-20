@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -213,6 +214,11 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 	}
 	if err != nil {
 		return nil, err
+	}
+	if resp.Conversation == nil {
+		rawProto, _ := proto.Marshal(resp)
+		log.Warn().Str("raw_response", base64.StdEncoding.EncodeToString(rawProto)).Msg("No conversation data in create group response?")
+		return nil, fmt.Errorf("no conversation data in response (status: %s)", resp.GetStatus())
 	}
 	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
 	convCopy.LatestMessage = nil
