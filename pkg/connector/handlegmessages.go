@@ -1336,6 +1336,9 @@ func (gc *GMClient) convertGoogleMedia(ctx context.Context, portal *bridgev2.Por
 		mediaID = msg.ThumbnailMediaID
 		data, err = gc.Client.DownloadMedia(msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
 		isThumbnail = true
+	} else if len(msg.GetMediaData()) > 0 {
+		mediaID = "inline"
+		data = msg.GetMediaData()
 	} else {
 		err = fmt.Errorf("no media ID found")
 	}
