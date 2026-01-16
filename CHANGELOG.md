@@ -1,3 +1,10 @@
+# v26.01
+
+* Updated Docker image to Alpine 3.23.
+* Added support for certain types of media messages from Google Messages where
+  the media is embedded rather than available as a separate download.
+* Fixed panic if group creation fails.
+
 # v25.11
 
 * Added better error messages for some login errors.
