@@ -42,6 +42,22 @@ type conversationMeta struct {
 	readUpToTS            time.Time
 }
 
+type cachedParticipantName struct {
+	FullName  string
+	FirstName string
+	CachedAt  time.Time
+}
+
+const participantNameCacheTTL = 3 * time.Minute
+
+func (gc *GMClient) cleanupParticipantNameCache() {
+	for participantID, cached := range gc.participantNameCache.CopyData() {
+		if time.Since(cached.CachedAt) > participantNameCacheTTL {
+			gc.participantNameCache.Delete(participantID)
+		}
+	}
+}
+
 type GMClient struct {
 	Main      *GMConnector
 	UserLogin *bridgev2.UserLogin
@@ -66,6 +82,7 @@ type GMClient struct {
 	lastDataReceived            time.Time
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
+	participantNameCache *exsync.Map[string, cachedParticipantName]
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 }
@@ -78,11 +95,12 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		UserLogin: login,
 		Meta:      login.Metadata.(*UserLoginMetadata),
 
-		longPollingError:  errors.New("not connected"),
-		PhoneResponding:   true,
-		fullMediaRequests: exsync.NewSet[fullMediaRequestKey](),
-		conversationMeta:  make(map[string]*conversationMeta),
-		chatInfoCache:     exsync.NewMap[string, *gmproto.Conversation](),
+		longPollingError:     errors.New("not connected"),
+		PhoneResponding:      true,
+		fullMediaRequests:    exsync.NewSet[fullMediaRequestKey](),
+		conversationMeta:     make(map[string]*conversationMeta),
+		chatInfoCache:        exsync.NewMap[string, *gmproto.Conversation](),
+		participantNameCache: exsync.NewMap[string, cachedParticipantName](),
 	}
 	gcli.NewClient()
 	login.Client = gcli
