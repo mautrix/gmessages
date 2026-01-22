@@ -110,6 +110,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	}
 	hasSelf := false
 	for _, pcp := range conv.Participants {
+		log.Trace().Any("participant", pcp).Msg("Processing conversation participant")
 		if pcp.IsMe {
 			hasSelf = true
 			if gc.Meta.AddSelfParticipantID(pcp.ID.ParticipantID) {
@@ -213,22 +214,50 @@ func phoneNumberMightHaveAvatar(phone string) bool {
 	return strings.HasSuffix(phone, ".goog") || phone == GeminiPhoneNumber
 }
 
+// cacheOrGetName caches the name if provided, or returns a cached name if the provided one is empty.
+func (gc *GMClient) cacheOrGetName(participantID, fullName, firstName string) (string, string) {
+	if participantID == "" {
+		return fullName, firstName
+	}
+	if fullName != "" {
+		gc.participantNameCache.Set(participantID, cachedParticipantName{
+			FullName:  fullName,
+			FirstName: firstName,
+			CachedAt:  time.Now(),
+		})
+	} else if cached, ok := gc.participantNameCache.Get(participantID); ok && time.Since(cached.CachedAt) < participantNameCacheTTL {
+		fullName = cached.FullName
+		firstName = cached.FirstName
+	}
+	return fullName, firstName
+}
+
 func (gc *GMClient) wrapParticipantInfo(contact *gmproto.Participant) *bridgev2.UserInfo {
+	fullName, firstName := gc.cacheOrGetName(
+		contact.GetID().GetParticipantID(),
+		contact.GetFullName(),
+		contact.GetFirstName(),
+	)
 	return gc.makeUserInfo(
 		contact.GetID().GetNumber(),
 		contact.GetFormattedNumber(),
 		contact.GetContactID(),
-		contact.GetFullName(),
-		contact.GetFirstName(),
+		fullName,
+		firstName,
 	)
 }
 
 func (gc *GMClient) wrapContactInfo(contact *gmproto.Contact) *bridgev2.UserInfo {
+	fullName, _ := gc.cacheOrGetName(
+		contact.GetParticipantID(),
+		contact.GetName(),
+		"",
+	)
 	return gc.makeUserInfo(
 		contact.GetNumber().GetNumber(),
 		contact.GetNumber().GetFormattedNumber(),
 		contact.GetContactID(),
-		contact.GetName(),
+		fullName,
 		"",
 	)
 }
