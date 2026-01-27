@@ -311,9 +311,8 @@ func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error)
 		return nil, err
 	}
 	util.BuildRelayHeaders(req, "", "*/*")
-	if c.AuthData != nil {
-		c.AuthData.AddCookiesToRequest(req)
-	}
+	req.Header.Del("x-user-agent")
+	req.Header.Del("x-goog-api-key")
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
