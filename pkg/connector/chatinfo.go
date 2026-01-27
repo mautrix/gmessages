@@ -148,10 +148,15 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	} else if conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED {
 		tag = event.RoomTagLowPriority
 	}
+	var avatar *bridgev2.Avatar
+	if conv.GroupAvatarURL != "" {
+		avatar = gc.makeGroupAvatarFromURL(conv.GroupAvatarURL)
+	}
 	return &bridgev2.ChatInfo{
 		Name:    name,
 		Members: members,
 		Type:    &roomType,
+		Avatar:  avatar,
 		UserLocal: &bridgev2.UserLocalPortalInfo{
 			Tag: &tag,
 		},
@@ -171,6 +176,16 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				changed = true
 			}
 			return
+		},
+	}
+}
+
+func (gc *GMClient) makeGroupAvatarFromURL(url string) *bridgev2.Avatar {
+	avatarID := networkid.AvatarID(url)
+	return &bridgev2.Avatar{
+		ID: avatarID,
+		Get: func(ctx context.Context) ([]byte, error) {
+			return gc.Client.DownloadAvatar(ctx, url)
 		},
 	}
 }

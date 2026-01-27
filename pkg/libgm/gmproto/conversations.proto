@@ -196,6 +196,8 @@ message Conversation {
     bool thirdType = 29;
     SomeKindOfGroupID someKindOfGroupID = 31;
     settings.SIMCard simCard = 32;
+    // URL for group conversation icon (observed on RCS group chats).
+    string groupAvatarURL = 34;
     AnotherMessageID latestMessageAnoherID = 35;
 }
 

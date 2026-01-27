@@ -2,6 +2,7 @@ package libgm
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -302,4 +303,23 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to decrypt media: %w", err)
 	}
 	return decryptedImageBytes, nil
+}
+
+func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	util.BuildRelayHeaders(req, "", "*/*")
+	req.Header.Del("x-user-agent")
+	req.Header.Del("x-goog-api-key")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("avatar download http %d", resp.StatusCode)
+	}
+	return io.ReadAll(resp.Body)
 }
