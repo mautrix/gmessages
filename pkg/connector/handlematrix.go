@@ -324,7 +324,20 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 		}
 		phone = ghost.Metadata.(*GhostMetadata).Phone
 		if phone == "" {
-			return fmt.Errorf("phone number not available for ghost %s", ghost.ID)
+			// Fallback: fetch conversation from Google to get phone number
+			conv, err := gc.Client.GetConversation(convID)
+			if err != nil {
+				return fmt.Errorf("failed to get conversation for phone number: %w", err)
+			}
+			for _, pcp := range conv.Participants {
+				if pcp.IsVisible && !pcp.IsMe && pcp.ID.Number != "" {
+					phone = pcp.ID.Number
+					break
+				}
+			}
+		}
+		if phone == "" {
+			return fmt.Errorf("phone number not available for conversation %s", convID)
 		}
 	}
 	if err := gc.Client.DeleteConversation(convID, phone); err != nil {
