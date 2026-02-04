@@ -1119,7 +1119,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			LastTarget: dbm[0].ID,
 		})
 	} else if cachedMeta, ok := m.g.chatInfoCache.Get(m.ConversationID); needsGroupReadReceipt && ok {
-		names := getNamesFromChatInfo(cachedMeta)
+		names := m.g.getNamesFromChatInfo(cachedMeta)
 		existingMeta.GlobalStatusText = m.GetMessageStatus().GetStatusText()
 		var newReadBy []string
 		for readName := range strings.SplitSeq(strings.TrimPrefix(existingMeta.GlobalStatusText, "Read by "), ", ") {
@@ -1174,22 +1174,51 @@ func (nl *nameList) Pop() (name string) {
 	return
 }
 
-func getNamesFromChatInfo(chatInfo *gmproto.Conversation) map[string]*nameList {
+func (gc *GMClient) getNamesFromChatInfo(chatInfo *gmproto.Conversation) map[string]*nameList {
 	out := make(map[string]*nameList)
 	for _, participant := range chatInfo.GetParticipants() {
-		name := participant.FirstName
-		if name == "" {
-			name = participant.FormattedNumber
-		}
-		if participant.IsMe || name == "" || participant.GetID().GetParticipantID() == "" {
+		if participant.IsMe || participant.GetID().GetParticipantID() == "" {
 			continue
 		}
-		nl, ok := out[name]
-		if !ok {
-			nl = &nameList{}
-			out[name] = nl
+		participantID := participant.GetID().GetParticipantID()
+
+		firstName := participant.FirstName
+		fullName := participant.FullName
+
+		// Try to use cached name if current data is missing names
+		if firstName == "" && fullName == "" {
+			if cached, ok := gc.participantNameCache.Get(participantID); ok && time.Since(cached.CachedAt) < participantNameCacheTTL {
+				firstName = cached.FirstName
+				fullName = cached.FullName
+			}
 		}
-		nl.Add(participant.ID.ParticipantID, participant.IsVisible)
+
+		// Get or create the nameList for this participant
+		// We'll add the same participant under multiple name keys
+		var nl *nameList
+		addName := func(name string) {
+			if name == "" {
+				return
+			}
+			existing, ok := out[name]
+			if !ok {
+				if nl == nil {
+					nl = &nameList{}
+				}
+				out[name] = nl
+			} else {
+				nl = existing
+			}
+		}
+
+		// Add all name variations so lookup works regardless of which Google uses
+		addName(firstName)
+		addName(fullName)
+		addName(participant.FormattedNumber)
+
+		if nl != nil {
+			nl.Add(participantID, participant.IsVisible)
+		}
 	}
 	return out
 }
