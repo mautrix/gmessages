@@ -1,3 +1,9 @@
+# v26.02
+
+* Bumped minimum Go version to 1.25.
+* Added group avatar support in RCS groups.
+* Fixed deleting chats where the ghost phone number isn't cached.
+
 # v26.01
 
 * Updated Docker image to Alpine 3.23.
