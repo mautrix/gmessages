@@ -144,11 +144,15 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *gmproto.Conversation:
 		gc.chatInfoCache.Set(evt.ConversationID, evt)
 		gc.noDataReceivedRecently = false
+		gc.noDataReceivedCount = 0
+		gc.staleSessionReconnectAttempted = false
 		gc.lastDataReceived = time.Now()
 		go gc.syncConversation(ctx, evt, "event")
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		gc.noDataReceivedRecently = false
+		gc.noDataReceivedCount = 0
+		gc.staleSessionReconnectAttempted = false
 		gc.lastDataReceived = time.Now()
 		if evt.GetTimestamp() > gc.lastDataReceived.UnixMicro() {
 			gc.lastDataReceived = time.UnixMicro(evt.GetTimestamp())
@@ -216,6 +220,27 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		gc.handleAccountChange(ctx, evt)
 	case *events.NoDataReceived:
 		gc.noDataReceivedRecently = true
+		gc.noDataReceivedCount++
+		log.Warn().
+			Int("no_data_count", gc.noDataReceivedCount).
+			Bool("reconnect_attempted", gc.staleSessionReconnectAttempted).
+			Msg("No data received from phone recently")
+		if gc.noDataReceivedCount == 1 && !gc.staleSessionReconnectAttempted {
+			// First occurrence: try reconnecting to recover
+			gc.staleSessionReconnectAttempted = true
+			go func() {
+				log.Info().Msg("Attempting reconnect due to stale session")
+				gc.ResetClient()
+				gc.Connect(ctx)
+			}()
+		} else if gc.noDataReceivedCount >= 2 {
+			// Second consecutive no-data after reconnect: session is stale
+			log.Error().Msg("Session appears stale after reconnect attempt, marking as BAD_CREDENTIALS")
+			go gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMStaleSession,
+			}, true)
+		}
 	case *events.PairSuccessful:
 		log.Warn().Any("data", evt).Msg("Unexpected pair successful event")
 	default:
