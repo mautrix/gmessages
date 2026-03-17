@@ -42,6 +42,8 @@ type conversationMeta struct {
 	readUpToTS            time.Time
 }
 
+const contactsCacheTTL = 5 * time.Minute
+
 type GMClient struct {
 	Main      *GMConnector
 	UserLogin *bridgev2.UserLogin
@@ -66,6 +68,9 @@ type GMClient struct {
 	lastDataReceived            time.Time
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
+	contactsCache        map[string]*gmproto.Contact
+	contactsCacheTS      time.Time
+	contactsCacheLock    sync.Mutex
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 }
@@ -159,6 +164,7 @@ func (gc *GMClient) Disconnect() {
 	gc.SwitchedToGoogleLogin = false
 	gc.ready = false
 	gc.browserInactiveType = ""
+	gc.clearContactsCache()
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
 	}
@@ -179,6 +185,37 @@ func (gc *GMClient) NewClient() {
 		gc.Client = libgm.NewClient(sess, gc.Meta.PublicPushKeys(), gc.UserLogin.Log.With().Str("component", "libgm").Logger())
 		gc.Client.SetEventHandler(gc.handleGMEvent)
 	}
+}
+
+func (gc *GMClient) clearContactsCache() {
+	gc.contactsCacheLock.Lock()
+	defer gc.contactsCacheLock.Unlock()
+
+	gc.contactsCache = nil
+	gc.contactsCacheTS = time.Time{}
+}
+
+func (gc *GMClient) getContactByParticipantID(ctx context.Context, participantID string) (*gmproto.Contact, error) {
+	gc.contactsCacheLock.Lock()
+	defer gc.contactsCacheLock.Unlock()
+
+	if time.Since(gc.contactsCacheTS) > contactsCacheTTL || gc.contactsCache == nil {
+		contacts, err := gc.Client.ListContacts()
+		if err != nil {
+			return nil, err
+		}
+
+		cache := make(map[string]*gmproto.Contact, len(contacts.GetContacts()))
+		for _, contact := range contacts.GetContacts() {
+			if key := contact.GetParticipantID(); key != "" {
+				cache[key] = contact
+			}
+		}
+		gc.contactsCache = cache
+		gc.contactsCacheTS = time.Now()
+	}
+
+	return gc.contactsCache[participantID], nil
 }
 
 func (gc *GMClient) IsLoggedIn() bool {

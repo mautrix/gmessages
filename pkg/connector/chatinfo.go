@@ -66,7 +66,19 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 }
 
 func (gc *GMClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost) (*bridgev2.UserInfo, error) {
-	return nil, nil
+	participantID, err := gc.ParseUserID(ghost.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	contact, err := gc.getContactByParticipantID(ctx, participantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contact by participant ID: %w", err)
+	}
+	if contact == nil {
+		return nil, nil
+	}
+	return gc.wrapContactInfo(contact), nil
 }
 
 func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation) *bridgev2.ChatInfo {
