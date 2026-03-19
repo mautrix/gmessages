@@ -62,14 +62,14 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED:
 		return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
 	}
-	return gc.wrapChatInfo(ctx, conv), nil
+	return gc.wrapChatInfo(ctx, conv)
 }
 
 func (gc *GMClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost) (*bridgev2.UserInfo, error) {
 	return nil, nil
 }
 
-func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation) *bridgev2.ChatInfo {
+func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation) (*bridgev2.ChatInfo, error) {
 	log := zerolog.Ctx(ctx)
 	roomType := database.RoomTypeDefault
 	if !conv.IsGroupChat {
@@ -122,9 +122,13 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			log.Debug().Any("participant", pcp).Msg("Ignoring fake participant")
 		} else {
 			userID := gc.MakeUserID(pcp.ID.ParticipantID)
+			ghost, err := gc.Main.br.GetGhostByID(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
 			members.MemberMap[userID] = bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
-				UserInfo:    gc.wrapParticipantInfo(pcp),
+				UserInfo:    gc.wrapParticipantInfo(ghost, pcp),
 				PowerLevel:  ptr.Ptr(50),
 			}
 		}
@@ -177,7 +181,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			}
 			return
 		},
-	}
+	}, nil
 }
 
 func (gc *GMClient) makeGroupAvatarFromURL(url string) *bridgev2.Avatar {
@@ -228,8 +232,9 @@ func phoneNumberMightHaveAvatar(phone string) bool {
 	return strings.HasSuffix(phone, ".goog") || phone == GeminiPhoneNumber
 }
 
-func (gc *GMClient) wrapParticipantInfo(contact *gmproto.Participant) *bridgev2.UserInfo {
+func (gc *GMClient) wrapParticipantInfo(ghost *bridgev2.Ghost, contact *gmproto.Participant) *bridgev2.UserInfo {
 	return gc.makeUserInfo(
+		ghost,
 		contact.GetID().GetNumber(),
 		contact.GetFormattedNumber(),
 		contact.GetContactID(),
@@ -238,8 +243,9 @@ func (gc *GMClient) wrapParticipantInfo(contact *gmproto.Participant) *bridgev2.
 	)
 }
 
-func (gc *GMClient) wrapContactInfo(contact *gmproto.Contact) *bridgev2.UserInfo {
+func (gc *GMClient) wrapContactInfo(ghost *bridgev2.Ghost, contact *gmproto.Contact) *bridgev2.UserInfo {
 	return gc.makeUserInfo(
+		ghost,
 		contact.GetNumber().GetNumber(),
 		contact.GetNumber().GetFormattedNumber(),
 		contact.GetContactID(),
@@ -248,20 +254,29 @@ func (gc *GMClient) wrapContactInfo(contact *gmproto.Contact) *bridgev2.UserInfo
 	)
 }
 
-func (gc *GMClient) makeUserInfo(phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
+func (gc *GMClient) makeUserInfo(ghost *bridgev2.Ghost, phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
 	var identifiers []string
 	if phone != "" {
 		identifiers = append(identifiers, fmt.Sprintf("tel:%s", phone))
 	}
+	name := ptr.Ptr(gc.Main.Config.FormatDisplayname(formattedNumber, fullName, firstName))
+	hasName := fullName != "" || firstName != ""
+	if !hasName && ghost.Metadata.(*GhostMetadata).HasName {
+		name = nil
+	}
 	return &bridgev2.UserInfo{
 		Identifiers: identifiers,
-		Name:        ptr.Ptr(gc.Main.Config.FormatDisplayname(formattedNumber, fullName, firstName)),
+		Name:        name,
 		IsBot:       ptr.Ptr(false),
 		ExtraUpdates: func(ctx context.Context, ghost *bridgev2.Ghost) (changed bool) {
 			meta := ghost.Metadata.(*GhostMetadata)
 			if meta.ContactID != contactID {
 				changed = true
 				meta.ContactID = contactID
+			}
+			if hasName && !meta.HasName {
+				changed = true
+				meta.HasName = true
 			}
 			if meta.Phone != phone {
 				changed = true

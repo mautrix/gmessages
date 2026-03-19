@@ -127,7 +127,10 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		return nil, fmt.Errorf("no conversation ID in response")
 	}
 	portalKey := gc.MakePortalKey(resp.Conversation.ConversationID)
-	portalInfo := gc.wrapChatInfo(ctx, resp.Conversation)
+	portalInfo, err := gc.wrapChatInfo(ctx, resp.Conversation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to wrap chat info: %w", err)
+	}
 	var otherUserID networkid.UserID
 	var otherUserInfo *gmproto.Participant
 	for _, member := range resp.Conversation.Participants {
@@ -145,6 +148,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		otherUserInfo = member
 	}
 	var ghost *bridgev2.Ghost
+	var userInfo *bridgev2.UserInfo
 	if otherUserID == "" {
 		log.Warn().
 			Str("portal_id", string(portalKey.ID)).
@@ -154,12 +158,13 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ghost: %w", err)
 		}
+		userInfo = gc.wrapParticipantInfo(ghost, otherUserInfo)
 	}
 	log.Debug().Str("other_user_id", string(otherUserID)).Str("portal_key", string(portalKey.ID)).Msg("Returning new chat response")
 	return &bridgev2.ResolveIdentifierResponse{
 		Ghost:    ghost,
 		UserID:   otherUserID,
-		UserInfo: gc.wrapParticipantInfo(otherUserInfo),
+		UserInfo: userInfo,
 		Chat: &bridgev2.CreateChatResponse{
 			PortalKey:  portalKey,
 			PortalInfo: portalInfo,
@@ -227,7 +232,10 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 		return nil, fmt.Errorf("no conversation ID in response (status: %s)", resp.GetStatus())
 	}
 	portalKey := gc.MakePortalKey(resp.Conversation.ConversationID)
-	portalInfo := gc.wrapChatInfo(ctx, resp.Conversation)
+	portalInfo, err := gc.wrapChatInfo(ctx, resp.Conversation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to wrap chat info: %w", err)
+	}
 	var portal *bridgev2.Portal
 	if params.RoomID != "" {
 		portal, err = gc.Main.br.GetPortalByKey(ctx, portalKey)
@@ -271,7 +279,7 @@ func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIden
 		resp[i] = &bridgev2.ResolveIdentifierResponse{
 			Ghost:    ghost,
 			UserID:   userID,
-			UserInfo: gc.wrapContactInfo(contact),
+			UserInfo: gc.wrapContactInfo(ghost, contact),
 		}
 	}
 	return resp, nil

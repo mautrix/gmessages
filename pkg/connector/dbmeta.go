@@ -63,9 +63,10 @@ type PortalMetadata struct {
 }
 
 type GhostMetadata struct {
-	Phone          string             `json:"phone"`
-	ContactID      string             `json:"contact_id"`
-	AvatarUpdateTS jsontime.UnixMilli `json:"avatar_update_ts"`
+	Phone          string             `json:"phone,omitempty"`
+	ContactID      string             `json:"contact_id,omitempty"`
+	AvatarUpdateTS jsontime.UnixMilli `json:"avatar_update_ts,omitzero"`
+	HasName        bool               `json:"has_name,omitempty"`
 }
 
 type MessageMetadata struct {

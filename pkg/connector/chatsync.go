@@ -229,7 +229,7 @@ func (evt *GMChatResync) GetChatInfo(ctx context.Context, portal *bridgev2.Porta
 	if evt.OnlyBackfill {
 		return nil, nil
 	}
-	return evt.g.wrapChatInfo(ctx, evt.Conv), nil
+	return evt.g.wrapChatInfo(ctx, evt.Conv)
 }
 
 func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *database.Message) (bool, error) {
