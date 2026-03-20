@@ -31,7 +31,7 @@ const maxRepingTickerTime = 64 * time.Minute
 var pingIDCounter atomic.Uint64
 
 // Goals of the ditto pinger:
-//   - By default, send pings to the phone every 15 minutes when the long polling connection restarts
+//   - By default, send pings to the phone every minute
 //   - If an outgoing request doesn't respond quickly, send a ping immediately
 //   - If a ping caused by a request timeout doesn't respond quickly, send PhoneNotResponding
 //     (the user is probably actively trying to use the bridge)
@@ -54,7 +54,6 @@ type dittoPinger struct {
 	notRespondingSent bool
 
 	stop <-chan struct{}
-	ping <-chan struct{}
 	log  *zerolog.Logger
 }
 
@@ -227,7 +226,7 @@ func (dp *dittoPinger) Loop() {
 			dp.log.Debug().Uint64("ping_id", pingID).Msg("Ditto ping wait short-circuited")
 			pingStart = time.Now()
 			dp.Ping(pingID, shortPingTimeout, 0, newResetter())
-		case <-dp.ping:
+		case <-time.After(1 * time.Minute):
 			pingID := pingIDCounter.Add(1)
 			dp.log.Trace().Uint64("ping_id", pingID).Msg("Doing normal ditto ping")
 			pingStart = time.Now()
@@ -302,15 +301,15 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 	ctx := log.WithContext(context.TODO())
 	log.Debug().Str("listen_uuid", listenReqID).Msg("Long polling starting")
 
-	dittoPing := make(chan struct{}, 1)
-	stopDittoPinger := make(chan struct{})
-	defer close(stopDittoPinger)
-	go (&dittoPinger{
-		ping:   dittoPing,
-		stop:   stopDittoPinger,
-		log:    &log,
-		client: c,
-	}).Loop()
+	if loggedIn {
+		stopDittoPinger := make(chan struct{})
+		defer close(stopDittoPinger)
+		go (&dittoPinger{
+			stop:   stopDittoPinger,
+			log:    &log,
+			client: c,
+		}).Loop()
+	}
 
 	errorCount := 1
 	for c.listenID == listenID {
@@ -394,13 +393,6 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 		}
 		log.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
 		c.longPollingConn = resp.Body
-		if loggedIn {
-			select {
-			case dittoPing <- struct{}{}:
-			default:
-				log.Debug().Msg("Ditto pinger is still waiting for previous ping, skipping new ping")
-			}
-		}
 		if onFirstConnect != nil {
 			go onFirstConnect()
 			onFirstConnect = nil
