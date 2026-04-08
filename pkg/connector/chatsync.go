@@ -236,10 +236,21 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 	if !evt.AllowBackfill {
 		return false, nil
 	}
-	lastMessageTS := time.UnixMicro(evt.Conv.LastMessageTimestamp)
-	return evt.Conv.LastMessageTimestamp != 0 && (latestMessage == nil ||
-		(lastMessageTS.After(latestMessage.Timestamp) &&
-			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID)), nil
+	needsBackfill := evt.Conv.LastMessageTimestamp != 0 && (latestMessage == nil ||
+		(time.UnixMicro(evt.Conv.LastMessageTimestamp).After(latestMessage.Timestamp) &&
+			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID))
+	if !needsBackfill {
+		return false, nil
+	}
+	logEvt := zerolog.Ctx(ctx).Debug().
+		Int64("conv_last_message_ts", evt.Conv.LastMessageTimestamp).
+		Str("conv_latest_message_id", evt.Conv.LatestMessageID)
+	if latestMessage != nil {
+		logEvt.Time("bridged_latest_message_ts", latestMessage.Timestamp).
+			Str("bridged_latest_message_id", string(latestMessage.ID))
+	}
+	logEvt.Msg("Chat needs backfill")
+	return true, nil
 }
 
 func (evt *GMChatResync) DeleteOnlyForMe() bool {
