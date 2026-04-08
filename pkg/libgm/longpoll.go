@@ -52,6 +52,7 @@ type dittoPinger struct {
 	lastPingTime      time.Time
 	pingFails         int
 	notRespondingSent bool
+	pingInterval      time.Duration
 
 	stop <-chan struct{}
 	log  *zerolog.Logger
@@ -226,7 +227,7 @@ func (dp *dittoPinger) Loop() {
 			dp.log.Debug().Uint64("ping_id", pingID).Msg("Ditto ping wait short-circuited")
 			pingStart = time.Now()
 			dp.Ping(pingID, shortPingTimeout, 0, newResetter())
-		case <-time.After(1 * time.Minute):
+		case <-time.After(dp.pingInterval):
 			pingID := pingIDCounter.Add(1)
 			dp.log.Trace().Uint64("ping_id", pingID).Msg("Doing normal ditto ping")
 			pingStart = time.Now()
@@ -305,9 +306,10 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 		stopDittoPinger := make(chan struct{})
 		defer close(stopDittoPinger)
 		go (&dittoPinger{
-			stop:   stopDittoPinger,
-			log:    &log,
-			client: c,
+			pingInterval: c.pingInterval,
+			stop:         stopDittoPinger,
+			log:          &log,
+			client:       c,
 		}).Loop()
 	}
 

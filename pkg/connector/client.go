@@ -177,6 +177,7 @@ func (gc *GMClient) NewClient() {
 	sess := gc.Meta.Session
 	if sess != nil {
 		gc.Client = libgm.NewClient(sess, gc.Meta.PublicPushKeys(), gc.UserLogin.Log.With().Str("component", "libgm").Logger())
+		gc.Client.SetPingInterval(gc.Main.Config.PingInterval)
 		gc.Client.SetEventHandler(gc.handleGMEvent)
 	}
 }

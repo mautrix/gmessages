@@ -20,6 +20,7 @@ import (
 	_ "embed"
 	"strings"
 	"text/template"
+	"time"
 
 	up "go.mau.fi/util/configupgrade"
 	"gopkg.in/yaml.v3"
@@ -40,6 +41,7 @@ type Config struct {
 	AggressiveReconnect   bool             `yaml:"aggressive_reconnect"`
 	InitialChatSyncCount  int              `yaml:"initial_chat_sync_count"`
 	DeterministicIDPrefix bool             `yaml:"deterministic_id_prefix"`
+	PingInterval          time.Duration    `yaml:"ping_interval"`
 
 	displaynameTemplate *template.Template `yaml:"-"`
 }
@@ -86,4 +88,5 @@ func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Str, "device_meta", "type")
 	helper.Copy(up.Bool, "aggressive_reconnect")
 	helper.Copy(up.Int, "initial_chat_sync_count")
+	helper.Copy(up.Str|up.Int, "ping_interval")
 }

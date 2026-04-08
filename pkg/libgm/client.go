@@ -121,6 +121,7 @@ type Client struct {
 	skipCount       int
 	disconnecting   bool
 
+	pingInterval             time.Duration
 	pingShortCircuit         chan struct{}
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
@@ -170,6 +171,7 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client 
 		lphttp:        &http.Client{Transport: transport, Timeout: 30 * time.Minute},
 
 		pingShortCircuit: make(chan struct{}),
+		pingInterval:     1 * time.Minute,
 	}
 	sessionHandler.client = cli
 	return cli
@@ -181,6 +183,12 @@ func (c *Client) CurrentSessionID() string {
 
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
 	c.evHandler = eventHandler
+}
+
+func (c *Client) SetPingInterval(interval time.Duration) {
+	if interval >= 1*time.Minute && interval < 4*time.Hour {
+		c.pingInterval = interval
+	}
 }
 
 func (c *Client) SetProxy(proxy string) error {
