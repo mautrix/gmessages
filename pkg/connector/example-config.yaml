@@ -20,4 +20,4 @@ aggressive_reconnect: false
 # Number of chats to sync when connecting to Google Messages.
 initial_chat_sync_count: 25
 # Interval at which to ping the phone to check if it's still connected.
-ping_interval: 1m
+ping_interval: 20m
