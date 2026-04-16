@@ -1,3 +1,9 @@
+# v26.04
+
+* Fixed ghost names sometimes being replaced with phone numbers even when
+  contact name is available.
+* Made phone ping interval configurable and changed the default to 1 minute.
+
 # v26.02
 
 * Bumped minimum Go version to 1.25.
