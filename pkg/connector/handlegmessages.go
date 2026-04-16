@@ -163,10 +163,17 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Str("tmp_id", evt.GetTmpID()).
 			Bool("is_old", evt.IsOld).
 			Msg("Received message")
-		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
-			WrappedMessage: evt,
-			g:              gc,
-		})
+		if evt.GetMessageStatus().GetStatus() == gmproto.MessageStatusType_MESSAGE_DELETED && gc.syncCount.Load() > 0 {
+			log.Debug().
+				Str("conversation_id", evt.GetConversationID()).
+				Str("message_id", evt.GetMessageID()).
+				Msg("Ignoring MESSAGE_DELETED during resync")
+		} else {
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+				WrappedMessage: evt,
+				g:              gc,
+			})
+		}
 	case *gmproto.TypingData:
 		timeout := 15 * time.Second
 		if evt.Type == gmproto.TypingTypes_STOPPED_TYPING {
@@ -284,7 +291,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
+	case gmproto.AlertType_MOBILE_DATABASE_SYNC_STARTED:
+		log.Debug().Msg("Mobile database sync started")
+		gc.syncCount.Add(1)
 	case gmproto.AlertType_MOBILE_DATABASE_SYNC_COMPLETE:
+		gc.syncCount.Add(-1)
 		log.Debug().Msg("Making minimal sync due to mobile database sync complete event")
 		go gc.SyncConversations(ctx, gc.lastDataReceived, true)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
