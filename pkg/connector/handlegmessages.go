@@ -613,6 +613,12 @@ var (
 func (m *MessageEvent) GetType() bridgev2.RemoteEventType {
 	switch m.GetMessageStatus().GetStatus() {
 	case gmproto.MessageStatusType_MESSAGE_DELETED:
+		// Ignore deletion events with zero timestamp, as those are spurious
+		// events pushed during mobile database syncs that don't represent
+		// actual user-initiated deletions.
+		if m.Timestamp == 0 {
+			return bridgev2.RemoteEventUnknown
+		}
 		return bridgev2.RemoteEventMessageRemove
 	default:
 		return bridgev2.RemoteEventMessageUpsert
