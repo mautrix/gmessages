@@ -171,7 +171,7 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client 
 		lphttp:        &http.Client{Transport: transport, Timeout: 30 * time.Minute},
 
 		pingShortCircuit: make(chan struct{}),
-		pingInterval:     5 * time.Minute,
+		pingInterval:     1 * time.Minute,
 	}
 	sessionHandler.client = cli
 	return cli
