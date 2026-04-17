@@ -156,6 +156,15 @@ func (c *Client) NotifyDittoActivity() (<-chan *IncomingRPCMessage, error) {
 	})
 }
 
+func (c *Client) ackBrowserPresence() {
+	err := c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+		Action: gmproto.ActionType_ACK_BROWSER_PRESENCE,
+	})
+	if err != nil {
+		c.Logger.Warn().Err(err).Msg("Failed to ack browser presence")
+	}
+}
+
 func (c *Client) GetFullSizeImage(messageID, actionMessageID string) (*gmproto.GetFullSizeImageResponse, error) {
 	payload := &gmproto.GetFullSizeImageRequest{MessageID: messageID, ActionMessageID: actionMessageID}
 	actionType := gmproto.ActionType_GET_FULL_SIZE_IMAGE
