@@ -279,6 +279,10 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			}
 			c.triggerEvent(evt.TypingEvent.GetData())
 
+		case *gmproto.UpdateEvents_BrowserPresenceCheckEvent:
+			c.Logger.Trace().Msg("Got browser presence check, sending ack")
+			go c.ackBrowserPresence()
+
 		case *gmproto.UpdateEvents_AccountChange:
 			c.logContent(msg, "", nil)
 			c.triggerEvent(&events.AccountChange{
