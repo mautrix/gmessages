@@ -64,7 +64,8 @@ type GMClient struct {
 	didHackySetActive           bool
 	noDataReceivedRecently      bool
 	lastDataReceived            time.Time
-	syncCount                   atomic.Int32
+	syncingConversations        atomic.Bool
+	syncingMobileDatabase       atomic.Bool
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	conversationMeta     map[string]*conversationMeta
