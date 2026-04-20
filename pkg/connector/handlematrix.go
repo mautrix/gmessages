@@ -79,19 +79,38 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 }
 
 func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *database.Message) (saveMessage bool, statusErr error) {
-	evt := rawEvt.(*MessageEvent)
-	_, textHash := getTextPart(evt.Message)
-	meta := &MessageMetadata{
-		IsOutgoing:      true,
-		Type:            evt.GetMessageStatus().GetStatus(),
-		TextHash:        textHash,
-		GlobalPartCount: len(evt.MessageInfo),
-	}
-	for _, part := range evt.GetMessageInfo() {
-		if part.GetMediaContent() != nil {
-			meta.MediaPartID = part.GetActionMessageID()
-			meta.MediaID = part.GetMediaContent().GetMediaID()
+	var meta *MessageMetadata
+	switch evt := rawEvt.(type) {
+	case *MessageEvent:
+		_, textHash := getTextPart(evt.Message)
+		meta = &MessageMetadata{
+			IsOutgoing:      true,
+			Type:            evt.GetMessageStatus().GetStatus(),
+			TextHash:        textHash,
+			GlobalPartCount: len(evt.MessageInfo),
 		}
+		for _, part := range evt.GetMessageInfo() {
+			if part.GetMediaContent() != nil {
+				meta.MediaPartID = part.GetActionMessageID()
+				meta.MediaID = part.GetMediaContent().GetMediaID()
+			}
+		}
+	case *bridgev2.BackfillMessage:
+		if len(evt.ConvertedMessage.Parts) > 0 {
+			if len(evt.ConvertedMessage.Parts) > 1 {
+				gc.UserLogin.Log.Warn().
+					Str("message_id", string(dbMessage.ID)).
+					Msg("Got remote echo for pending message with multiple parts")
+			}
+			meta = evt.ConvertedMessage.Parts[0].DBMetadata.(*MessageMetadata)
+			meta.IsOutgoing = true
+		} else {
+			gc.UserLogin.Log.Warn().
+				Str("message_id", string(dbMessage.ID)).
+				Msg("Got remote echo for pending message with no parts")
+		}
+	default:
+		panic(fmt.Errorf("unexpected event type in remote echo handler: %T", rawEvt))
 	}
 	if gc.Main.br.Config.OutgoingMessageReID {
 		meta.OrigMXID = dbMessage.MXID
