@@ -79,18 +79,17 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 }
 
 func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *database.Message) (saveMessage bool, statusErr error) {
-	evt := rawEvt.(*MessageEvent)
-	_, textHash := getTextPart(evt.Message)
-	meta := &MessageMetadata{
-		IsOutgoing:      true,
-		Type:            evt.GetMessageStatus().GetStatus(),
-		TextHash:        textHash,
-		GlobalPartCount: len(evt.MessageInfo),
-	}
-	for _, part := range evt.GetMessageInfo() {
-		if part.GetMediaContent() != nil {
-			meta.MediaPartID = part.GetActionMessageID()
-			meta.MediaID = part.GetMediaContent().GetMediaID()
+	meta := &MessageMetadata{IsOutgoing: true}
+	if evt, ok := rawEvt.(*MessageEvent); ok {
+		_, textHash := getTextPart(evt.Message)
+		meta.Type = evt.GetMessageStatus().GetStatus()
+		meta.TextHash = textHash
+		meta.GlobalPartCount = len(evt.MessageInfo)
+		for _, part := range evt.GetMessageInfo() {
+			if part.GetMediaContent() != nil {
+				meta.MediaPartID = part.GetActionMessageID()
+				meta.MediaID = part.GetMediaContent().GetMediaID()
+			}
 		}
 	}
 	if gc.Main.br.Config.OutgoingMessageReID {
