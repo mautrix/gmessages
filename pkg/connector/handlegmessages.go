@@ -100,6 +100,13 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Phone is responding again")
 			gc.phoneNotRespondingAlertSent = false
 		}
+		// Sync conversations after phone reconnection to backfill messages that
+		// arrived while the phone was unreachable. GET_UPDATES alone only returns
+		// the latest events per conversation, not a full history replay, so
+		// conversations with gaps will have missing messages without this.
+		if gc.ready {
+			go gc.SyncConversations(ctx, gc.lastDataReceived, false)
+		}
 	case *events.HackySetActiveMayFail:
 		go gc.hackyResetActive()
 	case *events.PingFailed:
