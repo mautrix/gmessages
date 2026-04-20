@@ -31,6 +31,8 @@ import (
 )
 
 func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
+	gc.syncingConversations.Store(true)
+	defer gc.syncingConversations.Store(false)
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("Fetching conversation list")
 	resp, err := gc.Client.ListConversations(gc.Main.Config.InitialChatSyncCount, gmproto.ListConversationsRequest_INBOX)
