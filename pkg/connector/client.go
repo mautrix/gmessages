@@ -70,6 +70,10 @@ type GMClient struct {
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
+
+	contactsFetchLock sync.Mutex
+	contactsFetchedAt time.Time
+	cachedContacts    []*bridgev2.ResolveIdentifierResponse
 }
 
 var _ bridgev2.NetworkAPI = &GMClient{}

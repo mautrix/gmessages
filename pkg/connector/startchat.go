@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ptr"
@@ -265,6 +266,14 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 }
 
 func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIdentifierResponse, error) {
+	gc.contactsFetchLock.Lock()
+	defer gc.contactsFetchLock.Unlock()
+	if time.Since(gc.contactsFetchedAt) < 5*time.Minute || !gc.PhoneResponding {
+		return gc.cachedContacts, nil
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	contacts, err := gc.Client.ListContacts()
 	if err != nil {
 		return nil, err
@@ -282,5 +291,7 @@ func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIden
 			UserInfo: gc.wrapContactInfo(ghost, contact),
 		}
 	}
+	gc.cachedContacts = resp
+	gc.contactsFetchedAt = time.Now()
 	return resp, nil
 }
