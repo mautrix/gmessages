@@ -21,3 +21,8 @@ aggressive_reconnect: false
 initial_chat_sync_count: 25
 # Interval at which to ping the phone to check if it's still connected.
 ping_interval: 20m
+# How many ping timeouts should happen before a bridge state update is sent?
+# This only starts counting after a normal ping doesn't respond within a minute.
+# After that, new pings are sent with doubled timeouts (up to an hour).
+# The default value of 4 means 1 + 2 + 4 + 8 = 15 minutes of no response before a notice.
+alert_timeout_count: 4

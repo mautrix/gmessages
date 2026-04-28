@@ -53,6 +53,7 @@ type dittoPinger struct {
 	pingFails         int
 	notRespondingSent bool
 	pingInterval      time.Duration
+	alertTimeoutCount int
 
 	stop <-chan struct{}
 	log  *zerolog.Logger
@@ -123,7 +124,7 @@ func (dp *dittoPinger) WaitForResponse(pingID uint64, start time.Time, timeout t
 			<-timer.C
 		}
 	case <-timerChan:
-		dp.OnTimeout(pingID, timeout == shortPingTimeout || timeoutCount > 3)
+		dp.OnTimeout(pingID, timeout == shortPingTimeout || timeoutCount >= dp.alertTimeoutCount)
 		repingTickerTime := 1 * time.Minute
 		var repingTicker *time.Ticker
 		var repingTickerChan <-chan time.Time
@@ -306,10 +307,11 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 		stopDittoPinger := make(chan struct{})
 		defer close(stopDittoPinger)
 		go (&dittoPinger{
-			pingInterval: c.pingInterval,
-			stop:         stopDittoPinger,
-			log:          &log,
-			client:       c,
+			pingInterval:      c.pingInterval,
+			alertTimeoutCount: c.alertTimeoutCount,
+			stop:              stopDittoPinger,
+			log:               &log,
+			client:            c,
 		}).Loop()
 	}
 

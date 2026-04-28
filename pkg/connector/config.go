@@ -42,6 +42,7 @@ type Config struct {
 	InitialChatSyncCount  int              `yaml:"initial_chat_sync_count"`
 	DeterministicIDPrefix bool             `yaml:"deterministic_id_prefix"`
 	PingInterval          time.Duration    `yaml:"ping_interval"`
+	AlertTimeoutCount     int              `yaml:"alert_timeout_count"`
 
 	displaynameTemplate *template.Template `yaml:"-"`
 }
@@ -89,4 +90,5 @@ func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Bool, "aggressive_reconnect")
 	helper.Copy(up.Int, "initial_chat_sync_count")
 	helper.Copy(up.Str|up.Int, "ping_interval")
+	helper.Copy(up.Int, "alert_timeout_count")
 }
