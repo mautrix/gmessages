@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -60,10 +61,13 @@ func (ad *AuthData) AddCookiesToRequest(req *http.Request) {
 		return
 	}
 	for name, value := range ad.Cookies {
+		if value == "" {
+			continue
+		}
 		req.AddCookie(&http.Cookie{Name: name, Value: value})
 	}
 	sapisid, ok := ad.Cookies["SAPISID"]
-	if ok {
+	if ok && sapisid != "" {
 		req.Header.Set("Authorization", SAPISIDHash(util.MessagesBaseURL, sapisid))
 	}
 }
@@ -74,8 +78,13 @@ func (ad *AuthData) UpdateCookiesFromResponse(resp *http.Response) {
 	if ad.Cookies == nil {
 		return
 	}
+	now := time.Now()
 	for _, cookie := range resp.Cookies() {
-		ad.Cookies[cookie.Name] = cookie.Value
+		if cookie.Value == "" || cookie.MaxAge < 0 || (!cookie.Expires.IsZero() && cookie.Expires.Before(now)) {
+			delete(ad.Cookies, cookie.Name)
+		} else {
+			ad.Cookies[cookie.Name] = cookie.Value
+		}
 	}
 }
 
@@ -502,11 +511,37 @@ func (c *Client) recoverGoogleSession(ctx context.Context) error {
 	}
 	c.authRefreshLock.Lock()
 	defer c.authRefreshLock.Unlock()
-	c.Logger.Debug().Msg("Reauthenticating Google account session after auth failure")
+	log := c.Logger.With().
+		Strs("cookies_present", c.cookiePresenceSummary()).
+		Logger()
+	log.Debug().Msg("Refreshing config and reauthenticating Google account session after auth failure")
+	if _, err := c.fetchConfig(ctx); err != nil {
+		log.Warn().Err(err).Msg("Failed to refresh config before Google reauthentication")
+	}
 	_, err := c.signInGaiaGetToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to reauthenticate google session: %w", err)
 	}
+	log.Debug().
+		Strs("cookies_present_after", c.cookiePresenceSummary()).
+		Msg("Recovered Google account session after auth failure")
 	c.triggerEvent(&events.AuthTokenRefreshed{})
 	return nil
+}
+
+func (c *Client) cookiePresenceSummary() []string {
+	if c.AuthData == nil {
+		return nil
+	}
+	required := []string{"SID", "HSID", "SSID", "OSID", "APISID", "SAPISID", "__Secure-1PSIDTS"}
+	c.AuthData.CookiesLock.RLock()
+	defer c.AuthData.CookiesLock.RUnlock()
+	present := make([]string, 0, len(required))
+	for _, name := range required {
+		if value, ok := c.AuthData.Cookies[name]; ok && value != "" {
+			present = append(present, name)
+		}
+	}
+	slices.Sort(present)
+	return present
 }
