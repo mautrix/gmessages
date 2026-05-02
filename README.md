@@ -15,3 +15,12 @@ All setup and usage instructions are located on [docs.mau.fi]. Some quick links:
 
 ## Discussion
 Matrix room: [#gmessages:maunium.net](https://matrix.to/#/#gmessages:maunium.net)
+
+## Docker Image
+This fork publishes container images to GitHub Container Registry on pushes to `main`.
+
+Pull the latest image with:
+
+```bash
+docker pull ghcr.io/rusty4444/gmessages-matrix:latest
+```
