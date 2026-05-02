@@ -126,6 +126,7 @@ type Client struct {
 	pingShortCircuit         chan struct{}
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
+	authRefreshLock          sync.Mutex
 
 	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
@@ -415,8 +416,19 @@ func (c *Client) RegisterPush(keys *PushKeys) error {
 }
 
 func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {
+	return c.refreshAuthTokenWithForce(pushKeyOverride, false)
+}
+
+func (c *Client) refreshAuthTokenWithForce(pushKeyOverride *PushKeys, force bool) error {
+	c.authRefreshLock.Lock()
+	defer c.authRefreshLock.Unlock()
 	if c.AuthData.Browser == nil || (time.Until(c.AuthData.TachyonExpiry) > RefreshTachyonBuffer && pushKeyOverride == nil) {
-		return nil
+		if !force {
+			return nil
+		}
+		if c.AuthData.Browser == nil {
+			return nil
+		}
 	}
 	jwk := c.AuthData.RefreshKey
 	requestID := uuid.NewString()
@@ -447,6 +459,7 @@ func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {
 	c.Logger.Debug().
 		Time("tachyon_expiry", c.AuthData.TachyonExpiry).
 		Bool("force_refresh", pushKeyOverride != nil).
+		Bool("force_reauth", force).
 		Bool("include_push_keys", moreParams.GetPushReg() != nil).
 		Msg("Refreshing auth token")
 
@@ -479,6 +492,21 @@ func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {
 	}
 
 	c.updateTachyonAuthToken(resp.GetTokenData())
+	c.triggerEvent(&events.AuthTokenRefreshed{})
+	return nil
+}
+
+func (c *Client) recoverGoogleSession(ctx context.Context) error {
+	if c.AuthData == nil || !c.AuthData.IsGoogleAccount() || !c.AuthData.HasCookies() {
+		return fmt.Errorf("google account cookies not available")
+	}
+	c.authRefreshLock.Lock()
+	defer c.authRefreshLock.Unlock()
+	c.Logger.Debug().Msg("Reauthenticating Google account session after auth failure")
+	_, err := c.signInGaiaGetToken(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to reauthenticate google session: %w", err)
+	}
 	c.triggerEvent(&events.AuthTokenRefreshed{})
 	return nil
 }

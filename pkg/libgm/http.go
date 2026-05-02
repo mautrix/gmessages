@@ -42,21 +42,44 @@ func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string,
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
+	doRequest := func() (*http.Response, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		util.BuildRelayHeaders(req, contentType, "*/*")
+		c.AuthData.AddCookiesToRequest(req)
+		client := c.http
+		if longPoll {
+			client = c.lphttp
+		}
+		res, reqErr := client.Do(req)
+		if reqErr != nil {
+			return res, reqErr
+		}
+		c.AuthData.UpdateCookiesFromResponse(res)
+		return res, nil
 	}
-	util.BuildRelayHeaders(req, contentType, "*/*")
-	c.AuthData.AddCookiesToRequest(req)
-	client := c.http
-	if longPoll {
-		client = c.lphttp
-	}
-	res, reqErr := client.Do(req)
+	res, reqErr := doRequest()
 	if reqErr != nil {
 		return res, reqErr
 	}
-	c.AuthData.UpdateCookiesFromResponse(res)
+	if res != nil &&
+		(res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden) &&
+		c.AuthData != nil &&
+		c.AuthData.IsGoogleAccount() &&
+		c.AuthData.HasCookies() &&
+		url != util.RegisterRefreshURL &&
+		url != util.SignInGaiaURL {
+		reauthErr := c.recoverGoogleSession(ctx)
+		if reauthErr != nil {
+			c.Logger.Warn().Err(reauthErr).Str("url", url).Msg("Failed to recover Google session after auth error")
+		} else {
+			_ = res.Body.Close()
+			c.Logger.Debug().Str("url", url).Msg("Retrying request after recovering Google session")
+			return doRequest()
+		}
+	}
 	return res, nil
 }
 
