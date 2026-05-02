@@ -31,7 +31,7 @@ func (rse *responseStatusError) Error() string {
 	switch rse.Status {
 	case 0:
 		if rse.GoogleAccountSwitch != nil && strings.ContainsRune(rse.GoogleAccountSwitch.GetAccount(), '@') {
-			return "Switch back to QR pairing or log in with Google account to send messages"
+			return "Re-link with Google account pairing to send messages"
 		}
 	case gmproto.SendMessageResponse_FAILURE_2:
 		return "Unknown permanent error"

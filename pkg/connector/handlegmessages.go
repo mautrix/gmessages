@@ -100,6 +100,11 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Phone is responding again")
 			gc.phoneNotRespondingAlertSent = false
 		}
+		// GET_UPDATES only returns the latest events per conversation, so do a
+		// full conversation sync after the phone comes back to backfill gaps.
+		if gc.ready {
+			go gc.SyncConversations(ctx, gc.lastDataReceived, false)
+		}
 	case *events.HackySetActiveMayFail:
 		go gc.hackyResetActive()
 	case *events.PingFailed:
@@ -243,9 +248,9 @@ func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountCh
 	gc.SwitchedToGoogleLogin = v.GetEnabled() || v.IsFake
 	if !v.IsFake {
 		if gc.SwitchedToGoogleLogin {
-			//go gc.sendMarkdownBridgeAlert(ctx, true, "Switched to Google account pairing, please switch back or relogin with `login-google`.")
+			//go gc.sendMarkdownBridgeAlert(ctx, true, "Switched to Google account pairing, please log in again to continue using the bridge.")
 		} else {
-			//go gc.sendMarkdownBridgeAlert(ctx, false, "Switched back to QR pairing, bridge should be reconnected")
+			//go gc.sendMarkdownBridgeAlert(ctx, false, "Switched away from Google account pairing, bridge should be reconnected")
 			// Assume connection is ready now even if it wasn't before
 			gc.ready = true
 		}

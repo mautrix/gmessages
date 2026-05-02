@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -34,16 +33,13 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
 const (
 	LoginFlowIDGoogle = "google"
-	LoginFlowIDQR     = "qr"
 )
 
 const (
-	LoginStepIDQR       = "fi.mau.gmessages.qr"
 	LoginStepIDGoogle   = "fi.mau.gmessages.google_account"
 	LoginStepIDEmoji    = "fi.mau.gmessages.emoji"
 	LoginStepIDComplete = "fi.mau.gmessages.complete"
@@ -51,15 +47,13 @@ const (
 
 const (
 	pairingErrMsgNoDevices          = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
-	pairingErrPhoneNotResponding    = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations. Alternatively, try QR pairing"
+	pairingErrPhoneNotResponding    = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations."
 	pairingErrMsgIncorrectEmoji     = "Incorrect emoji chosen on phone, please try again"
 	pairingErrMsgCallerNoPermission = "That Google Account doesn't seem to have permission to use Google Messages for Web"
 	pairingErrMsgCancelled          = "Pairing cancelled on phone"
 	pairingErrMsgTimeout            = "Pairing timed out, please try again"
-	pairingErrMsgQRTimeout          = "Scanning QR code timed out, please try again"
 	pairingErrMsgStartUnknown       = "Failed to start login"
 	pairingErrMsgWaitUnknown        = "Failed to finish login"
-	pairingErrMsgQRRefreshUnknown   = "Failed to refresh QR code"
 )
 
 var (
@@ -68,21 +62,15 @@ var (
 	ErrPairIncorrectEmoji     = bridgev2.RespError{Err: pairingErrMsgIncorrectEmoji, ErrCode: "FI.MAU.GMESSAGES.PAIR_INCORRECT_EMOJI", StatusCode: http.StatusBadRequest}
 	ErrPairCancelled          = bridgev2.RespError{Err: pairingErrMsgCancelled, ErrCode: "FI.MAU.GMESSAGES.PAIR_CANCELLED", StatusCode: http.StatusBadRequest}
 	ErrPairTimeout            = bridgev2.RespError{Err: pairingErrMsgTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_TIMEOUT", StatusCode: http.StatusBadRequest}
-	ErrPairQRTimeout          = bridgev2.RespError{Err: pairingErrMsgQRTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_QR_TIMEOUT", StatusCode: http.StatusBadRequest}
 	ErrPairCallerNoPermission = bridgev2.RespError{Err: pairingErrMsgCallerNoPermission, ErrCode: "FI.MAU.GMESSAGES.ACCOUNT_CANT_PAIR", StatusCode: http.StatusBadRequest}
 	ErrPairStartUnknown       = bridgev2.RespError{Err: pairingErrMsgStartUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
 	ErrPairWaitUnknown        = bridgev2.RespError{Err: pairingErrMsgWaitUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
-	ErrPairQRRefreshUnknown   = bridgev2.RespError{Err: pairingErrMsgQRRefreshUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
 )
 
 var LoginFlows = []bridgev2.LoginFlow{{
 	Name:        "Google Account",
 	Description: "Log in with your Google account and pair by tapping an emoji on your phone",
 	ID:          LoginFlowIDGoogle,
-}, {
-	Name:        "QR",
-	Description: "Pair by scanning a QR code on your phone",
-	ID:          LoginFlowIDQR,
 }}
 
 func (gc *GMConnector) GetLoginFlows() []bridgev2.LoginFlow {
@@ -93,91 +81,8 @@ func (gc *GMConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flo
 	switch flowID {
 	case LoginFlowIDGoogle:
 		return &GoogleLoginProcess{Main: gc, User: user}, nil
-	case LoginFlowIDQR:
-		return &QRLoginProcess{Main: gc, User: user, MaxAttempts: 6}, nil
 	default:
 		return nil, fmt.Errorf("unknown login flow %s", flowID)
-	}
-}
-
-type QRLoginProcess struct {
-	Main        *GMConnector
-	User        *bridgev2.User
-	Client      *libgm.Client
-	PairSuccess chan *gmproto.PairedData
-	PrevStart   time.Time
-	MaxAttempts int
-}
-
-var _ bridgev2.LoginProcessDisplayAndWait = (*QRLoginProcess)(nil)
-
-func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
-	ql.PairSuccess = make(chan *gmproto.PairedData)
-	ql.Client = libgm.NewClient(libgm.NewAuthData(), nil, ql.User.Log.With().Str("component", "libgm").Str("parent_action", "qr pair").Logger())
-	ql.Client.SetEventHandler(func(evt any) {
-		ql.Client.Logger.Warn().Type("event_type", evt).Msg("Unexpected pre-pairing event")
-	})
-	callback := func(data *gmproto.PairedData) {
-		ql.PairSuccess <- data
-	}
-	ql.Client.PairCallback.Store(&callback)
-	err := ql.Client.FetchConfig(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
-	}
-	qr, err := ql.Client.StartLogin()
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
-	}
-	ql.PrevStart = time.Now()
-	return &bridgev2.LoginStep{
-		Type:         bridgev2.LoginStepTypeDisplayAndWait,
-		StepID:       LoginStepIDQR,
-		Instructions: "Scan the QR code using the Google Messages app on your Android phone",
-		DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
-			Type: bridgev2.LoginDisplayTypeQR,
-			Data: qr,
-		},
-	}, nil
-}
-
-func (ql *QRLoginProcess) Cancel() {
-	if ql.Client != nil {
-		ql.Client.Disconnect()
-	}
-}
-
-const QRExpiryTime = 30 * time.Second
-
-func (ql *QRLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error) {
-	after := time.NewTimer(time.Until(ql.PrevStart.Add(QRExpiryTime)))
-	select {
-	case data := <-ql.PairSuccess:
-		return ql.Main.finishLogin(ctx, ql.User, ql.Client, true, data.GetMobile().GetSourceID(), "")
-	case <-after.C:
-		ql.MaxAttempts--
-		if ql.MaxAttempts <= 0 {
-			ql.Client.Disconnect()
-			return nil, ErrPairQRTimeout
-		}
-		newQR, err := ql.Client.RefreshPhoneRelay()
-		if err != nil {
-			ql.Client.Disconnect()
-			return nil, fmt.Errorf("%w: %w", ErrPairQRRefreshUnknown, err)
-		}
-		ql.PrevStart = time.Now()
-		return &bridgev2.LoginStep{
-			Type:         bridgev2.LoginStepTypeDisplayAndWait,
-			StepID:       LoginStepIDQR,
-			Instructions: "Scan the QR code using the Google Messages app on your Android phone",
-			DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
-				Type: bridgev2.LoginDisplayTypeQR,
-				Data: newQR,
-			},
-		}, nil
-	case <-ctx.Done():
-		ql.Client.Disconnect()
-		return nil, ctx.Err()
 	}
 }
 
@@ -349,10 +254,10 @@ func (gl *GoogleLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, er
 			return nil, fmt.Errorf("%w: %w", ErrPairWaitUnknown, err)
 		}
 	}
-	return gl.Main.finishLogin(ctx, gl.User, gl.Client, false, phoneID, gl.Client.AuthData.Mobile.GetSourceID())
+	return gl.Main.finishLogin(ctx, gl.User, gl.Client, phoneID, gl.Client.AuthData.Mobile.GetSourceID())
 }
 
-func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, client *libgm.Client, qr bool, phoneID, remoteName string) (*bridgev2.LoginStep, error) {
+func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, client *libgm.Client, phoneID, remoteName string) (*bridgev2.LoginStep, error) {
 	client.Disconnect()
 	loginID := networkid.UserLoginID(phoneID)
 	var idPrefix string
@@ -378,11 +283,6 @@ func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, cli
 	})
 	if err != nil {
 		return nil, err
-	}
-	if qr {
-		// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,
-		// the phone won't recognize the session the bridge will get unpaired.
-		time.Sleep(2 * time.Second)
 	}
 	ul.Client.Connect(ul.Log.WithContext(context.Background()))
 	return &bridgev2.LoginStep{

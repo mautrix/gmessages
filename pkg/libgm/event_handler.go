@@ -219,6 +219,13 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 	switch msg.Message.Action {
 	case gmproto.ActionType_GET_UPDATES:
 		if msg.DecryptedData == nil && bytes.Equal(msg.Message.UnencryptedData, hackyLoggedOutBytes) {
+			if msg.IsOld {
+				c.Logger.Debug().
+					Bool("is_old", msg.IsOld).
+					Int("skip_count", c.skipCount).
+					Msg("Ignoring stale GaiaLoggedOut from queue replay")
+				return
+			}
 			c.triggerEvent(&events.GaiaLoggedOut{})
 			return
 		}
