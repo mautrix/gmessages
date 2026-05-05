@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exhttp"
 	"go.mau.fi/util/pblite"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
@@ -319,6 +320,22 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 	for c.listenID == listenID {
 		err := c.refreshAuthToken(nil)
 		if err != nil {
+			if exhttp.IsNetworkError(err) {
+				if loggedIn {
+					c.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
+				}
+				errorCount++
+				sleepSeconds := (errorCount + 1) * 5
+				if background {
+					if errorCount >= 3 {
+						return false
+					}
+					sleepSeconds = errorCount * 2
+				}
+				log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error refreshing auth token, retrying in a while")
+				time.Sleep(time.Duration(sleepSeconds) * time.Second)
+				continue
+			}
 			log.Err(err).Msg("Error refreshing auth token")
 			if loggedIn {
 				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
