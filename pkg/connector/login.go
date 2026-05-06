@@ -79,11 +79,11 @@ var LoginFlows = []bridgev2.LoginFlow{{
 	Name:        "Google Account",
 	Description: "Log in with your Google account and pair by tapping an emoji on your phone",
 	ID:          LoginFlowIDGoogle,
-}, {
+}, /*, {
 	Name:        "QR",
 	Description: "Pair by scanning a QR code on your phone",
 	ID:          LoginFlowIDQR,
-}}
+}*/}
 
 func (gc *GMConnector) GetLoginFlows() []bridgev2.LoginFlow {
 	return LoginFlows
