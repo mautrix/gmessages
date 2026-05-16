@@ -1,3 +1,13 @@
+# v26.05
+
+* Added automatic retry on network errors when refreshing auth token.
+* Changed default phone ping interval to 20 minutes, as too low intervals can
+  cause battery issues.
+* Stopped handling message deletions during mobile SMS database sync, as the
+  phone sometimes sends them incorrectly.
+* Disabled support for QR login as Google has discontinued it.
+* Fixed handling remote echoes of outgoing messages received via backfill.
+
 # v26.04
 
 * Fixed ghost names sometimes being replaced with phone numbers even when
