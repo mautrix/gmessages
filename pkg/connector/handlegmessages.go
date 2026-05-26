@@ -1071,7 +1071,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 				Str("sender_id", string(dbm[0].SenderID)).
 				Msg("Redacting events from old room")
 			//lint:ignore SA1019 -
-			oldPortal.Internal().RedactMessageParts(ctx, dbm, intent, time.Time{})
+			oldPortal.Internal().RedactMessageParts(ctx, dbm, intent, time.Time{}, "", true)
 		}
 	}
 	if doMessageResync {
