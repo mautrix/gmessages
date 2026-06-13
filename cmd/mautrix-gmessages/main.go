@@ -39,12 +39,6 @@ var m = mxmain.BridgeMain{
 }
 
 func main() {
-	m.PostStart = func() {
-		if m.Matrix.Provisioning != nil {
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/contacts", legacyProvListContacts)
-			m.Matrix.Provisioning.Router.HandleFunc("POST /v1/start_chat", legacyProvStartChat)
-		}
-	}
 	m.InitVersion(Tag, Commit, BuildTime)
 	m.Run()
 }
