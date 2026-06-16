@@ -523,10 +523,10 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 }
 
 func (c *Client) closeLongPolling() {
+	c.Logger.Debug().Int("current_listen_id", c.listenID).Msg("Closing long polling")
+	c.listenID++
+	c.disconnecting = true
 	if conn := c.longPollingConn; conn != nil {
-		c.Logger.Debug().Int("current_listen_id", c.listenID).Msg("Closing long polling connection manually")
-		c.listenID++
-		c.disconnecting = true
 		_ = conn.Close()
 		c.longPollingConn = nil
 	}
