@@ -60,6 +60,9 @@ type PortalMetadata struct {
 	ForceRCS bool                         `json:"force_rcs"`
 
 	OutgoingID string `json:"outgoing_id"`
+
+	// Most recent message timestamp, used as a tie-breaker when de-duping rooms
+	LastMessageTS int64 `json:"last_message_ts,omitempty"`
 }
 
 type GhostMetadata struct {

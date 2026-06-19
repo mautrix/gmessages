@@ -179,6 +179,10 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				meta.OutgoingID = conv.DefaultOutgoingID
 				changed = true
 			}
+			if conv.LastMessageTimestamp != 0 && meta.LastMessageTS != conv.LastMessageTimestamp {
+				meta.LastMessageTS = conv.LastMessageTimestamp
+				changed = true
+			}
 			return
 		},
 	}, nil
