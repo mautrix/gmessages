@@ -130,6 +130,11 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			ReadUpTo:   meta.readUpToTS,
 		}
 	}
+	switch v.Status {
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED:
+		// Dedupe portal if a DM to work around gmessages conversation IDs changing over time
+		gc.deduplicateDMPortal(ctx, v)
+	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED:
@@ -167,6 +172,86 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		}()
 	} else if markReadEvt != nil {
 		gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
+	}
+}
+
+// soleOtherParticipantID returns the single non-self, visible participant of a DM chat
+func (gc *GMClient) soleOtherParticipantID(conv *gmproto.Conversation) string {
+	if conv.IsGroupChat {
+		return ""
+	}
+	var found string
+	count := 0
+	for _, pcp := range conv.Participants {
+		if pcp.IsMe || !pcp.IsVisible || pcp.GetID().GetParticipantID() == "" {
+			continue
+		}
+		found = pcp.GetID().GetParticipantID()
+		count++
+	}
+	if count != 1 {
+		return ""
+	}
+	return found
+}
+
+// deduplicateDMPortal migrates any stale duplicate DM portal for the same contact onto the given
+// conversation's portal key. This works around Google rewriting conversation IDs from time to time
+// which leaves orphaned rooms.
+func (gc *GMClient) deduplicateDMPortal(ctx context.Context, conv *gmproto.Conversation) {
+	log := zerolog.Ctx(ctx)
+	participantID := gc.soleOtherParticipantID(conv)
+	if participantID == "" {
+		return
+	}
+	newKey := gc.MakePortalKey(conv.ConversationID)
+	otherUserID := gc.MakeUserID(participantID)
+	portals, err := gc.Main.br.GetDMPortalsWith(ctx, otherUserID)
+	if err != nil {
+		log.Err(err).
+			Str("participant_id", participantID).
+			Str("conversation_id", conv.ConversationID).
+			Msg("Failed to look up existing DM portals for re-key dedup")
+		return
+	}
+	for _, portal := range portals {
+		// Skip the conversation we're currently syncing and portals belonging to other
+		// user logins (GetDMPortalsWith is not scoped by receiver).
+		if portal.PortalKey == newKey || portal.Receiver != gc.UserLogin.ID {
+			continue
+		}
+		// Recency tiebreaker: only migrate an older portal into this conversation
+		oldTS := int64(0)
+		if meta, ok := portal.Metadata.(*PortalMetadata); ok {
+			oldTS = meta.LastMessageTS
+		}
+		if conv.LastMessageTimestamp != 0 && oldTS > conv.LastMessageTimestamp {
+			log.Debug().
+				Stringer("stale_portal_key", portal.PortalKey).
+				Stringer("new_portal_key", newKey).
+				Int64("stale_last_message_ts", oldTS).
+				Int64("new_last_message_ts", conv.LastMessageTimestamp).
+				Msg("Skipping DM portal re-key dedup: existing portal is newer than this conversation")
+			continue
+		}
+		log.Info().
+			Stringer("stale_portal_key", portal.PortalKey).
+			Stringer("new_portal_key", newKey).
+			Str("participant_id", participantID).
+			Msg("Migrating re-keyed duplicate DM portal onto new conversation key")
+		result, _, err := gc.Main.br.ReIDPortal(ctx, portal.PortalKey, newKey)
+		if err != nil {
+			log.Err(err).
+				Stringer("stale_portal_key", portal.PortalKey).
+				Stringer("new_portal_key", newKey).
+				Msg("Failed to re-ID duplicate DM portal")
+			continue
+		}
+		log.Info().
+			Stringer("stale_portal_key", portal.PortalKey).
+			Stringer("new_portal_key", newKey).
+			Int("reid_result", int(result)).
+			Msg("Migrated re-keyed duplicate DM portal")
 	}
 }
 
