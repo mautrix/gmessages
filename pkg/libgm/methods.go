@@ -5,6 +5,12 @@ import (
 )
 
 func (c *Client) ListConversations(count int, folder gmproto.ListConversationsRequest_Folder) (*gmproto.ListConversationsResponse, error) {
+	return c.ListConversationsWithCursor(count, folder, nil)
+}
+
+// ListConversationsWithCursor lists a page of conversations from folder.
+// Pass the cursor returned by the previous response to continue pagination.
+func (c *Client) ListConversationsWithCursor(count int, folder gmproto.ListConversationsRequest_Folder, cursor *gmproto.Cursor) (*gmproto.ListConversationsResponse, error) {
 	msgType := gmproto.MessageType_BUGLE_MESSAGE
 	if !c.conversationsFetchedOnce {
 		msgType = gmproto.MessageType_BUGLE_ANNOTATION
@@ -12,7 +18,7 @@ func (c *Client) ListConversations(count int, folder gmproto.ListConversationsRe
 	}
 	return typedResponse[*gmproto.ListConversationsResponse](c.sessionHandler.sendMessageWithParams(SendMessageParams{
 		Action:      gmproto.ActionType_LIST_CONVERSATIONS,
-		Data:        &gmproto.ListConversationsRequest{Count: int64(count), Folder: folder},
+		Data:        &gmproto.ListConversationsRequest{Count: int64(count), Folder: folder, Cursor: cursor},
 		MessageType: msgType,
 	}))
 }
