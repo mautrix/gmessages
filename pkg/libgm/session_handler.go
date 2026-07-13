@@ -1,7 +1,9 @@
 package libgm
 
 import (
+	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -14,6 +16,20 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
+
+// ErrPhoneNotResponding is returned when the phone doesn't respond to a request within responseHardTimeout.
+// The request was already accepted by the server, so the phone may still process it if it comes back online.
+var ErrPhoneNotResponding = errors.New("phone did not respond to request")
+
+// ErrConnectionClosed is returned for requests that were still waiting for a response when the client was disconnected.
+var ErrConnectionClosed = errors.New("client disconnected before response was received")
+
+// pingShortCircuitTimeout is how long to wait for a response before poking the ditto pinger
+// (which will send a PhoneNotResponding event if its ping doesn't get a response quickly either).
+const pingShortCircuitTimeout = 5 * time.Second
+
+// responseHardTimeout is how long to wait for the phone to respond to a request before giving up.
+const responseHardTimeout = 60 * time.Second
 
 type SessionHandler struct {
 	client *Client
@@ -32,7 +48,7 @@ func (s *SessionHandler) ResetSessionID() {
 	s.sessionID = uuid.NewString()
 }
 
-func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
+func (s *SessionHandler) sendMessageNoResponse(ctx context.Context, params SendMessageParams) error {
 	requestID, payload, err := s.buildMessage(params)
 	if err != nil {
 		return err
@@ -47,15 +63,20 @@ func (s *SessionHandler) sendMessageNoResponse(params SendMessageParams) error {
 		Str("message_id", requestID).
 		Msg("Sending request to phone (not expecting response)")
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
+		s.client.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, false),
 	)
 	return err
 }
 
-func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *IncomingRPCMessage, error) {
+func (s *SessionHandler) sendAsyncMessage(ctx context.Context, params SendMessageParams) (<-chan *IncomingRPCMessage, error) {
+	ch, _, err := s.sendAsyncMessageWithID(ctx, params)
+	return ch, err
+}
+
+func (s *SessionHandler) sendAsyncMessageWithID(ctx context.Context, params SendMessageParams) (chan *IncomingRPCMessage, string, error) {
 	requestID, payload, err := s.buildMessage(params)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	ch := s.waitResponse(requestID)
@@ -68,13 +89,13 @@ func (s *SessionHandler) sendAsyncMessage(params SendMessageParams) (<-chan *Inc
 		Str("message_id", requestID).
 		Msg("Sending request to phone")
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
+		s.client.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, false),
 	)
 	if err != nil {
 		s.cancelResponse(requestID, ch)
-		return nil, err
+		return nil, "", err
 	}
-	return ch, nil
+	return ch, requestID, nil
 }
 
 func typedResponse[T proto.Message](resp *IncomingRPCMessage, err error) (casted T, retErr error) {
@@ -100,9 +121,23 @@ func (s *SessionHandler) waitResponse(requestID string) chan *IncomingRPCMessage
 
 func (s *SessionHandler) cancelResponse(requestID string, ch chan *IncomingRPCMessage) {
 	s.responseWaitersLock.Lock()
-	close(ch)
-	delete(s.responseWaiters, requestID)
-	s.responseWaitersLock.Unlock()
+	defer s.responseWaitersLock.Unlock()
+	// Only close the channel if the response hasn't been claimed yet: receiveResponse
+	// removes the waiter from the map (under the lock) before sending to the channel,
+	// so closing an already-claimed channel here could panic that send.
+	if _, ok := s.responseWaiters[requestID]; ok {
+		delete(s.responseWaiters, requestID)
+		close(ch)
+	}
+}
+
+func (s *SessionHandler) cancelAllResponseWaiters() {
+	s.responseWaitersLock.Lock()
+	defer s.responseWaitersLock.Unlock()
+	for requestID, ch := range s.responseWaiters {
+		delete(s.responseWaiters, requestID)
+		close(ch)
+	}
 }
 
 func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
@@ -148,28 +183,49 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	return true
 }
 
-func (s *SessionHandler) sendMessageWithParams(params SendMessageParams) (*IncomingRPCMessage, error) {
-	ch, err := s.sendAsyncMessage(params)
+func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendMessageParams) (*IncomingRPCMessage, error) {
+	ch, requestID, err := s.sendAsyncMessageWithID(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
+	shortCircuitTimer := time.NewTimer(pingShortCircuitTimeout)
+	defer shortCircuitTimer.Stop()
 	select {
-	case resp := <-ch:
+	case resp, ok := <-ch:
+		if !ok {
+			return nil, ErrConnectionClosed
+		}
 		return resp, nil
-	case <-time.After(5 * time.Second):
+	case <-ctx.Done():
+		s.cancelResponse(requestID, ch)
+		return nil, ctx.Err()
+	case <-shortCircuitTimer.C:
 		// Notify the pinger in order to trigger an event that the phone isn't responding
 		select {
 		case s.client.pingShortCircuit <- struct{}{}:
 		default:
 		}
 	}
-	// TODO hard timeout?
-	return <-ch, nil
+	hardTimer := time.NewTimer(responseHardTimeout - pingShortCircuitTimeout)
+	defer hardTimer.Stop()
+	select {
+	case resp, ok := <-ch:
+		if !ok {
+			return nil, ErrConnectionClosed
+		}
+		return resp, nil
+	case <-ctx.Done():
+		s.cancelResponse(requestID, ch)
+		return nil, ctx.Err()
+	case <-hardTimer.C:
+		s.cancelResponse(requestID, ch)
+		return nil, fmt.Errorf("%w in %s", ErrPhoneNotResponding, responseHardTimeout)
+	}
 }
 
-func (s *SessionHandler) sendMessage(actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
-	return s.sendMessageWithParams(SendMessageParams{
+func (s *SessionHandler) sendMessage(ctx context.Context, actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
+	return s.sendMessageWithParams(ctx, SendMessageParams{
 		Action: actionType,
 		Data:   encryptedData,
 	})

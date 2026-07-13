@@ -1,6 +1,7 @@
 package libgm
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
@@ -155,9 +156,9 @@ func (c *Client) UnpairBugle() (*gmproto.RevokeRelayPairingResponse, error) {
 	)
 }
 
-func (c *Client) Unpair() (err error) {
+func (c *Client) Unpair(ctx context.Context) (err error) {
 	if c.AuthData.HasCookies() {
-		err = c.UnpairGaia()
+		err = c.UnpairGaia(ctx)
 	} else {
 		_, err = c.UnpairBugle()
 	}

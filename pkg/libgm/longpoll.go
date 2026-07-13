@@ -198,7 +198,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, timeoutCount i
 	if dp.oldestPingTime.IsZero() {
 		dp.oldestPingTime = now
 	}
-	pingChan, err := dp.client.NotifyDittoActivity()
+	pingChan, err := dp.client.NotifyDittoActivity(dp.log.WithContext(context.TODO()))
 	if err != nil {
 		dp.log.Err(err).Uint64("ping_id", pingID).Msg("Error sending ping")
 		dp.pingFails++
@@ -256,7 +256,7 @@ func (dp *dittoPinger) Loop() {
 
 func (dp *dittoPinger) HandleNoRecentUpdates() {
 	dp.client.triggerEvent(&events.NoDataReceived{})
-	err := dp.client.sessionHandler.sendMessageNoResponse(SendMessageParams{
+	err := dp.client.sessionHandler.sendMessageNoResponse(dp.log.WithContext(context.TODO()), SendMessageParams{
 		Action:    gmproto.ActionType_GET_UPDATES,
 		OmitTTL:   true,
 		RequestID: dp.client.sessionHandler.sessionID,

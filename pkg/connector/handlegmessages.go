@@ -349,7 +349,7 @@ func (gc *GMClient) aggressiveSetActive() {
 			return
 		}
 		gc.UserLogin.Log.Info().Msg("Now reactivating bridge session")
-		err := gc.Client.SetActiveSession()
+		err := gc.Client.SetActiveSession(gc.UserLogin.Log.WithContext(context.TODO()))
 		if err != nil {
 			gc.UserLogin.Log.Warn().Err(err).Msg("Failed to set self as active session")
 		} else {
@@ -421,7 +421,7 @@ func (gc *GMClient) hackyResetActive() {
 	time.Sleep(7 * time.Second)
 	if !gc.ready && gc.PhoneResponding && gc.Client != nil {
 		gc.UserLogin.Log.Warn().Msg("Client is still not ready, trying to re-set active session")
-		err := gc.Client.SetActiveSession()
+		err := gc.Client.SetActiveSession(gc.UserLogin.Log.WithContext(context.TODO()))
 		if err != nil {
 			gc.UserLogin.Log.Err(err).Msg("Failed to re-set active session")
 		}
@@ -1419,7 +1419,7 @@ func (gc *GMClient) requestFullMedia(ctx context.Context, messageID, actionMessa
 			Msg("Not re-requesting full size media")
 		return
 	}
-	_, err := gc.Client.GetFullSizeImage(messageID, actionMessageID)
+	_, err := gc.Client.GetFullSizeImage(ctx, messageID, actionMessageID)
 	if err != nil {
 		log.Err(err).
 			Str("action", "request full size media").

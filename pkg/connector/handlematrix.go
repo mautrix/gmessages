@@ -31,6 +31,7 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
@@ -66,8 +67,17 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		Str("tmp_id", string(txnID)).
 		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
 		Msg("Sending Matrix message to Google Messages")
-	resp, err := gc.Client.SendMessage(req)
+	resp, err := gc.Client.SendMessage(ctx, req)
 	if err != nil {
+		if errors.Is(err, libgm.ErrPhoneNotResponding) {
+			// The server accepted the message, so the phone may still send it whenever
+			// it comes back online. Keep the pending entry so the remote echo can
+			// resolve the original event (and correct the failure status) if that happens.
+			return nil, bridgev2.WrapErrorInStatus(err).
+				WithMessage(PhoneNotRespondingMessage).
+				WithErrorReason(event.MessageStatusTooOld).
+				WithSendNotice(true)
+		}
 		msg.RemovePending(txnID)
 		return nil, err
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
@@ -221,7 +231,7 @@ func (gc *GMClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2
 	if err != nil {
 		return err
 	}
-	resp, err := gc.Client.DeleteMessage(msgID)
+	resp, err := gc.Client.DeleteMessage(ctx, msgID)
 	if err != nil {
 		return err
 	} else if !resp.Success {
@@ -249,7 +259,7 @@ func (gc *GMClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.Matr
 	if err != nil {
 		return nil, err
 	}
-	resp, err := gc.Client.SendReaction(&gmproto.SendReactionRequest{
+	resp, err := gc.Client.SendReaction(ctx, &gmproto.SendReactionRequest{
 		MessageID:    msgID,
 		ReactionData: gmproto.MakeReactionData(msg.PreHandleResp.Emoji),
 		Action:       action,
@@ -271,7 +281,7 @@ func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev
 	if err != nil {
 		return err
 	}
-	resp, err := gc.Client.SendReaction(&gmproto.SendReactionRequest{
+	resp, err := gc.Client.SendReaction(ctx, &gmproto.SendReactionRequest{
 		MessageID:    msgID,
 		ReactionData: gmproto.MakeReactionData(msg.TargetReaction.Emoji),
 		Action:       gmproto.SendReactionRequest_REMOVE,
@@ -307,7 +317,7 @@ func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.M
 	if err != nil {
 		return err
 	}
-	return gc.Client.MarkRead(convID, msgID)
+	return gc.Client.MarkRead(ctx, convID, msgID)
 }
 
 func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
@@ -321,7 +331,7 @@ func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.Matrix
 	if err != nil {
 		return err
 	}
-	return gc.Client.SetTyping(convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
+	return gc.Client.SetTyping(ctx, convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
 }
 
 func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
@@ -344,7 +354,7 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 		phone = ghost.Metadata.(*GhostMetadata).Phone
 		if phone == "" {
 			// Fallback: fetch conversation from Google to get phone number
-			if conv, err := gc.Client.GetConversation(convID); err != nil {
+			if conv, err := gc.Client.GetConversation(ctx, convID); err != nil {
 				return fmt.Errorf("failed to get conversation for phone number: %w", err)
 			} else if conv != nil {
 				for _, pcp := range conv.Participants {
@@ -359,7 +369,7 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 			return fmt.Errorf("phone number not available for conversation %s", convID)
 		}
 	}
-	if err := gc.Client.DeleteConversation(convID, phone); err != nil {
+	if err := gc.Client.DeleteConversation(ctx, convID, phone); err != nil {
 		return err
 	}
 	return nil

@@ -53,7 +53,7 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 		return nil, err
 	}
 	zerolog.Ctx(ctx).Info().Str("conversation_id", conversationID).Msg("Manually fetching chat info")
-	conv, err := gc.Client.GetConversation(conversationID)
+	conv, err := gc.Client.GetConversation(ctx, conversationID)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	if err != nil {
 		return false, err
 	}
-	resp, err := gc.Client.GetParticipantThumbnail(participantID)
+	resp, err := gc.Client.GetParticipantThumbnail(ctx, participantID)
 	if err != nil {
 		return false, fmt.Errorf("failed to get participant thumbnail: %w", err)
 	}

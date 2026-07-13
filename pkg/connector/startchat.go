@@ -110,7 +110,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 			UserID: networkid.UserID(phone),
 		}, nil
 	}
-	resp, err := gc.Client.GetOrCreateConversation(&gmproto.GetOrCreateConversationRequest{
+	resp, err := gc.Client.GetOrCreateConversation(ctx, &gmproto.GetOrCreateConversationRequest{
 		Numbers: []*gmproto.ContactNumber{{
 			// This should maybe sometimes be 7
 			MysteriousInt: 2,
@@ -210,13 +210,13 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 			Number2:       phone,
 		}
 	}
-	resp, err := gc.Client.GetOrCreateConversation(reqData)
+	resp, err := gc.Client.GetOrCreateConversation(ctx, reqData)
 	if resp.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
 		if reqData.RCSGroupName == nil {
 			reqData.RCSGroupName = ptr.Ptr("")
 		}
 		reqData.CreateRCSGroup = ptr.Ptr(true)
-		resp, err = gc.Client.GetOrCreateConversation(reqData)
+		resp, err = gc.Client.GetOrCreateConversation(ctx, reqData)
 	}
 	if err != nil {
 		return nil, err
@@ -274,7 +274,7 @@ func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIden
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	contacts, err := gc.Client.ListContacts()
+	contacts, err := gc.Client.ListContacts(ctx)
 	if err != nil {
 		return nil, err
 	}

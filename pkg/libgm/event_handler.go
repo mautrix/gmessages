@@ -2,6 +2,7 @@ package libgm
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
@@ -281,7 +282,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 
 		case *gmproto.UpdateEvents_BrowserPresenceCheckEvent:
 			c.Logger.Trace().Msg("Got browser presence check, sending ack")
-			go c.ackBrowserPresence()
+			go c.ackBrowserPresence(c.Logger.WithContext(context.TODO()))
 
 		case *gmproto.UpdateEvents_AccountChange:
 			c.logContent(msg, "", nil)

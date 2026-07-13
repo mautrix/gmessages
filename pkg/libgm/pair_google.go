@@ -393,7 +393,7 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 	serverInit, err := c.sendGaiaPairingMessage(initCtx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
 	cancel()
 	if err != nil {
-		cancelErr := c.cancelGaiaPairing(ps)
+		cancelErr := c.cancelGaiaPairing(ctx, ps)
 		if cancelErr != nil {
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after init timeout")
 		}
@@ -412,7 +412,7 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 		Msg("Received server init")
 	pairingEmoji, err := ps.ProcessServerInit(serverInit)
 	if err != nil {
-		cancelErr := c.cancelGaiaPairing(ps)
+		cancelErr := c.cancelGaiaPairing(ctx, ps)
 		if cancelErr != nil {
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after error processing server init")
 		}
@@ -426,7 +426,7 @@ func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (str
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			zerolog.Ctx(ctx).Debug().Msg("Sending gaia pairing cancel after context was canceled")
-			cancelErr := c.cancelGaiaPairing(ps)
+			cancelErr := c.cancelGaiaPairing(ctx, ps)
 			if cancelErr != nil {
 				zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after context was canceled")
 			}
@@ -483,8 +483,8 @@ func byteHash(bytes []byte) (out int32) {
 	return out
 }
 
-func (c *Client) cancelGaiaPairing(sess *PairingSession) error {
-	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+func (c *Client) cancelGaiaPairing(ctx context.Context, sess *PairingSession) error {
+	return c.sessionHandler.sendMessageNoResponse(ctx, SendMessageParams{
 		Action:      gmproto.ActionType_CANCEL_GAIA_PAIRING,
 		RequestID:   sess.UUID.String(),
 		DontEncrypt: true,
@@ -507,7 +507,7 @@ func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess *PairingSessio
 		reqContainer.ProposedVerificationCodeVersion = 1
 		reqContainer.ProposedKeyDerivationVersion = 1
 	}
-	respCh, err := c.sessionHandler.sendAsyncMessage(SendMessageParams{
+	respCh, err := c.sessionHandler.sendAsyncMessage(ctx, SendMessageParams{
 		Action:      action,
 		Data:        reqContainer,
 		DontEncrypt: true,
@@ -518,7 +518,10 @@ func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess *PairingSessio
 		return nil, err
 	}
 	select {
-	case resp := <-respCh:
+	case resp, ok := <-respCh:
+		if !ok {
+			return nil, ErrConnectionClosed
+		}
 		var respDat gmproto.GaiaPairingResponseContainer
 		err = proto.Unmarshal(resp.Message.UnencryptedData, &respDat)
 		if err != nil {
@@ -530,8 +533,8 @@ func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess *PairingSessio
 	}
 }
 
-func (c *Client) UnpairGaia() error {
-	return c.sessionHandler.sendMessageNoResponse(SendMessageParams{
+func (c *Client) UnpairGaia(ctx context.Context) error {
+	return c.sessionHandler.sendMessageNoResponse(ctx, SendMessageParams{
 		Action: gmproto.ActionType_UNPAIR_GAIA_PAIRING,
 		Data: &gmproto.RevokeGaiaPairingRequest{
 			PairingAttemptID: c.AuthData.PairingID.String(),
