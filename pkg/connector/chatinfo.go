@@ -273,6 +273,9 @@ func (gc *GMClient) makeUserInfo(ghost *bridgev2.Ghost, phone, formattedNumber, 
 			if meta.ContactID != contactID {
 				changed = true
 				meta.ContactID = contactID
+				// The contact changed, so the avatar may have too: clear the update
+				// timestamp to bypass the refresh backoff below.
+				meta.AvatarUpdateTS = jsontime.UnixMilli{}
 			}
 			if hasName && !meta.HasName {
 				changed = true
