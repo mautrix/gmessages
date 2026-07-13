@@ -124,6 +124,7 @@ type Client struct {
 	pingInterval             time.Duration
 	alertTimeoutCount        int
 	pingShortCircuit         chan struct{}
+	dataReceiveCheckInterval time.Duration
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
 
@@ -171,9 +172,10 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client 
 		http:          &http.Client{Transport: transport, Timeout: 2 * time.Minute},
 		lphttp:        &http.Client{Transport: transport, Timeout: 30 * time.Minute},
 
-		pingShortCircuit:  make(chan struct{}),
-		pingInterval:      1 * time.Minute,
-		alertTimeoutCount: 4,
+		pingShortCircuit:         make(chan struct{}),
+		pingInterval:             1 * time.Minute,
+		alertTimeoutCount:        4,
+		dataReceiveCheckInterval: DefaultBugleDefaultCheckInterval,
 	}
 	sessionHandler.client = cli
 	return cli
@@ -196,6 +198,15 @@ func (c *Client) SetPingInterval(interval time.Duration) {
 func (c *Client) SetAlertTimeoutCount(count int) {
 	if count > 0 {
 		c.alertTimeoutCount = count
+	}
+}
+
+// SetDataReceiveCheckInterval sets how often to send an extra GET_UPDATES call
+// (and emit a NoDataReceived event) when no data has been received recently.
+// Intervals shorter than 5 minutes are ignored to avoid draining the phone's battery.
+func (c *Client) SetDataReceiveCheckInterval(interval time.Duration) {
+	if interval >= 5*time.Minute {
+		c.dataReceiveCheckInterval = interval
 	}
 }
 
