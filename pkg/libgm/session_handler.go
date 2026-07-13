@@ -31,6 +31,10 @@ const pingShortCircuitTimeout = 5 * time.Second
 // responseHardTimeout is how long to wait for the phone to respond to a request before giving up.
 const responseHardTimeout = 60 * time.Second
 
+// maxQueuedAcks caps how many message acks are kept queued for retry when ack requests fail,
+// so the queue can't grow unboundedly if the server is unreachable for a long time.
+const maxQueuedAcks = 1024
+
 type SessionHandler struct {
 	client *Client
 
@@ -367,8 +371,15 @@ func (s *SessionHandler) sendAckRequest() {
 		s.client.makeProtobufHTTPRequest(url, payload, ContentTypePBLite),
 	)
 	if err != nil {
-		// TODO retry?
-		s.client.Logger.Err(err).Strs("message_ids", dataToAck).Msg("Failed to send acks")
+		// Unacked messages may stall event delivery, so re-queue them to retry on the next tick.
+		s.ackMapLock.Lock()
+		if len(dataToAck)+len(s.ackMap) <= maxQueuedAcks {
+			s.ackMap = append(dataToAck, s.ackMap...)
+			s.client.Logger.Err(err).Strs("message_ids", dataToAck).Msg("Failed to send acks, re-queued for retry")
+		} else {
+			s.client.Logger.Err(err).Strs("message_ids", dataToAck).Msg("Failed to send acks, dropping as retry queue is full")
+		}
+		s.ackMapLock.Unlock()
 	} else {
 		s.client.Logger.Trace().Strs("message_ids", dataToAck).Msg("Sent acks")
 	}
