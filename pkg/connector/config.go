@@ -36,13 +36,14 @@ type DeviceMetaConfig struct {
 }
 
 type Config struct {
-	DisplaynameTemplate   string           `yaml:"displayname_template"`
-	DeviceMeta            DeviceMetaConfig `yaml:"device_meta"`
-	AggressiveReconnect   bool             `yaml:"aggressive_reconnect"`
-	InitialChatSyncCount  int              `yaml:"initial_chat_sync_count"`
-	DeterministicIDPrefix bool             `yaml:"deterministic_id_prefix"`
-	PingInterval          time.Duration    `yaml:"ping_interval"`
-	AlertTimeoutCount     int              `yaml:"alert_timeout_count"`
+	DisplaynameTemplate      string           `yaml:"displayname_template"`
+	DeviceMeta               DeviceMetaConfig `yaml:"device_meta"`
+	AggressiveReconnect      bool             `yaml:"aggressive_reconnect"`
+	InitialChatSyncCount     int              `yaml:"initial_chat_sync_count"`
+	DeterministicIDPrefix    bool             `yaml:"deterministic_id_prefix"`
+	PingInterval             time.Duration    `yaml:"ping_interval"`
+	AlertTimeoutCount        int              `yaml:"alert_timeout_count"`
+	DataReceiveCheckInterval time.Duration    `yaml:"data_receive_check_interval"`
 
 	displaynameTemplate *template.Template `yaml:"-"`
 }
@@ -91,4 +92,5 @@ func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Int, "initial_chat_sync_count")
 	helper.Copy(up.Str|up.Int, "ping_interval")
 	helper.Copy(up.Int, "alert_timeout_count")
+	helper.Copy(up.Str|up.Int, "data_receive_check_interval")
 }

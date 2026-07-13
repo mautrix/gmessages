@@ -224,7 +224,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			return
 		}
 		if !msg.IsOld {
-			c.bumpNextDataReceiveCheck(DefaultBugleDefaultCheckInterval)
+			c.bumpNextDataReceiveCheck(c.dataReceiveCheckInterval)
 		}
 		data, ok := msg.DecryptedMessage.(*gmproto.UpdateEvents)
 		if !ok {

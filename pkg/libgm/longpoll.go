@@ -272,7 +272,7 @@ func (c *Client) shouldDoDataReceiveCheck() bool {
 	c.nextDataReceiveCheckLock.Lock()
 	defer c.nextDataReceiveCheckLock.Unlock()
 	if time.Until(c.nextDataReceiveCheck) <= 0 {
-		c.nextDataReceiveCheck = time.Now().Add(DefaultBugleDefaultCheckInterval)
+		c.nextDataReceiveCheck = time.Now().Add(c.dataReceiveCheckInterval)
 		return true
 	}
 	return false

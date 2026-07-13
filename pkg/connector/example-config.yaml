@@ -26,3 +26,6 @@ ping_interval: 20m
 # After that, new pings are sent with doubled timeouts (up to an hour).
 # The default value of 4 means 1 + 2 + 4 + 8 = 15 minutes of no response before a notice.
 alert_timeout_count: 4
+# How often to ask the phone for updates (and check for silently stalled event
+# delivery) when no data has been received recently. Minimum 5 minutes.
+data_receive_check_interval: 2h55m
