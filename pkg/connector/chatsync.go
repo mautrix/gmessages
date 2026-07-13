@@ -65,6 +65,20 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	}
 }
 
+// resyncAfterDataResume is called when data starts flowing again after a period with no
+// data received. Events from the quiet period may have been lost (e.g. if the push
+// subscription was stalled), so check for conversations with messages newer than the
+// last received data and sync them.
+func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
+	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
+		return
+	}
+	zerolog.Ctx(ctx).Debug().
+		Time("last_data_received", lastDataReceived).
+		Msg("Data resumed after quiet period, checking for missed events")
+	gc.SyncConversations(ctx, lastDataReceived, true)
+}
+
 func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *conversationMeta, suspiciousUnmarkedSpam bool) {
 	gc.conversationMetaLock.Lock()
 	defer gc.conversationMetaLock.Unlock()
