@@ -188,12 +188,12 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		if evt.Type == gmproto.TypingTypes_STOPPED_TYPING {
 			timeout = 0
 		}
-		chatInfo, ok := gc.chatInfoCache.Get(evt.ConversationID)
-		if !ok {
+		chatInfo := gc.getChatInfoWithFetch(evt.ConversationID)
+		if chatInfo == nil {
 			log.Debug().
 				Str("conversation_id", evt.GetConversationID()).
 				Str("number", evt.GetUser().GetNumber()).
-				Msg("Didn't find cached conversation info to find participant ID for typing notification")
+				Msg("Didn't find conversation info to find participant ID for typing notification")
 			return
 		}
 		participantID := getPhoneNumberParticipantID(chatInfo, evt.GetUser().GetNumber())
@@ -721,11 +721,44 @@ func getPhoneNumberParticipantID(chatInfo *gmproto.Conversation, phoneNumber str
 	return ""
 }
 
+const chatInfoFetchCooldown = 5 * time.Minute
+
+// getChatInfoWithFetch returns cached conversation info, fetching it from the phone on a
+// cache miss (e.g. after a bridge restart). Resolving alternate participant IDs requires
+// the participant list, and using unresolved IDs creates ghosts that don't match the
+// synced member list, causing membership churn in group chats.
+func (gc *GMClient) getChatInfoWithFetch(conversationID string) *gmproto.Conversation {
+	chatInfo, ok := gc.chatInfoCache.Get(conversationID)
+	if ok {
+		return chatInfo
+	}
+	cli := gc.Client
+	if cli == nil {
+		return nil
+	}
+	if failedAt, failed := gc.chatInfoFetchFailed.Get(conversationID); failed && time.Since(failedAt) < chatInfoFetchCooldown {
+		return nil
+	}
+	log := gc.UserLogin.Log.With().
+		Str("action", "fetch chat info for participant resolution").
+		Str("conversation_id", conversationID).
+		Logger()
+	conv, err := cli.GetConversation(log.WithContext(context.TODO()), conversationID)
+	if err != nil || conv == nil {
+		gc.chatInfoFetchFailed.Set(conversationID, time.Now())
+		log.Warn().AnErr("fetch_error", err).Msg("Failed to fetch conversation info on cache miss")
+		return nil
+	}
+	gc.chatInfoFetchFailed.Delete(conversationID)
+	gc.chatInfoCache.Set(conversationID, conv)
+	return conv
+}
+
 func (gc *GMClient) makeEventSender(conversationID, participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
 	isFromMe := !forceIncoming && (forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID))
 	if !isFromMe && conversationID != "" {
-		chatInfo, ok := gc.chatInfoCache.Get(conversationID)
-		if ok {
+		chatInfo := gc.getChatInfoWithFetch(conversationID)
+		if chatInfo != nil {
 			participantID = findAlternateParticipantID(chatInfo, participantID)
 		}
 	}
