@@ -133,6 +133,13 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			}
 		}
 	}
+	if roomType == database.RoomTypeDM && len(members.MemberMap) == 1 {
+		// Only the self entry made it into the member map. A DM without the other
+		// participant would render as an unusable "Empty Chat" room, so refuse to
+		// create/update it. This generally only happens when the conversation is racing
+		// deletion on the phone or its participants have no resolvable number.
+		return nil, fmt.Errorf("no other members found in DM conversation %s", conv.ConversationID)
+	}
 	// Override read-only flag for group chats to avoid race conditions. When created, groups are
 	// initially read-only and turn writable very quickly. They're not read-only in any other case
 	// except when leaving groups, so if we're in the group, treat it as writable.
