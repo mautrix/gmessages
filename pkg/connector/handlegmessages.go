@@ -143,11 +143,17 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		}()
 	case *gmproto.Conversation:
 		gc.chatInfoCache.Set(evt.ConversationID, evt)
+		if gc.noDataReceivedRecently {
+			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
+		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
 		go gc.syncConversation(ctx, evt, "event")
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
+		if gc.noDataReceivedRecently {
+			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
+		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
 		if evt.GetTimestamp() > gc.lastDataReceived.UnixMicro() {

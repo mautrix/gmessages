@@ -65,6 +65,16 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	}
 }
 
+func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
+	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
+		return
+	}
+	zerolog.Ctx(ctx).Debug().
+		Time("last_data_received", lastDataReceived).
+		Msg("Data resumed after quiet period, checking for missed events")
+	gc.SyncConversations(ctx, lastDataReceived, true)
+}
+
 func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *conversationMeta, suspiciousUnmarkedSpam bool) {
 	gc.conversationMetaLock.Lock()
 	defer gc.conversationMetaLock.Unlock()
