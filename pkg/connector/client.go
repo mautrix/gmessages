@@ -69,6 +69,7 @@ type GMClient struct {
 	stallRecoveryRunning        atomic.Bool
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
+	chatInfoFetchFailed  *exsync.Map[string, time.Time]
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 
@@ -85,11 +86,12 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		UserLogin: login,
 		Meta:      login.Metadata.(*UserLoginMetadata),
 
-		longPollingError:  errors.New("not connected"),
-		PhoneResponding:   true,
-		fullMediaRequests: exsync.NewSet[fullMediaRequestKey](),
-		conversationMeta:  make(map[string]*conversationMeta),
-		chatInfoCache:     exsync.NewMap[string, *gmproto.Conversation](),
+		longPollingError:    errors.New("not connected"),
+		PhoneResponding:     true,
+		fullMediaRequests:   exsync.NewSet[fullMediaRequestKey](),
+		conversationMeta:    make(map[string]*conversationMeta),
+		chatInfoCache:       exsync.NewMap[string, *gmproto.Conversation](),
+		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
 	}
 	gcli.NewClient()
 	login.Client = gcli
