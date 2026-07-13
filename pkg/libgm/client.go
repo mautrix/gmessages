@@ -258,11 +258,12 @@ func (c *Client) postConnect() {
 		}
 		c.triggerEvent(&events.HackySetActiveMayFail{})
 	}
+	ctx := c.Logger.WithContext(context.TODO())
 	c.Logger.Debug().Msg("Sending acks before get updates request")
 	c.sessionHandler.sendAckRequest()
 	time.Sleep(1 * time.Second)
 	c.Logger.Debug().Msg("Sending get updates request")
-	err := c.SetActiveSession()
+	err := c.SetActiveSession(ctx)
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to set active session")
 		c.triggerEvent(&events.PingFailed{
@@ -280,7 +281,7 @@ func (c *Client) postConnect() {
 		case <-doneChan:
 		}
 	}()
-	bugleRes, err := c.IsBugleDefault()
+	bugleRes, err := c.IsBugleDefault(ctx)
 	close(doneChan)
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to check bugle default")
@@ -291,6 +292,10 @@ func (c *Client) postConnect() {
 
 func (c *Client) Disconnect() {
 	c.closeLongPolling()
+	// Fail any requests that are still waiting for a response from the phone:
+	// the responses are delivered over the long polling connection, so they can
+	// never arrive after it has been torn down.
+	c.sessionHandler.cancelAllResponseWaiters()
 	c.http.CloseIdleConnections()
 }
 
@@ -395,14 +400,14 @@ type PushKeys struct {
 	Auth   []byte
 }
 
-func (c *Client) RegisterPush(keys *PushKeys) error {
+func (c *Client) RegisterPush(ctx context.Context, keys *PushKeys) error {
 	if c.PushKeys == nil || c.PushKeys.URL != keys.URL {
 		err := c.refreshAuthToken(keys)
 		if err != nil {
 			return fmt.Errorf("failed to refresh auth token: %w", err)
 		}
 	}
-	err := c.UpdateSettings(&gmproto.SettingsUpdateRequest{
+	err := c.UpdateSettings(ctx, &gmproto.SettingsUpdateRequest{
 		PushSettings: &gmproto.SettingsUpdateRequest_PushSettings{
 			Enabled: true,
 		},

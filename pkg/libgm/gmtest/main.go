@@ -99,11 +99,11 @@ func main() {
 			//	_, err := cli.GetFullSizeImage(args)
 			//	fmt.Println(err)
 			case "listcontacts":
-				cli.ListContacts()
+				cli.ListContacts(context.TODO())
 			case "topcontacts":
-				cli.ListTopContacts()
+				cli.ListTopContacts(context.TODO())
 			case "getconversation":
-				cli.GetConversation(args[0])
+				cli.GetConversation(context.TODO(), args[0])
 			}
 			//go handleCmd(strings.ToLower(cmd), args)
 		}

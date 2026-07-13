@@ -20,6 +20,8 @@ import (
 	"maunium.net/go/mautrix/bridgev2/status"
 )
 
+const PhoneNotRespondingMessage = "Your Google Messages app is not responding. Open the Google Messages app on your phone, ensure messages send, and battery optimization is off. If needed, remove and re-add the connection."
+
 const (
 	GMListenError               status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError                status.BridgeStateErrorCode = "gm-listen-fatal-error"
@@ -58,7 +60,7 @@ func init() {
 		GMBrowserInactive:           "Google Messages opened in another browser",
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
-		GMPhoneNotResponding:        "Your Google Messages app is not responding. Open the Google Messages app on your phone, ensure messages send, and battery optimization is off. If needed, remove and re-add the connection.",
+		GMPhoneNotResponding:        PhoneNotRespondingMessage,
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
 	})
 }

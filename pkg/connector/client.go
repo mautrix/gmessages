@@ -195,7 +195,7 @@ func (gc *GMClient) IsLoggedIn() bool {
 
 func (gc *GMClient) LogoutRemote(ctx context.Context) {
 	if cli := gc.Client; cli != nil {
-		err := cli.Unpair()
+		err := cli.Unpair(ctx)
 		if err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to send unpair request")
 		}

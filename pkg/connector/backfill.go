@@ -85,7 +85,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			}
 		}
 	}
-	resp, err := gc.Client.FetchMessages(convID, int64(params.Count), cursor)
+	resp, err := gc.Client.FetchMessages(ctx, convID, int64(params.Count), cursor)
 	if err != nil {
 		return nil, err
 	}

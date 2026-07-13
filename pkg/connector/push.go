@@ -38,7 +38,7 @@ func (gc *GMClient) RegisterPushNotifications(ctx context.Context, pushType brid
 	}
 	needsUpdate := gc.Meta.PushKeys.Token != token
 	gc.Meta.PushKeys.Token = token
-	err := gc.Client.RegisterPush(gc.Meta.PublicPushKeys())
+	err := gc.Client.RegisterPush(ctx, gc.Meta.PublicPushKeys())
 	if err != nil {
 		gc.Meta.PushKeys.Token = ""
 		return err
