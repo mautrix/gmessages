@@ -232,6 +232,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		gc.handleAccountChange(ctx, evt)
 	case *events.NoDataReceived:
 		gc.noDataReceivedRecently = true
+		go gc.recoverReceiveStall(ctx)
 	case *events.PairSuccessful:
 		log.Warn().Any("data", evt).Msg("Unexpected pair successful event")
 	default:
