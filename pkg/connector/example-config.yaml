@@ -29,3 +29,6 @@ alert_timeout_count: 4
 # How often to ask the phone for updates (and check for silently stalled event
 # delivery) when no data has been received recently. Minimum 5 minutes.
 data_receive_check_interval: 2h55m
+# Should the bridge ask the phone to resync the chat list if no data is received
+# within the data receive check interval defined above?
+hacky_stall_detect: false

@@ -44,6 +44,7 @@ type Config struct {
 	PingInterval             time.Duration    `yaml:"ping_interval"`
 	AlertTimeoutCount        int              `yaml:"alert_timeout_count"`
 	DataReceiveCheckInterval time.Duration    `yaml:"data_receive_check_interval"`
+	HackyStallDetect         bool             `yaml:"hacky_stall_detect"`
 
 	displaynameTemplate *template.Template `yaml:"-"`
 }
@@ -93,4 +94,5 @@ func upgradeConfig(helper up.Helper) {
 	helper.Copy(up.Str|up.Int, "ping_interval")
 	helper.Copy(up.Int, "alert_timeout_count")
 	helper.Copy(up.Str|up.Int, "data_receive_check_interval")
+	helper.Copy(up.Bool, "hacky_stall_detect")
 }

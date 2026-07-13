@@ -30,7 +30,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
-func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
+func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) (foundGap bool) {
 	gc.syncingConversations.Store(true)
 	defer gc.syncingConversations.Store(false)
 	log := zerolog.Ctx(ctx)
@@ -41,19 +41,29 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		return
 	}
 	log.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
+	var newestMessageTS time.Time
 	if !lastDataReceived.IsZero() {
 		for _, conv := range resp.GetConversations() {
 			lastMessageTS := time.UnixMicro(conv.GetLastMessageTimestamp())
+			if lastMessageTS.After(newestMessageTS) {
+				newestMessageTS = lastMessageTS
+			}
 			if lastMessageTS.After(lastDataReceived) {
 				log.Warn().
 					Time("last_message_ts", lastMessageTS).
 					Time("last_data_received", lastDataReceived).
 					Msg("Conversation's last message is newer than last data received time")
 				minimalSync = false
+				foundGap = true
 			}
 		}
 	} else if minimalSync {
 		log.Warn().Msg("Minimal sync called without last data received time")
+	}
+	if foundGap && newestMessageTS.After(gc.lastDataReceived) {
+		// The sync below covers everything up to newestMessageTS, so advance the marker
+		// to avoid re-detecting the same gap on the next stall check.
+		gc.lastDataReceived = newestMessageTS
 	}
 	if minimalSync {
 		log.Debug().Msg("Minimal sync with no recent messages, not syncing conversations")
@@ -63,16 +73,77 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
 		gc.syncConversation(ctx, conv, "sync")
 	}
+	return
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
-	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
+	if lastDataReceived.IsZero() || gc.syncingConversations.Load() || gc.stallRecoveryRunning.Load() {
 		return
 	}
 	zerolog.Ctx(ctx).Debug().
 		Time("last_data_received", lastDataReceived).
 		Msg("Data resumed after quiet period, checking for missed events")
 	gc.SyncConversations(ctx, lastDataReceived, true)
+}
+
+const (
+	stallRecoveryInitialDelay = 2 * time.Minute
+	stallRecoveryRecheckDelay = 5 * time.Minute
+)
+
+// recoverReceiveStall is triggered when libgm reports that no data has been received
+// recently. The ditto pinger has just sent a GET_UPDATES poke, so give it a moment to
+// deliver any queued events, then compare the phone's actual conversation state with the
+// events we've received. If the phone has newer data than the event stream delivered,
+// the push subscription has gone stale even though the connection looks healthy: sync
+// the gap and re-arm the subscription, escalating to a full reconnect (which gets a new
+// listener session) if that isn't enough.
+func (gc *GMClient) recoverReceiveStall(ctx context.Context) {
+	if !gc.Main.Config.HackyStallDetect || !gc.stallRecoveryRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer gc.stallRecoveryRunning.Store(false)
+	log := gc.UserLogin.Log.With().Str("action", "receive stall recovery").Logger()
+	ctx = log.WithContext(ctx)
+	delay := stallRecoveryInitialDelay
+	for attempt := range 3 {
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return
+		}
+		delay = stallRecoveryRecheckDelay
+		cli := gc.Client
+		if cli == nil || !gc.ready || !gc.PhoneResponding || gc.browserInactiveType != "" {
+			return
+		}
+		if !gc.noDataReceivedRecently {
+			log.Debug().Msg("Data started flowing again, no stall recovery needed")
+			return
+		}
+		anchor := gc.lastDataReceived
+		if anchor.IsZero() {
+			return
+		}
+		if !gc.SyncConversations(ctx, anchor, true) {
+			log.Debug().Int("attempt", attempt).Msg("No receive stall detected")
+			return
+		}
+		switch attempt {
+		case 0:
+			log.Warn().Msg("Receive stall detected, re-arming phone push subscription")
+			if err := cli.SetActiveSession(ctx); err != nil {
+				log.Err(err).Msg("Failed to set active session")
+			}
+		case 1:
+			log.Warn().Msg("Receive stall persisted after setting active session, reconnecting")
+			if err := cli.Reconnect(); err != nil {
+				log.Err(err).Msg("Failed to reconnect")
+			}
+		case 2:
+			log.Error().Msg("Receive stall persisted after reconnecting, giving up until next data receive check")
+		}
+	}
 }
 
 func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *conversationMeta, suspiciousUnmarkedSpam bool) {
