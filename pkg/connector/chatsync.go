@@ -175,22 +175,22 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 	}
 }
 
-// soleOtherParticipantID returns the single non-self, visible participant of a DM chat
-func (gc *GMClient) soleOtherParticipantID(conv *gmproto.Conversation) string {
+// soleOtherParticipant returns the single non-self, visible participant of a DM chat
+func (gc *GMClient) soleOtherParticipant(conv *gmproto.Conversation) *gmproto.Participant {
 	if conv.IsGroupChat {
-		return ""
+		return nil
 	}
-	var found string
+	var found *gmproto.Participant
 	count := 0
 	for _, pcp := range conv.Participants {
 		if pcp.IsMe || !pcp.IsVisible || pcp.GetID().GetParticipantID() == "" {
 			continue
 		}
-		found = pcp.GetID().GetParticipantID()
+		found = pcp
 		count++
 	}
 	if count != 1 {
-		return ""
+		return nil
 	}
 	return found
 }
@@ -200,10 +200,11 @@ func (gc *GMClient) soleOtherParticipantID(conv *gmproto.Conversation) string {
 // which leaves orphaned rooms.
 func (gc *GMClient) deduplicateDMPortal(ctx context.Context, conv *gmproto.Conversation) {
 	log := zerolog.Ctx(ctx)
-	participantID := gc.soleOtherParticipantID(conv)
-	if participantID == "" {
+	pcp := gc.soleOtherParticipant(conv)
+	if pcp == nil {
 		return
 	}
+	participantID := pcp.GetID().GetParticipantID()
 	newKey := gc.MakePortalKey(conv.ConversationID)
 	otherUserID := gc.MakeUserID(participantID)
 	portals, err := gc.Main.br.GetDMPortalsWith(ctx, otherUserID)
@@ -214,6 +215,7 @@ func (gc *GMClient) deduplicateDMPortal(ctx context.Context, conv *gmproto.Conve
 			Msg("Failed to look up existing DM portals for re-key dedup")
 		return
 	}
+	portals = append(portals, gc.findStalePortalsByPhone(ctx, conv, pcp, portals)...)
 	for _, portal := range portals {
 		// Skip the conversation we're currently syncing and portals belonging to other
 		// user logins (GetDMPortalsWith is not scoped by receiver).
@@ -253,6 +255,64 @@ func (gc *GMClient) deduplicateDMPortal(ctx context.Context, conv *gmproto.Conve
 			Int("reid_result", int(result)).
 			Msg("Migrated re-keyed duplicate DM portal")
 	}
+}
+
+// findStalePortalsByPhone finds DM portals for the same contact phone number under a
+// different participant ID. Google sometimes re-keys the participant ID together with
+// the conversation ID (e.g. after dual-SIM self-identity changes), which the
+// participant-ID lookup can't see. The scan is comparatively expensive, so it only
+// runs at the re-key moment: when the synced conversation's own portal doesn't exist
+// yet and the participant-ID lookup found nothing.
+func (gc *GMClient) findStalePortalsByPhone(ctx context.Context, conv *gmproto.Conversation, pcp *gmproto.Participant, alreadyFound []*bridgev2.Portal) []*bridgev2.Portal {
+	log := zerolog.Ctx(ctx)
+	number := pcp.GetID().GetNumber()
+	if number == "" || len(alreadyFound) > 0 {
+		return nil
+	}
+	newKey := gc.MakePortalKey(conv.ConversationID)
+	if existing, err := gc.Main.br.GetExistingPortalByKey(ctx, newKey); err != nil {
+		log.Err(err).
+			Str("conversation_id", conv.ConversationID).
+			Msg("Failed to check for existing portal before phone-based re-key dedup")
+		return nil
+	} else if existing != nil {
+		return nil
+	}
+	allPortals, err := gc.Main.br.GetAllPortals(ctx)
+	if err != nil {
+		log.Err(err).
+			Str("conversation_id", conv.ConversationID).
+			Msg("Failed to list portals for phone-based re-key dedup")
+		return nil
+	}
+	participantID := pcp.GetID().GetParticipantID()
+	var found []*bridgev2.Portal
+	for _, portal := range allPortals {
+		if portal.Receiver != gc.UserLogin.ID || portal.OtherUserID == "" || portal.PortalKey == newKey {
+			continue
+		}
+		stalePcpID, err := gc.ParseUserID(portal.OtherUserID)
+		if err != nil || stalePcpID == participantID {
+			// Same participant ID portals were already covered by GetDMPortalsWith
+			continue
+		}
+		ghost, err := gc.Main.br.GetGhostByID(ctx, portal.OtherUserID)
+		if err != nil {
+			log.Err(err).
+				Str("ghost_id", string(portal.OtherUserID)).
+				Msg("Failed to get ghost for phone-based re-key dedup")
+			continue
+		}
+		if meta, ok := ghost.Metadata.(*GhostMetadata); ok && meta.Phone != "" && meta.Phone == number {
+			log.Debug().
+				Stringer("stale_portal_key", portal.PortalKey).
+				Str("stale_participant_id", stalePcpID).
+				Str("participant_id", participantID).
+				Msg("Found stale DM portal by phone number for re-key dedup")
+			found = append(found, portal)
+		}
+	}
+	return found
 }
 
 type GMChatResync struct {
