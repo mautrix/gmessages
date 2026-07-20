@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
@@ -68,6 +69,20 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
 		Msg("Sending Matrix message to Google Messages")
 	resp, err := gc.Client.SendMessage(ctx, req)
+	for attempt := 0; err == nil && isTransientSendFailure(resp.Status) && attempt < len(sendRetryBackoff); attempt++ {
+		zerolog.Ctx(ctx).Warn().
+			Str("response_status", resp.GetStatus().String()).
+			Int("attempt", attempt+1).
+			Dur("retry_in", sendRetryBackoff[attempt]).
+			Msg("Phone rejected message send with transient status, retrying")
+		select {
+		case <-ctx.Done():
+			msg.RemovePending(txnID)
+			return nil, ctx.Err()
+		case <-time.After(sendRetryBackoff[attempt]):
+		}
+		resp, err = gc.Client.SendMessage(ctx, req)
+	}
 	if err != nil {
 		if errors.Is(err, libgm.ErrPhoneNotResponding) {
 			// The server accepted the message, so the phone may still send it whenever
@@ -81,11 +96,31 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		msg.RemovePending(txnID)
 		return nil, err
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
+		zerolog.Ctx(ctx).Warn().
+			Str("response_status", resp.GetStatus().String()).
+			Str("google_account_switch", resp.GetGoogleAccountSwitch().GetAccount()).
+			Msg("Phone rejected message send")
 		msg.RemovePending(txnID)
 		return nil, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
-			WithIsCertain(true).WithSendNotice(true).WithErrorAsMessage()
+			WithIsCertain(!isTransientSendFailure(resp.Status)).WithSendNotice(true).WithErrorAsMessage()
 	}
 	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
+}
+
+// sendRetryBackoff bounds the total in-bridge retry time so the portal event
+// loop isn't blocked for long.
+var sendRetryBackoff = []time.Duration{3 * time.Second, 8 * time.Second, 20 * time.Second}
+
+// isTransientSendFailure reports whether the phone's rejection status has been
+// observed to clear on its own (the phone rejects sends during network/RCS
+// state flux and accepts identical sends minutes later).
+func isTransientSendFailure(status gmproto.SendMessageResponse_Status) bool {
+	switch status {
+	case gmproto.SendMessageResponse_FAILURE_2, gmproto.SendMessageResponse_FAILURE_3:
+		return true
+	default:
+		return false
+	}
 }
 
 func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *database.Message) (saveMessage bool, statusErr error) {
