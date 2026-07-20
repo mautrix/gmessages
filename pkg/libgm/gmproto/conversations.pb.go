@@ -7,12 +7,11 @@
 package gmproto
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -277,6 +276,11 @@ const (
 	MessageStatusType_OUTGOING_VALIDATING                                                               MessageStatusType = 20
 	MessageStatusType_OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION                                         MessageStatusType = 21
 	MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY                           MessageStatusType = 22
+	MessageStatusType_OUTGOING_DELETED                                                                  MessageStatusType = 23
+	MessageStatusType_OUTGOING_FAILED_RECIPIENT_NEGATIVE_DELIVERY                                       MessageStatusType = 24
+	MessageStatusType_MESSAGE_STATUS_OUTGOING_FAILED_EMERGENCY_PROTOCOL_DETERMINATION_MESSAGE           MessageStatusType = 25
+	MessageStatusType_OUTGOING_RESTRICTED                                                               MessageStatusType = 26
+	MessageStatusType_OUTGOING_FAILED_TO_ENCRYPT                                                        MessageStatusType = 27
 	MessageStatusType_INCOMING_COMPLETE                                                                 MessageStatusType = 100
 	MessageStatusType_INCOMING_YET_TO_MANUAL_DOWNLOAD                                                   MessageStatusType = 101
 	MessageStatusType_INCOMING_RETRYING_MANUAL_DOWNLOAD                                                 MessageStatusType = 102
@@ -292,6 +296,10 @@ const (
 	MessageStatusType_INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA                                          MessageStatusType = 112
 	MessageStatusType_INCOMING_FAILED_TO_DECRYPT                                                        MessageStatusType = 113
 	MessageStatusType_INCOMING_DECRYPTION_ABORTED                                                       MessageStatusType = 114
+	MessageStatusType_INCOMING_AWAITING_AUTO_DOWNLOAD                                                   MessageStatusType = 115
+	MessageStatusType_INCOMING_UNKNOWN_CONTENT_TYPE                                                     MessageStatusType = 116
+	MessageStatusType_INCOMING_DELETED                                                                  MessageStatusType = 117
+	MessageStatusType_INCOMING_DOWNLOAD_RESTRICTED                                                      MessageStatusType = 118
 	MessageStatusType_TOMBSTONE_PARTICIPANT_JOINED                                                      MessageStatusType = 200
 	MessageStatusType_TOMBSTONE_PARTICIPANT_LEFT                                                        MessageStatusType = 201
 	MessageStatusType_TOMBSTONE_SELF_LEFT                                                               MessageStatusType = 202
@@ -368,6 +376,10 @@ const (
 	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_DISABLED                                     MessageStatusType = 273
 	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_MANUALLY                               MessageStatusType = 274
 	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_AUTOMATICALLY                          MessageStatusType = 275
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_MLS                                                      MessageStatusType = 276
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_RCS_GROUP_SELF_CREATED                                   MessageStatusType = 277
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_CUSTOM_CARD                                              MessageStatusType = 278
+	MessageStatusType_MESSAGE_STATUS_TOMBSTONE_RBM_INCOMING_CONVERSATION_CREATED                        MessageStatusType = 279
 	MessageStatusType_MESSAGE_DELETED                                                                   MessageStatusType = 300
 )
 
@@ -397,6 +409,11 @@ var (
 		20:  "OUTGOING_VALIDATING",
 		21:  "OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION",
 		22:  "OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY",
+		23:  "OUTGOING_DELETED",
+		24:  "OUTGOING_FAILED_RECIPIENT_NEGATIVE_DELIVERY",
+		25:  "MESSAGE_STATUS_OUTGOING_FAILED_EMERGENCY_PROTOCOL_DETERMINATION_MESSAGE",
+		26:  "OUTGOING_RESTRICTED",
+		27:  "OUTGOING_FAILED_TO_ENCRYPT",
 		100: "INCOMING_COMPLETE",
 		101: "INCOMING_YET_TO_MANUAL_DOWNLOAD",
 		102: "INCOMING_RETRYING_MANUAL_DOWNLOAD",
@@ -412,6 +429,10 @@ var (
 		112: "INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA",
 		113: "INCOMING_FAILED_TO_DECRYPT",
 		114: "INCOMING_DECRYPTION_ABORTED",
+		115: "INCOMING_AWAITING_AUTO_DOWNLOAD",
+		116: "INCOMING_UNKNOWN_CONTENT_TYPE",
+		117: "INCOMING_DELETED",
+		118: "INCOMING_DOWNLOAD_RESTRICTED",
 		200: "TOMBSTONE_PARTICIPANT_JOINED",
 		201: "TOMBSTONE_PARTICIPANT_LEFT",
 		202: "TOMBSTONE_SELF_LEFT",
@@ -488,32 +509,41 @@ var (
 		273: "MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_DISABLED",
 		274: "MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_MANUALLY",
 		275: "MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_AUTOMATICALLY",
+		276: "MESSAGE_STATUS_TOMBSTONE_MLS",
+		277: "MESSAGE_STATUS_TOMBSTONE_RCS_GROUP_SELF_CREATED",
+		278: "MESSAGE_STATUS_TOMBSTONE_CUSTOM_CARD",
+		279: "MESSAGE_STATUS_TOMBSTONE_RBM_INCOMING_CONVERSATION_CREATED",
 		300: "MESSAGE_DELETED",
 	}
 	MessageStatusType_value = map[string]int32{
-		"STATUS_UNKNOWN":                                                                    0,
-		"OUTGOING_COMPLETE":                                                                 1,
-		"OUTGOING_DELIVERED":                                                                2,
-		"OUTGOING_DISPLAYED":                                                                11,
-		"OUTGOING_DRAFT":                                                                    3,
-		"OUTGOING_SEND_AFTER_PROCESSING":                                                    10,
-		"OUTGOING_YET_TO_SEND":                                                              4,
-		"OUTGOING_SENDING":                                                                  5,
-		"OUTGOING_RESENDING":                                                                6,
-		"OUTGOING_AWAITING_RETRY":                                                           7,
-		"OUTGOING_FAILED_GENERIC":                                                           8,
-		"OUTGOING_FAILED_EMERGENCY_NUMBER":                                                  9,
-		"OUTGOING_CANCELED":                                                                 12,
-		"OUTGOING_FAILED_TOO_LARGE":                                                         13,
-		"OUTGOING_NOT_DELIVERED_YET":                                                        14,
-		"OUTGOING_REVOCATION_PENDING":                                                       15,
-		"OUTGOING_SCHEDULED":                                                                16,
-		"OUTGOING_FAILED_RECIPIENT_LOST_RCS":                                                17,
-		"OUTGOING_FAILED_NO_RETRY_NO_FALLBACK":                                              18,
-		"OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT":                                         19,
-		"OUTGOING_VALIDATING":                                                               20,
-		"OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION":                                         21,
-		"OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY":                           22,
+		"STATUS_UNKNOWN":                                          0,
+		"OUTGOING_COMPLETE":                                       1,
+		"OUTGOING_DELIVERED":                                      2,
+		"OUTGOING_DISPLAYED":                                      11,
+		"OUTGOING_DRAFT":                                          3,
+		"OUTGOING_SEND_AFTER_PROCESSING":                          10,
+		"OUTGOING_YET_TO_SEND":                                    4,
+		"OUTGOING_SENDING":                                        5,
+		"OUTGOING_RESENDING":                                      6,
+		"OUTGOING_AWAITING_RETRY":                                 7,
+		"OUTGOING_FAILED_GENERIC":                                 8,
+		"OUTGOING_FAILED_EMERGENCY_NUMBER":                        9,
+		"OUTGOING_CANCELED":                                       12,
+		"OUTGOING_FAILED_TOO_LARGE":                               13,
+		"OUTGOING_NOT_DELIVERED_YET":                              14,
+		"OUTGOING_REVOCATION_PENDING":                             15,
+		"OUTGOING_SCHEDULED":                                      16,
+		"OUTGOING_FAILED_RECIPIENT_LOST_RCS":                      17,
+		"OUTGOING_FAILED_NO_RETRY_NO_FALLBACK":                    18,
+		"OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT":               19,
+		"OUTGOING_VALIDATING":                                     20,
+		"OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION":               21,
+		"OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY": 22,
+		"OUTGOING_DELETED":                                        23,
+		"OUTGOING_FAILED_RECIPIENT_NEGATIVE_DELIVERY":             24,
+		"MESSAGE_STATUS_OUTGOING_FAILED_EMERGENCY_PROTOCOL_DETERMINATION_MESSAGE": 25,
+		"OUTGOING_RESTRICTED":                                                               26,
+		"OUTGOING_FAILED_TO_ENCRYPT":                                                        27,
 		"INCOMING_COMPLETE":                                                                 100,
 		"INCOMING_YET_TO_MANUAL_DOWNLOAD":                                                   101,
 		"INCOMING_RETRYING_MANUAL_DOWNLOAD":                                                 102,
@@ -529,6 +559,10 @@ var (
 		"INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA":                                          112,
 		"INCOMING_FAILED_TO_DECRYPT":                                                        113,
 		"INCOMING_DECRYPTION_ABORTED":                                                       114,
+		"INCOMING_AWAITING_AUTO_DOWNLOAD":                                                   115,
+		"INCOMING_UNKNOWN_CONTENT_TYPE":                                                     116,
+		"INCOMING_DELETED":                                                                  117,
+		"INCOMING_DOWNLOAD_RESTRICTED":                                                      118,
 		"TOMBSTONE_PARTICIPANT_JOINED":                                                      200,
 		"TOMBSTONE_PARTICIPANT_LEFT":                                                        201,
 		"TOMBSTONE_SELF_LEFT":                                                               202,
@@ -605,7 +639,11 @@ var (
 		"MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_DISABLED":                                     273,
 		"MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_MANUALLY":                               274,
 		"MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_AUTOMATICALLY":                          275,
-		"MESSAGE_DELETED":                                                                   300,
+		"MESSAGE_STATUS_TOMBSTONE_MLS":                                                      276,
+		"MESSAGE_STATUS_TOMBSTONE_RCS_GROUP_SELF_CREATED":                                   277,
+		"MESSAGE_STATUS_TOMBSTONE_CUSTOM_CARD":                                              278,
+		"MESSAGE_STATUS_TOMBSTONE_RBM_INCOMING_CONVERSATION_CREATED":                        279,
+		"MESSAGE_DELETED": 300,
 	}
 )
 
@@ -3165,7 +3203,7 @@ const file_conversations_proto_rawDesc = "" +
 	"\x10ConversationType\x12\x1d\n" +
 	"\x19UNKNOWN_CONVERSATION_TYPE\x10\x00\x12\a\n" +
 	"\x03SMS\x10\x01\x12\a\n" +
-	"\x03RCS\x10\x02*\xff*\n" +
+	"\x03RCS\x10\x02*\x91/\n" +
 	"\x11MessageStatusType\x12\x12\n" +
 	"\x0eSTATUS_UNKNOWN\x10\x00\x12\x15\n" +
 	"\x11OUTGOING_COMPLETE\x10\x01\x12\x16\n" +
@@ -3190,7 +3228,12 @@ const file_conversations_proto_rawDesc = "" +
 	")OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT\x10\x13\x12\x17\n" +
 	"\x13OUTGOING_VALIDATING\x10\x14\x12-\n" +
 	")OUTGOING_FAILED_RECIPIENT_LOST_ENCRYPTION\x10\x15\x12;\n" +
-	"7OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY\x10\x16\x12\x15\n" +
+	"7OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY\x10\x16\x12\x14\n" +
+	"\x10OUTGOING_DELETED\x10\x17\x12/\n" +
+	"+OUTGOING_FAILED_RECIPIENT_NEGATIVE_DELIVERY\x10\x18\x12K\n" +
+	"GMESSAGE_STATUS_OUTGOING_FAILED_EMERGENCY_PROTOCOL_DETERMINATION_MESSAGE\x10\x19\x12\x17\n" +
+	"\x13OUTGOING_RESTRICTED\x10\x1a\x12\x1e\n" +
+	"\x1aOUTGOING_FAILED_TO_ENCRYPT\x10\x1b\x12\x15\n" +
 	"\x11INCOMING_COMPLETE\x10d\x12#\n" +
 	"\x1fINCOMING_YET_TO_MANUAL_DOWNLOAD\x10e\x12%\n" +
 	"!INCOMING_RETRYING_MANUAL_DOWNLOAD\x10f\x12\x1f\n" +
@@ -3205,7 +3248,11 @@ const file_conversations_proto_rawDesc = "" +
 	"\"INCOMING_DOWNLOAD_FAILED_TOO_LARGE\x10o\x12,\n" +
 	"(INCOMING_DOWNLOAD_FAILED_SIM_HAS_NO_DATA\x10p\x12\x1e\n" +
 	"\x1aINCOMING_FAILED_TO_DECRYPT\x10q\x12\x1f\n" +
-	"\x1bINCOMING_DECRYPTION_ABORTED\x10r\x12!\n" +
+	"\x1bINCOMING_DECRYPTION_ABORTED\x10r\x12#\n" +
+	"\x1fINCOMING_AWAITING_AUTO_DOWNLOAD\x10s\x12!\n" +
+	"\x1dINCOMING_UNKNOWN_CONTENT_TYPE\x10t\x12\x14\n" +
+	"\x10INCOMING_DELETED\x10u\x12 \n" +
+	"\x1cINCOMING_DOWNLOAD_RESTRICTED\x10v\x12!\n" +
 	"\x1cTOMBSTONE_PARTICIPANT_JOINED\x10\xc8\x01\x12\x1f\n" +
 	"\x1aTOMBSTONE_PARTICIPANT_LEFT\x10\xc9\x01\x12\x18\n" +
 	"\x13TOMBSTONE_SELF_LEFT\x10\xca\x01\x12 \n" +
@@ -3281,7 +3328,11 @@ const file_conversations_proto_rawDesc = "" +
 	",MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_ENABLED\x10\x90\x02\x122\n" +
 	"-MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_DISABLED\x10\x91\x02\x128\n" +
 	"3MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_MANUALLY\x10\x92\x02\x12=\n" +
-	"8MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_AUTOMATICALLY\x10\x93\x02\x12\x14\n" +
+	"8MESSAGE_STATUS_TOMBSTONE_INVITE_LINK_RESET_AUTOMATICALLY\x10\x93\x02\x12!\n" +
+	"\x1cMESSAGE_STATUS_TOMBSTONE_MLS\x10\x94\x02\x124\n" +
+	"/MESSAGE_STATUS_TOMBSTONE_RCS_GROUP_SELF_CREATED\x10\x95\x02\x12)\n" +
+	"$MESSAGE_STATUS_TOMBSTONE_CUSTOM_CARD\x10\x96\x02\x12?\n" +
+	":MESSAGE_STATUS_TOMBSTONE_RBM_INCOMING_CONVERSATION_CREATED\x10\x97\x02\x12\x14\n" +
 	"\x0fMESSAGE_DELETED\x10\xac\x02*\xae\x01\n" +
 	"\x12ConversationStatus\x12\x1f\n" +
 	"\x1bUNKNOWN_CONVERSATION_STATUS\x10\x00\x12\n" +
