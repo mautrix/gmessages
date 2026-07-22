@@ -60,6 +60,32 @@ type PortalMetadata struct {
 	ForceRCS bool                         `json:"force_rcs"`
 
 	OutgoingID string `json:"outgoing_id"`
+
+	// Stable conversation identity, this will be used in future as the key for portals since the
+	// IDs will remain stable over time, unlike the current conversation IDs.
+	StableID         string `json:"stable_id,omitempty"`
+	RCSGroupID       string `json:"rcs_group_id,omitempty"`
+	RCSConferenceURI string `json:"rcs_conference_uri,omitempty"`
+	ParticipantHash  string `json:"participant_hash,omitempty"`
+	ParticipantCount int    `json:"participant_count,omitempty"`
+}
+
+func (meta *PortalMetadata) updateFromStableIdentity(ident stableIdentity) (changed bool) {
+	if ident.RCSGroupID != "" && (meta.RCSGroupID != ident.RCSGroupID || meta.RCSConferenceURI != ident.RCSConferenceURI) {
+		meta.RCSGroupID = ident.RCSGroupID
+		meta.RCSConferenceURI = ident.RCSConferenceURI
+		changed = true
+	}
+	if ident.ParticipantHash != "" && (meta.ParticipantHash != ident.ParticipantHash || meta.ParticipantCount != ident.ParticipantCount) {
+		meta.ParticipantHash = ident.ParticipantHash
+		meta.ParticipantCount = ident.ParticipantCount
+		changed = true
+	}
+	if ident.StableID != "" && meta.StableID != ident.StableID {
+		meta.StableID = ident.StableID
+		changed = true
+	}
+	return
 }
 
 type GhostMetadata struct {
