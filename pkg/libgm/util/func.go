@@ -1,17 +1,14 @@
 package util
 
 import (
-	"fmt"
-	"math/rand"
 	"net/http"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 func GenerateTmpID() string {
-	src := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(src)
-	randNum := r.Int63n(1e12)
-	return fmt.Sprintf("tmp_%012d", randNum)
+	// Matches what the native app does
+	return uuid.NewString()
 }
 
 func BuildRelayHeaders(req *http.Request, contentType string, accept string) {
