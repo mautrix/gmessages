@@ -294,6 +294,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
+		go gc.runStableIDSweep(ctx)
 	case gmproto.AlertType_MOBILE_DATABASE_SYNC_STARTED:
 		log.Debug().Msg("Mobile database sync started")
 		gc.syncingMobileDatabase.Store(true)
