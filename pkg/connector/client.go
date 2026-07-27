@@ -67,6 +67,7 @@ type GMClient struct {
 	syncingConversations        atomic.Bool
 	syncingMobileDatabase       atomic.Bool
 	stallRecoveryRunning        atomic.Bool
+	stableIDSweepStarted        atomic.Bool
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]

@@ -186,6 +186,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				meta.OutgoingID = conv.DefaultOutgoingID
 				changed = true
 			}
+			changed = meta.updateFromStableIdentity(gc.computeStableIdentity(conv)) || changed
 			return
 		},
 	}, nil
