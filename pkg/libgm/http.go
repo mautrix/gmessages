@@ -23,6 +23,9 @@ import (
 const ContentTypeProtobuf = "application/x-protobuf"
 const ContentTypePBLite = "application/json+protobuf"
 
+const ServerErrorMaxAttempts = 3
+const ServerErrorRetryInterval = 1 * time.Second
+
 func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, contentType string) (*http.Response, error) {
 	ctx := c.Logger.WithContext(context.TODO())
 	return c.makeProtobufHTTPRequestContext(ctx, url, data, contentType, false)
@@ -42,22 +45,39 @@ func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string,
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	util.BuildRelayHeaders(req, contentType, "*/*")
-	c.AuthData.AddCookiesToRequest(req)
 	client := c.http
 	if longPoll {
 		client = c.lphttp
 	}
-	res, reqErr := client.Do(req)
-	if reqErr != nil {
-		return res, reqErr
+	for attempt := 1; ; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		util.BuildRelayHeaders(req, contentType, "*/*")
+		c.AuthData.AddCookiesToRequest(req)
+		res, reqErr := client.Do(req)
+		if reqErr != nil {
+			return res, reqErr
+		}
+		c.AuthData.UpdateCookiesFromResponse(res)
+		if longPoll || res.StatusCode < 500 || attempt >= ServerErrorMaxAttempts {
+			return res, nil
+		}
+		retryIn := time.Duration(attempt) * ServerErrorRetryInterval
+		zerolog.Ctx(ctx).Debug().
+			Int("status_code", res.StatusCode).
+			Str("url", url).
+			Int("attempt", attempt).
+			Stringer("retry_in", retryIn).
+			Msg("Server error from Google Messages, retrying in a while")
+		_ = res.Body.Close()
+		select {
+		case <-time.After(retryIn):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
-	c.AuthData.UpdateCookiesFromResponse(res)
-	return res, nil
 }
 
 func SAPISIDHash(origin, sapisid string) string {
