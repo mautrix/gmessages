@@ -204,6 +204,9 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 			c.skipCount--
 			msg.IsOld = true
 		}
+		if !msg.IsOld {
+			c.onPhoneActivity("data event")
+		}
 		c.handleUpdatesEvent(msg)
 	}
 }
