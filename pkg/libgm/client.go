@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -111,6 +112,9 @@ type updateDedupItem struct {
 	hash [32]byte
 }
 
+const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
+const minBugleDefaultCheckInterval = 1 * time.Hour
+
 type Client struct {
 	Logger         zerolog.Logger
 	evHandler      EventHandler
@@ -124,9 +128,12 @@ type Client struct {
 	pingInterval             time.Duration
 	alertTimeoutCount        int
 	pingShortCircuit         chan struct{}
+	phone                    phoneLiveness
 	dataReceiveCheckInterval time.Duration
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
+	lastBugleDefaultCheck    time.Time
+	bugleDefaultCheckLock    sync.Mutex
 
 	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
@@ -220,17 +227,16 @@ func (c *Client) SetProxy(proxy string) error {
 	return nil
 }
 
-func (c *Client) Connect() error {
+func (c *Client) checkLoggedIn() error {
 	if c.AuthData.TachyonAuthToken == nil {
 		return fmt.Errorf("no auth token")
 	} else if c.AuthData.Browser == nil {
 		return fmt.Errorf("not logged in")
 	}
+	return nil
+}
 
-	err := c.refreshAuthToken(nil)
-	if err != nil {
-		return fmt.Errorf("failed to refresh auth token: %w", err)
-	}
+func (c *Client) startLongPolling() {
 	c.bumpNextDataReceiveCheck(10 * time.Minute)
 
 	//webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
@@ -240,14 +246,30 @@ func (c *Client) Connect() error {
 	//c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
 	go c.doLongPoll(true, false, c.postConnect)
 	c.sessionHandler.startAckInterval()
+}
+
+func (c *Client) Connect() error {
+	if err := c.checkLoggedIn(); err != nil {
+		return err
+	}
+
+	// Refresh the auth token here rather than leaving it to the long polling loop, so that
+	// callers connecting for the first time (i.e. right after logging in) find out about
+	// bad credentials synchronously.
+	err := c.refreshAuthToken(nil)
+	if err != nil {
+		if isFatalRefreshError(err) {
+			return fmt.Errorf("failed to refresh auth token: %w", err)
+		}
+		c.Logger.Warn().Err(err).Msg("Transient error refreshing auth token on connect, will retry in long polling loop")
+	}
+	c.startLongPolling()
 	return nil
 }
 
 func (c *Client) ConnectBackground() error {
-	if c.AuthData.TachyonAuthToken == nil {
-		return fmt.Errorf("no auth token")
-	} else if c.AuthData.Browser == nil {
-		return fmt.Errorf("not logged in")
+	if err := c.checkLoggedIn(); err != nil {
+		return err
 	}
 	cleanExit := c.doLongPoll(true, true, nil)
 	c.sessionHandler.sendAckRequest()
@@ -284,6 +306,10 @@ func (c *Client) postConnect() {
 	}
 	c.Logger.Debug().Msg("Sent set active session/get updates request")
 
+	if !c.shouldCheckBugleDefault() {
+		c.Logger.Debug().Msg("Skipping bugle default check, already checked recently")
+		return
+	}
 	doneChan := make(chan struct{})
 	go func() {
 		select {
@@ -299,6 +325,16 @@ func (c *Client) postConnect() {
 		return
 	}
 	c.Logger.Debug().Bool("bugle_default", bugleRes.Success).Msg("Got is bugle default response on connect")
+}
+
+func (c *Client) shouldCheckBugleDefault() bool {
+	c.bugleDefaultCheckLock.Lock()
+	defer c.bugleDefaultCheckLock.Unlock()
+	if time.Since(c.lastBugleDefaultCheck) < minBugleDefaultCheckInterval {
+		return false
+	}
+	c.lastBugleDefaultCheck = time.Now()
+	return true
 }
 
 func (c *Client) Disconnect() {
@@ -321,11 +357,13 @@ func (c *Client) IsLoggedIn() bool {
 
 func (c *Client) Reconnect() error {
 	c.closeLongPolling()
-	err := c.Connect()
+	err := c.checkLoggedIn()
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to reconnect")
+		c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect: %w", err)})
 		return err
 	}
+	c.startLongPolling()
 	c.Logger.Debug().Msg("Successfully reconnected to server")
 	return nil
 }
@@ -428,6 +466,20 @@ func (c *Client) RegisterPush(ctx context.Context, keys *PushKeys) error {
 	}
 	c.PushKeys = keys
 	return nil
+}
+
+func isFatalRefreshError(err error) bool {
+	if errors.Is(err, events.ErrInvalidCredentials) || errors.Is(err, events.ErrRequestedEntityNotFound) {
+		return true
+	}
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {

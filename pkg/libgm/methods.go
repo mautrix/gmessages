@@ -80,7 +80,7 @@ func (c *Client) FetchMessages(ctx context.Context, conversationID string, count
 
 func (c *Client) SendMessage(ctx context.Context, payload *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
 	actionType := gmproto.ActionType_SEND_MESSAGE
-	return typedResponse[*gmproto.SendMessageResponse](c.sessionHandler.sendMessage(ctx, actionType, payload))
+	return typedResponse[*gmproto.SendMessageResponse](c.sessionHandler.sendUserMessage(ctx, actionType, payload))
 }
 
 func (c *Client) GetParticipantThumbnail(ctx context.Context, participantIDs ...string) (*gmproto.GetThumbnailResponse, error) {
@@ -97,19 +97,19 @@ func (c *Client) GetContactThumbnail(ctx context.Context, contactIDs ...string) 
 
 func (c *Client) UpdateConversation(ctx context.Context, payload *gmproto.UpdateConversationRequest) (*gmproto.UpdateConversationResponse, error) {
 	actionType := gmproto.ActionType_UPDATE_CONVERSATION
-	return typedResponse[*gmproto.UpdateConversationResponse](c.sessionHandler.sendMessage(ctx, actionType, payload))
+	return typedResponse[*gmproto.UpdateConversationResponse](c.sessionHandler.sendUserMessage(ctx, actionType, payload))
 }
 
 func (c *Client) SendReaction(ctx context.Context, payload *gmproto.SendReactionRequest) (*gmproto.SendReactionResponse, error) {
 	actionType := gmproto.ActionType_SEND_REACTION
-	return typedResponse[*gmproto.SendReactionResponse](c.sessionHandler.sendMessage(ctx, actionType, payload))
+	return typedResponse[*gmproto.SendReactionResponse](c.sessionHandler.sendUserMessage(ctx, actionType, payload))
 }
 
 func (c *Client) DeleteMessage(ctx context.Context, messageID string) (*gmproto.DeleteMessageResponse, error) {
 	payload := &gmproto.DeleteMessageRequest{MessageID: messageID}
 	actionType := gmproto.ActionType_DELETE_MESSAGE
 
-	return typedResponse[*gmproto.DeleteMessageResponse](c.sessionHandler.sendMessage(ctx, actionType, payload))
+	return typedResponse[*gmproto.DeleteMessageResponse](c.sessionHandler.sendUserMessage(ctx, actionType, payload))
 }
 
 func (c *Client) MarkRead(ctx context.Context, conversationID, messageID string) error {
@@ -151,8 +151,8 @@ func (c *Client) IsBugleDefault(ctx context.Context) (*gmproto.IsBugleDefaultRes
 	return typedResponse[*gmproto.IsBugleDefaultResponse](c.sessionHandler.sendMessage(ctx, actionType, nil))
 }
 
-func (c *Client) NotifyDittoActivity(ctx context.Context) (<-chan *IncomingRPCMessage, error) {
-	return c.sessionHandler.sendAsyncMessage(ctx, SendMessageParams{
+func (c *Client) notifyDittoActivity(ctx context.Context) (chan *IncomingRPCMessage, string, error) {
+	return c.sessionHandler.sendAsyncMessageWithID(ctx, SendMessageParams{
 		Action: gmproto.ActionType_NOTIFY_DITTO_ACTIVITY,
 		Data:   &gmproto.NotifyDittoActivityRequest{Success: true},
 	})
@@ -171,5 +171,5 @@ func (c *Client) GetFullSizeImage(ctx context.Context, messageID, actionMessageI
 	payload := &gmproto.GetFullSizeImageRequest{MessageID: messageID, ActionMessageID: actionMessageID}
 	actionType := gmproto.ActionType_GET_FULL_SIZE_IMAGE
 
-	return typedResponse[*gmproto.GetFullSizeImageResponse](c.sessionHandler.sendMessage(ctx, actionType, payload))
+	return typedResponse[*gmproto.GetFullSizeImageResponse](c.sessionHandler.sendUserMessage(ctx, actionType, payload))
 }

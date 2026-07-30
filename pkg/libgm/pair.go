@@ -71,7 +71,7 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 
 			err := c.Reconnect()
 			if err != nil {
-				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect after pair success: %w", err)})
+				c.Logger.Err(err).Msg("Failed to reconnect after pair success")
 			}
 		}()
 	}
