@@ -151,8 +151,8 @@ func (c *Client) IsBugleDefault(ctx context.Context) (*gmproto.IsBugleDefaultRes
 	return typedResponse[*gmproto.IsBugleDefaultResponse](c.sessionHandler.sendMessage(ctx, actionType, nil))
 }
 
-func (c *Client) NotifyDittoActivity(ctx context.Context) (<-chan *IncomingRPCMessage, error) {
-	return c.sessionHandler.sendAsyncMessage(ctx, SendMessageParams{
+func (c *Client) notifyDittoActivity(ctx context.Context) (chan *IncomingRPCMessage, string, error) {
+	return c.sessionHandler.sendAsyncMessageWithID(ctx, SendMessageParams{
 		Action: gmproto.ActionType_NOTIFY_DITTO_ACTIVITY,
 		Data:   &gmproto.NotifyDittoActivityRequest{Success: true},
 	})

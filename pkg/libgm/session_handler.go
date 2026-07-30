@@ -168,6 +168,10 @@ func (s *SessionHandler) receiveResponse(msg *IncomingRPCMessage) bool {
 	}
 	delete(s.responseWaiters, requestID)
 	s.responseWaitersLock.Unlock()
+	// Ditto activity is handled by the pinger directly
+	if msg.Message.Action != gmproto.ActionType_NOTIFY_DITTO_ACTIVITY {
+		s.client.onPhoneActivity("request response")
+	}
 	evt := s.client.Logger.Debug().
 		Str("request_message_id", requestID).
 		Str("response_message_id", msg.ResponseID)

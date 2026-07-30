@@ -124,6 +124,7 @@ type Client struct {
 	pingInterval             time.Duration
 	alertTimeoutCount        int
 	pingShortCircuit         chan struct{}
+	phone                    phoneLiveness
 	dataReceiveCheckInterval time.Duration
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
