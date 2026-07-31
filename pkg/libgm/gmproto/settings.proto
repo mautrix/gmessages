@@ -55,7 +55,9 @@ message SIMParticipant {
 }
 
 message SomeData {
-    bool pushEnabled = 3;
+    // optional for explicit presence: the phone omits this in some settings events, and an
+    // absent field must not be read as "push is disabled"
+    optional bool pushEnabled = 3;
     bool field7 = 7;
     bool field12 = 12;
     repeated bytes someEmojis = 15;
@@ -67,7 +69,9 @@ message RCSSettings {
     bool isEnabled = 1;
     bool sendReadReceipts = 2;
     bool showTypingIndicators = 3;
-    bool isDefaultSMSApp = 4; // uncertain, but this field seems to disappear when gmessages is un-defaulted
+    // this field disappears from some settings events, so it needs explicit presence:
+    // decoding an absent field as false makes the stored value flap between updates
+    optional bool isDefaultSMSApp = 4;
 }
 
 message BooleanFields2 {

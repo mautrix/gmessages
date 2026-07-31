@@ -155,8 +155,25 @@ type UserSettings struct {
 	RCSEnabled          bool `json:"rcs_enabled"`
 	ReadReceipts        bool `json:"read_receipts"`
 	TypingNotifications bool `json:"typing_notifications"`
-	IsDefaultSMSApp     bool `json:"is_default_sms_app"`
-	PushNotifications   bool `json:"push_notifications"`
+
+	// Not always provided, we apply them when set
+	IsDefaultSMSApp   *bool `json:"is_default_sms_app,omitempty"`
+	PushNotifications *bool `json:"push_notifications,omitempty"`
+}
+
+func (us UserSettings) Equal(other UserSettings) bool {
+	var boolPtrEqual = func(a, b *bool) bool {
+		if a == nil || b == nil {
+			return a == b
+		}
+		return *a == *b
+	}
+	return us.SettingsReceived == other.SettingsReceived &&
+		us.RCSEnabled == other.RCSEnabled &&
+		us.ReadReceipts == other.ReadReceipts &&
+		us.TypingNotifications == other.TypingNotifications &&
+		boolPtrEqual(us.IsDefaultSMSApp, other.IsDefaultSMSApp) &&
+		boolPtrEqual(us.PushNotifications, other.PushNotifications)
 }
 
 type bridgeStateSIMMeta struct {
