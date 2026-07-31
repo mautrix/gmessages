@@ -311,6 +311,12 @@ func (c *Client) Disconnect() {
 	c.http.CloseIdleConnections()
 }
 
+// FlushAcks sends any queued message acks immediately. Queued acks are lost when the client is
+// replaced, which makes the server redeliver the messages on the next connection.
+func (c *Client) FlushAcks() {
+	c.sessionHandler.sendAckRequest()
+}
+
 func (c *Client) IsConnected() bool {
 	// TODO add better check (longPollingConn is set to nil while the polling reconnects)
 	return c.longPollingConn != nil

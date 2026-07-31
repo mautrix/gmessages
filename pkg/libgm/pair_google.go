@@ -285,6 +285,7 @@ func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseCont
 
 var (
 	ErrNoCookies          = errors.New("gaia pairing requires cookies")
+	ErrNotGoogleAccount   = errors.New("not a google account")
 	ErrNoDevicesFound     = errors.New("no devices found for gaia pairing")
 	ErrIncorrectEmoji     = errors.New("user chose incorrect emoji on phone")
 	ErrPairingCancelled   = errors.New("user cancelled pairing on phone")
@@ -326,20 +327,7 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	return nil
 }
 
-func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession, error) {
-	if !c.AuthData.HasCookies() {
-		return "", nil, ErrNoCookies
-	}
-	sigResp, err := c.signInGaiaGetToken(ctx)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to prepare gaia pairing: %w", err)
-	}
-	// Don't log the whole object as it also contains the tachyon token
-	zerolog.Ctx(ctx).Debug().
-		Any("header", sigResp.Header).
-		Str("maybe_browser_uuid", sigResp.MaybeBrowserUUID).
-		Any("device_data", sigResp.DeviceData).
-		Msg("Gaia devices response")
+func (c *Client) selectPrimaryDevice(ctx context.Context, sigResp *gmproto.SignInGaiaResponse) (device *primaryDeviceID, deviceCount int, err error) {
 	var primaryDevices []*primaryDeviceID
 	primaryDeviceMap := make(map[string]*primaryDeviceID)
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
@@ -358,7 +346,7 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 		}
 	}
 	if len(primaryDevices) == 0 {
-		return "", nil, ErrNoDevicesFound
+		return nil, 0, ErrNoDevicesFound
 	} else if len(primaryDevices) > 1 {
 		// Sort by last seen time, newest first
 		slices.SortFunc(primaryDevices, func(a, b *primaryDeviceID) int {
@@ -375,6 +363,60 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 		Uint64("dest_reg_unknown_int", destRegDev.UnknownInt).
 		Time("dest_reg_last_seen", destRegDev.LastSeen).
 		Msg("Found UUID to use for gaia pairing")
+	return destRegDev, len(primaryDevices), nil
+}
+
+// RefreshDestRegID re-fetches the Google account's device list and updates the stored destination
+// registration if the phone has re-registered. It reports whether the registration changed.
+func (c *Client) RefreshDestRegID(ctx context.Context) (bool, error) {
+	if !c.AuthData.IsGoogleAccount() {
+		return false, ErrNotGoogleAccount
+	} else if !c.AuthData.HasCookies() {
+		return false, ErrNoCookies
+	}
+	sigResp, err := c.signInGaiaGetToken(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch device list: %w", err)
+	} else if sigResp.GetTokenData().GetTachyonAuthToken() == nil {
+		return false, fmt.Errorf("no tachyon auth token in device list response")
+	}
+	destRegDev, _, err := c.selectPrimaryDevice(ctx, sigResp)
+	if err != nil {
+		return false, err
+	}
+	destRegUUID, err := uuid.Parse(destRegDev.RegID)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse destination UUID: %w", err)
+	}
+	if destRegUUID == c.AuthData.DestRegID {
+		return false, nil
+	}
+	zerolog.Ctx(ctx).Info().
+		Stringer("old_dest_reg_uuid", c.AuthData.DestRegID).
+		Stringer("new_dest_reg_uuid", destRegUUID).
+		Msg("Destination registration rotated")
+	c.AuthData.DestRegID = destRegUUID
+	return true, nil
+}
+
+func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession, error) {
+	if !c.AuthData.HasCookies() {
+		return "", nil, ErrNoCookies
+	}
+	sigResp, err := c.signInGaiaGetToken(ctx)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to prepare gaia pairing: %w", err)
+	}
+	// Don't log the whole object as it also contains the tachyon token
+	zerolog.Ctx(ctx).Debug().
+		Any("header", sigResp.Header).
+		Str("maybe_browser_uuid", sigResp.MaybeBrowserUUID).
+		Any("device_data", sigResp.DeviceData).
+		Msg("Gaia devices response")
+	destRegDev, deviceCount, err := c.selectPrimaryDevice(ctx, sigResp)
+	if err != nil {
+		return "", nil, err
+	}
 	destRegUUID, err := uuid.Parse(destRegDev.RegID)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to parse destination UUID: %w", err)
@@ -399,7 +441,7 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			err = ErrPairingInitTimeout
-			if len(primaryDevices) > 1 {
+			if deviceCount > 1 {
 				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrHadMultipleDevices)
 			}
 			return "", nil, err

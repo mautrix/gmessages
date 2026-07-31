@@ -130,10 +130,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.GaiaLoggedOut:
 		log.Info().Msg("Got gaia logout event")
-		go gc.invalidateSession(ctx, status.BridgeState{
-			StateEvent: status.StateBadCredentials,
-			Error:      GMUnpaired,
-		}, true)
+		go gc.handleGaiaLoggedOut(ctx)
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
 		go func() {
@@ -409,6 +406,31 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		}
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	}
+}
+
+// handleGaiaLoggedOut checks whether the phone simply re-registered before treating the logout
+// marker as a real logout: the marker is also sent when the destination registration rotates, in
+// which case the existing credentials still work against the new registration.
+func (gc *GMClient) handleGaiaLoggedOut(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+	if cli := gc.Client; cli != nil {
+		changed, err := cli.RefreshDestRegID(ctx)
+		if err != nil {
+			log.Err(err).Msg("Failed to re-resolve destination registration after gaia logout event")
+		} else if changed {
+			if err := gc.UserLogin.Save(ctx); err != nil {
+				log.Err(err).Msg("Failed to save updated destination registration")
+			}
+			cli.FlushAcks()
+			gc.ResetClient()
+			gc.Connect(ctx)
+			return
+		}
+	}
+	gc.invalidateSession(ctx, status.BridgeState{
+		StateEvent: status.StateBadCredentials,
+		Error:      GMUnpaired,
+	}, true)
 }
 
 func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeState, deleteFull bool) {
