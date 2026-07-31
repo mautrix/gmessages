@@ -31,6 +31,7 @@ import (
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exslices"
 	"go.mau.fi/util/ffmpeg"
+	"go.mau.fi/util/ptr"
 	"golang.org/x/exp/maps"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -366,27 +367,35 @@ func (gc *GMClient) aggressiveSetActive() {
 	}
 }
 
+// mergeSettings folds a settings event into the stored settings, skipping non-present optional fields
+func mergeSettings(old UserSettings, settings *gmproto.Settings) UserSettings {
+	rcs := settings.GetRCSSettings()
+	merged := UserSettings{
+		SettingsReceived:    true,
+		RCSEnabled:          rcs.GetIsEnabled(),
+		ReadReceipts:        rcs.GetSendReadReceipts(),
+		TypingNotifications: rcs.GetShowTypingIndicators(),
+		IsDefaultSMSApp:     old.IsDefaultSMSApp,
+		PushNotifications:   old.PushNotifications,
+	}
+	if rcs != nil && rcs.IsDefaultSMSApp != nil {
+		merged.IsDefaultSMSApp = ptr.Ptr(rcs.GetIsDefaultSMSApp())
+	}
+	if opCodeData := settings.GetOpCodeData(); opCodeData != nil && opCodeData.PushEnabled != nil {
+		merged.PushNotifications = ptr.Ptr(opCodeData.GetPushEnabled())
+	}
+	return merged
+}
+
 func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settings) {
 	if settings.SIMCards == nil {
 		return
 	}
 	log := zerolog.Ctx(ctx)
 	changed := gc.Meta.SetSIMs(settings.SIMCards)
-	newRCSSettings := settings.GetRCSSettings()
-	if gc.Meta.Settings.RCSEnabled != newRCSSettings.GetIsEnabled() ||
-		gc.Meta.Settings.ReadReceipts != newRCSSettings.GetSendReadReceipts() ||
-		gc.Meta.Settings.TypingNotifications != newRCSSettings.GetShowTypingIndicators() ||
-		gc.Meta.Settings.IsDefaultSMSApp != newRCSSettings.GetIsDefaultSMSApp() ||
-		gc.Meta.Settings.PushNotifications != settings.GetOpCodeData().GetPushEnabled() ||
-		!gc.Meta.Settings.SettingsReceived {
-		gc.Meta.Settings = UserSettings{
-			SettingsReceived:    true,
-			RCSEnabled:          newRCSSettings.GetIsEnabled(),
-			ReadReceipts:        newRCSSettings.GetSendReadReceipts(),
-			TypingNotifications: newRCSSettings.GetShowTypingIndicators(),
-			IsDefaultSMSApp:     newRCSSettings.GetIsDefaultSMSApp(),
-			PushNotifications:   settings.GetOpCodeData().GetPushEnabled(),
-		}
+	newSettings := mergeSettings(gc.Meta.Settings, settings)
+	if !gc.Meta.Settings.Equal(newSettings) {
+		gc.Meta.Settings = newSettings
 		changed = true
 	}
 	if changed {
