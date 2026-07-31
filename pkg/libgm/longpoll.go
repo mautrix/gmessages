@@ -318,6 +318,7 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			return
 		}
 		ctx := dp.log.WithContext(context.TODO())
+		reconnected := false
 		switch {
 		case timeouts >= reconnectAfterTimeouts && pl.canDoRecovery():
 			dp.log.Warn().
@@ -327,9 +328,7 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			if err := dp.client.Reconnect(); err != nil {
 				dp.log.Err(err).Msg("Failed to reconnect while recovering from ping timeouts")
 			} else {
-				// The reconnect replaces this connection's ping loop, including this
-				// recovery goroutine.
-				return
+				reconnected = true
 			}
 		case timeouts >= setActiveSessionAfterTimeouts && !didSetActiveSession:
 			didSetActiveSession = true
@@ -341,6 +340,9 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			}
 		}
 		pl.advanceRecoveryInterval()
+		if reconnected {
+			return
+		}
 		pingID := pingIDCounter.Add(1)
 		dp.log.Debug().
 			Uint64("ping_id", pingID).
