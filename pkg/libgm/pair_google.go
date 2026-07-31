@@ -295,6 +295,13 @@ var (
 
 const GaiaInitTimeout = 20 * time.Second
 
+const (
+	gaiaDeviceTypePhone      = 1
+	gaiaDeviceTypeWebSession = 6
+)
+
+const otherWebSessionMaxAge = 24 * time.Hour
+
 type primaryDeviceID struct {
 	RegID      string
 	UnknownInt uint64
@@ -342,21 +349,37 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 		Msg("Gaia devices response")
 	var primaryDevices []*primaryDeviceID
 	primaryDeviceMap := make(map[string]*primaryDeviceID)
+	otherWebSessions := make(map[string]struct{})
+	ownWebSessionUUID := sigResp.GetMaybeBrowserUUID()
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems2() {
-		if dev.GetUnknownInt4() == 1 {
+		switch dev.GetUnknownInt4() {
+		case gaiaDeviceTypePhone:
 			pd := &primaryDeviceID{
 				RegID:      dev.GetDestOrSourceUUID(),
 				UnknownInt: dev.GetUnknownBigInt7(),
 			}
 			primaryDeviceMap[pd.RegID] = pd
 			primaryDevices = append(primaryDevices, pd)
+		case gaiaDeviceTypeWebSession:
+			if ownWebSessionUUID != "" && dev.GetDestOrSourceUUID() != ownWebSessionUUID {
+				otherWebSessions[dev.GetDestOrSourceUUID()] = struct{}{}
+			}
 		}
 	}
+	var newestOtherWebSession time.Time
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems3() {
 		if pd, ok := primaryDeviceMap[dev.GetDestOrSourceUUID()]; ok {
 			pd.LastSeen = time.UnixMicro(dev.GetUnknownTimestampMicroseconds())
+		} else if _, isOther := otherWebSessions[dev.GetDestOrSourceUUID()]; isOther {
+			if lastSeen := time.UnixMicro(dev.GetUnknownTimestampMicroseconds()); lastSeen.After(newestOtherWebSession) {
+				newestOtherWebSession = lastSeen
+			}
 		}
 	}
+	if newestOtherWebSession.Before(time.Now().Add(-otherWebSessionMaxAge)) {
+		newestOtherWebSession = time.Time{}
+	}
+	c.AuthData.OtherWebSessionAtPairing = newestOtherWebSession
 	if len(primaryDevices) == 0 {
 		return "", nil, ErrNoDevicesFound
 	} else if len(primaryDevices) > 1 {
@@ -374,6 +397,7 @@ func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession,
 		Str("dest_reg_uuid", destRegDev.RegID).
 		Uint64("dest_reg_unknown_int", destRegDev.UnknownInt).
 		Time("dest_reg_last_seen", destRegDev.LastSeen).
+		Time("other_web_session_last_seen", c.AuthData.OtherWebSessionAtPairing).
 		Msg("Found UUID to use for gaia pairing")
 	destRegUUID, err := uuid.Parse(destRegDev.RegID)
 	if err != nil {

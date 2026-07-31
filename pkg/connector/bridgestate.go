@@ -26,6 +26,7 @@ const (
 	GMListenError               status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError                status.BridgeStateErrorCode = "gm-listen-fatal-error"
 	GMUnpaired                  status.BridgeStateErrorCode = "gm-unpaired"
+	GMUnpairedGaia              status.BridgeStateErrorCode = "gm-unpaired-gaia"
 	GMUnpaired404               status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
 	GMLoggedOut401              status.BridgeStateErrorCode = "gm-logged-out-401-polling"
 	GMLoggedOutInvalidCreds     status.BridgeStateErrorCode = "gm-logged-out-invalid-credentials"
@@ -52,6 +53,7 @@ func init() {
 		GMNotLoggedIn:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotLoggedInCanReauth:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpairedGaia:              "Google Messages signed this connection out. This usually happens when the same Google account is linked to Google Messages for web somewhere else (another Beeper account or a browser) — Google only keeps one connected. Re-link to continue using SMS/RCS.",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutInvalidCreds:     "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",

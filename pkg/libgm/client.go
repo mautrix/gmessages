@@ -43,6 +43,9 @@ type AuthData struct {
 	DestRegID uuid.UUID `json:"dest_reg_id,omitempty"`
 	PairingID uuid.UUID `json:"pairing_id,omitempty"`
 
+	// Last seen time of the newest other Messages-for-web session on the account when this session was paired
+	OtherWebSessionAtPairing time.Time `json:"other_web_session_at_pairing,omitempty"`
+
 	Cookies     map[string]string `json:"cookies,omitempty"`
 	CookiesLock sync.RWMutex      `json:"-"`
 }

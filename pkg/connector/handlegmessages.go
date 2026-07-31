@@ -129,9 +129,13 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.GaiaLoggedOut:
 		log.Info().Msg("Got gaia logout event")
+		errCode := GMUnpaired
+		if sess := gc.Meta.Session; sess != nil && !sess.OtherWebSessionAtPairing.IsZero() {
+			errCode = GMUnpairedGaia
+		}
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
-			Error:      GMUnpaired,
+			Error:      errCode,
 		}, true)
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
