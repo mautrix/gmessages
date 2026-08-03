@@ -408,25 +408,69 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 	}
 }
 
+const gaiaLogoutRelapseWindow = 5 * time.Minute
+
 // handleGaiaLoggedOut checks whether the phone simply re-registered before treating the logout
 // marker as a real logout: the marker is also sent when the destination registration rotates, in
 // which case the existing credentials still work against the new registration.
 func (gc *GMClient) handleGaiaLoggedOut(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
-	if cli := gc.Client; cli != nil {
-		changed, err := cli.RefreshDestRegID(ctx)
-		if err != nil {
-			log.Err(err).Msg("Failed to re-resolve destination registration after gaia logout event")
-		} else if changed {
-			if err := gc.UserLogin.Save(ctx); err != nil {
-				log.Err(err).Msg("Failed to save updated destination registration")
-			}
-			cli.FlushAcks()
-			gc.ResetClient()
-			gc.Connect(ctx)
+	if !gc.handlingGaiaLogout.CompareAndSwap(false, true) {
+		log.Debug().Msg("Ignoring gaia logout event, another one is already being handled")
+		return
+	}
+	defer gc.handlingGaiaLogout.Store(false)
+
+	cli := gc.Client
+	if cli == nil {
+		gc.invalidateGaiaSession(ctx)
+		return
+	}
+	if sinceRecovery := time.Since(gc.lastGaiaLogoutRecovery); !gc.lastGaiaLogoutRecovery.IsZero() && sinceRecovery < gaiaLogoutRelapseWindow {
+		log.Warn().
+			Stringer("since_recovery", sinceRecovery).
+			Msg("Got another gaia logout event shortly after recovering, treating as real logout")
+		gc.invalidateGaiaSession(ctx)
+		return
+	}
+	changed, err := gc.refreshDestRegID(ctx, cli)
+	if err != nil {
+		log.Err(err).Msg("Failed to re-resolve destination registration after gaia logout event")
+		gc.invalidateGaiaSession(ctx)
+		return
+	}
+	log.Info().Bool("dest_reg_changed", changed).Msg("Reconnecting after gaia logout event")
+	if err = gc.UserLogin.Save(ctx); err != nil {
+		log.Err(err).Msg("Failed to save refreshed session after gaia logout event")
+	}
+	cli.FlushAcks()
+	gc.lastGaiaLogoutRecovery = time.Now()
+	gc.ResetClient()
+	gc.Connect(ctx)
+}
+
+func (gc *GMClient) refreshDestRegID(ctx context.Context, cli *libgm.Client) (changed bool, err error) {
+	log := zerolog.Ctx(ctx)
+	for i := 0; i < 3; i++ {
+		if i > 0 {
+			log.Warn().Err(err).Int("attempt", i).Msg("Failed to re-resolve destination registration, retrying")
+			time.Sleep(time.Duration(i) * 3 * time.Second)
+		}
+		changed, err = cli.RefreshDestRegID(ctx)
+		if err == nil {
+			return
+		} else if errors.Is(err, libgm.ErrNotGoogleAccount) ||
+			errors.Is(err, libgm.ErrNoCookies) ||
+			errors.Is(err, libgm.ErrNoDevicesFound) {
+			// The account can't be re-resolved at all, no point in retrying.
 			return
 		}
 	}
+	return
+}
+
+func (gc *GMClient) invalidateGaiaSession(ctx context.Context) {
+	gc.lastGaiaLogoutRecovery = time.Time{}
 	gc.invalidateSession(ctx, status.BridgeState{
 		StateEvent: status.StateBadCredentials,
 		Error:      GMUnpaired,
