@@ -366,37 +366,46 @@ func (c *Client) selectPrimaryDevice(ctx context.Context, sigResp *gmproto.SignI
 	return destRegDev, len(primaryDevices), nil
 }
 
+type RefreshDestRegIDResult struct {
+	// TokenRefreshed is set once a new tachyon auth token has been stored in AuthData.
+	TokenRefreshed bool
+	// DestRegChanged is set if the phone re-registered and DestRegID was updated to match.
+	DestRegChanged bool
+}
+
 // RefreshDestRegID re-fetches the Google account's device list and updates the stored destination
-// registration if the phone has re-registered. It reports whether the registration changed.
-func (c *Client) RefreshDestRegID(ctx context.Context) (bool, error) {
+// registration if the phone has re-registered.
+func (c *Client) RefreshDestRegID(ctx context.Context) (res RefreshDestRegIDResult, err error) {
 	if !c.AuthData.IsGoogleAccount() {
-		return false, ErrNotGoogleAccount
+		return res, ErrNotGoogleAccount
 	} else if !c.AuthData.HasCookies() {
-		return false, ErrNoCookies
+		return res, ErrNoCookies
 	}
 	sigResp, err := c.signInGaiaGetToken(ctx)
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch device list: %w", err)
+		return res, fmt.Errorf("failed to fetch device list: %w", err)
 	} else if sigResp.GetTokenData().GetTachyonAuthToken() == nil {
-		return false, fmt.Errorf("no tachyon auth token in device list response")
+		return res, fmt.Errorf("no tachyon auth token in device list response")
 	}
+	res.TokenRefreshed = true
 	destRegDev, _, err := c.selectPrimaryDevice(ctx, sigResp)
 	if err != nil {
-		return false, err
+		return res, err
 	}
 	destRegUUID, err := uuid.Parse(destRegDev.RegID)
 	if err != nil {
-		return false, fmt.Errorf("failed to parse destination UUID: %w", err)
+		return res, fmt.Errorf("failed to parse destination UUID: %w", err)
 	}
 	if destRegUUID == c.AuthData.DestRegID {
-		return false, nil
+		return res, nil
 	}
 	zerolog.Ctx(ctx).Info().
 		Stringer("old_dest_reg_uuid", c.AuthData.DestRegID).
 		Stringer("new_dest_reg_uuid", destRegUUID).
 		Msg("Destination registration rotated")
 	c.AuthData.DestRegID = destRegUUID
-	return true, nil
+	res.DestRegChanged = true
+	return res, nil
 }
 
 func (c *Client) StartGaiaPairing(ctx context.Context) (string, *PairingSession, error) {

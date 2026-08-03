@@ -433,13 +433,21 @@ func (gc *GMClient) handleGaiaLoggedOut(ctx context.Context) {
 		gc.invalidateGaiaSession(ctx)
 		return
 	}
-	changed, err := gc.refreshDestRegID(ctx, cli)
+	res, err := gc.refreshDestRegID(ctx, cli)
 	if err != nil {
-		log.Err(err).Msg("Failed to re-resolve destination registration after gaia logout event")
-		gc.invalidateGaiaSession(ctx)
-		return
+		if !res.TokenRefreshed {
+			log.Err(err).Msg("Failed to re-resolve destination registration after gaia logout event")
+			gc.invalidateGaiaSession(ctx)
+			return
+		}
+		// Note: if the refreshed token is invalid, we'll hit the logout path when we try to connect
+		log.Warn().Err(err).
+			Msg("Failed to re-resolve destination registration, but the auth token was refreshed, reconnecting anyway")
 	}
-	log.Info().Bool("dest_reg_changed", changed).Msg("Reconnecting after gaia logout event")
+	log.Info().
+		Bool("dest_reg_changed", res.DestRegChanged).
+		Bool("token_refreshed", res.TokenRefreshed).
+		Msg("Reconnecting after gaia logout event")
 	if err = gc.UserLogin.Save(ctx); err != nil {
 		log.Err(err).Msg("Failed to save refreshed session after gaia logout event")
 	}
@@ -449,14 +457,17 @@ func (gc *GMClient) handleGaiaLoggedOut(ctx context.Context) {
 	gc.Connect(ctx)
 }
 
-func (gc *GMClient) refreshDestRegID(ctx context.Context, cli *libgm.Client) (changed bool, err error) {
+func (gc *GMClient) refreshDestRegID(ctx context.Context, cli *libgm.Client) (res libgm.RefreshDestRegIDResult, err error) {
 	log := zerolog.Ctx(ctx)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if i > 0 {
 			log.Warn().Err(err).Int("attempt", i).Msg("Failed to re-resolve destination registration, retrying")
 			time.Sleep(time.Duration(i) * 3 * time.Second)
 		}
-		changed, err = cli.RefreshDestRegID(ctx)
+		var attempt libgm.RefreshDestRegIDResult
+		attempt, err = cli.RefreshDestRegID(ctx)
+		attempt.TokenRefreshed = attempt.TokenRefreshed || res.TokenRefreshed
+		res = attempt
 		if err == nil {
 			return
 		} else if errors.Is(err, libgm.ErrNotGoogleAccount) ||
