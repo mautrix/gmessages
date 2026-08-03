@@ -48,7 +48,7 @@ func (gc *GMConnector) FillPortalBridgeInfo(portal *bridgev2.Portal, content *ev
 }
 
 func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*bridgev2.ChatInfo, error) {
-	conversationID, err := gc.ParsePortalID(portal.ID)
+	conversationID, err := gc.conversationIDForPortal(ctx, portal)
 	if err != nil {
 		return nil, err
 	}
@@ -187,6 +187,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				changed = true
 			}
 			changed = meta.updateFromStableIdentity(gc.computeStableIdentity(conv)) || changed
+			changed = meta.updateConversationID(conv.GetConversationID()) || changed
 			return
 		},
 	}, nil
