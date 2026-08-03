@@ -153,6 +153,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
+		gc.pushThrottled.Store(false)
 		gc.lastDataReceived = time.Now()
 		if evt.GetTimestamp() > gc.lastDataReceived.UnixMicro() {
 			gc.lastDataReceived = time.UnixMicro(evt.GetTimestamp())
@@ -329,6 +330,12 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Phone battery restored")
 			gc.batteryLowAlertSent = time.Time{}
 		}
+	case gmproto.AlertType_PUSH_THROTTLE_STARTED:
+		gc.pushThrottled.Store(true)
+		return
+	case gmproto.AlertType_PUSH_THROTTLE_ENDED:
+		gc.pushThrottled.Store(false)
+		return
 	default:
 		return
 	}

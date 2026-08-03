@@ -70,6 +70,7 @@ type GMClient struct {
 	stallRecoveryRunning        atomic.Bool
 	handlingGaiaLogout          atomic.Bool
 	lastGaiaLogoutRecovery      time.Time
+	pushThrottled               atomic.Bool
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
@@ -82,6 +83,11 @@ type GMClient struct {
 }
 
 var _ bridgev2.NetworkAPI = &GMClient{}
+var _ bridgev2.OutgoingTimeoutSuppressingNetworkAPI = &GMClient{}
+
+func (gc *GMClient) SuppressOutgoingTimeouts() bool {
+	return gc.pushThrottled.Load()
+}
 
 func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLogin) error {
 	gcli := &GMClient{
