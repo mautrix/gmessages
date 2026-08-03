@@ -70,12 +70,12 @@ func (pl *phoneLiveness) onLiveness() (notRespondingSent, wasFailing, needsCatch
 	return
 }
 
-func (pl *phoneLiveness) onTimeout(urgent bool, alertTimeoutCount int) (timeouts int, sendNotResponding bool) {
+func (pl *phoneLiveness) onTimeout(alertTimeoutCount int) (timeouts int, sendNotResponding bool) {
 	pl.lock.Lock()
 	defer pl.lock.Unlock()
 	pl.timeouts++
 	timeouts = pl.timeouts
-	alert := !pl.firstPingDone || urgent || timeouts >= alertTimeoutCount
+	alert := !pl.firstPingDone || timeouts >= alertTimeoutCount
 	sendNotResponding = alert && !pl.notRespondingSent
 	if sendNotResponding {
 		pl.notRespondingSent = true
@@ -83,10 +83,10 @@ func (pl *phoneLiveness) onTimeout(urgent bool, alertTimeoutCount int) (timeouts
 	return
 }
 
-func (pl *phoneLiveness) shouldMarkNotResponding() bool {
+func (pl *phoneLiveness) shouldMarkNotResponding(alertTimeoutCount int) bool {
 	pl.lock.Lock()
 	defer pl.lock.Unlock()
-	if pl.notRespondingSent {
+	if pl.notRespondingSent || pl.timeouts < alertTimeoutCount {
 		return false
 	}
 	pl.notRespondingSent = true
@@ -130,18 +130,20 @@ func (pl *phoneLiveness) advanceRecoveryInterval() {
 
 // Goals of the ditto pinger:
 //   - By default, send pings to the phone every minute
-//   - If an outgoing request doesn't respond quickly, send a ping immediately
-//   - If a ping caused by a request timeout doesn't respond quickly, send PhoneNotResponding
-//     (the user is probably actively trying to use the bridge)
+//   - If an outgoing request the user is waiting on doesn't respond quickly, send a ping
+//     immediately
 //   - If the first ping doesn't respond, send PhoneNotResponding
 //     (to avoid the bridge being stuck in the CONNECTING state)
 //   - If a ping doesn't respond, send new pings on increasing intervals
 //     (starting from 1 minute up to 1 hour) until it responds, escalating to re-arming the
 //     phone's event subscription and then to reconnecting, since those recover the cases
 //     that pinging alone never will
-//   - If a normal ping doesn't respond, send PhoneNotResponding after 3 failed pings
-//     (so after ~8 minutes in total, not faster to avoid unnecessarily spamming the user)
-//   - If a request timeout happens during backoff pings, send PhoneNotResponding immediately
+//   - Only send PhoneNotResponding once the phone has missed alertTimeoutCount pings in a
+//     row (~8 minutes), however those pings were triggered. Phones doze constantly, so a
+//     single missed ping is normal and telling the user about it just trains them to
+//     ignore the warning.
+//   - If a request timeout happens during backoff pings, skip the rest of the backoff and
+//     send PhoneNotResponding as soon as that threshold is met
 //   - If a ping responds, or any data arrives from the phone, and PhoneNotResponding was
 //     sent, send PhoneRespondingAgain
 //
@@ -201,10 +203,11 @@ func (dp *dittoPinger) OnRespond(pingID uint64, dur time.Duration, reset *resett
 }
 
 func (dp *dittoPinger) OnTimeout(pingID uint64, urgent bool, reset *resetter) {
-	timeouts, sendNotResponding := dp.client.phone.onTimeout(urgent, dp.alertTimeoutCount)
+	timeouts, sendNotResponding := dp.client.phone.onTimeout(dp.alertTimeoutCount)
 	dp.log.Warn().
 		Uint64("ping_id", pingID).
 		Int("timeout_count", timeouts).
+		Bool("urgent", urgent).
 		Msg("Ditto ping is taking long, phone may be offline")
 	if sendNotResponding {
 		dp.client.triggerEvent(&events.PhoneNotResponding{})
@@ -352,8 +355,6 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 	}
 }
 
-const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
-
 func (dp *dittoPinger) Loop() {
 	for {
 		select {
@@ -361,9 +362,11 @@ func (dp *dittoPinger) Loop() {
 			if dp.recovering.Load() {
 				// Recovery pings are already in flight, but the user is actively waiting
 				// for a request, so don't make them wait out the backoff for a notice.
-				dp.log.Debug().Msg("Ditto ping wait short-circuited during recovery, sending PhoneNotResponding immediately")
-				if dp.client.phone.shouldMarkNotResponding() {
+				if dp.client.phone.shouldMarkNotResponding(dp.alertTimeoutCount) {
+					dp.log.Debug().Msg("Ditto ping wait short-circuited during recovery, sending PhoneNotResponding immediately")
 					dp.client.triggerEvent(&events.PhoneNotResponding{})
+				} else {
+					dp.log.Debug().Msg("Ditto ping wait short-circuited during recovery")
 				}
 			} else {
 				pingID := pingIDCounter.Add(1)

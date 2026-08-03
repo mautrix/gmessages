@@ -111,6 +111,9 @@ type updateDedupItem struct {
 	hash [32]byte
 }
 
+const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
+const minBugleDefaultCheckInterval = 1 * time.Hour
+
 type Client struct {
 	Logger         zerolog.Logger
 	evHandler      EventHandler
@@ -128,6 +131,8 @@ type Client struct {
 	dataReceiveCheckInterval time.Duration
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
+	lastBugleDefaultCheck    time.Time
+	bugleDefaultCheckLock    sync.Mutex
 
 	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
@@ -285,6 +290,10 @@ func (c *Client) postConnect() {
 	}
 	c.Logger.Debug().Msg("Sent set active session/get updates request")
 
+	if !c.shouldCheckBugleDefault() {
+		c.Logger.Debug().Msg("Skipping bugle default check, already checked recently")
+		return
+	}
 	doneChan := make(chan struct{})
 	go func() {
 		select {
@@ -300,6 +309,16 @@ func (c *Client) postConnect() {
 		return
 	}
 	c.Logger.Debug().Bool("bugle_default", bugleRes.Success).Msg("Got is bugle default response on connect")
+}
+
+func (c *Client) shouldCheckBugleDefault() bool {
+	c.bugleDefaultCheckLock.Lock()
+	defer c.bugleDefaultCheckLock.Unlock()
+	if time.Since(c.lastBugleDefaultCheck) < minBugleDefaultCheckInterval {
+		return false
+	}
+	c.lastBugleDefaultCheck = time.Now()
+	return true
 }
 
 func (c *Client) Disconnect() {

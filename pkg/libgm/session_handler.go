@@ -197,38 +197,39 @@ func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendM
 		return nil, err
 	}
 
-	shortCircuitTimer := time.NewTimer(pingShortCircuitTimeout)
-	defer shortCircuitTimer.Stop()
-	select {
-	case resp, ok := <-ch:
-		if !ok {
-			return nil, ErrConnectionClosed
-		}
-		return resp, nil
-	case <-ctx.Done():
-		s.cancelResponse(requestID, ch)
-		return nil, ctx.Err()
-	case <-shortCircuitTimer.C:
-		// Notify the pinger in order to trigger an event that the phone isn't responding
-		select {
-		case s.client.pingShortCircuit <- struct{}{}:
-		default:
-		}
-	}
-	hardTimer := time.NewTimer(responseHardTimeout - pingShortCircuitTimeout)
+	hardTimer := time.NewTimer(responseHardTimeout)
 	defer hardTimer.Stop()
-	select {
-	case resp, ok := <-ch:
-		if !ok {
-			return nil, ErrConnectionClosed
+
+	// Only short-circuit requests made by the user, no need to timeout faster for background reqs
+	var shortCircuit <-chan time.Time
+	if params.UserInitiated {
+		shortCircuitTimer := time.NewTimer(pingShortCircuitTimeout)
+		defer shortCircuitTimer.Stop()
+		shortCircuit = shortCircuitTimer.C
+	}
+
+	for {
+		select {
+		case resp, ok := <-ch:
+			if !ok {
+				return nil, ErrConnectionClosed
+			}
+			return resp, nil
+		case <-ctx.Done():
+			s.cancelResponse(requestID, ch)
+			return nil, ctx.Err()
+		case <-shortCircuit:
+			// Notify the pinger in order to trigger an event that the phone isn't responding
+			select {
+			case s.client.pingShortCircuit <- struct{}{}:
+			default:
+			}
+			// A nil channel blocks forever, so this only ever fires once per request.
+			shortCircuit = nil
+		case <-hardTimer.C:
+			s.cancelResponse(requestID, ch)
+			return nil, fmt.Errorf("%w in %s", ErrPhoneNotResponding, responseHardTimeout)
 		}
-		return resp, nil
-	case <-ctx.Done():
-		s.cancelResponse(requestID, ch)
-		return nil, ctx.Err()
-	case <-hardTimer.C:
-		s.cancelResponse(requestID, ch)
-		return nil, fmt.Errorf("%w in %s", ErrPhoneNotResponding, responseHardTimeout)
 	}
 }
 
@@ -236,6 +237,14 @@ func (s *SessionHandler) sendMessage(ctx context.Context, actionType gmproto.Act
 	return s.sendMessageWithParams(ctx, SendMessageParams{
 		Action: actionType,
 		Data:   encryptedData,
+	})
+}
+
+func (s *SessionHandler) sendUserMessage(ctx context.Context, actionType gmproto.ActionType, encryptedData proto.Message) (*IncomingRPCMessage, error) {
+	return s.sendMessageWithParams(ctx, SendMessageParams{
+		Action:        actionType,
+		Data:          encryptedData,
+		UserInitiated: true,
 	})
 }
 
@@ -248,6 +257,8 @@ type SendMessageParams struct {
 	CustomTTL   int64
 	DontEncrypt bool
 	MessageType gmproto.MessageType
+
+	UserInitiated bool
 }
 
 func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.Message, error) {
