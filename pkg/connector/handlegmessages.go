@@ -18,9 +18,7 @@ package connector
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -734,7 +732,22 @@ func (m *MessageEvent) GetID() networkid.MessageID {
 }
 
 func (m *MessageEvent) GetTransactionID() networkid.TransactionID {
-	return networkid.TransactionID(m.TmpID)
+	if m.TmpID != "" {
+		return networkid.TransactionID(m.TmpID)
+	} else if m.IsOld {
+		return ""
+	}
+	// The server doesn't always echo the tmpID back, so fall back to matching the message against
+	// recently sent messages to avoid duplicating outgoing messages into the Matrix room.
+	txnID := m.g.matchPendingSend(m.Message)
+	if txnID != "" {
+		m.g.UserLogin.Log.Debug().
+			Str("message_id", m.MessageID).
+			Str("conversation_id", m.ConversationID).
+			Str("tmp_id", string(txnID)).
+			Msg("Matched message without tmpID to a recently sent message")
+	}
+	return txnID
 }
 
 func (m *MessageEvent) GetTargetMessage() networkid.MessageID {
@@ -754,9 +767,6 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 	content := &event.MessageEventContent{
 		MsgType: event.MsgText,
 	}
-	textHasher := sha256.New()
-	textHasher.Write([]byte(msg.GetSubject()))
-	textHasher.Write([]byte{0x00})
 	if msg.GetSubject() != "" {
 		content.Format = event.FormatHTML
 		content.Body = fmt.Sprintf("\n**%s**", msg.GetSubject())
@@ -767,8 +777,6 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		if !ok {
 			continue
 		}
-		textHasher.Write([]byte(data.MessageContent.GetContent()))
-		textHasher.Write([]byte{0x00})
 		content.Body = fmt.Sprintf("%s\n%s", content.Body, data.MessageContent.GetContent())
 		if content.Format == event.FormatHTML {
 			content.FormattedBody += fmt.Sprintf("<br>%s", event.TextToHTML(data.MessageContent.GetContent()))
@@ -777,7 +785,7 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 	content.Body = strings.TrimPrefix(content.Body, "\n")
 	var textHash string
 	if len(content.Body) > 0 {
-		textHash = hex.EncodeToString(textHasher.Sum(nil))
+		textHash = hashMessageText(msg.GetSubject(), msg.GetMessageInfo())
 	}
 	downloadStatus := downloadPendingStatusMessage(msg.GetMessageStatus().GetStatus())
 	if len(downloadStatus) > 0 {

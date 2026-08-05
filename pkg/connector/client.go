@@ -72,6 +72,9 @@ type GMClient struct {
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 
+	pendingSends     []*pendingSend
+	pendingSendsLock sync.Mutex
+
 	contactsFetchLock sync.Mutex
 	contactsFetchedAt time.Time
 	cachedContacts    []*bridgev2.ResolveIdentifierResponse

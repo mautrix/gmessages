@@ -63,6 +63,7 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		return nil, err
 	}
 	msg.AddPendingToSave(nil, txnID, gc.handleRemoteEcho)
+	gc.addPendingSend(txnID, req)
 	zerolog.Ctx(ctx).Debug().
 		Str("tmp_id", string(txnID)).
 		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
@@ -79,9 +80,11 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 				WithSendNotice(true)
 		}
 		msg.RemovePending(txnID)
+		gc.removePendingSend(txnID)
 		return nil, err
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
 		msg.RemovePending(txnID)
+		gc.removePendingSend(txnID)
 		return nil, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
 			WithIsCertain(true).WithSendNotice(true).WithErrorAsMessage()
 	}
