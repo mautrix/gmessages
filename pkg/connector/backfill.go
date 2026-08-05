@@ -54,6 +54,14 @@ func parsePaginationCursor(cursor networkid.PaginationCursor) (*gmproto.Cursor, 
 	}, nil
 }
 
+// Allow messages that pre-date the anchor message if they are: sent by us and within this timeframe,
+// this allows messages that send late on the phone side to be updated and have the correct send status.
+const pendingSendMaxAge = 24 * time.Hour
+
+func mayResolvePendingSend(msg *gmproto.Message, msgTS time.Time) bool {
+	return msg.GetTmpID() != "" && time.Since(msgTS) < pendingSendMaxAge
+}
+
 func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	if gc.Client == nil {
 		return nil, bridgev2.ErrNotLoggedIn
@@ -111,7 +119,10 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		if !params.Forward && cursor != nil && msgTS.UnixMilli() >= cursor.LastItemTimestamp {
 			log.Debug().Int64("cursor_ms", cursor.LastItemTimestamp).Msg("Ignoring message newer than cursor")
 			continue
-		} else if params.Forward && msgTS.Before(anchorTS) || anchorMsgID == msg.MessageID {
+		} else if anchorMsgID == msg.MessageID {
+			log.Debug().Str("anchor_message_id", anchorMsgID).Msg("Ignoring anchor message itself")
+			continue
+		} else if params.Forward && msgTS.Before(anchorTS) && !mayResolvePendingSend(msg, msgTS) {
 			log.Debug().
 				Time("anchor_ts", anchorTS).
 				Str("anchor_message_id", anchorMsgID).
