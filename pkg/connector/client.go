@@ -77,6 +77,9 @@ type GMClient struct {
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 
+	pendingSends     map[networkid.TransactionID]pendingSend
+	pendingSendsLock sync.Mutex
+
 	contactsFetchLock  sync.Mutex
 	contactsFetchedAt  time.Time
 	cachedContacts     []*gmproto.Contact
@@ -103,6 +106,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		conversationMeta:    make(map[string]*conversationMeta),
 		chatInfoCache:       exsync.NewMap[string, *gmproto.Conversation](),
 		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
+		pendingSends:        make(map[networkid.TransactionID]pendingSend),
 	}
 	gcli.NewClient()
 	login.Client = gcli
