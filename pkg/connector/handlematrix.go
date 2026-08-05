@@ -157,10 +157,23 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 	default:
 		panic(fmt.Errorf("unexpected event type in remote echo handler: %T", rawEvt))
 	}
+	if meta == nil {
+		return true, bridgev2.ErrNoStatus
+	}
 	if gc.Main.br.Config.OutgoingMessageReID {
 		meta.OrigMXID = dbMessage.MXID
 	}
 	dbMessage.Metadata = meta
+	// Normally the echo arrives while the message is still sending, so the send status is left
+	// to handleExistingMessageUpdate once the phone confirms it. An echo that already carries a
+	// sent status has no further update coming - which is the usual shape of a late echo that
+	// only came back after the phone stopped throttling pushes - so send the status here
+	// instead. Without this the message keeps whatever remote echo timeout error it picked up
+	// while waiting, even though it was delivered.
+	if meta.IsOutgoing && isSuccessfullySentStatus(meta.Type) {
+		meta.MSSSent = true
+		return true, nil
+	}
 	return true, bridgev2.ErrNoStatus
 }
 

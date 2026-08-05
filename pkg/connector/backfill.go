@@ -54,6 +54,26 @@ func parsePaginationCursor(cursor networkid.PaginationCursor) (*gmproto.Cursor, 
 	}, nil
 }
 
+// pendingSendMaxAge bounds how far back the forward backfill anchor cutoff is bypassed for
+// messages that may still be waiting for their remote echo. Pending messages only live in
+// memory, so nothing older than this can resolve one anymore.
+const pendingSendMaxAge = 24 * time.Hour
+
+// mayResolvePendingSend reports whether a message could still be the remote echo of an
+// outgoing message that hasn't been matched to its Matrix event yet.
+//
+// The phone suppresses pushes while it's throttling and never replays them once throttling
+// ends, so those echoes only ever reappear in a forward backfill. The backlog flushes out of
+// order, which routinely puts them behind an anchor that has already moved on - so the anchor
+// cutoff would drop exactly the messages bridgev2 needs to resolve the pending send, leaving a
+// permanent "phone has not confirmed message delivery" error on a message that did get sent.
+//
+// Messages that turn out not to be pending are still deduplicated by cutoffMessages before
+// anything is bridged, so letting them through can't duplicate an already-bridged message.
+func mayResolvePendingSend(msg *gmproto.Message, msgTS time.Time) bool {
+	return msg.GetTmpID() != "" && time.Since(msgTS) < pendingSendMaxAge
+}
+
 func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	if gc.Client == nil {
 		return nil, bridgev2.ErrNotLoggedIn
@@ -111,7 +131,10 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		if !params.Forward && cursor != nil && msgTS.UnixMilli() >= cursor.LastItemTimestamp {
 			log.Debug().Int64("cursor_ms", cursor.LastItemTimestamp).Msg("Ignoring message newer than cursor")
 			continue
-		} else if params.Forward && msgTS.Before(anchorTS) || anchorMsgID == msg.MessageID {
+		} else if anchorMsgID == msg.MessageID {
+			log.Debug().Str("anchor_message_id", anchorMsgID).Msg("Ignoring anchor message itself")
+			continue
+		} else if params.Forward && msgTS.Before(anchorTS) && !mayResolvePendingSend(msg, msgTS) {
 			log.Debug().
 				Time("anchor_ts", anchorTS).
 				Str("anchor_message_id", anchorMsgID).
