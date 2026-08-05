@@ -88,6 +88,7 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			// The server accepted the message, so the phone may still send it whenever
 			// it comes back online. Keep the pending entry so the remote echo can
 			// resolve the original event (and correct the failure status) if that happens.
+			gc.trackPendingSend(txnID, req.GetConversationID())
 			return nil, bridgev2.WrapErrorInStatus(err).
 				WithMessage(PhoneNotRespondingMessage).
 				WithErrorReason(event.MessageStatusTooOld).
@@ -104,6 +105,7 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		return nil, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
 			WithIsCertain(!isTransientSendFailure(resp.Status)).WithSendNotice(true).WithErrorAsMessage()
 	}
+	gc.trackPendingSend(txnID, req.GetConversationID())
 	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
 }
 
@@ -119,6 +121,9 @@ func isTransientSendFailure(status gmproto.SendMessageResponse_Status) bool {
 }
 
 func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *database.Message) (saveMessage bool, statusErr error) {
+	if txnEvt, ok := rawEvt.(bridgev2.RemoteMessageWithTransactionID); ok {
+		gc.untrackPendingSend(txnEvt.GetTransactionID())
+	}
 	var meta *MessageMetadata
 	switch evt := rawEvt.(type) {
 	case *MessageEvent:

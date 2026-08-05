@@ -86,6 +86,103 @@ func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived 
 	gc.SyncConversations(ctx, lastDataReceived, true)
 }
 
+// pendingSend records where a message that hasn't been echoed back yet was sent, so the chat
+// can be resynced if the phone never sends the remote echo.
+type pendingSend struct {
+	convID string
+	sentAt time.Time
+}
+
+const (
+	pendingSendTrackMaxAge      = 1 * time.Hour
+	pendingSendResyncDelay      = 15 * time.Second
+	pendingSendResyncExtraChats = 10
+)
+
+func (gc *GMClient) trackPendingSend(txnID networkid.TransactionID, convID string) {
+	if txnID == "" || convID == "" {
+		return
+	}
+	gc.pendingSendsLock.Lock()
+	defer gc.pendingSendsLock.Unlock()
+	gc.pendingSends[txnID] = pendingSend{convID: convID, sentAt: time.Now()}
+}
+
+func (gc *GMClient) untrackPendingSend(txnID networkid.TransactionID) {
+	if txnID == "" {
+		return
+	}
+	gc.pendingSendsLock.Lock()
+	defer gc.pendingSendsLock.Unlock()
+	delete(gc.pendingSends, txnID)
+}
+
+func (gc *GMClient) pendingSendChats() map[string]struct{} {
+	gc.pendingSendsLock.Lock()
+	defer gc.pendingSendsLock.Unlock()
+	convIDs := make(map[string]struct{})
+	for txnID, send := range gc.pendingSends {
+		if time.Since(send.sentAt) > pendingSendTrackMaxAge {
+			delete(gc.pendingSends, txnID)
+			continue
+		}
+		convIDs[send.convID] = struct{}{}
+	}
+	return convIDs
+}
+
+// resyncChatsWithPendingSends is triggered when the phone reports that it has stopped
+// throttling pushes. Grab any pending sends without echos and sync those conversations.
+func (gc *GMClient) resyncChatsWithPendingSends(ctx context.Context) {
+	select {
+	case <-time.After(pendingSendResyncDelay):
+	case <-ctx.Done():
+		return
+	}
+	convIDs := gc.pendingSendChats()
+	if len(convIDs) == 0 {
+		return
+	}
+	cli := gc.Client
+	if cli == nil {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "resync chats with pending sends").Logger()
+	ctx = log.WithContext(ctx)
+	count := len(convIDs) + pendingSendResyncExtraChats
+	if count < gc.Main.Config.InitialChatSyncCount {
+		count = gc.Main.Config.InitialChatSyncCount
+	}
+	log.Debug().
+		Int("pending_chat_count", len(convIDs)).
+		Int("list_count", count).
+		Msg("Push throttling ended with sends still waiting for an echo, resyncing affected chats")
+	resp, err := cli.ListConversations(ctx, count, gmproto.ListConversationsRequest_INBOX)
+	if err != nil {
+		log.Err(err).Msg("Failed to list conversations to resync pending sends")
+		return
+	}
+	var resynced int
+	for _, conv := range resp.GetConversations() {
+		if _, ok := convIDs[conv.GetConversationID()]; !ok {
+			continue
+		}
+		delete(convIDs, conv.GetConversationID())
+		gc.chatInfoCache.Set(conv.GetConversationID(), conv)
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &GMChatResync{
+			g:             gc,
+			Conv:          conv,
+			AllowBackfill: true,
+			OnlyBackfill:  true,
+		})
+		resynced++
+	}
+	log.Debug().
+		Int("resynced", resynced).
+		Int("not_in_conversation_list", len(convIDs)).
+		Msg("Queued backfills for chats with pending sends")
+}
+
 const (
 	stallRecoveryInitialDelay = 2 * time.Minute
 	stallRecoveryRecheckDelay = 5 * time.Minute

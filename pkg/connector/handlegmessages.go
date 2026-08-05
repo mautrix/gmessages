@@ -338,6 +338,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		return
 	case gmproto.AlertType_PUSH_THROTTLE_ENDED:
 		gc.pushThrottled.Store(false)
+		go gc.resyncChatsWithPendingSends(context.WithoutCancel(ctx))
 		return
 	default:
 		return
