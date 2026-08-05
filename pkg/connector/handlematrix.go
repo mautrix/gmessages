@@ -122,10 +122,17 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 	default:
 		panic(fmt.Errorf("unexpected event type in remote echo handler: %T", rawEvt))
 	}
+	if meta == nil {
+		return true, bridgev2.ErrNoStatus
+	}
 	if gc.Main.br.Config.OutgoingMessageReID {
 		meta.OrigMXID = dbMessage.MXID
 	}
 	dbMessage.Metadata = meta
+	if meta.IsOutgoing && isSuccessfullySentStatus(meta.Type) {
+		meta.MSSSent = true
+		return true, nil
+	}
 	return true, bridgev2.ErrNoStatus
 }
 
