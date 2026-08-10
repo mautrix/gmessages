@@ -128,7 +128,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			}
 			members.MemberMap[userID] = bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
-				UserInfo:    gc.wrapParticipantInfo(ghost, pcp),
+				UserInfo:    gc.wrapParticipantInfo(ctx, ghost, pcp),
 				PowerLevel:  ptr.Ptr(50),
 			}
 		}
@@ -240,8 +240,9 @@ func phoneNumberMightHaveAvatar(phone string) bool {
 	return strings.HasSuffix(phone, ".goog") || phone == GeminiPhoneNumber
 }
 
-func (gc *GMClient) wrapParticipantInfo(ghost *bridgev2.Ghost, contact *gmproto.Participant) *bridgev2.UserInfo {
+func (gc *GMClient) wrapParticipantInfo(ctx context.Context, ghost *bridgev2.Ghost, contact *gmproto.Participant) *bridgev2.UserInfo {
 	return gc.makeUserInfo(
+		ctx,
 		ghost,
 		contact.GetID().GetNumber(),
 		contact.GetFormattedNumber(),
@@ -251,8 +252,9 @@ func (gc *GMClient) wrapParticipantInfo(ghost *bridgev2.Ghost, contact *gmproto.
 	)
 }
 
-func (gc *GMClient) wrapContactInfo(ghost *bridgev2.Ghost, contact *gmproto.Contact) *bridgev2.UserInfo {
+func (gc *GMClient) wrapContactInfo(ctx context.Context, ghost *bridgev2.Ghost, contact *gmproto.Contact) *bridgev2.UserInfo {
 	return gc.makeUserInfo(
+		ctx,
 		ghost,
 		contact.GetNumber().GetNumber(),
 		contact.GetNumber().GetFormattedNumber(),
@@ -262,14 +264,52 @@ func (gc *GMClient) wrapContactInfo(ghost *bridgev2.Ghost, contact *gmproto.Cont
 	)
 }
 
-func (gc *GMClient) makeUserInfo(ghost *bridgev2.Ghost, phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
+func (gc *GMClient) inheritNameByPhone(ctx context.Context, phone string) string {
+	ghosts, err := gc.Main.br.DB.Ghost.GetByMetadata(ctx, "phone", phone)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Str("phone", phone).Msg("Failed to look up ghosts by phone number")
+		return ""
+	}
+	for _, ghost := range ghosts {
+		meta, ok := ghost.Metadata.(*GhostMetadata)
+		if !ok || !meta.HasName || ghost.Name == "" {
+			continue
+		}
+		// The bridge database is shared between logins, so only consider our own ghosts.
+		if prefix, _ := parseAnyID(string(ghost.ID)); prefix != gc.Meta.IDPrefix {
+			continue
+		}
+		return ghost.Name
+	}
+	return ""
+}
+
+func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
 	var identifiers []string
 	if phone != "" {
 		identifiers = append(identifiers, fmt.Sprintf("tel:%s", phone))
 	}
-	name := ptr.Ptr(gc.Main.Config.FormatDisplayname(formattedNumber, fullName, firstName))
+	meta := ghost.Metadata.(*GhostMetadata)
 	hasName := fullName != "" || firstName != ""
-	if !hasName && ghost.Metadata.(*GhostMetadata).HasName {
+	if !hasName && !meta.HasName && phone != "" {
+		var source string
+		if contact := gc.lookupContactByNumber(ctx, phone); contact.GetName() != "" {
+			fullName = contact.GetName()
+			contactID = contact.GetContactID()
+			hasName, source = true, "contact list"
+		} else if inherited := gc.inheritNameByPhone(ctx, phone); inherited != "" {
+			fullName = inherited
+			hasName, source = true, "previous ghost"
+		}
+		if hasName {
+			zerolog.Ctx(ctx).Debug().
+				Str("phone", phone).
+				Str("name_source", source).
+				Msg("Resolved name for participant that arrived without one")
+		}
+	}
+	name := ptr.Ptr(gc.Main.Config.FormatDisplayname(formattedNumber, fullName, firstName))
+	if !hasName && meta.HasName {
 		name = nil
 	}
 	return &bridgev2.UserInfo{

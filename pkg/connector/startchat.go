@@ -159,7 +159,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ghost: %w", err)
 		}
-		userInfo = gc.wrapParticipantInfo(ghost, otherUserInfo)
+		userInfo = gc.wrapParticipantInfo(ctx, ghost, otherUserInfo)
 	}
 	log.Debug().Str("other_user_id", string(otherUserID)).Str("portal_key", string(portalKey.ID)).Msg("Returning new chat response")
 	return &bridgev2.ResolveIdentifierResponse{
@@ -265,21 +265,72 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 	}, nil
 }
 
-func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIdentifierResponse, error) {
+const (
+	contactCacheTTL       = 5 * time.Minute
+	contactRefreshTimeout = 1 * time.Minute
+)
+
+func (gc *GMClient) getOrFetchContacts(ctx context.Context) ([]*gmproto.Contact, error) {
 	gc.contactsFetchLock.Lock()
 	defer gc.contactsFetchLock.Unlock()
-	if time.Since(gc.contactsFetchedAt) < 5*time.Minute || !gc.PhoneResponding {
+	if time.Since(gc.contactsFetchedAt) < contactCacheTTL || !gc.PhoneResponding {
 		return gc.cachedContacts, nil
 	}
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	contacts, err := gc.Client.ListContacts(ctx)
+	resp, err := gc.Client.ListContacts(ctx)
 	if err != nil {
 		return nil, err
 	}
-	resp := make([]*bridgev2.ResolveIdentifierResponse, len(contacts.Contacts))
-	for i, contact := range contacts.Contacts {
+	byNumber := make(map[string]*gmproto.Contact, len(resp.Contacts))
+	for _, contact := range resp.Contacts {
+		if number := contact.GetNumber().GetNumber(); number != "" {
+			byNumber[number] = contact
+		}
+	}
+	gc.cachedContacts = resp.Contacts
+	gc.contactsByNumber = byNumber
+	gc.contactsFetchedAt = time.Now()
+	return gc.cachedContacts, nil
+}
+
+func (gc *GMClient) lookupContactByNumber(ctx context.Context, phone string) *gmproto.Contact {
+	gc.contactsFetchLock.Lock()
+	contact, ok := gc.contactsByNumber[phone]
+	fetchedAt := gc.contactsFetchedAt
+	gc.contactsFetchLock.Unlock()
+	if ok {
+		return contact
+	}
+	if time.Since(fetchedAt) >= contactCacheTTL {
+		gc.refreshContactsInBackground(ctx)
+	}
+	return nil
+}
+
+func (gc *GMClient) refreshContactsInBackground(ctx context.Context) {
+	if !gc.contactsRefreshing.CompareAndSwap(false, true) {
+		return
+	}
+	log := zerolog.Ctx(ctx).With().Str("action", "refresh contact list").Logger()
+	go func() {
+		defer gc.contactsRefreshing.Store(false)
+		ctx, cancel := context.WithTimeout(log.WithContext(context.Background()), contactRefreshTimeout)
+		defer cancel()
+		if _, err := gc.getOrFetchContacts(ctx); err != nil {
+			log.Warn().Err(err).Msg("Failed to refresh contact list")
+		}
+	}()
+}
+
+func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIdentifierResponse, error) {
+	contacts, err := gc.getOrFetchContacts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]*bridgev2.ResolveIdentifierResponse, len(contacts))
+	for i, contact := range contacts {
 		userID := gc.MakeUserID(contact.GetParticipantID())
 		ghost, err := gc.Main.br.GetGhostByID(ctx, userID)
 		if err != nil {
@@ -288,10 +339,8 @@ func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIden
 		resp[i] = &bridgev2.ResolveIdentifierResponse{
 			Ghost:    ghost,
 			UserID:   userID,
-			UserInfo: gc.wrapContactInfo(ghost, contact),
+			UserInfo: gc.wrapContactInfo(ctx, ghost, contact),
 		}
 	}
-	gc.cachedContacts = resp
-	gc.contactsFetchedAt = time.Now()
 	return resp, nil
 }
