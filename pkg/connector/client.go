@@ -75,9 +75,11 @@ type GMClient struct {
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 
-	contactsFetchLock sync.Mutex
-	contactsFetchedAt time.Time
-	cachedContacts    []*bridgev2.ResolveIdentifierResponse
+	contactsFetchLock  sync.Mutex
+	contactsFetchedAt  time.Time
+	cachedContacts     []*gmproto.Contact
+	contactsByNumber   map[string]*gmproto.Contact
+	contactsRefreshing atomic.Bool
 }
 
 var _ bridgev2.NetworkAPI = &GMClient{}
