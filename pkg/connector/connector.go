@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	"maunium.net/go/mautrix/bridgev2"
 
@@ -54,7 +55,19 @@ func (gc *GMConnector) Init(bridge *bridgev2.Bridge) {
 }
 
 func (gc *GMConnector) Start(ctx context.Context) error {
-	return gc.DB.Upgrade(ctx)
+	if err := gc.DB.Upgrade(ctx); err != nil {
+		return err
+	}
+	postMigrate, err := gc.migratePortalsToStableIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to migrate portals to stable IDs: %w", err)
+	}
+	if postMigrate != nil {
+		// Deleting the merged rooms can take a while and doesn't need to block startup - the
+		// database no longer references them either way.
+		go postMigrate()
+	}
+	return nil
 }
 
 func (gc *GMConnector) GetName() bridgev2.BridgeName {

@@ -66,7 +66,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 	if gc.Client == nil {
 		return nil, bridgev2.ErrNotLoggedIn
 	}
-	convID, err := gc.ParsePortalID(params.Portal.ID)
+	convID, err := gc.conversationIDForPortal(ctx, params.Portal)
 	if err != nil {
 		return nil, err
 	}
