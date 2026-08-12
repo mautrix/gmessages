@@ -96,7 +96,7 @@ func (gc *GMConnector) CreateLogin(ctx context.Context, user *bridgev2.User, flo
 	case LoginFlowIDQR:
 		return &QRLoginProcess{Main: gc, User: user, MaxAttempts: 6}, nil
 	default:
-		return nil, fmt.Errorf("unknown login flow %s", flowID)
+		return nil, bridgev2.ErrInvalidLoginFlowID
 	}
 }
 
