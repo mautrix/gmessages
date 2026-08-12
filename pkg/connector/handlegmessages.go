@@ -215,7 +215,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 						Str("participant_id", participantID).
 						Str("number", evt.GetUser().GetNumber())
 				},
-				PortalKey: gc.MakePortalKey(evt.ConversationID),
+				PortalKey: gc.PortalKeyForConversation(evt.ConversationID),
 				Sender:    gc.makeEventSender("", participantID, false, false),
 			},
 			Timeout: timeout,
@@ -303,7 +303,6 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
-		go gc.runStableIDSweep(ctx)
 	case gmproto.AlertType_MOBILE_DATABASE_SYNC_STARTED:
 		log.Debug().Msg("Mobile database sync started")
 		gc.syncingMobileDatabase.Store(true)
@@ -471,7 +470,7 @@ func (r *ReactionSyncEvent) GetType() bridgev2.RemoteEventType {
 }
 
 func (r *ReactionSyncEvent) GetPortalKey() networkid.PortalKey {
-	return r.g.MakePortalKey(r.ConversationID)
+	return r.g.PortalKeyForConversation(r.ConversationID)
 }
 
 func (r *ReactionSyncEvent) AddLogContext(c zerolog.Context) zerolog.Context {
@@ -553,7 +552,7 @@ func (m *MessageUpdateEvent) GetType() bridgev2.RemoteEventType {
 }
 
 func (m *MessageUpdateEvent) GetPortalKey() networkid.PortalKey {
-	return m.g.MakePortalKey(m.ConversationID)
+	return m.g.PortalKeyForConversation(m.ConversationID)
 }
 
 func (m *MessageUpdateEvent) AddLogContext(c zerolog.Context) zerolog.Context {
@@ -660,7 +659,7 @@ func (m *MessageEvent) GetType() bridgev2.RemoteEventType {
 }
 
 func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
-	return m.g.MakePortalKey(m.ConversationID)
+	return m.g.PortalKeyForConversation(m.ConversationID)
 }
 
 func (m *MessageEvent) ShouldCreatePortal() bool {

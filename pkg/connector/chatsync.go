@@ -291,6 +291,7 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		return
 	}
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
+	gc.repointPortalIfNeeded(log.WithContext(ctx), v)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,
@@ -301,7 +302,7 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		markReadEvt = &simplevent.Receipt{
 			EventMeta: simplevent.EventMeta{
 				Type:      bridgev2.RemoteEventReadReceipt,
-				PortalKey: gc.MakePortalKey(v.ConversationID),
+				PortalKey: gc.portalKeyForConv(v),
 				Sender:    bridgev2.EventSender{IsFromMe: true},
 			},
 			LastTarget: gc.MakeMessageID(meta.readUpTo),
@@ -400,7 +401,7 @@ func (evt *GMChatResync) GetBundledBackfillData() any {
 }
 
 func (evt *GMChatResync) GetPortalKey() networkid.PortalKey {
-	return evt.g.MakePortalKey(evt.Conv.ConversationID)
+	return evt.g.portalKeyForConv(evt.Conv)
 }
 
 func (evt *GMChatResync) AddLogContext(c zerolog.Context) zerolog.Context {

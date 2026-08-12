@@ -61,13 +61,24 @@ type PortalMetadata struct {
 
 	OutgoingID string `json:"outgoing_id"`
 
-	// Stable conversation identity, this will be used in future as the key for portals since the
-	// IDs will remain stable over time, unlike the current conversation IDs.
+	// Stable conversation identity so portals don't churn when Google re-keys conversationIDs
 	StableID         string `json:"stable_id,omitempty"`
 	RCSGroupID       string `json:"rcs_group_id,omitempty"`
 	RCSConferenceURI string `json:"rcs_conference_uri,omitempty"`
 	ParticipantHash  string `json:"participant_hash,omitempty"`
 	ParticipantCount int    `json:"participant_count,omitempty"`
+
+	// Mutable send-routing handle. This is what Google wants in outgoing requests, and is
+	// re-pointed whenever a conversation update arrives with a new ID for the same StableID.
+	ConversationID string `json:"conversation_id,omitempty"`
+}
+
+func (meta *PortalMetadata) updateConversationID(conversationID string) (changed bool) {
+	if conversationID == "" || meta.ConversationID == conversationID {
+		return false
+	}
+	meta.ConversationID = conversationID
+	return true
 }
 
 func (meta *PortalMetadata) updateFromStableIdentity(ident stableIdentity) (changed bool) {

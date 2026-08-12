@@ -59,7 +59,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 1, 5
+	return 2, 5
 }
 
 // The phone will compress outgoing media on MMS, so we don't need to limit it

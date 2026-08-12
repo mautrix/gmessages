@@ -127,7 +127,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 	if resp.GetConversation().GetConversationID() == "" {
 		return nil, fmt.Errorf("no conversation ID in response")
 	}
-	portalKey := gc.MakePortalKey(resp.Conversation.ConversationID)
+	portalKey := gc.portalKeyForConv(resp.Conversation)
 	portalInfo, err := gc.wrapChatInfo(ctx, resp.Conversation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to wrap chat info: %w", err)
@@ -232,7 +232,7 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 	if resp.GetConversation().GetConversationID() == "" {
 		return nil, fmt.Errorf("no conversation ID in response (status: %s)", resp.GetStatus())
 	}
-	portalKey := gc.MakePortalKey(resp.Conversation.ConversationID)
+	portalKey := gc.portalKeyForConv(resp.Conversation)
 	portalInfo, err := gc.wrapChatInfo(ctx, resp.Conversation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to wrap chat info: %w", err)

@@ -174,7 +174,7 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.MatrixMessage, txnID networkid.TransactionID) (*gmproto.SendMessageRequest, error) {
 	portalMeta := msg.Portal.Metadata.(*PortalMetadata)
 	sim := gc.GetSIM(msg.Portal)
-	conversationID, err := gc.ParsePortalID(msg.Portal.ID)
+	conversationID, err := gc.conversationIDForPortal(ctx, msg.Portal)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.M
 	if targetMessage == nil {
 		return fmt.Errorf("read receipt target not found")
 	}
-	convID, err := gc.ParsePortalID(msg.Portal.ID)
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
 	if err != nil {
 		return err
 	}
@@ -369,7 +369,7 @@ func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.Matrix
 	if gc.Client == nil {
 		return bridgev2.ErrNotLoggedIn
 	}
-	convID, err := gc.ParsePortalID(msg.Portal.ID)
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
 	if err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 	if gc.Client == nil {
 		return bridgev2.ErrNotLoggedIn
 	}
-	convID, err := gc.ParsePortalID(chat.Portal.ID)
+	convID, err := gc.conversationIDForPortal(ctx, chat.Portal)
 	if err != nil {
 		return err
 	}
