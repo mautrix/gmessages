@@ -1,3 +1,11 @@
+# v26.08
+
+* Added code to prepare for stable portal identifiers.
+  * **You must upgrade to this release before upgrading to a newer version.**
+* Updated Docker image to Alpine 3.24.
+* Made ghost avatars update faster when contact entry is replaced.
+* Fixed format of transaction IDs used to send messages.
+
 # v26.05
 
 * Added automatic retry on network errors when refreshing auth token.
