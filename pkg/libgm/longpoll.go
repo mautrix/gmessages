@@ -330,9 +330,9 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			pl.startRecovery()
 			if err := dp.client.Reconnect(); err != nil {
 				dp.log.Err(err).Msg("Failed to reconnect while recovering from ping timeouts")
-			} else {
-				reconnected = true
+				return
 			}
+			reconnected = true
 		case timeouts >= setActiveSessionAfterTimeouts && !didSetActiveSession:
 			didSetActiveSession = true
 			dp.log.Warn().

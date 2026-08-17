@@ -226,17 +226,16 @@ func (c *Client) SetProxy(proxy string) error {
 	return nil
 }
 
-func (c *Client) Connect() error {
+func (c *Client) checkLoggedIn() error {
 	if c.AuthData.TachyonAuthToken == nil {
 		return fmt.Errorf("no auth token")
 	} else if c.AuthData.Browser == nil {
 		return fmt.Errorf("not logged in")
 	}
+	return nil
+}
 
-	err := c.refreshAuthToken(nil)
-	if err != nil {
-		return fmt.Errorf("failed to refresh auth token: %w", err)
-	}
+func (c *Client) startLongPolling() {
 	c.bumpNextDataReceiveCheck(10 * time.Minute)
 
 	//webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
@@ -246,14 +245,27 @@ func (c *Client) Connect() error {
 	//c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
 	go c.doLongPoll(true, false, c.postConnect)
 	c.sessionHandler.startAckInterval()
+}
+
+func (c *Client) Connect() error {
+	if err := c.checkLoggedIn(); err != nil {
+		return err
+	}
+
+	// Refresh the auth token here rather than leaving it to the long polling loop, so that
+	// callers connecting for the first time (i.e. right after logging in) find out about
+	// bad credentials synchronously.
+	err := c.refreshAuthToken(nil)
+	if err != nil {
+		return fmt.Errorf("failed to refresh auth token: %w", err)
+	}
+	c.startLongPolling()
 	return nil
 }
 
 func (c *Client) ConnectBackground() error {
-	if c.AuthData.TachyonAuthToken == nil {
-		return fmt.Errorf("no auth token")
-	} else if c.AuthData.Browser == nil {
-		return fmt.Errorf("not logged in")
+	if err := c.checkLoggedIn(); err != nil {
+		return err
 	}
 	cleanExit := c.doLongPoll(true, true, nil)
 	c.sessionHandler.sendAckRequest()
@@ -347,11 +359,13 @@ func (c *Client) IsLoggedIn() bool {
 
 func (c *Client) Reconnect() error {
 	c.closeLongPolling()
-	err := c.Connect()
+	err := c.checkLoggedIn()
 	if err != nil {
 		c.Logger.Err(err).Msg("Failed to reconnect")
+		c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect: %w", err)})
 		return err
 	}
+	c.startLongPolling()
 	c.Logger.Debug().Msg("Successfully reconnected to server")
 	return nil
 }
