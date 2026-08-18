@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -257,7 +258,10 @@ func (c *Client) Connect() error {
 	// bad credentials synchronously.
 	err := c.refreshAuthToken(nil)
 	if err != nil {
-		return fmt.Errorf("failed to refresh auth token: %w", err)
+		if isFatalRefreshError(err) {
+			return fmt.Errorf("failed to refresh auth token: %w", err)
+		}
+		c.Logger.Warn().Err(err).Msg("Transient error refreshing auth token on connect, will retry in long polling loop")
 	}
 	c.startLongPolling()
 	return nil
@@ -468,6 +472,20 @@ func (c *Client) RegisterPush(ctx context.Context, keys *PushKeys) error {
 	}
 	c.PushKeys = keys
 	return nil
+}
+
+func isFatalRefreshError(err error) bool {
+	if errors.Is(err, events.ErrInvalidCredentials) || errors.Is(err, events.ErrRequestedEntityNotFound) {
+		return true
+	}
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {

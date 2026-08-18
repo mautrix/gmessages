@@ -16,7 +16,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
-	"go.mau.fi/util/exhttp"
 	"go.mau.fi/util/pblite"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
@@ -482,27 +481,27 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 	for c.listenID == listenID {
 		err := c.refreshAuthToken(nil)
 		if err != nil {
-			if exhttp.IsNetworkError(err) {
+			if isFatalRefreshError(err) {
+				log.Err(err).Msg("Error refreshing auth token")
 				if loggedIn {
-					c.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
+					c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
 				}
-				errorCount++
-				sleepSeconds := (errorCount + 1) * 5
-				if background {
-					if errorCount >= 3 {
-						return false
-					}
-					sleepSeconds = errorCount * 2
-				}
-				log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error refreshing auth token, retrying in a while")
-				time.Sleep(time.Duration(sleepSeconds) * time.Second)
-				continue
+				return false
 			}
-			log.Err(err).Msg("Error refreshing auth token")
 			if loggedIn {
-				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
+				c.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
 			}
-			return false
+			errorCount++
+			sleepSeconds := (errorCount + 1) * 5
+			if background {
+				if errorCount >= 3 {
+					return false
+				}
+				sleepSeconds = errorCount * 2
+			}
+			log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error refreshing auth token, retrying in a while")
+			time.Sleep(time.Duration(sleepSeconds) * time.Second)
+			continue
 		}
 		log.Trace().Msg("Starting new long-polling request")
 		payload := &gmproto.ReceiveMessagesRequest{
@@ -568,6 +567,11 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 			time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			continue
 		}
+		if c.listenID != listenID {
+			log.Debug().Msg("Long polling stopped while opening stream, closing it")
+			_ = resp.Body.Close()
+			return true
+		}
 		if errorCount > 0 {
 			errorCount = 0
 			if loggedIn {
@@ -625,9 +629,14 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 	}
 	if background {
 		closeIn = time.NewTimer(10 * time.Second)
+		streamEnded := make(chan struct{})
+		defer close(streamEnded)
 		go func() {
-			<-closeIn.C
-			c.closeLongPolling()
+			select {
+			case <-closeIn.C:
+				c.closeLongPolling()
+			case <-streamEnded:
+			}
 		}()
 	}
 	var expectEOF bool
@@ -693,10 +702,14 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 }
 
 func (c *Client) closeLongPolling() {
-	if conn := c.longPollingConn; conn != nil {
-		c.Logger.Debug().Int("current_listen_id", c.listenID).Msg("Closing long polling connection manually")
-		c.listenID++
-		c.disconnecting = true
+	conn := c.longPollingConn
+	c.Logger.Debug().
+		Int("current_listen_id", c.listenID).
+		Bool("connection_open", conn != nil).
+		Msg("Closing long polling connection manually")
+	c.listenID++
+	c.disconnecting = true
+	if conn != nil {
 		_ = conn.Close()
 		c.longPollingConn = nil
 	}
