@@ -723,6 +723,7 @@ var (
 	_ bridgev2.RemoteEventThatMayCreatePortal = (*MessageEvent)(nil)
 	_ bridgev2.RemoteEventWithTimestamp       = (*MessageEvent)(nil)
 	_ bridgev2.RemoteEventWithStreamOrder     = (*MessageEvent)(nil)
+	_ bridgev2.RemoteChatResyncBackfillBundle = (*MessageEvent)(nil)
 )
 
 func (m *MessageEvent) GetType() bridgev2.RemoteEventType {
@@ -752,6 +753,22 @@ func (m *MessageEvent) ShouldCreatePortal() bool {
 	default:
 		return false
 	}
+}
+
+// Flag incoming messages younger than this as latest such that we skip them during the backfill
+// stage and they come through as a regular incoming message.
+const backfillLatestMaxAge = 1 * time.Hour
+
+func (m *MessageEvent) GetBundledBackfillData() any {
+	if time.Since(m.GetTimestamp()) > backfillLatestMaxAge {
+		return nil
+	}
+	return &backfillBundleData{LatestMessageID: m.MessageID}
+}
+
+// Needed for GetBundledBackfillData to run
+func (m *MessageEvent) CheckNeedsBackfill(ctx context.Context, latestMessage *database.Message) (bool, error) {
+	return false, nil
 }
 
 func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {

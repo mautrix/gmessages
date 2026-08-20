@@ -54,6 +54,10 @@ func parsePaginationCursor(cursor networkid.PaginationCursor) (*gmproto.Cursor, 
 	}, nil
 }
 
+type backfillBundleData struct {
+	LatestMessageID string
+}
+
 // Allow messages that pre-date the anchor message if they are: sent by us and within this timeframe,
 // this allows messages that send late on the phone side to be updated and have the correct send status.
 const pendingSendMaxAge = 24 * time.Hour
@@ -93,6 +97,10 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			}
 		}
 	}
+	var latestMessageID string
+	if bundle, ok := params.BundledData.(*backfillBundleData); ok && params.Forward {
+		latestMessageID = bundle.LatestMessageID
+	}
 	resp, err := gc.Client.FetchMessages(ctx, convID, int64(params.Count), cursor)
 	if err != nil {
 		return nil, err
@@ -113,7 +121,8 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		MarkRead:         false,
 		ApproxTotalCount: int(resp.TotalMessages),
 	}
-	for _, msg := range resp.Messages {
+	var lastRawMsg *gmproto.Message
+	for i, msg := range resp.Messages {
 		msgTS := time.UnixMicro(msg.Timestamp)
 		log := zerolog.Ctx(ctx).With().Str("message_id", msg.MessageID).Time("message_ts", msgTS).Logger()
 		if !params.Forward && cursor != nil && msgTS.UnixMilli() >= cursor.LastItemTimestamp {
@@ -127,6 +136,9 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 				Time("anchor_ts", anchorTS).
 				Str("anchor_message_id", anchorMsgID).
 				Msg("Ignoring message older than anchor message")
+			continue
+		} else if latestMessageID != "" && latestMessageID == msg.MessageID && i == len(resp.Messages)-1 {
+			log.Debug().Msg("Ignoring latest message in backfill, it will be bridged as a live event")
 			continue
 		}
 		ctx := log.WithContext(ctx)
@@ -149,6 +161,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			Reactions:   (&ReactionSyncEvent{Message: msg, g: gc}).GetReactions().ToBackfill(),
 		}
 		fetchResp.Messages = append(fetchResp.Messages, backfillMsg)
+		lastRawMsg = msg
 	}
 	if len(fetchResp.Messages) == 0 {
 		return fetchResp, nil
@@ -160,7 +173,6 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		meta := gc.conversationMeta[convID]
 		if meta != nil {
 			lastWrappedMsg := fetchResp.Messages[len(fetchResp.Messages)-1]
-			lastRawMsg := resp.Messages[len(resp.Messages)-1]
 			fetchResp.MarkRead = !meta.unread || !meta.readUpToTS.Before(lastWrappedMsg.Timestamp) || meta.readUpTo == lastRawMsg.MessageID
 		}
 		gc.conversationMetaLock.Unlock()
