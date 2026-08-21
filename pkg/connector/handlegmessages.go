@@ -273,11 +273,15 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		gc.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
+		cli := gc.Client
+		if cli == nil {
+			return
+		}
 		wasInactive := gc.browserInactiveType != "" || !gc.ready
 		gc.pollErrorAlertSent = false
 		gc.browserInactiveType = ""
 		gc.ready = true
-		newSessionID := gc.Client.CurrentSessionID()
+		newSessionID := cli.CurrentSessionID()
 		sessionIDChanged := gc.sessionID != newSessionID
 		if sessionIDChanged || wasInactive || gc.noDataReceivedRecently {
 			log.Debug().

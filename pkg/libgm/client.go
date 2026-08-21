@@ -117,7 +117,8 @@ const minBugleDefaultCheckInterval = 1 * time.Hour
 
 type Client struct {
 	Logger         zerolog.Logger
-	evHandler      EventHandler
+	evHandler      atomic.Pointer[EventHandler]
+	eventQueue     eventQueue
 	sessionHandler *SessionHandler
 
 	longPollingConn io.Closer
@@ -185,6 +186,8 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client 
 		dataReceiveCheckInterval: DefaultBugleDefaultCheckInterval,
 	}
 	sessionHandler.client = cli
+	cli.eventQueue.client = cli
+	cli.eventQueue.drained = sync.NewCond(&cli.eventQueue.lock)
 	return cli
 }
 
@@ -192,8 +195,17 @@ func (c *Client) CurrentSessionID() string {
 	return c.sessionHandler.sessionID
 }
 
+// SetEventHandler sets the callback that receives events from this client. Events carrying
+// phone data (messages, conversations, alerts, pairing events) are dispatched in order from
+// a queue off the read loop, so their handlers may block, including on requests to the
+// phone. Connection state events are dispatched inline on internal goroutines and their
+// handlers must not block on requests to the phone. A disconnected client emits no events.
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
-	c.evHandler = eventHandler
+	if eventHandler == nil {
+		c.evHandler.Store(nil)
+	} else {
+		c.evHandler.Store(&eventHandler)
+	}
 }
 
 func (c *Client) SetPingInterval(interval time.Duration) {
@@ -252,6 +264,7 @@ func (c *Client) Connect() error {
 	if err := c.checkLoggedIn(); err != nil {
 		return err
 	}
+	c.eventQueue.open()
 
 	// Refresh the auth token here rather than leaving it to the long polling loop, so that
 	// callers connecting for the first time (i.e. right after logging in) find out about
@@ -271,7 +284,11 @@ func (c *Client) ConnectBackground() error {
 	if err := c.checkLoggedIn(); err != nil {
 		return err
 	}
+	c.eventQueue.open()
 	cleanExit := c.doLongPoll(true, true, nil)
+	// Handle the received events before acking them: the caller may tear everything down
+	// as soon as this returns, and an acked but unhandled event is never redelivered.
+	c.eventQueue.wait()
 	c.sessionHandler.sendAckRequest()
 	if !cleanExit {
 		return fmt.Errorf("polling exited uncleanly")
@@ -338,6 +355,7 @@ func (c *Client) shouldCheckBugleDefault() bool {
 }
 
 func (c *Client) Disconnect() {
+	c.eventQueue.close()
 	c.closeLongPolling()
 	// Fail any requests that are still waiting for a response from the phone:
 	// the responses are delivered over the long polling connection, so they can
@@ -362,6 +380,7 @@ func (c *Client) IsLoggedIn() bool {
 }
 
 func (c *Client) Reconnect() error {
+	c.eventQueue.open()
 	c.closeLongPolling()
 	err := c.checkLoggedIn()
 	if err != nil {
@@ -374,9 +393,21 @@ func (c *Client) Reconnect() error {
 	return nil
 }
 
-func (c *Client) triggerEvent(evt interface{}) {
-	if c.evHandler != nil {
-		c.evHandler(evt)
+// triggerEvent dispatches a connection state event inline on the calling goroutine;
+// events produced by the phone's data stream go through queueEvent instead.
+func (c *Client) triggerEvent(evt any) {
+	if !c.eventQueue.closed.Load() {
+		c.dispatchEvent(evt)
+	}
+}
+
+func (c *Client) queueEvent(evt any) {
+	c.eventQueue.push(evt)
+}
+
+func (c *Client) dispatchEvent(evt any) {
+	if handler := c.evHandler.Load(); handler != nil {
+		(*handler)(evt)
 	}
 }
 

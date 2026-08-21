@@ -48,7 +48,7 @@ func (c *Client) handlePairingEvent(msg *IncomingRPCMessage) {
 	case *gmproto.RPCPairData_Paired:
 		c.completePairing(evt.Paired)
 	case *gmproto.RPCPairData_Revoked:
-		c.triggerEvent(evt.Revoked)
+		c.queueEvent(evt.Revoked)
 	default:
 		c.Logger.Debug().Any("evt", evt).Msg("Unknown pair event type")
 	}
@@ -62,7 +62,7 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 	if cb := c.PairCallback.Load(); cb != nil {
 		(*cb)(data)
 	} else {
-		c.triggerEvent(&events.PairSuccessful{PhoneID: data.GetMobile().GetSourceID(), QRData: data})
+		c.queueEvent(&events.PairSuccessful{PhoneID: data.GetMobile().GetSourceID(), QRData: data})
 
 		go func() {
 			// Sleep for a bit to let the phone save the pair data. If we reconnect too quickly,

@@ -112,7 +112,7 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 			}
 			// Hacky hack to have User.handleAccountChange do the right-ish thing on startup
 			if strings.ContainsRune(ed2c.GetAccountChange().GetAccount(), '@') {
-				c.triggerEvent(&events.AccountChange{
+				c.queueEvent(&events.AccountChange{
 					AccountChangeOrSomethingEvent: ed2c.GetAccountChange(),
 					IsFake:                        true,
 				})
@@ -223,7 +223,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 	switch msg.Message.Action {
 	case gmproto.ActionType_GET_UPDATES:
 		if msg.DecryptedData == nil && bytes.Equal(msg.Message.UnencryptedData, hackyLoggedOutBytes) {
-			c.triggerEvent(&events.GaiaLoggedOut{})
+			c.queueEvent(&events.GaiaLoggedOut{})
 			return
 		}
 		if !msg.IsOld {
@@ -244,14 +244,14 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			if msg.IsOld {
 				return
 			}
-			c.triggerEvent(evt.UserAlertEvent)
+			c.queueEvent(evt.UserAlertEvent)
 
 		case *gmproto.UpdateEvents_SettingsEvent:
 			c.Logger.Debug().
 				Str("data", base64.StdEncoding.EncodeToString(msg.DecryptedData)).
 				Bool("is_old", msg.IsOld).
 				Msg("Got settings event")
-			c.triggerEvent(evt.SettingsEvent)
+			c.queueEvent(evt.SettingsEvent)
 
 		case *gmproto.UpdateEvents_ConversationEvent:
 			for _, part := range evt.ConversationEvent.GetData() {
@@ -261,7 +261,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 					c.Logger.Debug().Str("conv_id", part.ConversationID).Msg("Ignoring old conversation event")
 					continue
 				}
-				c.triggerEvent(part)
+				c.queueEvent(part)
 			}
 
 		case *gmproto.UpdateEvents_MessageEvent:
@@ -269,7 +269,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 				if c.deduplicateUpdate(part.GetMessageID(), msg) {
 					return
 				}
-				c.triggerEvent(&WrappedMessage{
+				c.queueEvent(&WrappedMessage{
 					Message: part,
 					IsOld:   msg.IsOld,
 					Data:    msg.DecryptedData,
@@ -281,7 +281,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 			if msg.IsOld {
 				return
 			}
-			c.triggerEvent(evt.TypingEvent.GetData())
+			c.queueEvent(evt.TypingEvent.GetData())
 
 		case *gmproto.UpdateEvents_BrowserPresenceCheckEvent:
 			c.Logger.Trace().Msg("Got browser presence check, sending ack")
@@ -289,7 +289,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 
 		case *gmproto.UpdateEvents_AccountChange:
 			c.logContent(msg, "", nil)
-			c.triggerEvent(&events.AccountChange{
+			c.queueEvent(&events.AccountChange{
 				AccountChangeOrSomethingEvent: evt.AccountChange,
 			})
 
