@@ -96,7 +96,21 @@ var _ bridgev2.NetworkAPI = &GMClient{}
 var _ bridgev2.OutgoingTimeoutSuppressingNetworkAPI = &GMClient{}
 
 func (gc *GMClient) SuppressOutgoingTimeouts() bool {
-	return gc.pushThrottled.Load()
+	if gc.pushThrottled.Load() {
+		return true
+	}
+	// The phone acked the send, so the echo can only arrive as a push. If it is overdue while
+	// the phone is still answering requests, the push subscription has gone stale even though
+	// the connection looks healthy. Ask the phone directly and hold the timeout for one round
+	// so the echo can resolve the message instead of failing it.
+	if gc.Client == nil || !gc.ready || !gc.PhoneResponding || gc.browserInactiveType != "" {
+		return false
+	}
+	convIDs, txnIDs, holdTimeouts := gc.claimOverduePendingSends()
+	if len(convIDs) > 0 {
+		go gc.recoverPendingSendEchoes(gc.Main.br.BackgroundCtx, convIDs, txnIDs)
+	}
+	return holdTimeouts
 }
 
 func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLogin) error {

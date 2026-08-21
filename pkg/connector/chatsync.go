@@ -27,6 +27,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -93,14 +94,24 @@ func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived 
 // pendingSend records where a message that hasn't been echoed back yet was sent, so the chat
 // can be resynced if the phone never sends the remote echo.
 type pendingSend struct {
-	convID string
-	sentAt time.Time
+	convID            string
+	sentAt            time.Time
+	recoveryStartedAt time.Time
 }
 
 const (
-	pendingSendTrackMaxAge      = 1 * time.Hour
-	pendingSendResyncDelay      = 15 * time.Second
-	pendingSendResyncExtraChats = 10
+	pendingSendTrackMaxAge        = 1 * time.Hour
+	pendingSendResyncDelay        = 15 * time.Second
+	pendingSendResyncExtraChats   = 10
+	pendingSendRecoveryFetchCount = 10
+)
+
+var (
+	// Once the framework is ready to fail the message, the echo is definitively overdue.
+	pendingSendEchoOverdue = generalCaps.OutgoingMessageTimeouts.NoEchoTimeout
+	// The timeout check runs per portal on independent tickers, so hold timeouts for a whole
+	// check round to make sure the portal that owns the message sees the recovery in flight.
+	pendingSendRecoveryGrace = generalCaps.OutgoingMessageTimeouts.CheckInterval
 )
 
 func (gc *GMClient) trackPendingSend(txnID networkid.TransactionID, convID string) {
@@ -133,6 +144,77 @@ func (gc *GMClient) pendingSendChats() map[string]struct{} {
 		convIDs[send.convID] = struct{}{}
 	}
 	return convIDs
+}
+
+// claimOverduePendingSends returns the sends that have been waiting for an echo past the
+// no-echo timeout, marking them so a send can only ever arm one recovery. holdTimeouts reports
+// whether any send is inside the grace window of its recovery attempt.
+func (gc *GMClient) claimOverduePendingSends() (convIDs map[string]struct{}, txnIDs map[networkid.TransactionID]struct{}, holdTimeouts bool) {
+	gc.pendingSendsLock.Lock()
+	defer gc.pendingSendsLock.Unlock()
+	convIDs = make(map[string]struct{})
+	txnIDs = make(map[networkid.TransactionID]struct{})
+	for txnID, send := range gc.pendingSends {
+		if time.Since(send.sentAt) > pendingSendTrackMaxAge {
+			delete(gc.pendingSends, txnID)
+		} else if !send.recoveryStartedAt.IsZero() {
+			holdTimeouts = holdTimeouts || time.Since(send.recoveryStartedAt) < pendingSendRecoveryGrace
+		} else if time.Since(send.sentAt) > pendingSendEchoOverdue {
+			send.recoveryStartedAt = time.Now()
+			gc.pendingSends[txnID] = send
+			convIDs[send.convID] = struct{}{}
+			txnIDs[txnID] = struct{}{}
+			holdTimeouts = true
+		}
+	}
+	return
+}
+
+// recoverPendingSendEchoes asks the phone directly for the conversations whose sends never got
+// an echo. The phone answers requests normally while its push subscription is stalled, so the
+// message it already sent can be re-injected as the event the push should have delivered.
+func (gc *GMClient) recoverPendingSendEchoes(ctx context.Context, convIDs map[string]struct{}, txnIDs map[networkid.TransactionID]struct{}) {
+	cli := gc.Client
+	if cli == nil {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "recover pending send echo").Logger()
+	ctx = log.WithContext(ctx)
+	log.Warn().Int("conversation_count", len(convIDs)).Msg("Outgoing message echo is overdue, fetching from phone")
+	for convID := range convIDs {
+		resp, err := cli.FetchMessages(ctx, convID, pendingSendRecoveryFetchCount, nil)
+		if err != nil {
+			log.Err(err).Str("conversation_id", convID).Msg("Failed to fetch messages to recover echo")
+			continue
+		}
+		for _, msg := range resp.GetMessages() {
+			if _, ok := txnIDs[networkid.TransactionID(msg.GetTmpID())]; !ok {
+				continue
+			}
+			// Resolving the pending message consumes it, so anything that isn't final has to
+			// be left for the normal timeout - the update carrying the final status can only
+			// arrive by push too.
+			if !isSuccessfullySentStatus(msg.GetMessageStatus().GetStatus()) {
+				log.Debug().
+					Str("conversation_id", convID).
+					Str("message_id", msg.GetMessageID()).
+					Stringer("message_status", msg.GetMessageStatus().GetStatus()).
+					Msg("Pending message has no final sent status yet")
+				continue
+			}
+			rawData, _ := proto.Marshal(msg)
+			log.Debug().
+				Str("conversation_id", convID).
+				Str("message_id", msg.GetMessageID()).
+				Str("tmp_id", msg.GetTmpID()).
+				Stringer("message_status", msg.GetMessageStatus().GetStatus()).
+				Msg("Recovered echo for pending send the phone never pushed")
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+				WrappedMessage: &libgm.WrappedMessage{Message: msg, Data: rawData},
+				g:              gc,
+			})
+		}
+	}
 }
 
 // resyncChatsWithPendingSends is triggered when the phone reports that it has stopped
