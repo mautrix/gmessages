@@ -191,6 +191,7 @@ type GMChatResync struct {
 var (
 	_ bridgev2.RemoteChatResyncWithInfo       = (*GMChatResync)(nil)
 	_ bridgev2.RemoteChatResyncBackfill       = (*GMChatResync)(nil)
+	_ bridgev2.RemoteChatResyncBackfillBundle = (*GMChatResync)(nil)
 	_ bridgev2.RemoteChatDelete               = (*GMChatResync)(nil)
 	_ bridgev2.RemoteEventThatMayCreatePortal = (*GMChatResync)(nil)
 )
@@ -221,6 +222,13 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 		return false
 	}
 	return true
+}
+
+func (evt *GMChatResync) GetBundledBackfillData() any {
+	if evt.AllowBackfill {
+		return nil
+	}
+	return &backfillBundleData{LatestMessageID: evt.Conv.LatestMessageID}
 }
 
 func (evt *GMChatResync) GetPortalKey() networkid.PortalKey {
