@@ -439,7 +439,11 @@ func (c *Client) refreshAuthToken(pushKeyOverride *PushKeys) error {
 	timestamp := time.Now().UnixMilli() * 1000
 
 	signBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", requestID, timestamp)))
-	sig, err := ecdsa.SignASN1(rand.Reader, jwk.GetPrivateKey(), signBytes[:])
+	privKey, err := jwk.GetPrivateKey()
+	if err != nil {
+		return err
+	}
+	sig, err := ecdsa.SignASN1(rand.Reader, privKey, signBytes[:])
 	if err != nil {
 		return err
 	}
