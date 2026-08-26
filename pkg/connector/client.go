@@ -77,11 +77,11 @@ type GMClient struct {
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
 
-	// Conversation ID -> the portal ID that conversation currently lives at, so incoming events
-	// that only carry a conversation ID can be routed to the right portal.
 	portalIDByConv       *exsync.Map[string, networkid.PortalID]
 	portalIDsLoaded      atomic.Bool
 	stableIDRepointLocks *exsync.Map[string, *sync.Mutex]
+	messageQueue         chan *libgm.WrappedMessage
+	stopMessageQueue     atomic.Pointer[context.CancelFunc]
 
 	contactsFetchLock  sync.Mutex
 	contactsFetchedAt  time.Time
@@ -113,6 +113,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 
 		portalIDByConv:       exsync.NewMap[string, networkid.PortalID](),
 		stableIDRepointLocks: exsync.NewMap[string, *sync.Mutex](),
+		messageQueue:         make(chan *libgm.WrappedMessage, 128),
 	}
 	gcli.NewClient()
 	login.Client = gcli
@@ -120,6 +121,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 }
 
 func (gc *GMClient) Connect(ctx context.Context) {
+	go gc.handleMessageQueue(ctx)
 	// Pre-populate convID -> portalID mapping
 	gc.loadPortalIDs(ctx)
 	if gc.Client == nil {

@@ -192,6 +192,8 @@ func (c *Client) CurrentSessionID() string {
 	return c.sessionHandler.sessionID
 }
 
+// SetEventHandler sets the global event handler for all received data.
+// The method is called synchronously and must not make any outgoing requests or otherwise block for too long.
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
 	c.evHandler = eventHandler
 }

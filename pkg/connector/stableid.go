@@ -182,14 +182,15 @@ func (gc *GMClient) loadPortalIDs(ctx context.Context) {
 		Msg("Loaded conversation ID to portal ID mappings")
 }
 
-func (gc *GMClient) resolvePortalID(conversationID string) networkid.PortalID {
+func (gc *GMClient) resolvePortalID(ctx context.Context, conversationID string) networkid.PortalID {
 	if conversationID == "" {
 		return ""
 	}
 	if portalID, ok := gc.portalIDByConv.Get(conversationID); ok {
 		return portalID
 	}
-	conv := gc.getChatInfoWithFetch(conversationID)
+	// TODO store ids in local db and check that before querying the phone
+	conv := gc.getChatInfoWithFetch(ctx, conversationID)
 	if conv == nil {
 		return ""
 	}
@@ -244,8 +245,8 @@ func (gc *GMClient) portalKeyForConv(conv *gmproto.Conversation) networkid.Porta
 	return networkid.PortalKey{ID: portalID, Receiver: gc.UserLogin.ID}
 }
 
-func (gc *GMClient) PortalKeyForConversation(conversationID string) networkid.PortalKey {
-	if portalID := gc.resolvePortalID(conversationID); portalID != "" {
+func (gc *GMClient) PortalKeyForConversation(ctx context.Context, conversationID string) networkid.PortalKey {
+	if portalID := gc.resolvePortalID(ctx, conversationID); portalID != "" {
 		return networkid.PortalKey{ID: portalID, Receiver: gc.UserLogin.ID}
 	}
 	gc.UserLogin.Log.Warn().
