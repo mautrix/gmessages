@@ -6,7 +6,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"math/big"
+
+	"go.mau.fi/util/exerrors"
 )
 
 type RawURLBytes []byte
@@ -36,32 +37,35 @@ type JWK struct {
 	Y       RawURLBytes `json:"y"`
 }
 
-func (t *JWK) GetPrivateKey() *ecdsa.PrivateKey {
-	return &ecdsa.PrivateKey{
-		PublicKey: *t.GetPublicKey(),
-		D:         new(big.Int).SetBytes(t.D),
+func (t *JWK) GetPrivateKey() (*ecdsa.PrivateKey, error) {
+	d := t.D
+	if len(d) < 32 {
+		d = append(make([]byte, 32-len(d)), d...)
 	}
+	return ecdsa.ParseRawPrivateKey(elliptic.P256(), d)
 }
 
-func (t *JWK) GetPublicKey() *ecdsa.PublicKey {
-	return &ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     new(big.Int).SetBytes(t.X),
-		Y:     new(big.Int).SetBytes(t.Y),
+func (t *JWK) GetPublicKey() (*ecdsa.PublicKey, error) {
+	if len(t.X) > 32 || len(t.Y) > 32 {
+		return nil, fmt.Errorf("invalid public key length: X=%d, Y=%d", len(t.X), len(t.Y))
 	}
+	publicKeyBytes := make([]byte, 65)
+	publicKeyBytes[0] = 4
+	copy(publicKeyBytes[33-len(t.X):33], t.X)
+	copy(publicKeyBytes[65-len(t.Y):], t.Y)
+	return ecdsa.ParseUncompressedPublicKey(elliptic.P256(), publicKeyBytes)
 }
 
 // GenerateECDSAKey generates a new ECDSA private key with P-256 curve
 func GenerateECDSAKey() *JWK {
-	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		panic(fmt.Errorf("failed to generate ecdsa key: %w", err))
-	}
+	privKey := exerrors.Must(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
+	privateKeyBytes := exerrors.Must(privKey.Bytes())
+	publicKeyBytes := exerrors.Must(privKey.PublicKey.Bytes())
 	return &JWK{
 		KeyType: "EC",
 		Curve:   "P-256",
-		D:       privKey.D.Bytes(),
-		X:       privKey.X.Bytes(),
-		Y:       privKey.Y.Bytes(),
+		D:       privateKeyBytes,
+		X:       publicKeyBytes[1:33],
+		Y:       publicKeyBytes[33:],
 	}
 }

@@ -78,7 +78,11 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 }
 
 func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {
-	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
+	pubKey, err := c.AuthData.RefreshKey.GetPublicKey()
+	if err != nil {
+		return nil, err
+	}
+	key, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		return nil, err
 	}

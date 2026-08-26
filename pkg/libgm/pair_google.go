@@ -18,8 +18,7 @@ package libgm
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
+	"crypto/ecdh"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -28,7 +27,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,6 +35,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exerrors"
 	"go.mau.fi/util/exslices"
 	"go.mau.fi/util/exsync"
 	"go.mau.fi/util/random"
@@ -79,7 +78,11 @@ func (c *Client) signInGaiaInitial(ctx context.Context) (*gmproto.SignInGaiaResp
 }
 
 func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
-	key, err := x509.MarshalPKIXPublicKey(c.AuthData.RefreshKey.GetPublicKey())
+	pubKey, err := c.AuthData.RefreshKey.GetPublicKey()
+	if err != nil {
+		return nil, err
+	}
+	key, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +109,7 @@ func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaRes
 type PairingSession struct {
 	UUID          uuid.UUID
 	Start         time.Time
-	PairingKeyDSA *ecdsa.PrivateKey
+	PairingKeyDSA *ecdh.PrivateKey
 	DestRegDevice primaryDeviceID
 	ServerInit    *gmproto.GaiaPairingResponseContainer
 	InitPayload   []byte
@@ -115,30 +118,25 @@ type PairingSession struct {
 }
 
 func NewPairingSession(destRegDevice primaryDeviceID) *PairingSession {
-	ec, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		panic(err)
-	}
 	return &PairingSession{
 		UUID:          uuid.New(),
 		Start:         time.Now(),
-		PairingKeyDSA: ec,
+		PairingKeyDSA: exerrors.Must(ecdh.P256().GenerateKey(rand.Reader)),
 		DestRegDevice: destRegDevice,
 	}
 }
 
 func (ps *PairingSession) PreparePayloads() ([]byte, []byte, error) {
+	pairingKey := ps.PairingKeyDSA.PublicKey().Bytes()
 	pubKey := &gmproto.GenericPublicKey{
 		Type: gmproto.PublicKeyType_EC_P256,
 		PublicKey: &gmproto.GenericPublicKey_EcP256PublicKey{
 			EcP256PublicKey: &gmproto.EcP256PublicKey{
-				X: make([]byte, 33),
-				Y: make([]byte, 33),
+				X: append([]byte{0}, pairingKey[1:33]...),
+				Y: append([]byte{0}, pairingKey[33:]...),
 			},
 		},
 	}
-	ps.PairingKeyDSA.X.FillBytes(pubKey.GetEcP256PublicKey().GetX()[1:])
-	ps.PairingKeyDSA.Y.FillBytes(pubKey.GetEcP256PublicKey().GetY()[1:])
 
 	finishPayload, err := proto.Marshal(&gmproto.Ukey2ClientFinished{
 		PublicKey: pubKey,
@@ -249,20 +247,14 @@ func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseCont
 		}
 		y = y[1:]
 	}
-	serverPairingKeyDSA := &ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     big.NewInt(0).SetBytes(x),
-		Y:     big.NewInt(0).SetBytes(y),
+	if len(x) != 32 || len(y) != 32 {
+		return "", fmt.Errorf("invalid server key coordinate lengths: %d, %d", len(x), len(y))
 	}
-	serverPairingKeyDH, err := serverPairingKeyDSA.ECDH()
+	serverPairingKeyDH, err := ecdh.P256().NewPublicKey(slices.Concat([]byte{4}, x, y))
 	if err != nil {
 		return "", fmt.Errorf("invalid server key: %w", err)
 	}
-	ourPairingKeyDH, err := ps.PairingKeyDSA.ECDH()
-	if err != nil {
-		return "", fmt.Errorf("invalid our key: %w", err)
-	}
-	diffieHellman, err := ourPairingKeyDH.ECDH(serverPairingKeyDH)
+	diffieHellman, err := ps.PairingKeyDSA.ECDH(serverPairingKeyDH)
 	if err != nil {
 		return "", fmt.Errorf("failed to calculate shared secret: %w", err)
 	}
