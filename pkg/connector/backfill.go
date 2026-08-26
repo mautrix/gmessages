@@ -142,7 +142,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			continue
 		}
 		ctx := log.WithContext(ctx)
-		sender := gc.getEventSenderFromMessage(msg)
+		sender := gc.getEventSenderFromMessage(ctx, msg)
 		intent, ok := params.Portal.GetIntentFor(ctx, sender, gc.UserLogin, bridgev2.RemoteEventBackfill)
 		if !ok {
 			continue

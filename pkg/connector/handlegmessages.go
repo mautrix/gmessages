@@ -47,6 +47,8 @@ import (
 )
 
 func (gc *GMClient) handleGMEvent(rawEvt any) {
+	// Note: this is called synchronously and must not block on any requests to Google Messages.
+
 	log := gc.UserLogin.Log.With().Str("action", "handle gmessages event").Logger()
 	ctx := log.WithContext(context.TODO())
 	switch evt := rawEvt.(type) {
@@ -180,17 +182,27 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 				Bool("syncing_conversations", gc.syncingConversations.Load()).
 				Msg("Ignoring MESSAGE_DELETED during resync")
 		} else {
-			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
-				WrappedMessage: evt,
-				g:              gc,
-			})
+			// There's an extra layer of queueing because QueueRemoteEvent calls some methods on MessageEvent,
+			// which may need to fetch conversations from the phone (to get the stable ID).
+			select {
+			case gc.messageQueue <- evt:
+			default:
+				log.Warn().
+					Str("conversation_id", evt.GetConversationID()).
+					Str("message_id", evt.GetMessageID()).
+					Msg("Message queue is full, messages may be out of order")
+				go func() {
+					gc.messageQueue <- evt
+				}()
+			}
 		}
 	case *gmproto.TypingData:
 		timeout := 15 * time.Second
 		if evt.Type == gmproto.TypingTypes_STOPPED_TYPING {
 			timeout = 0
 		}
-		chatInfo := gc.getChatInfoWithFetch(evt.ConversationID)
+		noFetchCtx := context.WithValue(ctx, contextKeyNoFetch, true)
+		chatInfo := gc.getChatInfoWithFetch(noFetchCtx, evt.ConversationID)
 		if chatInfo == nil {
 			log.Debug().
 				Str("conversation_id", evt.GetConversationID()).
@@ -215,8 +227,8 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 						Str("participant_id", participantID).
 						Str("number", evt.GetUser().GetNumber())
 				},
-				PortalKey: gc.PortalKeyForConversation(evt.ConversationID),
-				Sender:    gc.makeEventSender("", participantID, false, false),
+				PortalKey: gc.PortalKeyForConversation(noFetchCtx, evt.ConversationID),
+				Sender:    gc.makeEventSender(noFetchCtx, "", participantID, false, false),
 			},
 			Timeout: timeout,
 			Type:    bridgev2.TypingTypeText,
@@ -242,6 +254,25 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	}
 }
 
+func (gc *GMClient) handleMessageQueue(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	if prevCancel := gc.stopMessageQueue.Swap(&cancel); prevCancel != nil {
+		(*prevCancel)()
+	}
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-gc.messageQueue:
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+				WrappedMessage: msg,
+				g:              gc,
+			})
+		}
+	}
+}
 func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountChange) {
 	log := zerolog.Ctx(ctx)
 	log.Debug().
@@ -470,7 +501,7 @@ func (r *ReactionSyncEvent) GetType() bridgev2.RemoteEventType {
 }
 
 func (r *ReactionSyncEvent) GetPortalKey() networkid.PortalKey {
-	return r.g.PortalKeyForConversation(r.ConversationID)
+	return r.g.PortalKeyForConversation(context.TODO(), r.ConversationID)
 }
 
 func (r *ReactionSyncEvent) AddLogContext(c zerolog.Context) zerolog.Context {
@@ -509,7 +540,7 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 			data.Users[userID] = reacts
 		}
 		reacts.Reactions = append(reacts.Reactions, &bridgev2.BackfillReaction{
-			Sender:       r.g.makeEventSender(r.ConversationID, participantID, false, false),
+			Sender:       r.g.makeEventSender(context.TODO(), r.ConversationID, participantID, false, false),
 			Emoji:        emoji,
 			ExtraContent: extraData,
 		})
@@ -552,7 +583,7 @@ func (m *MessageUpdateEvent) GetType() bridgev2.RemoteEventType {
 }
 
 func (m *MessageUpdateEvent) GetPortalKey() networkid.PortalKey {
-	return m.g.PortalKeyForConversation(m.ConversationID)
+	return m.g.PortalKeyForConversation(context.TODO(), m.ConversationID)
 }
 
 func (m *MessageUpdateEvent) AddLogContext(c zerolog.Context) zerolog.Context {
@@ -563,7 +594,7 @@ func (m *MessageUpdateEvent) AddLogContext(c zerolog.Context) zerolog.Context {
 }
 
 func (m *MessageUpdateEvent) GetSender() bridgev2.EventSender {
-	return m.g.getEventSenderFromMessage(m.Message)
+	return m.g.getEventSenderFromMessage(context.TODO(), m.Message)
 }
 
 func (m *MessageUpdateEvent) GetTargetMessage() networkid.MessageID {
@@ -659,7 +690,7 @@ func (m *MessageEvent) GetType() bridgev2.RemoteEventType {
 }
 
 func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
-	return m.g.PortalKeyForConversation(m.ConversationID)
+	return m.g.PortalKeyForConversation(context.TODO(), m.ConversationID)
 }
 
 func (m *MessageEvent) ShouldCreatePortal() bool {
@@ -702,10 +733,10 @@ func (m *MessageEvent) AddLogContext(c zerolog.Context) zerolog.Context {
 }
 
 func (m *MessageEvent) GetSender() bridgev2.EventSender {
-	return m.g.getEventSenderFromMessage(m.Message)
+	return m.g.getEventSenderFromMessage(context.TODO(), m.Message)
 }
 
-func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.EventSender {
+func (gc *GMClient) getEventSenderFromMessage(ctx context.Context, m *gmproto.Message) bridgev2.EventSender {
 	status := m.GetMessageStatus().GetStatus()
 	// Tombstone events should be sent by the bot
 	if status >= 200 && status < 300 {
@@ -714,7 +745,7 @@ func (gc *GMClient) getEventSenderFromMessage(m *gmproto.Message) bridgev2.Event
 	// Statuses between 1 and 99 are outgoing types, 100-199 are incoming
 	forceOutgoing := status >= 1 && status < 100
 	forceIncoming := status >= 100 && status < 200
-	return gc.makeEventSender(m.ConversationID, m.ParticipantID, forceOutgoing, forceIncoming)
+	return gc.makeEventSender(ctx, m.ConversationID, m.ParticipantID, forceOutgoing, forceIncoming)
 }
 
 func findAlternateParticipantID(chatInfo *gmproto.Conversation, participantID string) string {
@@ -756,14 +787,23 @@ func getPhoneNumberParticipantID(chatInfo *gmproto.Conversation, phoneNumber str
 
 const chatInfoFetchCooldown = 5 * time.Minute
 
+type contextKey int
+
+const (
+	contextKeyNoFetch contextKey = iota
+)
+
 // getChatInfoWithFetch returns cached conversation info, fetching it from the phone on a
 // cache miss (e.g. after a bridge restart). Resolving alternate participant IDs requires
 // the participant list, and using unresolved IDs creates ghosts that don't match the
 // synced member list, causing membership churn in group chats.
-func (gc *GMClient) getChatInfoWithFetch(conversationID string) *gmproto.Conversation {
+func (gc *GMClient) getChatInfoWithFetch(ctx context.Context, conversationID string) *gmproto.Conversation {
 	chatInfo, ok := gc.chatInfoCache.Get(conversationID)
 	if ok {
 		return chatInfo
+	}
+	if ctx.Value(contextKeyNoFetch) != nil {
+		return nil
 	}
 	cli := gc.Client
 	if cli == nil {
@@ -776,7 +816,7 @@ func (gc *GMClient) getChatInfoWithFetch(conversationID string) *gmproto.Convers
 		Str("action", "fetch chat info for participant resolution").
 		Str("conversation_id", conversationID).
 		Logger()
-	conv, err := cli.GetConversation(log.WithContext(context.TODO()), conversationID)
+	conv, err := cli.GetConversation(log.WithContext(ctx), conversationID)
 	if err != nil || conv == nil {
 		gc.chatInfoFetchFailed.Set(conversationID, time.Now())
 		log.Warn().AnErr("fetch_error", err).Msg("Failed to fetch conversation info on cache miss")
@@ -787,10 +827,10 @@ func (gc *GMClient) getChatInfoWithFetch(conversationID string) *gmproto.Convers
 	return conv
 }
 
-func (gc *GMClient) makeEventSender(conversationID, participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
+func (gc *GMClient) makeEventSender(ctx context.Context, conversationID, participantID string, forceOutgoing, forceIncoming bool) bridgev2.EventSender {
 	isFromMe := !forceIncoming && (forceOutgoing || participantID == "1" || gc.Meta.IsSelfParticipantID(participantID))
 	if !isFromMe && conversationID != "" {
-		chatInfo := gc.getChatInfoWithFetch(conversationID)
+		chatInfo := gc.getChatInfoWithFetch(ctx, conversationID)
 		if chatInfo != nil {
 			participantID = findAlternateParticipantID(chatInfo, participantID)
 		}
@@ -1224,7 +1264,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 				EventMeta: simplevent.EventMeta{
 					Type:      bridgev2.RemoteEventReadReceipt,
 					PortalKey: portal.PortalKey,
-					Sender:    m.g.makeEventSender(m.ConversationID, participantID, false, false),
+					Sender:    m.g.makeEventSender(context.TODO(), m.ConversationID, participantID, false, false),
 				},
 				LastTarget: dbm[0].ID,
 			})
