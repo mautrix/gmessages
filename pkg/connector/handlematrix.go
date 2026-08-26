@@ -344,29 +344,37 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 	}
 	var phone string
 	if chat.Portal.RoomType == database.RoomTypeDM {
-		ghost, err := gc.Main.br.GetExistingGhostByID(ctx, chat.Portal.OtherUserID)
-		if err != nil {
-			return fmt.Errorf("failed to get ghost: %w", err)
+		if chat.Portal.OtherUserID != "" {
+			ghost, err := gc.Main.br.GetExistingGhostByID(ctx, chat.Portal.OtherUserID)
+			if err != nil {
+				return fmt.Errorf("failed to get ghost: %w", err)
+			}
+			if ghost != nil {
+				phone = ghost.Metadata.(*GhostMetadata).Phone
+			}
 		}
-		if ghost == nil {
-			return fmt.Errorf("ghost not found for user %s", chat.Portal.OtherUserID)
-		}
-		phone = ghost.Metadata.(*GhostMetadata).Phone
 		if phone == "" {
-			// Fallback: fetch conversation from Google to get phone number
-			if conv, err := gc.Client.GetConversation(ctx, convID); err != nil {
+			conv, err := gc.Client.GetConversation(ctx, convID)
+			if err != nil {
 				return fmt.Errorf("failed to get conversation for phone number: %w", err)
-			} else if conv != nil {
-				for _, pcp := range conv.Participants {
-					if pcp.IsVisible && !pcp.IsMe && pcp.ID.Number != "" {
-						phone = pcp.ID.Number
-						break
-					}
+			}
+			if conv == nil || conv.GetStatus() == gmproto.ConversationStatus_DELETED {
+				zerolog.Ctx(ctx).Debug().
+					Str("conversation_id", convID).
+					Msg("Conversation not found on phone, skipping remote delete")
+				return nil
+			}
+			for _, pcp := range conv.Participants {
+				if pcp.IsVisible && !pcp.IsMe && pcp.ID.Number != "" {
+					phone = pcp.ID.Number
+					break
 				}
 			}
 		}
 		if phone == "" {
-			return fmt.Errorf("phone number not available for conversation %s", convID)
+			zerolog.Ctx(ctx).Warn().
+				Str("conversation_id", convID).
+				Msg("Phone number not available for conversation, attempting delete without it")
 		}
 	}
 	if err := gc.Client.DeleteConversation(ctx, convID, phone); err != nil {
