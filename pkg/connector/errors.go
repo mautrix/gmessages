@@ -33,7 +33,7 @@ func (rse *responseStatusError) Error() string {
 		if rse.GoogleAccountSwitch != nil && strings.ContainsRune(rse.GoogleAccountSwitch.GetAccount(), '@') {
 			return "Switch back to QR pairing or log in with Google account to send messages"
 		}
-		return "Google Messages on your phone rejected the message — check that you can send from the Messages app, or try re-pairing"
+		return "Google Messages on your phone rejected the message. Check that you can send from the Messages app, or try re-pairing"
 	case gmproto.SendMessageResponse_FAILURE_2:
 		return "Unknown permanent error"
 	case gmproto.SendMessageResponse_FAILURE_3:
