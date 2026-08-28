@@ -171,6 +171,9 @@ func (gc *GMClient) loadPortalIDs(ctx context.Context) {
 				gc.rememberPortalID(convID, portal.ID)
 				legacy++
 			}
+			if meta.ParticipantHash != "" {
+				gc.legacyPortalKeyByParticipantHash.Set(meta.ParticipantHash, portal.PortalKey)
+			}
 			continue
 		}
 		gc.rememberPortalID(meta.ConversationID, portal.ID)
@@ -263,7 +266,8 @@ func (gc *GMClient) PortalKeyForConversation(ctx context.Context, conversationID
 // fresh portal at the stable key while the legacy one is still around.
 func (gc *GMClient) repointPortalIfNeeded(ctx context.Context, conv *gmproto.Conversation) {
 	convID := conv.GetConversationID()
-	stableID := gc.computeStableIdentity(conv).StableID
+	ident := gc.computeStableIdentity(conv)
+	stableID := ident.StableID
 	if convID == "" || stableID == "" {
 		return
 	}
@@ -305,6 +309,9 @@ func (gc *GMClient) repointPortalIfNeeded(ctx context.Context, conv *gmproto.Con
 			log.Info().Stringer("reid_result", result).Msg("Re-ID'd legacy portal onto stable key")
 		}
 	}
+	if strings.HasPrefix(stableID, stableIDPrefixRCSGroup) {
+		gc.reIDRCSGroupPredecessor(ctx, ident, stableKey)
+	}
 	gc.rememberPortalID(convID, stableKey.ID)
 
 	// Update the send-routing handle if Google re-keyed the conversation.
@@ -323,6 +330,68 @@ func (gc *GMClient) repointPortalIfNeeded(ctx context.Context, conv *gmproto.Con
 	if err = portal.Save(ctx); err != nil {
 		log.Err(err).Msg("Failed to save portal after re-pointing conversation ID")
 	}
+}
+
+// reIDRCSGroupPredecessor merges the SMS/MMS portal a group was upgraded from onto its new RCS
+// group key. Google issues an upgraded RCS group as a fresh conversation with a new identity, so
+// without this the existing room and history would be abandoned and a new portal backfilled.
+//
+// The predecessor is matched by participant hash, guarded on participant count, and only when the
+// RCS portal doesn't exist yet, so a still-live SMS group is never merged into a coincidental RCS
+// group with the same members.
+func (gc *GMClient) reIDRCSGroupPredecessor(ctx context.Context, ident stableIdentity, rcsKey networkid.PortalKey) {
+	if ident.ParticipantHash == "" {
+		return
+	}
+	log := zerolog.Ctx(ctx)
+	rcsPortal, err := gc.Main.br.GetExistingPortalByKey(ctx, rcsKey)
+	if err != nil {
+		log.Err(err).Msg("Failed to look up RCS group portal before merging predecessor")
+		return
+	} else if rcsPortal != nil {
+		return
+	}
+	predecessorKey, ok := gc.findParticipantHashPredecessor(ctx, ident, rcsKey)
+	if !ok {
+		return
+	}
+	log.Info().
+		Stringer("predecessor_portal_key", predecessorKey).
+		Stringer("rcs_portal_key", rcsKey).
+		Msg("Merging SMS/MMS predecessor portal into upgraded RCS group")
+	result, _, err := gc.Main.br.ReIDPortal(ctx, predecessorKey, rcsKey)
+	if err != nil {
+		log.Err(err).Msg("Failed to re-ID SMS/MMS predecessor onto RCS group key")
+		return
+	}
+	log.Info().Stringer("reid_result", result).Msg("Re-ID'd SMS/MMS predecessor onto RCS group key")
+}
+
+func (gc *GMClient) findParticipantHashPredecessor(ctx context.Context, ident stableIdentity, rcsKey networkid.PortalKey) (networkid.PortalKey, bool) {
+	candidates := []networkid.PortalKey{gc.MakePortalKey(stableIDPrefixParticipants + ident.ParticipantHash)}
+	if legacyKey, ok := gc.legacyPortalKeyByParticipantHash.Get(ident.ParticipantHash); ok {
+		candidates = append(candidates, legacyKey)
+	}
+	log := zerolog.Ctx(ctx)
+	for _, key := range candidates {
+		if key == rcsKey {
+			continue
+		}
+		portal, err := gc.Main.br.GetExistingPortalByKey(ctx, key)
+		if err != nil {
+			log.Err(err).Stringer("candidate_portal_key", key).Msg("Failed to look up predecessor portal candidate")
+			continue
+		}
+		if portal == nil {
+			continue
+		}
+		meta, ok := portal.Metadata.(*PortalMetadata)
+		if !ok || meta.ParticipantCount != ident.ParticipantCount {
+			continue
+		}
+		return key, true
+	}
+	return networkid.PortalKey{}, false
 }
 
 // isLegacyPortalID reports whether a portal is still keyed on the mutable conversation ID rather

@@ -77,11 +77,12 @@ type GMClient struct {
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
 
-	portalIDByConv       *exsync.Map[string, networkid.PortalID]
-	portalIDsLoaded      atomic.Bool
-	stableIDRepointLocks *exsync.Map[string, *sync.Mutex]
-	messageQueue         chan *libgm.WrappedMessage
-	stopMessageQueue     atomic.Pointer[context.CancelFunc]
+	portalIDByConv                   *exsync.Map[string, networkid.PortalID]
+	legacyPortalKeyByParticipantHash *exsync.Map[string, networkid.PortalKey]
+	portalIDsLoaded                  atomic.Bool
+	stableIDRepointLocks             *exsync.Map[string, *sync.Mutex]
+	messageQueue                     chan *libgm.WrappedMessage
+	stopMessageQueue                 atomic.Pointer[context.CancelFunc]
 
 	contactsFetchLock  sync.Mutex
 	contactsFetchedAt  time.Time
@@ -111,9 +112,10 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
 		pendingSends:        make(map[networkid.TransactionID]pendingSend),
 
-		portalIDByConv:       exsync.NewMap[string, networkid.PortalID](),
-		stableIDRepointLocks: exsync.NewMap[string, *sync.Mutex](),
-		messageQueue:         make(chan *libgm.WrappedMessage, 128),
+		portalIDByConv:                   exsync.NewMap[string, networkid.PortalID](),
+		legacyPortalKeyByParticipantHash: exsync.NewMap[string, networkid.PortalKey](),
+		stableIDRepointLocks:             exsync.NewMap[string, *sync.Mutex](),
+		messageQueue:                     make(chan *libgm.WrappedMessage, 128),
 	}
 	gcli.NewClient()
 	login.Client = gcli
