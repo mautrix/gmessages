@@ -95,7 +95,7 @@ func (gc *GMClient) computeStableIdentity(conv *gmproto.Conversation) stableIden
 	}
 	selfNumbers := gc.selfNumbers()
 	for _, pcp := range conv.GetParticipants() {
-		if pcp.GetIsMe() {
+		if pcp.GetIsMe() || pcp.GetSimPayload().GetSIMNumber() != 0 {
 			if num := normalizeIdentifier(pcp.GetID()); num != "" {
 				selfNumbers.Add(num)
 			}
