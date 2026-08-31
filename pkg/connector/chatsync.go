@@ -291,7 +291,6 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		return
 	}
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
-	gc.repointPortalIfNeeded(log.WithContext(ctx), v)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,

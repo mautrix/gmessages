@@ -20,14 +20,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
-	"sync"
 
-	"github.com/rs/zerolog"
 	"go.mau.fi/util/exmaps"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -137,196 +133,14 @@ func (gc *GMClient) computeStableIdentity(conv *gmproto.Conversation) stableIden
 	return ident
 }
 
-func (gc *GMClient) rememberPortalID(conversationID string, portalID networkid.PortalID) {
-	if conversationID == "" || portalID == "" {
-		return
-	}
-	gc.portalIDByConv.Set(conversationID, portalID)
-}
-
-func (gc *GMClient) loadPortalIDs(ctx context.Context) {
-	if !gc.portalIDsLoaded.CompareAndSwap(false, true) {
-		return
-	}
-	log := zerolog.Ctx(ctx)
-	portals, err := gc.Main.br.DB.Portal.GetAll(ctx)
-	if err != nil {
-		gc.portalIDsLoaded.Store(false)
-		log.Err(err).Msg("Failed to load portals for conversation ID map")
-		return
-	}
-	var loaded, legacy int
-	for _, portal := range portals {
-		if portal.Receiver != gc.UserLogin.ID {
-			continue
-		}
-		meta, ok := portal.Metadata.(*PortalMetadata)
-		if !ok {
-			continue
-		}
-		if gc.isLegacyPortalID(portal.ID, meta) {
-			// Not migrated, so it's still keyed on the conversation ID and events have to keep
-			// going there until repointPortal moves it.
-			if convID, err := gc.ParsePortalID(portal.ID); err == nil {
-				gc.rememberPortalID(convID, portal.ID)
-				legacy++
-			}
-			continue
-		}
-		gc.rememberPortalID(meta.ConversationID, portal.ID)
-		loaded++
-	}
-	log.Debug().
-		Int("stable_count", loaded).
-		Int("legacy_count", legacy).
-		Msg("Loaded conversation ID to portal ID mappings")
-}
-
-func (gc *GMClient) resolvePortalID(ctx context.Context, conversationID string) networkid.PortalID {
-	if conversationID == "" {
-		return ""
-	}
-	if portalID, ok := gc.portalIDByConv.Get(conversationID); ok {
-		return portalID
-	}
-	// TODO store ids in local db and check that before querying the phone
-	conv := gc.getChatInfoWithFetch(ctx, conversationID)
-	if conv == nil {
-		return ""
-	}
-	stableID := gc.computeStableIdentity(conv).StableID
-	if stableID == "" {
-		return ""
-	}
-	portalID := gc.MakePortalID(stableID)
-	gc.rememberPortalID(conversationID, portalID)
-	return portalID
-}
-
-var ErrNoConversationID = bridgev2.
-	WrapErrorInStatus(errors.New("this chat is not ready to send yet, please try again shortly")).
-	WithErrorAsMessage().
-	WithIsCertain(true).
-	WithSendNotice(true)
-
 func (gc *GMClient) conversationIDForPortal(ctx context.Context, portal *bridgev2.Portal) (string, error) {
-	meta, ok := portal.Metadata.(*PortalMetadata)
-	if !ok {
-		return "", fmt.Errorf("unexpected portal metadata type %T", portal.Metadata)
-	}
-	if meta.ConversationID != "" {
-		return meta.ConversationID, nil
-	}
-	// Portals that haven't been migrated yet are still keyed on the conversation ID.
-	if gc.isLegacyPortalID(portal.ID, meta) {
-		return gc.ParsePortalID(portal.ID)
-	}
-	zerolog.Ctx(ctx).Warn().
-		Stringer("portal_key", portal.PortalKey).
-		Str("stable_id", meta.StableID).
-		Msg("Portal has a stable ID but no conversation ID")
-	return "", ErrNoConversationID
+	return gc.ParsePortalID(portal.ID)
 }
 
 func (gc *GMClient) portalKeyForConv(conv *gmproto.Conversation) networkid.PortalKey {
-	convID := conv.GetConversationID()
-	if portalID, ok := gc.portalIDByConv.Get(convID); ok {
-		return networkid.PortalKey{ID: portalID, Receiver: gc.UserLogin.ID}
-	}
-	stableID := gc.computeStableIdentity(conv).StableID
-	if stableID == "" {
-		gc.UserLogin.Log.Warn().
-			Str("conversation_id", convID).
-			Msg("Conversation has no stable identity, falling back to legacy portal key")
-		return gc.makeLegacyPortalKey(convID)
-	}
-	portalID := gc.MakePortalID(stableID)
-	gc.rememberPortalID(convID, portalID)
-	return networkid.PortalKey{ID: portalID, Receiver: gc.UserLogin.ID}
+	return gc.MakePortalKey(conv.GetConversationID())
 }
 
 func (gc *GMClient) PortalKeyForConversation(ctx context.Context, conversationID string) networkid.PortalKey {
-	if portalID := gc.resolvePortalID(ctx, conversationID); portalID != "" {
-		return networkid.PortalKey{ID: portalID, Receiver: gc.UserLogin.ID}
-	}
-	gc.UserLogin.Log.Warn().
-		Str("conversation_id", conversationID).
-		Msg("Failed to resolve portal for conversation, falling back to legacy portal key")
-	return gc.makeLegacyPortalKey(conversationID)
-}
-
-// repointPortalIfNeeded reconciles a conversation against the stable-ID portal keyspace. It re-points the
-// send-routing handle when Google re-keys a chat, and migrates (merging if necessary) any portal
-// still living on the legacy conversation-ID key.
-//
-// Must be called before queueing a resync for the conversation, otherwise the resync creates a
-// fresh portal at the stable key while the legacy one is still around.
-func (gc *GMClient) repointPortalIfNeeded(ctx context.Context, conv *gmproto.Conversation) {
-	convID := conv.GetConversationID()
-	stableID := gc.computeStableIdentity(conv).StableID
-	if convID == "" || stableID == "" {
-		return
-	}
-
-	// Serialise per stable ID, otherwise two updates for the same chat can both decide to migrate
-	// the legacy portal and race inside ReIDPortal.
-	lock, _ := gc.stableIDRepointLocks.GetOrSet(stableID, &sync.Mutex{})
-	lock.Lock()
-	defer lock.Unlock()
-
-	log := zerolog.Ctx(ctx).With().
-		Str("action", "repoint portal").
-		Str("conversation_id", convID).
-		Str("stable_id", stableID).
-		Logger()
-	ctx = log.WithContext(ctx)
-
-	stableKey := gc.MakePortalKey(stableID)
-	legacyKey := gc.makeLegacyPortalKey(convID)
-	if legacyKey != stableKey {
-		legacyPortal, err := gc.Main.br.GetExistingPortalByKey(ctx, legacyKey)
-		if err != nil {
-			log.Err(err).Msg("Failed to look up legacy portal")
-			// Leave the routing map alone: we don't know whether the legacy portal is still there,
-			// and pointing at the stable key while it is would split the chat.
-			return
-		} else if legacyPortal != nil {
-			log.Info().
-				Stringer("legacy_portal_key", legacyKey).
-				Stringer("stable_portal_key", stableKey).
-				Msg("Migrating portal from legacy conversation ID key to stable ID key")
-			result, _, err := gc.Main.br.ReIDPortal(ctx, legacyKey, stableKey)
-			if err != nil {
-				log.Err(err).Msg("Failed to re-ID legacy portal onto stable key")
-				// Keep routing to the legacy portal until the move actually succeeds.
-				gc.rememberPortalID(convID, legacyKey.ID)
-				return
-			}
-			log.Info().Stringer("reid_result", result).Msg("Re-ID'd legacy portal onto stable key")
-		}
-	}
-	gc.rememberPortalID(convID, stableKey.ID)
-
-	// Update the send-routing handle if Google re-keyed the conversation.
-	portal, err := gc.Main.br.GetExistingPortalByKey(ctx, stableKey)
-	if err != nil {
-		log.Err(err).Msg("Failed to look up stable portal to update conversation ID")
-		return
-	} else if portal == nil {
-		return
-	}
-	meta, ok := portal.Metadata.(*PortalMetadata)
-	if !ok || !meta.updateConversationID(convID) {
-		return
-	}
-	log.Info().Msg("Re-pointed portal at new conversation ID")
-	if err = portal.Save(ctx); err != nil {
-		log.Err(err).Msg("Failed to save portal after re-pointing conversation ID")
-	}
-}
-
-// isLegacyPortalID reports whether a portal is still keyed on the mutable conversation ID rather
-// than its stable identity.
-func (gc *GMClient) isLegacyPortalID(id networkid.PortalID, meta *PortalMetadata) bool {
-	return meta.StableID == "" || id != gc.MakePortalID(meta.StableID)
+	return gc.MakePortalKey(conversationID)
 }

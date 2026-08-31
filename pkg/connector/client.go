@@ -77,11 +77,8 @@ type GMClient struct {
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
 
-	portalIDByConv       *exsync.Map[string, networkid.PortalID]
-	portalIDsLoaded      atomic.Bool
-	stableIDRepointLocks *exsync.Map[string, *sync.Mutex]
-	messageQueue         chan *libgm.WrappedMessage
-	stopMessageQueue     atomic.Pointer[context.CancelFunc]
+	messageQueue     chan *libgm.WrappedMessage
+	stopMessageQueue atomic.Pointer[context.CancelFunc]
 
 	contactsFetchLock  sync.Mutex
 	contactsFetchedAt  time.Time
@@ -111,9 +108,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
 		pendingSends:        make(map[networkid.TransactionID]pendingSend),
 
-		portalIDByConv:       exsync.NewMap[string, networkid.PortalID](),
-		stableIDRepointLocks: exsync.NewMap[string, *sync.Mutex](),
-		messageQueue:         make(chan *libgm.WrappedMessage, 128),
+		messageQueue: make(chan *libgm.WrappedMessage, 128),
 	}
 	gcli.NewClient()
 	login.Client = gcli
@@ -122,8 +117,6 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 
 func (gc *GMClient) Connect(ctx context.Context) {
 	go gc.handleMessageQueue(ctx)
-	// Pre-populate convID -> portalID mapping
-	gc.loadPortalIDs(ctx)
 	if gc.Client == nil {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,

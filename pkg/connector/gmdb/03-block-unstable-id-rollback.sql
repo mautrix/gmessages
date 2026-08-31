@@ -1,0 +1,1 @@
+-- v3: Block rollbacks to versions with stable portal IDs

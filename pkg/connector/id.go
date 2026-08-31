@@ -69,20 +69,13 @@ func (gc *GMClient) MakeMessageID(messageID string) networkid.MessageID {
 	return networkid.MessageID(gc.makeAnyID(messageID))
 }
 
-func (gc *GMClient) MakePortalID(stableID string) networkid.PortalID {
-	return networkid.PortalID(gc.makeAnyID(stableID))
+func (gc *GMClient) MakePortalID(conversationID string) networkid.PortalID {
+	return networkid.PortalID(gc.makeAnyID(conversationID))
 }
 
-func (gc *GMClient) MakePortalKey(stableID string) networkid.PortalKey {
+func (gc *GMClient) MakePortalKey(conversationID string) networkid.PortalKey {
 	return networkid.PortalKey{
-		ID:       gc.MakePortalID(stableID),
-		Receiver: gc.UserLogin.ID,
-	}
-}
-
-func (gc *GMClient) makeLegacyPortalKey(conversationID string) networkid.PortalKey {
-	return networkid.PortalKey{
-		ID:       networkid.PortalID(gc.makeAnyID(conversationID)),
+		ID:       gc.MakePortalID(conversationID),
 		Receiver: gc.UserLogin.ID,
 	}
 }
