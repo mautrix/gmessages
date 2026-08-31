@@ -90,6 +90,7 @@ message GaiaPairingRequestContainer {
     bytes data = 4;
     int32 proposedVerificationCodeVersion = 5;
     int32 proposedKeyDerivationVersion = 6;
+    string privateAPIConfirmation = 8;
 }
 
 enum GaiaPairingErrorCode {
@@ -125,6 +126,10 @@ enum GaiaPairingErrorCode {
     CMS_BACKUP_KEY_NOT_FOUND = 29;
     UNABLE_TO_ENCRYPT_CMS_BACKUP_KEY = 30;
     UNABLE_TO_DECRYPT_CMS_BACKUP_KEY = 31;
+    CLIENT_ATTESTATION_MISSING = 32;
+    CLIENT_ATTESTATION_MISMATCH = 33;
+    SI_RESPONSE_FROM_UNEXPECTED_PHONE_REGISTRATION_ID = 34;
+    CLIENT_ATTESTATION_REVISION_MISMATCH = 35;
 }
 
 message GaiaPairingResponseContainer {
@@ -135,6 +140,7 @@ message GaiaPairingResponseContainer {
     bytes data = 5;
     int32 confirmedVerificationCodeVersion = 6;
     int32 confirmedKeyDerivationVersion = 7;
+    bytes unknownBytes = 8;
 }
 
 message RevokeGaiaPairingRequest {

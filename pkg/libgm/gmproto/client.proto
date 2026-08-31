@@ -118,6 +118,10 @@ message ListContactsRequest {
     int32 i3 = 7; // = 50
 }
 
+message PreFetchContactsRequest {
+    int32 i2 = 2; // = 350
+}
+
 message ListTopContactsRequest {
     int32 count = 1;
 }
@@ -301,9 +305,9 @@ message SendMessageResponse {
 message SendReactionRequest {
     enum Action {
         UNSPECIFIED = 0;
-        ADD = 1;
-        REMOVE = 2;
-        SWITCH = 3;
+        ADD = 1; // ADD_REACTION
+        REMOVE = 2; // REMOVE_REACTION
+        SWITCH = 3; // REPLACE_REACTION
     }
 
     string messageID = 1;
@@ -347,4 +351,8 @@ message GetFullSizeImageRequest {
 
 message GetFullSizeImageResponse {
 
+}
+
+message GetUpdatesRequest {
+    int64 timestamp = 2;
 }

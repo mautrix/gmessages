@@ -26,7 +26,7 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationID, phone s
 		Data: &gmproto.UpdateConversationRequest_DeleteData{
 			DeleteData: &gmproto.DeleteConversationData{
 				ConversationID: conversationID,
-				Phone:          phone,
+				Phone:          &phone,
 			},
 		},
 	})

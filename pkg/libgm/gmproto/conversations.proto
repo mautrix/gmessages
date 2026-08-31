@@ -10,6 +10,7 @@ message Contact {
     string name = 2;
     ContactNumber number = 3;
     string avatarHexColor = 7;
+    string nameAgain = 8;
     bool unknownBool = 10;
     string contactID = 11;
 }
@@ -23,19 +24,23 @@ message ContactNumber {
 }
 
 message SomeKindOfGroupID {
-    // Matches the native app's GroupId message: a stable RCS group identity that
-    // survives conversationID churn.
     message NestedID {
         string id = 1;
         string conferenceUri = 2;
     }
     string conversationID = 1;
     NestedID nestedID = 2;
+    string maybePhoneNumber = 3;
 }
 
 message AnotherMessageID {
     string messageID = 1;
     string anotherID = 2;
+}
+
+message AnotherLatestMessageReference {
+    AnotherMessageID id = 1;
+    int64 timestampMS = 2;
 }
 
 message Message {
@@ -195,13 +200,17 @@ message Conversation {
     ConversationType type = 22;
     bool subType = 24;
     bool pinned = 26;
+    settings.SIMParticipant simParticipantMaybe = 27;
     int64 unknownTimestamp = 28; // set to lastMessageTimestamp + 1000 when marking as unread?
     bool thirdType = 29;
+    // index 30 has an unknown int or bool
     SomeKindOfGroupID someKindOfGroupID = 31;
     settings.SIMCard simCard = 32;
+    AnotherLatestMessageReference anotherLatestMessageReference = 33;
     // URL for group conversation icon (observed on RCS group chats).
     string groupAvatarURL = 34;
-    AnotherMessageID latestMessageAnoherID = 35;
+    AnotherMessageID latestMessageAnotherID = 35;
+    // index 37 has an unknown byte string (\001)
 }
 
 message Participant {
@@ -221,8 +230,31 @@ message Participant {
 
 enum IdentifierType {
     UNKNOWN = 0;
-    PHONE = 1;
+    PHONE = 1; // PHONE_E164
     EMAIL = 2;
+
+    // These haven't been observed, but seem like they could be a part of this enum
+    BOT = 3;
+    UNKNOWN_SENDER = 4;
+    PHONE_SHORT_NO_COUNTRY = 5;
+    PHONE_SHORT_WITH_COUNTRY = 6;
+    PHONE_EMERGENCY = 7;
+    PHONE_LOCAL_WITH_COUNTRY = 8;
+    PHONE_LOCAL_NO_COUNTRY = 9;
+    PHONE_NATIONAL = 10;
+    SATELLITE_ESP = 11;
+    PENPAL_BOT = 12;
+    ALPHA_SHORT_NO_COUNTRY = 13;
+    ALPHA_SHORT_WITH_COUNTRY = 14;
+    PHONE_WITH_COUNTRY = 15;
+    PHONE_WITH_IDD = 16;
+    PHONE_WITH_PLUS = 17;
+    PHONE_INVALID_TOO_SHORT = 18;
+    PHONE_INVALID_TOO_LONG = 19;
+    PHONE_INVALID_LENGTH = 20;
+    PHONE_INVALID_COUNTRY_CODE = 21;
+    UNKNOWN_DIALABLE = 22;
+    PHONE_TOLL_FREE = 23;
 }
 
 message SmallInfo {
@@ -404,6 +436,7 @@ enum ConversationStatus {
     SPAM_FOLDER = 5;
     BLOCKED_FOLDER = 6;
     CROSS_COUNTRY_FOLDER = 7;
+    TRASH_FOLDER = 8;
 }
 
 enum MediaFormats {

@@ -495,6 +495,7 @@ func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess *PairingSessio
 	msgType := gmproto.MessageType_GAIA_2
 	if action == gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED {
 		msgType = gmproto.MessageType_BUGLE_MESSAGE
+		reqContainer.PrivateAPIConfirmation = "This is an undocumented API. Use or access of undocumented Google APIs without express authorization is prohibited per the Google API Terms of Service (https://developers.google.com/terms)."
 	} else {
 		reqContainer.ProposedVerificationCodeVersion = 1
 		reqContainer.ProposedKeyDerivationVersion = 1

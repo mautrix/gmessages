@@ -20,6 +20,8 @@ message SIMCard {
     SIMData SIMData = 5;
     bool bool1 = 6;
     SIMParticipant SIMParticipant = 7;
+    string rcsAddress1 = 8;
+    string rcsAddress2 = 9;
 }
 
 message RCSChats {
@@ -43,6 +45,7 @@ message SIMData {
     int64 int1 = 5;
     string formattedPhoneNumber = 6;
     string internationalPhoneNumber = 7;
+    // index 8 has an unknown int or bool
 }
 
 message UnknownMessage {
@@ -63,6 +66,7 @@ message SomeData {
     repeated bytes someEmojis = 15;
     string jsonData = 16;
     string someString = 17;
+    int64 someTimestamp = 23;
 }
 
 message RCSSettings {
@@ -72,6 +76,11 @@ message RCSSettings {
     // this field disappears from some settings events, so it needs explicit presence:
     // decoding an absent field as false makes the stored value flap between updates
     optional bool isDefaultSMSApp = 4;
+
+    int32 unknownInt = 5; // usually 1
+    bytes unknownBytes = 6;
+    string unknownUUID1 = 7;
+    string unknownUUID2 = 8;
 }
 
 message BooleanFields2 {
@@ -80,6 +89,7 @@ message BooleanFields2 {
     BoolMsg boolMsg1 = 3;
     BoolMsg boolMsg2 = 5;
     bool bool3 = 6;
+    // field 8 has an object with a uuid and a timestamp
 }
 
 message BooleanFields3 {
@@ -91,4 +101,5 @@ message BooleanFields3 {
     bool bool7 = 7;
     bool bool8 = 8;
     bool bool9 = 9;
+    // these go up to 34 nowadays
 }
