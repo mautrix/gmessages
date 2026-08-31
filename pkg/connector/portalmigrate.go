@@ -34,10 +34,20 @@ func (gc *GMConnector) migratePortalsToUnstableIDs(ctx context.Context) error {
 		return nil
 	}
 
+	_, err := gc.br.DB.Exec(ctx, `
+		DELETE FROM portal
+		WHERE mxid IS NULL
+		  AND metadata->>'conversation_id' IS NULL
+		  AND id LIKE '%:%'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to delete portals without conversation ID: %w", err)
+	}
+
 	type portalInfo struct {
 		ID             networkid.PortalID
 		Receiver       networkid.UserLoginID
-		ConversationID string
+		ConversationID *string
 	}
 
 	const findPortalsQuery = `
@@ -64,7 +74,7 @@ func (gc *GMConnector) migratePortalsToUnstableIDs(ctx context.Context) error {
 		prefix, _ := parseAnyID(string(info.ID))
 		if prefix == "" {
 			return fmt.Errorf("missing ID prefix for portal %s", info.ID)
-		} else if info.ConversationID == "" {
+		} else if info.ConversationID == nil || *info.ConversationID == "" {
 			log.Warn().Str("portal_id", string(info.ID)).Msg("Missing conversation ID for portal, skipping")
 			continue
 		}
@@ -73,7 +83,7 @@ func (gc *GMConnector) migratePortalsToUnstableIDs(ctx context.Context) error {
 			Receiver: info.Receiver,
 		}
 		target := networkid.PortalKey{
-			ID:       networkid.PortalID(fmt.Sprintf("%s.%s", prefix, info.ConversationID)),
+			ID:       networkid.PortalID(fmt.Sprintf("%s.%s", prefix, *info.ConversationID)),
 			Receiver: info.Receiver,
 		}
 		res, _, err := gc.br.ReIDPortal(ctx, source, target)
