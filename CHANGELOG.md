@@ -1,7 +1,9 @@
 # v26.08
 
 * Added code to prepare for stable portal identifiers.
-  * **You must upgrade to this release before upgrading to a newer version.**
+  * ~~You must upgrade to this release before upgrading to a newer version.~~
+    The migration to stable portal identifiers has been cancelled, as it turned
+    out the identifiers were unstable.
 * Updated Docker image to Alpine 3.24.
 * Made ghost avatars update faster when contact entry is replaced.
 * Fixed format of transaction IDs used to send messages.

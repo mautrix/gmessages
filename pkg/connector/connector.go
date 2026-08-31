@@ -58,14 +58,9 @@ func (gc *GMConnector) Start(ctx context.Context) error {
 	if err := gc.DB.Upgrade(ctx); err != nil {
 		return err
 	}
-	postMigrate, err := gc.migratePortalsToStableIDs(ctx)
+	err := gc.migratePortalsToUnstableIDs(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to migrate portals to stable IDs: %w", err)
-	}
-	if postMigrate != nil {
-		// Deleting the merged rooms can take a while and doesn't need to block startup - the
-		// database no longer references them either way.
-		go postMigrate()
+		return fmt.Errorf("failed to revert stable ID migration: %w", err)
 	}
 	return nil
 }

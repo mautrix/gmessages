@@ -1,5 +1,0 @@
--- v1 -> v2 (compatible with v2+): Block rollbacks to versions without stable portal IDs
--- This migration intentionally changes nothing: it only bumps the schema version and its
--- compatibility floor. The stable portal ID migration re-keys every portal onto identifiers
--- that older bridge versions don't understand, so bumping the compat version here makes them
--- refuse to start instead of re-creating every portal under its old conversation ID.
