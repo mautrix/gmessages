@@ -59,44 +59,10 @@ type PortalMetadata struct {
 	SendMode gmproto.ConversationSendMode `json:"send_mode"`
 	ForceRCS bool                         `json:"force_rcs"`
 
-	OutgoingID string `json:"outgoing_id"`
+	OutgoingID    string `json:"outgoing_id"`
+	DMPhoneNumber string `json:"dm_phone_number,omitempty"`
 
-	// Stable conversation identity so portals don't churn when Google re-keys conversationIDs
-	StableID         string `json:"stable_id,omitempty"`
-	RCSGroupID       string `json:"rcs_group_id,omitempty"`
-	RCSConferenceURI string `json:"rcs_conference_uri,omitempty"`
-	ParticipantHash  string `json:"participant_hash,omitempty"`
-	ParticipantCount int    `json:"participant_count,omitempty"`
-
-	// Mutable send-routing handle. This is what Google wants in outgoing requests, and is
-	// re-pointed whenever a conversation update arrives with a new ID for the same StableID.
-	ConversationID string `json:"conversation_id,omitempty"`
-}
-
-func (meta *PortalMetadata) updateConversationID(conversationID string) (changed bool) {
-	if conversationID == "" || meta.ConversationID == conversationID {
-		return false
-	}
-	meta.ConversationID = conversationID
-	return true
-}
-
-func (meta *PortalMetadata) updateFromStableIdentity(ident stableIdentity) (changed bool) {
-	if ident.RCSGroupID != "" && (meta.RCSGroupID != ident.RCSGroupID || meta.RCSConferenceURI != ident.RCSConferenceURI) {
-		meta.RCSGroupID = ident.RCSGroupID
-		meta.RCSConferenceURI = ident.RCSConferenceURI
-		changed = true
-	}
-	if ident.ParticipantHash != "" && (meta.ParticipantHash != ident.ParticipantHash || meta.ParticipantCount != ident.ParticipantCount) {
-		meta.ParticipantHash = ident.ParticipantHash
-		meta.ParticipantCount = ident.ParticipantCount
-		changed = true
-	}
-	if ident.StableID != "" && meta.StableID != ident.StableID {
-		meta.StableID = ident.StableID
-		changed = true
-	}
-	return
+	LegacyStableID string `json:"stable_id,omitempty"`
 }
 
 type GhostMetadata struct {

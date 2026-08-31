@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exmaps"
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"maunium.net/go/mautrix/bridgev2"
@@ -109,6 +110,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		},
 	}
 	hasSelf := false
+	nonSelfNumbers := make(exmaps.Set[string])
 	for _, pcp := range conv.Participants {
 		if pcp.IsMe {
 			hasSelf = true
@@ -126,6 +128,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			if err != nil {
 				return nil, err
 			}
+			nonSelfNumbers.Add(normalizeIdentifier(pcp.ID))
 			members.MemberMap[userID] = bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
 				UserInfo:    gc.wrapParticipantInfo(ctx, ghost, pcp),
@@ -147,6 +150,14 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		err := gc.UserLogin.Save(ctx)
 		if err != nil {
 			log.Warn().Msg("Failed to save user login")
+		}
+	}
+	var dmPhoneNumber string
+	if roomType == database.RoomTypeDM {
+		if nonSelfNumbers.Size() == 1 {
+			dmPhoneNumber = nonSelfNumbers.AsList()[0]
+		} else {
+			log.Warn().Strs("non_self_numbers", nonSelfNumbers.AsList()).Msg("DM phone number not found")
 		}
 	}
 	var tag event.RoomTag
@@ -182,8 +193,14 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				meta.OutgoingID = conv.DefaultOutgoingID
 				changed = true
 			}
-			changed = meta.updateFromStableIdentity(gc.computeStableIdentity(conv)) || changed
-			changed = meta.updateConversationID(conv.GetConversationID()) || changed
+			if dmPhoneNumber != meta.DMPhoneNumber {
+				meta.DMPhoneNumber = dmPhoneNumber
+				changed = true
+			}
+			if meta.LegacyStableID != "" {
+				meta.LegacyStableID = ""
+				changed = true
+			}
 			return
 		},
 	}, nil
