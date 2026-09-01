@@ -18,15 +18,19 @@ package connector
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/jsontime"
 	"google.golang.org/protobuf/proto"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
+	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -308,6 +312,16 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			ReadUpTo:   meta.readUpToTS,
 		}
 	}
+	switch v.Status {
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
+		err := gc.deduplicateDM(ctx, v)
+		if errors.Is(err, errDontSyncConversation) {
+			return
+		} else if err != nil {
+			log.Error().Err(err).Msg("Failed to deduplicate DM")
+			return
+		}
+	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
@@ -345,6 +359,166 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		}()
 	} else if markReadEvt != nil {
 		gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
+	}
+}
+
+var errDontSyncConversation = errors.New("conversation should not be synced")
+
+func (gc *GMClient) bumpDMLastMessageTime(ctx context.Context, convID string, ts jsontime.UnixMicro) error {
+	portalID := gc.MakePortalID(convID)
+	gc.dmsLock.Lock()
+	defer gc.dmsLock.Unlock()
+	conv, ok := gc.dmsByConv[portalID]
+	if !ok {
+		return nil
+	}
+	if ts.After(conv.LastMessageTS.Time) {
+		zerolog.Ctx(ctx).Trace().
+			Str("action", "receive message").
+			Str("phone_number", conv.PhoneNumber).
+			Str("portal_id", string(portalID)).
+			Time("last_message_ts", ts.Time).
+			Msg("Bumping DM conversation last message timestamp")
+		conv.LastMessageTS = ts
+		return gc.Main.DB.DirectConversation.UpdateLastMessage(ctx, conv)
+	}
+	return nil
+}
+
+func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation) error {
+	phoneNumber := getOtherUserPhone(evt)
+	if phoneNumber == "" {
+		return nil
+	}
+	portalKey := gc.MakePortalKey(evt.ConversationID)
+	portalID := portalKey.ID
+	lastMessageTS := jsontime.UMicroInt(evt.LastMessageTimestamp)
+	log := zerolog.Ctx(ctx).With().
+		Str("action", "deduplicate dm").
+		Str("phone_number", phoneNumber).
+		Str("portal_id", string(portalID)).
+		Time("last_message_ts", lastMessageTS.Time).
+		Logger()
+	ctx = log.WithContext(ctx)
+	gc.dmsLock.Lock()
+	defer gc.dmsLock.Unlock()
+	insertNewConv := func(extraTasks func() error, cacheClear func()) error {
+		conv := &gmdb.DirectConversation{
+			LoginID:       gc.UserLogin.ID,
+			PhoneNumber:   phoneNumber,
+			PortalID:      portalID,
+			LastMessageTS: lastMessageTS,
+		}
+		err := gc.Main.br.DB.DoTxn(ctx, nil, func(ctx context.Context) error {
+			if extraTasks != nil {
+				err := extraTasks()
+				if err != nil {
+					return err
+				}
+			}
+			err := gc.Main.DB.DirectConversation.Insert(ctx, conv)
+			if err != nil {
+				return fmt.Errorf("failed to insert new DM conversation row: %w", err)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil
+		}
+		if cacheClear != nil {
+			cacheClear()
+		}
+		gc.dmsByPhone[phoneNumber] = conv
+		gc.dmsByConv[portalID] = conv
+		return nil
+	}
+	byPhone := gc.dmsByPhone[phoneNumber]
+	byID := gc.dmsByConv[portalID]
+	if byPhone == nil && byID == nil {
+		log.Debug().Msg("Storing new DM conversation")
+		// Conversation not yet stored in DM mapping and no conflicts, store it
+		return insertNewConv(nil, nil)
+	} else if byPhone == byID {
+		// Existing conversation, no conflicts, just bump the last message time
+		if lastMessageTS.After(byPhone.LastMessageTS.Time) {
+			log.Trace().
+				Time("prev_last_message_ts", byPhone.LastMessageTS.Time).
+				Msg("Bumping DM conversation last message timestamp")
+			byPhone.LastMessageTS = lastMessageTS
+			err := gc.Main.DB.DirectConversation.UpdateLastMessage(ctx, byPhone)
+			if err != nil {
+				return fmt.Errorf("failed to update last message time for DM conversation: %w", err)
+			}
+		} else {
+			log.Trace().
+				Time("prev_last_message_ts", byPhone.LastMessageTS.Time).
+				Msg("Not bumping DM conversation last message timestamp")
+		}
+		return nil
+	} else if byID == nil /*&& byPhone != nil*/ {
+		if lastMessageTS.After(byPhone.LastMessageTS.Time) {
+			sourceKey := networkid.PortalKey{
+				ID:       byPhone.PortalID,
+				Receiver: portalKey.Receiver,
+			}
+			res, _, err := gc.Main.br.ReIDPortal(ctx, sourceKey, portalKey)
+			if err != nil {
+				return fmt.Errorf("failed to re-ID %s to %s: %w", byPhone.PortalID, portalID, err)
+			}
+			log.Debug().
+				Str("old_portal_id", string(byPhone.PortalID)).
+				Time("old_last_message_ts", byPhone.LastMessageTS.Time).
+				Stringer("result", res).
+				Msg("Re-ID'd DM portal to match new conversation ID")
+			return insertNewConv(func() error {
+				err = gc.Main.DB.DirectConversation.Delete(ctx, byPhone)
+				if err != nil {
+					return fmt.Errorf("failed to delete old DM conversation row after conversation ID change: %w", err)
+				}
+				return nil
+			}, func() {
+				delete(gc.dmsByConv, byPhone.PortalID)
+			})
+		}
+		log.Debug().
+			Str("existing_portal_id", string(byPhone.PortalID)).
+			Time("existing_last_message_ts", byPhone.LastMessageTS.Time).
+			Msg("Cancelling portal sync as there's a newer phone number portal")
+		return errDontSyncConversation
+	} else if /*byID != nil &&*/ byPhone == nil {
+		// This should probably never happen
+		log.Warn().
+			Str("old_phone_number", byID.PhoneNumber).
+			Msg("Phone number of DM conversation changed")
+		return insertNewConv(func() error {
+			err := gc.Main.DB.DirectConversation.Delete(ctx, byID)
+			if err != nil {
+				return fmt.Errorf("failed to delete old DM conversation row after phone number change: %w", err)
+			}
+			return nil
+		}, func() {
+			delete(gc.dmsByPhone, byID.PhoneNumber)
+		})
+	} else /*if byID != nil && byPhone != nil*/ {
+		// This should also not happen
+		log.Warn().
+			Str("old_phone_number", byID.PhoneNumber).
+			Str("old_portal_id_of_new_phone", string(byPhone.PortalID)).
+			Msg("Phone number of DM conversation changed and a conflicting conversation already exists")
+		return insertNewConv(func() error {
+			err := gc.Main.DB.DirectConversation.Delete(ctx, byID)
+			if err != nil {
+				return fmt.Errorf("failed to delete old DM conversation row after phone number change with conflict: %w", err)
+			}
+			err = gc.Main.DB.DirectConversation.Delete(ctx, byPhone)
+			if err != nil {
+				return fmt.Errorf("failed to delete conflicting DM conversation row after phone number change: %w", err)
+			}
+			return nil
+		}, func() {
+			delete(gc.dmsByPhone, byID.PhoneNumber)
+			delete(gc.dmsByConv, byPhone.PortalID)
+		})
 	}
 }
 

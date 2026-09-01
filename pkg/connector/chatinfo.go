@@ -70,6 +70,23 @@ func (gc *GMClient) GetUserInfo(ctx context.Context, ghost *bridgev2.Ghost) (*br
 	return nil, nil
 }
 
+func getOtherUserPhone(conv *gmproto.Conversation) string {
+	if conv.IsGroupChat {
+		return ""
+	}
+	nonSelfNumbers := make(exmaps.Set[string])
+	for _, pcp := range conv.Participants {
+		if pcp.IsMe || !pcp.IsVisible || pcp.ID.Number == "" {
+			continue
+		}
+		nonSelfNumbers.Add(normalizeIdentifier(pcp.ID))
+	}
+	if len(nonSelfNumbers) != 1 {
+		return ""
+	}
+	return nonSelfNumbers.AsList()[0]
+}
+
 func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation) (*bridgev2.ChatInfo, error) {
 	log := zerolog.Ctx(ctx)
 	roomType := database.RoomTypeDefault
@@ -152,14 +169,6 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			log.Warn().Msg("Failed to save user login")
 		}
 	}
-	var dmPhoneNumber string
-	if roomType == database.RoomTypeDM {
-		if nonSelfNumbers.Size() == 1 {
-			dmPhoneNumber = nonSelfNumbers.AsList()[0]
-		} else {
-			log.Warn().Strs("non_self_numbers", nonSelfNumbers.AsList()).Msg("DM phone number not found")
-		}
-	}
 	var tag event.RoomTag
 	if conv.Pinned {
 		tag = event.RoomTagFavourite
@@ -191,10 +200,6 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			}
 			if meta.OutgoingID != conv.DefaultOutgoingID {
 				meta.OutgoingID = conv.DefaultOutgoingID
-				changed = true
-			}
-			if dmPhoneNumber != meta.DMPhoneNumber {
-				meta.DMPhoneNumber = dmPhoneNumber
 				changed = true
 			}
 			if meta.LegacyStableID != "" {

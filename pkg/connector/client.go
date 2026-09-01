@@ -29,6 +29,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/status"
 
+	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
@@ -74,6 +75,10 @@ type GMClient struct {
 	conversationMeta     map[string]*conversationMeta
 	conversationMetaLock sync.Mutex
 
+	dmsByPhone map[string]*gmdb.DirectConversation
+	dmsByConv  map[networkid.PortalID]*gmdb.DirectConversation
+	dmsLock    sync.Mutex
+
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
 
@@ -107,8 +112,18 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		chatInfoCache:       exsync.NewMap[string, *gmproto.Conversation](),
 		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
 		pendingSends:        make(map[networkid.TransactionID]pendingSend),
+		dmsByPhone:          make(map[string]*gmdb.DirectConversation),
+		dmsByConv:           make(map[networkid.PortalID]*gmdb.DirectConversation),
 
 		messageQueue: make(chan *libgm.WrappedMessage, 128),
+	}
+	convs, err := gc.DB.DirectConversation.GetAll(ctx, login.ID)
+	if err != nil {
+		return err
+	}
+	for _, conv := range convs {
+		gcli.dmsByPhone[conv.PhoneNumber] = conv
+		gcli.dmsByConv[conv.PortalID] = conv
 	}
 	gcli.NewClient()
 	login.Client = gcli

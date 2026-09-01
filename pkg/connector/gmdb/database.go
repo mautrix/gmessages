@@ -23,11 +23,13 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/dbutil"
+	"go.mau.fi/util/jsontime"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 )
 
 type GMDB struct {
 	*dbutil.Database
+	DirectConversation *DirectConversationQuery
 }
 
 var table = dbutil.BuildUpgradeTable().WithFS(upgrades).Finish()
@@ -35,10 +37,16 @@ var table = dbutil.BuildUpgradeTable().WithFS(upgrades).Finish()
 //go:embed *.sql
 var upgrades embed.FS
 
-func New(db *dbutil.Database, log zerolog.Logger) *GMDB {
+func New(bridgeID networkid.BridgeID, db *dbutil.Database, log zerolog.Logger) *GMDB {
 	db = db.Child("gmessages_version", table, dbutil.ZeroLogger(log))
 	return &GMDB{
 		Database: db,
+		DirectConversation: &DirectConversationQuery{
+			QueryHelper: dbutil.MakeQueryHelper[*DirectConversation](db, func(_ *dbutil.QueryHelper[*DirectConversation]) *DirectConversation {
+				return &DirectConversation{}
+			}),
+			BridgeID: bridgeID,
+		},
 	}
 }
 
@@ -51,4 +59,52 @@ func (db *GMDB) GetLoginPrefix(ctx context.Context, id networkid.UserLoginID) (s
 		RETURNING prefix
 	`, id).Scan(&rowID)
 	return strconv.FormatInt(rowID, 10), err
+}
+
+type DirectConversationQuery struct {
+	*dbutil.QueryHelper[*DirectConversation]
+	BridgeID networkid.BridgeID
+}
+
+func (dcq *DirectConversationQuery) GetAll(ctx context.Context, loginID networkid.UserLoginID) ([]*DirectConversation, error) {
+	return dcq.QueryMany(ctx, `
+		SELECT login_id, phone_number, portal_id, last_message_ts
+		FROM gmessages_direct_conversation
+		WHERE bridge_id = $1 AND login_id = $2
+	`, dcq.BridgeID, loginID)
+}
+
+func (dcq *DirectConversationQuery) Delete(ctx context.Context, dc *DirectConversation) error {
+	return dcq.Exec(ctx, `
+		DELETE FROM gmessages_direct_conversation
+		WHERE bridge_id = $1 AND login_id = $2 AND phone_number = $3 AND portal_id = $4
+	`, dcq.BridgeID, dc.LoginID, dc.PhoneNumber, dc.PortalID)
+}
+
+func (dcq *DirectConversationQuery) Insert(ctx context.Context, dc *DirectConversation) error {
+	return dcq.Exec(ctx, `
+		INSERT INTO gmessages_direct_conversation (bridge_id, login_id, phone_number, portal_id, last_message_ts)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT DO NOTHING
+	`, dcq.BridgeID, dc.LoginID, dc.PhoneNumber, dc.PortalID, dc.LastMessageTS)
+}
+
+func (dcq *DirectConversationQuery) UpdateLastMessage(ctx context.Context, dc *DirectConversation) error {
+	return dcq.Exec(ctx, `
+		UPDATE gmessages_direct_conversation
+		SET last_message_ts = $5
+		WHERE bridge_id = $1 AND login_id = $2 AND phone_number = $3 AND portal_id = $4
+	`, dcq.BridgeID, dc.LoginID, dc.PhoneNumber, dc.PortalID, dc.LastMessageTS)
+}
+
+type DirectConversation struct {
+	LoginID       networkid.UserLoginID
+	PhoneNumber   string
+	PortalID      networkid.PortalID
+	LastMessageTS jsontime.UnixMicro
+}
+
+func (dc *DirectConversation) Scan(row dbutil.Scannable) (*DirectConversation, error) {
+	err := row.Scan(&dc.LoginID, &dc.PhoneNumber, &dc.PortalID, &dc.LastMessageTS)
+	return dbutil.ValueOrErr(dc, err)
 }

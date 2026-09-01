@@ -36,7 +36,7 @@ type GMConnector struct {
 var _ bridgev2.NetworkConnector = (*GMConnector)(nil)
 
 func (gc *GMConnector) Init(bridge *bridgev2.Bridge) {
-	gc.DB = gmdb.New(bridge.DB.Database, bridge.Log.With().Str("db_section", "gmessages").Logger())
+	gc.DB = gmdb.New(bridge.ID, bridge.DB.Database, bridge.Log.With().Str("db_section", "gmessages").Logger())
 	gc.br = bridge
 
 	util.BrowserDetailsMessage.OS = gc.Config.DeviceMeta.OS

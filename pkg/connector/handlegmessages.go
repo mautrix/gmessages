@@ -31,6 +31,7 @@ import (
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exslices"
 	"go.mau.fi/util/ffmpeg"
+	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"golang.org/x/exp/maps"
 	"maunium.net/go/mautrix/bridgev2"
@@ -151,7 +152,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
-		go gc.syncConversation(ctx, evt, "event")
+		gc.syncConversation(ctx, evt, "event")
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {
@@ -173,6 +174,14 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Str("tmp_id", evt.GetTmpID()).
 			Bool("is_old", evt.IsOld).
 			Msg("Received message")
+		switch evt.GetMessageStatus().GetStatus() {
+		case gmproto.MessageStatusType_OUTGOING_COMPLETE, gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED,
+			gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_INCOMING_DELIVERED, gmproto.MessageStatusType_INCOMING_DISPLAYED:
+			err := gc.bumpDMLastMessageTime(ctx, evt.GetConversationID(), jsontime.UMicroInt(evt.GetTimestamp()))
+			if err != nil {
+				log.Err(err).Msg("Failed to bump DM last message time")
+			}
+		}
 		if evt.GetMessageStatus().GetStatus() == gmproto.MessageStatusType_MESSAGE_DELETED &&
 			(gc.syncingMobileDatabase.Load() || gc.syncingConversations.Load()) {
 			log.Debug().

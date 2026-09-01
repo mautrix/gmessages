@@ -59,9 +59,7 @@ type PortalMetadata struct {
 	SendMode gmproto.ConversationSendMode `json:"send_mode"`
 	ForceRCS bool                         `json:"force_rcs"`
 
-	OutgoingID    string `json:"outgoing_id"`
-	DMPhoneNumber string `json:"dm_phone_number,omitempty"`
-
+	OutgoingID     string `json:"outgoing_id"`
 	LegacyStableID string `json:"stable_id,omitempty"`
 }
 
