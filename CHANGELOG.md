@@ -1,3 +1,16 @@
+# v26.09 (unreleased)
+
+* Bumped minimum Go version to 1.26.
+* Added deduplication to reuse rooms when the internal conversation ID of a
+  direct chat changes.
+* Added more automatic resyncing if the connection appears stalled.
+* Added handling for the push throttle state that the mobile app goes into in
+  some cases.
+* Added retrying for acknowledging incoming messages to ensure the connection
+  doesn't get stuck due to failed acks.
+* Refactored phone pinging.
+* Changed chat sync to not bridge empty DMs with no other members.
+
 # v26.08
 
 * Added code to prepare for stable portal identifiers.
