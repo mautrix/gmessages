@@ -317,6 +317,10 @@ func (c *Client) postConnect() {
 		select {
 		case <-time.After(5 * time.Second):
 			c.Logger.Warn().Msg("Checking bugle default on connect is taking long")
+			select {
+			case c.pingShortCircuit <- struct{}{}:
+			default:
+			}
 		case <-doneChan:
 		}
 	}()
