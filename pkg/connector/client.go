@@ -51,24 +51,22 @@ type GMClient struct {
 
 	fullMediaRequests *exsync.Set[fullMediaRequestKey]
 
-	longPollingError            error
-	browserInactiveType         status.BridgeStateErrorCode
-	SwitchedToGoogleLogin       bool
-	batteryLow                  bool
-	mobileData                  bool
-	PhoneResponding             bool
-	ready                       bool
-	sessionID                   string
-	batteryLowAlertSent         time.Time
-	pollErrorAlertSent          bool
-	phoneNotRespondingAlertSent bool
-	didHackySetActive           bool
-	noDataReceivedRecently      bool
-	lastDataReceived            time.Time
-	syncingConversations        atomic.Bool
-	syncingMobileDatabase       atomic.Bool
-	pushThrottled               atomic.Bool
-	stallRecoveryRunning        atomic.Bool
+	longPollingError       error
+	browserInactiveType    status.BridgeStateErrorCode
+	SwitchedToGoogleLogin  bool
+	batteryLow             bool
+	mobileData             bool
+	PhoneResponding        bool
+	ready                  bool
+	sessionID              string
+	batteryLowAlertSent    time.Time
+	didHackySetActive      bool
+	noDataReceivedRecently bool
+	lastDataReceived       time.Time
+	syncingConversations   atomic.Bool
+	syncingMobileDatabase  atomic.Bool
+	pushThrottled          atomic.Bool
+	stallRecoveryRunning   atomic.Bool
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]

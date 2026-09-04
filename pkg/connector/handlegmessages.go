@@ -78,32 +78,15 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Error:      GMListenError,
 			Info:       map[string]any{"go_error": evt.Error.Error()},
 		})
-		if !gc.pollErrorAlertSent {
-			//go gc.sendMarkdownBridgeAlert(ctx, false, "Temporary error while listening to Google Messages: %v", evt.Error)
-			gc.pollErrorAlertSent = true
-		}
 	case *events.ListenRecovered:
 		gc.longPollingError = nil
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
-		if gc.pollErrorAlertSent {
-			//go gc.sendMarkdownBridgeAlert(ctx, false, "Reconnected to Google Messages")
-			gc.pollErrorAlertSent = false
-		}
 	case *events.PhoneNotResponding:
 		gc.PhoneResponding = false
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
-		// TODO make this properly configurable
-		if log.Trace().Enabled() && !gc.phoneNotRespondingAlertSent {
-			//go gc.sendMarkdownBridgeAlert(ctx, false, "Phone is not responding")
-			gc.phoneNotRespondingAlertSent = true
-		}
 	case *events.PhoneRespondingAgain:
 		gc.PhoneResponding = true
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
-		if gc.phoneNotRespondingAlertSent {
-			//go gc.sendMarkdownBridgeAlert(ctx, false, "Phone is responding again")
-			gc.phoneNotRespondingAlertSent = false
-		}
 	case *events.HackySetActiveMayFail:
 		go gc.hackyResetActive()
 	case *events.PingFailed:
@@ -317,7 +300,6 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
 		wasInactive := gc.browserInactiveType != "" || !gc.ready
-		gc.pollErrorAlertSent = false
 		gc.browserInactiveType = ""
 		gc.ready = true
 		newSessionID := gc.Client.CurrentSessionID()
