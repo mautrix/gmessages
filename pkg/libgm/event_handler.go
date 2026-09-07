@@ -307,10 +307,13 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 		}
 	default:
 		c.Logger.Debug().
-			Str("evt_data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
 			Str("request_id", msg.Message.SessionID).
 			Str("action_type", msg.Message.Action.String()).
 			Bool("is_old", msg.IsOld).
 			Msg("Got unexpected response")
+		c.Logger.Trace().
+			Str("request_id", msg.Message.SessionID).
+			Str("evt_data", base64.StdEncoding.EncodeToString(msg.GetMessageData())).
+			Msg("Unexpected response data")
 	}
 }
