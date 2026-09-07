@@ -238,7 +238,7 @@ func (gc *GMClient) recoverReceiveStall(ctx context.Context) {
 			}
 		case 1:
 			log.Warn().Msg("Receive stall persisted after setting active session, reconnecting")
-			if err := cli.Reconnect(); err != nil {
+			if err := cli.Reconnect(gc.Main.br.BackgroundCtx); err != nil {
 				log.Err(err).Msg("Failed to reconnect")
 			}
 		case 2:

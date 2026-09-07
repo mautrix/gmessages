@@ -156,8 +156,10 @@ type dittoPinger struct {
 	alertTimeoutCount int
 	recovering        atomic.Bool
 
-	stop <-chan struct{}
-	log  *zerolog.Logger
+	stop         <-chan struct{}
+	log          *zerolog.Logger
+	ctx          context.Context
+	reconnectCtx context.Context
 }
 
 type resetter struct {
@@ -260,7 +262,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, reset *resette
 	// always cancels the waiters that are really outstanding.
 	pl.currentReset.Store(reset)
 
-	pingChan, requestID, err := dp.client.notifyDittoActivity(dp.log.WithContext(context.TODO()))
+	pingChan, requestID, err := dp.client.notifyDittoActivity(dp.ctx)
 	if err != nil {
 		pl.lock.Lock()
 		pl.sendFails++
@@ -319,7 +321,6 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			dp.log.Debug().Msg("Phone is responding again, stopping ditto ping recovery")
 			return
 		}
-		ctx := dp.log.WithContext(context.TODO())
 		reconnected := false
 		switch {
 		case timeouts >= reconnectAfterTimeouts && pl.canDoRecovery():
@@ -327,7 +328,7 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 				Int("timeout_count", timeouts).
 				Msg("Phone hasn't responded to pings, reconnecting to get a new listener session")
 			pl.startRecovery()
-			if err := dp.client.Reconnect(); err != nil {
+			if err := dp.client.Reconnect(dp.reconnectCtx); err != nil {
 				dp.log.Err(err).Msg("Failed to reconnect while recovering from ping timeouts")
 				return
 			}
@@ -337,7 +338,7 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			dp.log.Warn().
 				Int("timeout_count", timeouts).
 				Msg("Phone hasn't responded to pings, re-arming its event subscription")
-			if err := dp.client.SetActiveSession(ctx); err != nil {
+			if err := dp.client.SetActiveSession(dp.ctx); err != nil {
 				dp.log.Err(err).Msg("Failed to set active session while recovering from ping timeouts")
 			}
 		}
@@ -452,16 +453,17 @@ func tryReadBody(resp io.ReadCloser) []byte {
 	return data
 }
 
-func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bool {
+func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFirstConnect func()) bool {
 	c.listenID++
 	listenID := c.listenID
 	listenReqID := uuid.NewString()
 
+	origCtx := ctx
 	log := c.Logger.With().Int("listen_id", listenID).Logger()
 	defer func() {
 		log.Debug().Msg("Long polling stopped")
 	}()
-	ctx := log.WithContext(context.TODO())
+	ctx = log.WithContext(ctx)
 	log.Debug().Str("listen_uuid", listenReqID).Msg("Long polling starting")
 
 	if loggedIn {
@@ -473,6 +475,8 @@ func (c *Client) doLongPoll(loggedIn, background bool, onFirstConnect func()) bo
 			stop:              stopDittoPinger,
 			log:               &log,
 			client:            c,
+			ctx:               ctx,
+			reconnectCtx:      origCtx,
 		}).Loop()
 	}
 

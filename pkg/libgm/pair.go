@@ -15,13 +15,13 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
 
-func (c *Client) StartLogin() (string, error) {
+func (c *Client) StartLogin(ctx context.Context) (string, error) {
 	registered, err := c.RegisterPhoneRelay()
 	if err != nil {
 		return "", err
 	}
 	c.updateTachyonAuthToken(registered.GetAuthKeyData())
-	go c.doLongPoll(false, false, nil)
+	go c.doLongPoll(ctx, false, false, nil)
 	qr, err := c.GenerateQRCodeData(registered.GetPairingKey())
 	if err != nil {
 		return "", fmt.Errorf("failed to generate QR code: %w", err)
@@ -69,7 +69,7 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 			// the phone won't recognize the session the bridge will get unpaired.
 			time.Sleep(2 * time.Second)
 
-			err := c.Reconnect()
+			err := c.Reconnect(context.TODO())
 			if err != nil {
 				c.Logger.Err(err).Msg("Failed to reconnect after pair success")
 			}

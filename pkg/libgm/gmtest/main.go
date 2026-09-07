@@ -65,7 +65,7 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to pair")
 		}
 	} else {
-		must(cli.Connect())
+		must(cli.Connect(context.TODO()))
 	}
 
 	c := make(chan os.Signal, 1)

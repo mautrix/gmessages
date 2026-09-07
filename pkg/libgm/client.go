@@ -221,7 +221,7 @@ func (c *Client) checkLoggedIn() error {
 	return nil
 }
 
-func (c *Client) startLongPolling() {
+func (c *Client) startLongPolling(ctx context.Context) {
 	c.bumpNextDataReceiveCheck(10 * time.Minute)
 
 	//webEncryptionKeyResponse, err := c.GetWebEncryptionKey()
@@ -229,11 +229,11 @@ func (c *Client) startLongPolling() {
 	//	return fmt.Errorf("failed to get web encryption key: %w", err)
 	//}
 	//c.updateWebEncryptionKey(webEncryptionKeyResponse.GetKey())
-	go c.doLongPoll(true, false, c.postConnect)
+	go c.doLongPoll(ctx, true, false, c.postConnect)
 	c.sessionHandler.startAckInterval()
 }
 
-func (c *Client) Connect() error {
+func (c *Client) Connect(ctx context.Context) error {
 	if err := c.checkLoggedIn(); err != nil {
 		return err
 	}
@@ -248,15 +248,15 @@ func (c *Client) Connect() error {
 		}
 		c.Logger.Warn().Err(err).Msg("Transient error refreshing auth token on connect, will retry in long polling loop")
 	}
-	c.startLongPolling()
+	c.startLongPolling(ctx)
 	return nil
 }
 
-func (c *Client) ConnectBackground() error {
+func (c *Client) ConnectBackground(ctx context.Context) error {
 	if err := c.checkLoggedIn(); err != nil {
 		return err
 	}
-	cleanExit := c.doLongPoll(true, true, nil)
+	cleanExit := c.doLongPoll(ctx, true, true, nil)
 	c.sessionHandler.sendAckRequest()
 	if !cleanExit {
 		return fmt.Errorf("polling exited uncleanly")
@@ -344,7 +344,7 @@ func (c *Client) IsLoggedIn() bool {
 	return c != nil && c.AuthData != nil && c.AuthData.Browser != nil && c.AuthData.HasCookies()
 }
 
-func (c *Client) Reconnect() error {
+func (c *Client) Reconnect(ctx context.Context) error {
 	c.closeLongPolling()
 	err := c.checkLoggedIn()
 	if err != nil {
@@ -352,7 +352,7 @@ func (c *Client) Reconnect() error {
 		c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("failed to reconnect: %w", err)})
 		return err
 	}
-	c.startLongPolling()
+	c.startLongPolling(ctx)
 	c.Logger.Debug().Msg("Successfully reconnected to server")
 	return nil
 }

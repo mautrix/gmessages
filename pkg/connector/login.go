@@ -107,6 +107,8 @@ type QRLoginProcess struct {
 	PairSuccess chan *gmproto.PairedData
 	PrevStart   time.Time
 	MaxAttempts int
+
+	bgCancel context.CancelFunc
 }
 
 var _ bridgev2.LoginProcessDisplayAndWait = (*QRLoginProcess)(nil)
@@ -130,7 +132,9 @@ func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
 	}
-	qr, err := ql.Client.StartLogin()
+	bgCtx, bgCancel := context.WithCancel(ql.Client.Logger.WithContext(ql.Main.br.BackgroundCtx))
+	ql.bgCancel = bgCancel
+	qr, err := ql.Client.StartLogin(bgCtx)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
 	}
@@ -150,6 +154,9 @@ func (ql *QRLoginProcess) Cancel() {
 	if ql.Client != nil {
 		ql.Client.Disconnect()
 	}
+	if c := ql.bgCancel; c != nil {
+		c()
+	}
 }
 
 const QRExpiryTime = 30 * time.Second
@@ -158,16 +165,21 @@ func (ql *QRLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error)
 	after := time.NewTimer(time.Until(ql.PrevStart.Add(QRExpiryTime)))
 	select {
 	case data := <-ql.PairSuccess:
+		defer func() {
+			if c := ql.bgCancel; c != nil {
+				c()
+			}
+		}()
 		return ql.Main.finishLogin(ctx, ql.User, ql.Client, true, data.GetMobile().GetSourceID(), "")
 	case <-after.C:
 		ql.MaxAttempts--
 		if ql.MaxAttempts <= 0 {
-			ql.Client.Disconnect()
+			ql.Cancel()
 			return nil, ErrPairQRTimeout
 		}
 		newQR, err := ql.Client.RefreshPhoneRelay()
 		if err != nil {
-			ql.Client.Disconnect()
+			ql.Cancel()
 			return nil, fmt.Errorf("%w: %w", ErrPairQRRefreshUnknown, err)
 		}
 		ql.PrevStart = time.Now()
@@ -181,7 +193,7 @@ func (ql *QRLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error)
 			},
 		}, nil
 	case <-ctx.Done():
-		ql.Client.Disconnect()
+		ql.Cancel()
 		return nil, ctx.Err()
 	}
 }
@@ -192,6 +204,8 @@ type GoogleLoginProcess struct {
 	Client   *libgm.Client
 	Sess     *libgm.PairingSession
 	Override *bridgev2.UserLogin
+
+	bgCancel context.CancelFunc
 }
 
 var (
@@ -242,6 +256,9 @@ func (gl *GoogleLoginProcess) Cancel() {
 	if gl.Client != nil {
 		gl.Client.Disconnect()
 	}
+	if c := gl.bgCancel; c != nil {
+		c()
+	}
 }
 
 func (gl *GoogleLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error) {
@@ -264,6 +281,7 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 		if cli.Client == nil {
 			cli.NewClient()
 		}
+		bgCtx := gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx)
 		meta.Session.SetCookies(cookies)
 		zerolog.Ctx(ctx).Debug().Msg("Trying to re-authenticate existing pairing with new cookies")
 		err := cli.Client.FetchConfig(ctx)
@@ -274,7 +292,7 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 				Str("old_login", meta.Session.Mobile.GetSourceID()).
 				Str("new_login", cli.Client.Config.GetDeviceInfo().GetEmail()).
 				Msg("Reauthenticated with wrong account")
-		} else if err = cli.Client.Connect(); err != nil {
+		} else if err = cli.Client.Connect(bgCtx); err != nil {
 			zerolog.Ctx(ctx).Err(err).Msg("Failed to reconnect existing client after Google relogin")
 		} else {
 			err = gl.Override.Save(ctx)
@@ -309,7 +327,9 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
 	}
 	var emoji string
-	emoji, gl.Sess, err = gl.Client.StartGaiaPairing(ctx)
+	bgCtx, cancel := context.WithCancel(gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx))
+	gl.bgCancel = cancel
+	emoji, gl.Sess, err = gl.Client.StartGaiaPairing(ctx, bgCtx)
 	if err != nil {
 		gl.Client.Disconnect()
 		var reqErr events.RequestError
@@ -339,6 +359,11 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 }
 
 func (gl *GoogleLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error) {
+	defer func() {
+		if c := gl.bgCancel; c != nil {
+			c()
+		}
+	}()
 	phoneID, err := gl.Client.FinishGaiaPairing(ctx, gl.Sess)
 	if err != nil {
 		gl.Client.Disconnect()
@@ -394,7 +419,7 @@ func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, cli
 		// the phone won't recognize the session the bridge will get unpaired.
 		time.Sleep(2 * time.Second)
 	}
-	ul.Client.Connect(ul.Log.WithContext(context.Background()))
+	ul.Client.Connect(ul.Log.WithContext(gc.br.BackgroundCtx))
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeComplete,
 		StepID:       LoginStepIDComplete,

@@ -162,7 +162,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 		}, false)
 		return
 	}
-	err = gc.Client.Connect()
+	err = gc.Client.Connect(ctx)
 	if err != nil {
 		if errors.Is(err, events.ErrRequestedEntityNotFound) {
 			go gc.invalidateSession(ctx, status.BridgeState{

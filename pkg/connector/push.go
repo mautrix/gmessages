@@ -70,7 +70,7 @@ func (gc *GMClient) ConnectBackground(ctx context.Context, params *bridgev2.Conn
 		zerolog.Ctx(ctx).Warn().Msg("No cookies for Google account in ConnectBackground")
 		return nil
 	}
-	err := gc.Client.ConnectBackground()
+	err := gc.Client.ConnectBackground(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Error in ConnectBackground")
 	}
