@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"sync"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exhttp"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
@@ -148,9 +148,8 @@ type Client struct {
 	PushKeys *PushKeys
 	Config   *gmproto.Config
 
-	httpTransport *http.Transport
-	http          *http.Client
-	lphttp        *http.Client
+	http   *http.Client
+	lphttp *http.Client
 }
 
 func NewAuthData() *AuthData {
@@ -160,14 +159,9 @@ func NewAuthData() *AuthData {
 	}
 }
 
-func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client {
+func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSettings exhttp.ClientSettings) *Client {
 	sessionHandler := &SessionHandler{
 		responseWaiters: make(map[string]chan<- *IncomingRPCMessage),
-	}
-	transport := &http.Transport{
-		DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 20 * time.Second,
 	}
 	cli := &Client{
 		AuthData:       authData,
@@ -175,9 +169,8 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger) *Client 
 		Logger:         logger,
 		sessionHandler: sessionHandler,
 
-		httpTransport: transport,
-		http:          &http.Client{Transport: transport, Timeout: 2 * time.Minute},
-		lphttp:        &http.Client{Transport: transport, Timeout: 30 * time.Minute},
+		http:   httpSettings.Compile(),
+		lphttp: httpSettings.WithGlobalTimeout(30 * time.Minute).Compile(),
 
 		pingShortCircuit:         make(chan struct{}),
 		pingInterval:             1 * time.Minute,
@@ -217,16 +210,6 @@ func (c *Client) SetDataReceiveCheckInterval(interval time.Duration) {
 	if interval >= 5*time.Minute {
 		c.dataReceiveCheckInterval = interval
 	}
-}
-
-func (c *Client) SetProxy(proxy string) error {
-	proxyParsed, err := url.Parse(proxy)
-	if err != nil {
-		c.Logger.Fatal().Err(err).Msg("Failed to set proxy")
-	}
-	c.httpTransport.Proxy = http.ProxyURL(proxyParsed)
-	c.Logger.Debug().Any("proxy", proxyParsed.Host).Msg("SetProxy")
-	return nil
 }
 
 func (c *Client) checkLoggedIn() error {

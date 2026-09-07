@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exhttp"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
@@ -54,7 +55,7 @@ func main() {
 		log.Info().Msg("Loaded session?")
 	}
 	_ = file.Close()
-	cli = libgm.NewClient(&sess, nil, log)
+	cli = libgm.NewClient(&sess, nil, log, exhttp.SensibleClientSettings)
 	cli.SetEventHandler(evtHandler)
 	if doLogin {
 		err = cli.DoGaiaPairing(context.TODO(), func(emoji string) {
