@@ -150,7 +150,23 @@ type Client struct {
 
 	http   *http.Client
 	lphttp *http.Client
+
+	// MaxDownloadBytes bounds the response body of DownloadMedia, and
+	// MaxAvatarBytes that of DownloadAvatar. NewClient sets both to their
+	// defaults; a value of zero or less disables the limit.
+	MaxDownloadBytes int64
+	MaxAvatarBytes   int64
 }
+
+const (
+	// DefaultMaxDownloadBytes bounds a media download. Attachments are far
+	// smaller than this in practice -- carriers cap RCS well below it -- so
+	// the limit exists to keep the size of an allocation from being decided
+	// by the response.
+	DefaultMaxDownloadBytes int64 = 100 << 20
+	// DefaultMaxAvatarBytes bounds an avatar download. Avatars are thumbnails.
+	DefaultMaxAvatarBytes int64 = 8 << 20
+)
 
 func NewAuthData() *AuthData {
 	return &AuthData{
@@ -171,6 +187,9 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSett
 
 		http:   httpSettings.Compile(),
 		lphttp: httpSettings.WithGlobalTimeout(30 * time.Minute).Compile(),
+
+		MaxDownloadBytes: DefaultMaxDownloadBytes,
+		MaxAvatarBytes:   DefaultMaxAvatarBytes,
 
 		pingShortCircuit:         make(chan struct{}),
 		pingInterval:             1 * time.Minute,

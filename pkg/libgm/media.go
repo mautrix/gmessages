@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -290,7 +291,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer res.Body.Close()
-	respData, err := io.ReadAll(res.Body)
+	respData, err := readAllLimited(res.Body, c.MaxDownloadBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
@@ -321,5 +322,31 @@ func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("avatar download http %d", resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	return readAllLimited(resp.Body, c.MaxAvatarBytes)
+}
+
+// ErrResponseTooLarge is returned when a download exceeds the limit configured
+// on the client.
+var ErrResponseTooLarge = errors.New("response body is larger than the configured limit")
+
+// readAllLimited reads at most limit bytes, and returns ErrResponseTooLarge
+// rather than a truncated body if there are more. A limit of zero or less
+// reads without a bound.
+//
+// It reads one byte past the limit so that a body exactly at the limit is
+// still accepted. Content-Length is deliberately not consulted: it is a hint,
+// and a response may declare a small length and then send more, or declare
+// none at all.
+func readAllLimited(body io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(body)
+	}
+	data, err := io.ReadAll(io.LimitReader(body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("%w (%d bytes)", ErrResponseTooLarge, limit)
+	}
+	return data, nil
 }
