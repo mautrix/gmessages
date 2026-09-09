@@ -274,42 +274,53 @@ func (gl *GoogleLoginProcess) StartWithOverride(ctx context.Context, override *b
 	return loginStepCookies, nil
 }
 
+func (gl *GoogleLoginProcess) doOverrideLogin(ctx context.Context, cookies map[string]string) (*bridgev2.LoginStep, error) {
+	meta := gl.Override.Metadata.(*UserLoginMetadata)
+	cli := gl.Override.Client.(*GMClient)
+	if meta.Session == nil {
+		return nil, nil
+	}
+	if cli.Client == nil {
+		cli.NewClient()
+	}
+	bgCtx := gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx)
+	meta.Session.SetCookies(cookies)
+	zerolog.Ctx(ctx).Debug().Msg("Trying to re-authenticate existing pairing with new cookies")
+	err := cli.Client.FetchConfig(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config after Google relogin")
+	} else if cli.Client.Config.GetDeviceInfo().GetEmail() != meta.Session.Mobile.GetSourceID() {
+		zerolog.Ctx(ctx).Err(err).
+			Str("old_login", meta.Session.Mobile.GetSourceID()).
+			Str("new_login", cli.Client.Config.GetDeviceInfo().GetEmail()).
+			Msg("Reauthenticated with wrong account")
+	} else if err = cli.Client.Connect(bgCtx); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to reconnect existing client after Google relogin")
+	} else {
+		err = gl.Override.Save(ctx)
+		if err != nil {
+			err = fmt.Errorf("failed to save cookies after relogin: %w", err)
+		}
+		return &bridgev2.LoginStep{
+			Type:         bridgev2.LoginStepTypeComplete,
+			StepID:       LoginStepIDComplete,
+			Instructions: "Successfully re-authenticated",
+			CompleteParams: &bridgev2.LoginCompleteParams{
+				UserLoginID: gl.Override.ID,
+				UserLogin:   gl.Override,
+			},
+		}, err
+	}
+	meta.Session.SetCookies(nil)
+	return nil, nil
+}
+
 func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[string]string) (*bridgev2.LoginStep, error) {
 	if gl.Override != nil {
-		meta := gl.Override.Metadata.(*UserLoginMetadata)
-		cli := gl.Override.Client.(*GMClient)
-		if cli.Client == nil {
-			cli.NewClient()
+		success, err := gl.doOverrideLogin(ctx, cookies)
+		if success != nil || err != nil {
+			return success, err
 		}
-		bgCtx := gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx)
-		meta.Session.SetCookies(cookies)
-		zerolog.Ctx(ctx).Debug().Msg("Trying to re-authenticate existing pairing with new cookies")
-		err := cli.Client.FetchConfig(ctx)
-		if err != nil {
-			zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config after Google relogin")
-		} else if cli.Client.Config.GetDeviceInfo().GetEmail() != meta.Session.Mobile.GetSourceID() {
-			zerolog.Ctx(ctx).Err(err).
-				Str("old_login", meta.Session.Mobile.GetSourceID()).
-				Str("new_login", cli.Client.Config.GetDeviceInfo().GetEmail()).
-				Msg("Reauthenticated with wrong account")
-		} else if err = cli.Client.Connect(bgCtx); err != nil {
-			zerolog.Ctx(ctx).Err(err).Msg("Failed to reconnect existing client after Google relogin")
-		} else {
-			err = gl.Override.Save(ctx)
-			if err != nil {
-				err = fmt.Errorf("failed to save cookies after relogin: %w", err)
-			}
-			return &bridgev2.LoginStep{
-				Type:         bridgev2.LoginStepTypeComplete,
-				StepID:       LoginStepIDComplete,
-				Instructions: "Successfully re-authenticated",
-				CompleteParams: &bridgev2.LoginCompleteParams{
-					UserLoginID: gl.Override.ID,
-					UserLogin:   gl.Override,
-				},
-			}, err
-		}
-		meta.Session.SetCookies(nil)
 	}
 	ad := libgm.NewAuthData()
 	ad.Cookies = cookies
