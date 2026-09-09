@@ -18,6 +18,7 @@ package gmdb
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"strconv"
 
@@ -105,6 +106,13 @@ type DirectConversation struct {
 }
 
 func (dc *DirectConversation) Scan(row dbutil.Scannable) (*DirectConversation, error) {
-	err := row.Scan(&dc.LoginID, &dc.PhoneNumber, &dc.PortalID, &dc.LastMessageTS)
-	return dbutil.ValueOrErr(dc, err)
+	var lastMessageTS sql.NullInt64
+	err := row.Scan(&dc.LoginID, &dc.PhoneNumber, &dc.PortalID, &lastMessageTS)
+	if err != nil {
+		return nil, err
+	}
+	if lastMessageTS.Int64 > 0 {
+		dc.LastMessageTS = jsontime.UMicroInt(lastMessageTS.Int64)
+	}
+	return dc, nil
 }
