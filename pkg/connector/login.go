@@ -278,10 +278,15 @@ func (gl *GoogleLoginProcess) doOverrideLogin(ctx context.Context, cookies map[s
 	meta := gl.Override.Metadata.(*UserLoginMetadata)
 	cli := gl.Override.Client.(*GMClient)
 	if meta.Session == nil {
+		zerolog.Ctx(ctx).Warn().Msg("No session found for overriding login")
 		return nil, nil
 	}
 	if cli.Client == nil {
 		cli.NewClient()
+	}
+	if cli.Client == nil {
+		zerolog.Ctx(ctx).Warn().Msg("Client wasn't created as expected for overriding login")
+		return nil, nil
 	}
 	bgCtx := gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx)
 	meta.Session.SetCookies(cookies)
