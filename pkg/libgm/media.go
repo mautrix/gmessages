@@ -262,7 +262,11 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 	return protoDataEncoded, nil
 }
 
-func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
+func (c *Client) DownloadMedia(mediaID string, key []byte) (io.ReadCloser, error) {
+	cryptor, err := crypto.NewAESGCMHelper(key)
+	if err != nil {
+		return nil, err
+	}
 	downloadMetadata := &gmproto.DownloadAttachmentRequest{
 		Info: &gmproto.AttachmentInfo{
 			AttachmentID: mediaID,
@@ -289,20 +293,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer res.Body.Close()
-	respData, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-	cryptor, err := crypto.NewAESGCMHelper(key)
-	if err != nil {
-		return nil, err
-	}
-	decryptedImageBytes, err := cryptor.DecryptData(respData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt media: %w", err)
-	}
-	return decryptedImageBytes, nil
+	return cryptor.DecryptStream(res.Body), nil
 }
 
 func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error) {
@@ -321,5 +312,5 @@ func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("avatar download http %d", resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(http.MaxBytesReader(nil, resp.Body, 5*1024*1024))
 }

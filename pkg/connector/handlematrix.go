@@ -20,9 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/variationselector"
@@ -242,7 +242,7 @@ func (gc *GMClient) reuploadMedia(ctx context.Context, content *event.MessageEve
 		return nil, fmt.Errorf("%w: %w", bridgev2.ErrMediaDownloadFailed, err)
 	}
 	if content.Info.MimeType == "" {
-		content.Info.MimeType = mimetype.Detect(data).String()
+		content.Info.MimeType = http.DetectContentType(data)
 	}
 	fileName := content.Body
 	if content.FileName != "" {

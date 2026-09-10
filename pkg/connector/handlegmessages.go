@@ -17,18 +17,22 @@
 package connector
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exmime"
 	"go.mau.fi/util/exslices"
 	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/jsontime"
@@ -1446,40 +1450,32 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	return &cm
 }
 
-func (gc *GMClient) convertGoogleMedia(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg *gmproto.MediaContent) (content *event.MessageEventContent, mediaID string, isThumbnail bool, err error) {
-	var data []byte
-	if msg.MediaID != "" {
-		mediaID = msg.MediaID
-		data, err = gc.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
-	} else if msg.ThumbnailMediaID != "" {
-		mediaID = msg.ThumbnailMediaID
-		data, err = gc.Client.DownloadMedia(msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
-		isThumbnail = true
-	} else if len(msg.GetMediaData()) > 0 {
-		mediaID = "inline"
-		data = msg.GetMediaData()
-	} else {
-		err = fmt.Errorf("no media ID found")
-	}
-	if err != nil {
-		err = fmt.Errorf("%w: %w", bridgev2.ErrMediaDownloadFailed, err)
-		return
-	}
+func (gc *GMClient) convertGoogleMedia(
+	ctx context.Context,
+	portal *bridgev2.Portal,
+	intent bridgev2.MatrixAPI,
+	msg *gmproto.MediaContent,
+) (content *event.MessageEventContent, mediaID string, isThumbnail bool, mainErr error) {
 	content = &event.MessageEventContent{
 		MsgType: event.MsgFile,
 		Body:    msg.MediaName,
 		Info: &event.FileInfo{
 			MimeType: libgm.FormatToMediaType[msg.GetFormat()].Format,
-			Size:     len(data),
 		},
 	}
-	if content.Info.MimeType == "" {
-		content.Info.MimeType = mimetype.Detect(data).String()
+	mediaClass, _, _ := strings.Cut(content.Info.MimeType, "/")
+	if mediaClass == "" {
+		switch msg.GetFormat() {
+		case gmproto.MediaFormats_AUDIO_UNSPECIFIED:
+			mediaClass = "audio"
+		case gmproto.MediaFormats_VIDEO_UNSPECIFIED:
+			mediaClass = "video"
+		case gmproto.MediaFormats_IMAGE_UNSPECIFIED:
+			mediaClass = "image"
+		}
 	}
-	if !strings.ContainsRune(content.Body, '.') {
-		content.Body += mimetype.Lookup(content.Info.MimeType).Extension()
-	}
-	switch strings.Split(content.Info.MimeType, "/")[0] {
+	var needAudioConvert bool
+	switch mediaClass {
 	case "image":
 		content.MsgType = event.MsgImage
 	case "video":
@@ -1488,19 +1484,69 @@ func (gc *GMClient) convertGoogleMedia(ctx context.Context, portal *bridgev2.Por
 	case "audio":
 		content.MsgType = event.MsgAudio
 		if content.Info.MimeType != "audio/ogg" && ffmpeg.Supported() {
-			data, err = ffmpeg.ConvertBytes(ctx, data, ".ogg", []string{}, []string{"-c:a", "libopus"}, content.Info.MimeType)
-			if err != nil {
-				err = fmt.Errorf("%w (%s to ogg): %w", bridgev2.ErrMediaConvertFailed, content.Info.MimeType, err)
-				return
-			}
-			content.Body += ".ogg"
-			content.Info.MimeType = "audio/ogg"
+			needAudioConvert = true
 		}
 		content.MSC3245Voice = &event.MSC3245Voice{}
 	}
-	content.URL, content.File, err = intent.UploadMedia(ctx, portal.MXID, data, content.Body, content.Info.MimeType)
-	if err != nil {
-		err = fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, err)
+	requireFile := content.Info.MimeType == "" || needAudioConvert
+	content.URL, content.File, mainErr = intent.UploadMediaStream(ctx, portal.MXID, msg.Size, requireFile, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
+		var data io.ReadCloser
+		var err error
+		if msg.MediaID != "" {
+			mediaID = msg.MediaID
+			data, err = gc.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
+		} else if msg.ThumbnailMediaID != "" {
+			mediaID = msg.ThumbnailMediaID
+			data, err = gc.Client.DownloadMedia(msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
+			isThumbnail = true
+		} else if len(msg.GetMediaData()) > 0 {
+			mediaID = "inline"
+			data = io.NopCloser(bytes.NewReader(msg.GetMediaData()))
+		} else {
+			err = fmt.Errorf("no media ID found")
+		}
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", bridgev2.ErrMediaDownloadFailed, err)
+		}
+		n, err := io.Copy(file, data)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", bridgev2.ErrMediaDownloadFailed, err)
+		}
+		content.Info.Size = int(n)
+		var replPath string
+		if needAudioConvert {
+			osFile := file.(*os.File)
+			_ = osFile.Close()
+			replPath, err = ffmpeg.ConvertPath(ctx, osFile.Name(), ".ogg", []string{}, []string{"-c:a", "libopus"}, true)
+			if err != nil {
+				return nil, fmt.Errorf("%w (%s to ogg): %w", bridgev2.ErrMediaConvertFailed, content.Info.MimeType, err)
+			}
+			info, err := os.Stat(replPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get info of converted file: %w", err)
+			}
+			content.Body += ".ogg"
+			content.Info.MimeType = "audio/ogg"
+			content.Info.Size = int(info.Size())
+		} else if content.Info.MimeType == "" {
+			header := make([]byte, 512)
+			m, err := file.(*os.File).ReadAt(header, 0)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read file header: %w", err)
+			}
+			content.Info.MimeType = http.DetectContentType(header[:m])
+		}
+		if !strings.ContainsRune(content.Body, '.') {
+			content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
+		}
+		return &bridgev2.FileStreamResult{
+			ReplacementFile: replPath,
+			FileName:        content.Body,
+			MimeType:        content.Info.MimeType,
+		}, nil
+	})
+	if mainErr != nil && !errors.Is(mainErr, bridgev2.ErrMediaDownloadFailed) && !errors.Is(mainErr, bridgev2.ErrMediaConvertFailed) {
+		mainErr = fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, mainErr)
 	}
 	return
 }

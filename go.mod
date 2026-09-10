@@ -7,16 +7,15 @@ toolchain go1.27.0
 tool go.mau.fi/util/cmd/maubuild
 
 require (
-	github.com/gabriel-vasile/mimetype v1.4.15
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.11.1
-	go.mau.fi/util v0.10.1-0.20260820140024-eb612d936fde
+	go.mau.fi/util v0.10.1-0.20260911104403-8d876c168769
 	golang.org/x/crypto v0.55.0
 	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
-	maunium.net/go/mautrix v0.30.1-0.20260909183449-4ed724721a6c
+	maunium.net/go/mautrix v0.30.1-0.20260911090324-e984191a74ed
 )
 
 require (

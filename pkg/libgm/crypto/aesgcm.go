@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 )
 
@@ -50,7 +51,7 @@ func (c *AESGCMHelper) decryptChunk(data []byte, aad []byte) ([]byte, error) {
 	nonce := data[:c.gcm.NonceSize()]
 	ciphertext := data[c.gcm.NonceSize():]
 
-	decrypted, err := c.gcm.Open(nil, nonce, ciphertext, aad)
+	decrypted, err := c.gcm.Open(ciphertext[:0], nonce, ciphertext, aad)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +60,7 @@ func (c *AESGCMHelper) decryptChunk(data []byte, aad []byte) ([]byte, error) {
 }
 
 const outgoingRawChunkSize = 1 << 15
+const maxRawChunkSize = 1 << 22
 
 func (c *AESGCMHelper) EncryptData(data []byte) ([]byte, error) {
 	chunkOverhead := c.gcm.NonceSize() + c.gcm.Overhead()
@@ -123,6 +125,13 @@ func (c *AESGCMHelper) DecryptData(encryptedData []byte) ([]byte, error) {
 	}
 
 	return decryptedData, nil
+}
+
+func (c *AESGCMHelper) DecryptStream(data io.ReadCloser) *AESGCMDecryptStream {
+	return &AESGCMDecryptStream{
+		crypto: c,
+		source: data,
+	}
 }
 
 func (c *AESGCMHelper) calculateAAD(index uint32, isLastChunk bool) []byte {
