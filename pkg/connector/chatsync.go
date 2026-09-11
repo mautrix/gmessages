@@ -39,7 +39,10 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	defer gc.syncingConversations.Store(false)
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("Fetching conversation list")
-	resp, err := gc.Client.ListConversations(ctx, gc.Main.Config.InitialChatSyncCount, gmproto.ListConversationsRequest_INBOX)
+	resp, err := gc.Client.ListConversations(ctx, &gmproto.ListConversationsRequest{
+		Count:  int64(gc.Main.Config.InitialChatSyncCount),
+		Folder: gmproto.ListConversationsRequest_INBOX,
+	})
 	if err != nil {
 		log.Err(err).Msg("Failed to get conversation list")
 		return
@@ -161,7 +164,10 @@ func (gc *GMClient) resyncChatsWithPendingSends(ctx context.Context) {
 		Int("pending_chat_count", len(convIDs)).
 		Int("list_count", count).
 		Msg("Push throttling ended with sends still waiting for an echo, resyncing affected chats")
-	resp, err := cli.ListConversations(ctx, count, gmproto.ListConversationsRequest_INBOX)
+	resp, err := cli.ListConversations(ctx, &gmproto.ListConversationsRequest{
+		Count:  int64(count),
+		Folder: gmproto.ListConversationsRequest_INBOX,
+	})
 	if err != nil {
 		log.Err(err).Msg("Failed to list conversations to resync pending sends")
 		return
