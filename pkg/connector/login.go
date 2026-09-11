@@ -288,7 +288,7 @@ func (gl *GoogleLoginProcess) doOverrideLogin(ctx context.Context, cookies map[s
 		zerolog.Ctx(ctx).Warn().Msg("Client wasn't created as expected for overriding login")
 		return nil, nil
 	}
-	bgCtx := gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx)
+	bgCtx := cli.Client.Logger.WithContext(gl.Main.br.BackgroundCtx)
 	meta.Session.SetCookies(cookies)
 	zerolog.Ctx(ctx).Debug().Msg("Trying to re-authenticate existing pairing with new cookies")
 	err := cli.Client.FetchConfig(ctx)
