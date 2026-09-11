@@ -3,6 +3,8 @@ package libgm
 import (
 	"context"
 
+	"go.mau.fi/util/ptr"
+
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -26,7 +28,7 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationID, phone s
 		Data: &gmproto.UpdateConversationRequest_DeleteData{
 			DeleteData: &gmproto.DeleteConversationData{
 				ConversationID: conversationID,
-				Phone:          &phone,
+				Phone:          ptr.NonZero(phone),
 			},
 		},
 	})
