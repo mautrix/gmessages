@@ -640,6 +640,7 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 	}
 	streamEnded := make(chan struct{})
 	defer close(streamEnded)
+	var lastRead, lastReadStart time.Time
 	if background {
 		closeIn = time.NewTimer(10 * time.Second)
 		go func() {
@@ -654,7 +655,10 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 		go func() {
 			select {
 			case <-closeIn.C:
-				log.Warn().Msg("Long polling read timed out")
+				log.Warn().
+					Time("last_read_start", lastReadStart).
+					Time("last_read", lastRead).
+					Msg("Long polling read timed out")
 				cancel()
 			case <-streamEnded:
 			}
@@ -662,7 +666,9 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 	}
 	var expectEOF bool
 	for {
+		lastReadStart = time.Now()
 		n, err = reader.Read(buf)
+		lastRead = time.Now()
 		if err != nil {
 			var logEvt *zerolog.Event
 			if (errors.Is(err, io.EOF) && expectEOF) || c.disconnecting {

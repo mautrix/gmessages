@@ -54,7 +54,16 @@ import (
 func (gc *GMClient) handleGMEvent(rawEvt any) {
 	// Note: this is called synchronously and must not block on any requests to Google Messages.
 
-	log := gc.UserLogin.Log.With().Str("action", "handle gmessages event").Logger()
+	log := gc.UserLogin.Log.With().
+		Str("action", "handle gmessages event").
+		Type("event_type", rawEvt).
+		Logger()
+	start := time.Now()
+	defer func() {
+		if time.Since(start) > 5*time.Second {
+			log.Warn().Time("started_at", start).Msg("Handling event took long")
+		}
+	}()
 	ctx := log.WithContext(context.TODO())
 	switch evt := rawEvt.(type) {
 	case *events.ListenFatalError:
