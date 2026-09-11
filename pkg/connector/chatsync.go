@@ -156,10 +156,7 @@ func (gc *GMClient) resyncChatsWithPendingSends(ctx context.Context) {
 	}
 	log := gc.UserLogin.Log.With().Str("action", "resync chats with pending sends").Logger()
 	ctx = log.WithContext(ctx)
-	count := len(convIDs) + pendingSendResyncExtraChats
-	if count < gc.Main.Config.InitialChatSyncCount {
-		count = gc.Main.Config.InitialChatSyncCount
-	}
+	count := max(len(convIDs)+pendingSendResyncExtraChats, gc.Main.Config.InitialChatSyncCount)
 	log.Debug().
 		Int("pending_chat_count", len(convIDs)).
 		Int("list_count", count).
@@ -301,10 +298,31 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		return
 	}
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
+	switch v.Status {
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
+		err := gc.deduplicateDM(ctx, v)
+		if errors.Is(err, errDontSyncConversation) {
+			return
+		} else if err != nil {
+			log.Error().Err(err).Msg("Failed to deduplicate DM")
+			return
+		}
+	}
+	go gc.syncConversationBackground(log.WithContext(ctx), v, meta)
+}
+
+func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta) {
+	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,
 		AllowBackfill: time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
+	}
+	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
+	switch v.Status {
+	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+		// Don't send read/backfill events if the chat is being deleted
+		return
 	}
 	var markReadEvt *simplevent.Receipt
 	if !v.Unread {
@@ -317,22 +335,6 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			LastTarget: gc.MakeMessageID(meta.readUpTo),
 			ReadUpTo:   meta.readUpToTS,
 		}
-	}
-	switch v.Status {
-	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
-		err := gc.deduplicateDM(ctx, v)
-		if errors.Is(err, errDontSyncConversation) {
-			return
-		} else if err != nil {
-			log.Error().Err(err).Msg("Failed to deduplicate DM")
-			return
-		}
-	}
-	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
-	switch v.Status {
-	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
-		// Don't send read/backfill events if the chat is being deleted
-		return
 	}
 	if !evt.AllowBackfill {
 		backfillEvt := &GMChatResync{
