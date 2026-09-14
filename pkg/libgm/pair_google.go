@@ -319,6 +319,9 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 }
 
 func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingSession, error) {
+	if c == nil {
+		return "", nil, ErrClientIsNil
+	}
 	if !c.AuthData.HasCookies() {
 		return "", nil, ErrNoCookies
 	}
@@ -414,6 +417,9 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 }
 
 func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (string, error) {
+	if c == nil {
+		return "", ErrClientIsNil
+	}
 	finishResp, err := c.sendGaiaPairingMessage(ctx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_FINISHED, ps.FinishPayload)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {

@@ -729,6 +729,9 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 }
 
 func (c *Client) closeLongPolling() {
+	if c == nil {
+		return
+	}
 	conn := c.longPollingConn
 	c.Logger.Debug().
 		Int("current_listen_id", c.listenID).

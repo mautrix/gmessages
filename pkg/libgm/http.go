@@ -32,6 +32,9 @@ func (c *Client) makeProtobufHTTPRequest(url string, data proto.Message, content
 }
 
 func (c *Client) makeProtobufHTTPRequestContext(ctx context.Context, url string, data proto.Message, contentType string, longPoll bool) (*http.Response, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	var body []byte
 	var err error
 	switch contentType {

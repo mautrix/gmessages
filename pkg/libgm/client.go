@@ -182,23 +182,37 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSett
 }
 
 func (c *Client) CurrentSessionID() string {
+	if c == nil {
+		return ""
+	}
 	return c.sessionHandler.sessionID
+}
+
+var ErrClientIsNil = errors.New("client is nil")
+
+func (c *Client) getSessionHandler() *SessionHandler {
+	if c == nil {
+		return nil
+	}
+	return c.sessionHandler
 }
 
 // SetEventHandler sets the global event handler for all received data.
 // The method is called synchronously and must not make any outgoing requests or otherwise block for too long.
 func (c *Client) SetEventHandler(eventHandler EventHandler) {
-	c.evHandler = eventHandler
+	if c != nil {
+		c.evHandler = eventHandler
+	}
 }
 
 func (c *Client) SetPingInterval(interval time.Duration) {
-	if interval >= 1*time.Minute && interval < 4*time.Hour {
+	if c != nil && interval >= 1*time.Minute && interval < 4*time.Hour {
 		c.pingInterval = interval
 	}
 }
 
 func (c *Client) SetAlertTimeoutCount(count int) {
-	if count > 0 {
+	if c != nil && count > 0 {
 		c.alertTimeoutCount = count
 	}
 }
@@ -213,7 +227,9 @@ func (c *Client) SetDataReceiveCheckInterval(interval time.Duration) {
 }
 
 func (c *Client) checkLoggedIn() error {
-	if c.AuthData.TachyonAuthToken == nil {
+	if c == nil {
+		return ErrClientIsNil
+	} else if c.AuthData.TachyonAuthToken == nil {
 		return fmt.Errorf("no auth token")
 	} else if c.AuthData.Browser == nil {
 		return fmt.Errorf("not logged in")
@@ -327,6 +343,9 @@ func (c *Client) shouldCheckBugleDefault() bool {
 }
 
 func (c *Client) Disconnect() {
+	if c == nil {
+		return
+	}
 	c.closeLongPolling()
 	// Fail any requests that are still waiting for a response from the phone:
 	// the responses are delivered over the long polling connection, so they can
@@ -337,7 +356,7 @@ func (c *Client) Disconnect() {
 
 func (c *Client) IsConnected() bool {
 	// TODO add better check (longPollingConn is set to nil while the polling reconnects)
-	return c.longPollingConn != nil
+	return c != nil && c.longPollingConn != nil
 }
 
 func (c *Client) IsLoggedIn() bool {
@@ -357,7 +376,7 @@ func (c *Client) Reconnect(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) triggerEvent(evt interface{}) {
+func (c *Client) triggerEvent(evt any) {
 	if c.evHandler != nil {
 		c.evHandler(evt)
 	}
@@ -379,6 +398,9 @@ func (c *Client) FetchConfig(ctx context.Context) error {
 }
 
 func (c *Client) fetchConfig(ctx context.Context) (*gmproto.Config, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, util.ConfigURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)

@@ -30,6 +30,9 @@ func (c *Client) StartLogin(ctx context.Context) (string, error) {
 }
 
 func (c *Client) GenerateQRCodeData(pairingKey []byte) (string, error) {
+	if c == nil {
+		return "", ErrClientIsNil
+	}
 	urlData := &gmproto.URLData{
 		PairingKey: pairingKey,
 		AESKey:     c.AuthData.RequestCrypto.AESKey,
@@ -78,6 +81,9 @@ func (c *Client) completePairing(data *gmproto.PairedData) {
 }
 
 func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	pubKey, err := c.AuthData.RefreshKey.GetPublicKey()
 	if err != nil {
 		return nil, err
@@ -144,7 +150,9 @@ func (c *Client) GetWebEncryptionKey() (*gmproto.WebEncryptionKeyResponse, error
 }
 
 func (c *Client) UnpairBugle() (*gmproto.RevokeRelayPairingResponse, error) {
-	if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
+	if c == nil {
+		return nil, ErrClientIsNil
+	} else if c.AuthData.TachyonAuthToken == nil || c.AuthData.Browser == nil {
 		return nil, nil
 	}
 	payload := &gmproto.RevokeRelayPairingRequest{
@@ -161,6 +169,9 @@ func (c *Client) UnpairBugle() (*gmproto.RevokeRelayPairingResponse, error) {
 }
 
 func (c *Client) Unpair(ctx context.Context) (err error) {
+	if c == nil {
+		return ErrClientIsNil
+	}
 	if c.AuthData.HasCookies() {
 		err = c.UnpairGaia(ctx)
 	} else {

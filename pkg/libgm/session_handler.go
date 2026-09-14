@@ -49,7 +49,9 @@ type SessionHandler struct {
 }
 
 func (s *SessionHandler) ResetSessionID() {
-	s.sessionID = uuid.NewString()
+	if s != nil {
+		s.sessionID = uuid.NewString()
+	}
 }
 
 func (s *SessionHandler) sendMessageNoResponse(ctx context.Context, params SendMessageParams) error {
@@ -262,6 +264,9 @@ type SendMessageParams struct {
 }
 
 func (s *SessionHandler) buildMessage(params SendMessageParams) (string, proto.Message, error) {
+	if s == nil {
+		return "", nil, ErrClientIsNil
+	}
 	var err error
 	sessionID := s.client.sessionHandler.sessionID
 
