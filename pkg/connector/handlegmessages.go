@@ -745,6 +745,8 @@ func (gc *GMClient) getEventSenderFromMessage(ctx context.Context, m *gmproto.Me
 	// Tombstone events should be sent by the bot
 	if status >= 200 && status < 300 {
 		return bridgev2.EventSender{}
+	} else if status == gmproto.MessageStatusType_MESSAGE_DELETED && m.ParticipantID == "" {
+		return bridgev2.EventSender{}
 	}
 	// Statuses between 1 and 99 are outgoing types, 100-199 are incoming
 	forceOutgoing := status >= 1 && status < 100
