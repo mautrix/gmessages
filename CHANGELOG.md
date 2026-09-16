@@ -1,4 +1,4 @@
-# v26.09 (unreleased)
+# v26.09
 
 * Bumped minimum Go version to 1.26.
 * Added deduplication to reuse rooms when the internal conversation ID of a
@@ -9,7 +9,11 @@
 * Added retrying for acknowledging incoming messages to ensure the connection
   doesn't get stuck due to failed acks.
 * Refactored phone pinging.
+* Changed media downloads to stream large files via the disk instead of storing
+  in memory.
 * Changed chat sync to not bridge empty DMs with no other members.
+* Fixed lack of error notice if the phone doesn't respond when the bridge is
+  restarted.
 
 # v26.08
 
