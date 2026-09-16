@@ -59,7 +59,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 3, 5
+	return 3, 6
 }
 
 // The phone will compress outgoing media on MMS, so we don't need to limit it
@@ -74,7 +74,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID(chatType string) string {
-	base := "fi.mau.gmessages.capabilities.2025_10_27." + chatType
+	base := "fi.mau.gmessages.capabilities.2026_09_16." + chatType
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -125,26 +125,32 @@ var rcsCaps = &event.RoomFeatures{
 	File: event.FileFeatureMap{
 		event.MsgImage: {
 			MimeTypes: imageMimes,
+			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
 		event.MsgAudio: {
 			MimeTypes: audioMimes,
+			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
 		event.MsgVideo: {
 			MimeTypes: videoMimes,
+			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
 		event.MsgFile: {
 			MimeTypes: fileMimes,
+			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
 		event.CapMsgVoice: {
 			MimeTypes: voiceMimes,
+			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
 		event.CapMsgGIF: {
 			MimeTypes: gifMimes,
+			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
 	},
