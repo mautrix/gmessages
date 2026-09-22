@@ -229,6 +229,7 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 	switch msg.Message.Action {
 	case gmproto.ActionType_GET_UPDATES:
 		if msg.DecryptedData == nil && bytes.Equal(msg.Message.UnencryptedData, hackyLoggedOutBytes) {
+			c.sessionHandler.sendAckRequest()
 			c.triggerEvent(&events.GaiaLoggedOut{})
 			return
 		}

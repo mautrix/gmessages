@@ -359,6 +359,9 @@ func (s *SessionHandler) startAckInterval() {
 }
 
 func (s *SessionHandler) sendAckRequest() {
+	if s == nil {
+		return
+	}
 	s.ackMapLock.Lock()
 	dataToAck := s.ackMap
 	s.ackMap = nil
