@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exsync"
 	"maunium.net/go/mautrix/bridgev2"
@@ -142,6 +143,12 @@ func (gc *GMClient) Connect(ctx context.Context) {
 			Error:      GMNotLoggedInCanReauth,
 		})
 		return
+	} else if gc.Meta.Session.IsGoogleAccount() && gc.Meta.Session.HasCookies() && gc.Meta.Session.PairingID == uuid.Nil {
+		gc.UserLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMNotLoggedInCanRepair,
+		})
+		return
 	}
 	err := gc.Client.FetchConfig(ctx)
 	if err != nil {
@@ -159,7 +166,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMLoggedOutNoEmailInConfig,
-		}, false)
+		}, false, true)
 		return
 	}
 	err = gc.Client.Connect(ctx)
@@ -171,7 +178,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},
-			}, true)
+			}, true, false)
 		} else if errors.Is(err, events.ErrInvalidCredentials) {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
@@ -179,7 +186,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 				Info: map[string]any{
 					"go_error": err.Error(),
 				},
-			}, false)
+			}, false, true)
 		} else {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,

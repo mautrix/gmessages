@@ -32,6 +32,7 @@ const (
 	GMLoggedOutNoEmailInConfig  status.BridgeStateErrorCode = "gm-logged-out-no-email-in-config"
 	GMNotLoggedIn               status.BridgeStateErrorCode = "gm-not-logged-in"
 	GMNotLoggedInCanReauth      status.BridgeStateErrorCode = "gm-not-logged-in-can-reauth"
+	GMNotLoggedInCanRepair      status.BridgeStateErrorCode = "gm-not-logged-in-can-repair"
 	GMConnecting                status.BridgeStateErrorCode = "gm-connecting"
 	GMConnectionFailed          status.BridgeStateErrorCode = "gm-connection-failed"
 	GMConfigFetchFailed         status.BridgeStateErrorCode = "gm-config-fetch-failed"
@@ -51,6 +52,7 @@ func init() {
 		GMConfigFetchFailed:         "Failed to initialize connection to Google Messages",
 		GMNotLoggedIn:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotLoggedInCanReauth:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMNotLoggedInCanRepair:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",

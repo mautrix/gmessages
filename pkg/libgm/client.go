@@ -35,7 +35,7 @@ type AuthData struct {
 	Mobile  *gmproto.Device `json:"mobile,omitempty"`
 	// Key used to authenticate with the server
 	TachyonAuthToken []byte    `json:"tachyon_token,omitempty"`
-	TachyonExpiry    time.Time `json:"tachyon_expiry,omitempty"`
+	TachyonExpiry    time.Time `json:"tachyon_expiry,omitzero"`
 	TachyonTTL       int64     `json:"tachyon_ttl,omitempty"`
 	// Unknown encryption key, not used for anything
 	WebEncryptionKey []byte `json:"web_encryption_key,omitempty"`
@@ -52,6 +52,16 @@ func (ad *AuthData) SetCookies(cookies map[string]string) {
 	ad.CookiesLock.Lock()
 	ad.Cookies = cookies
 	ad.CookiesLock.Unlock()
+}
+
+func (ad *AuthData) ClearPairing() {
+	ad.Browser = nil
+	ad.Mobile = nil
+	ad.TachyonAuthToken = nil
+	ad.TachyonExpiry = time.Time{}
+	ad.TachyonTTL = 0
+	ad.WebEncryptionKey = nil
+	ad.PairingID = uuid.Nil
 }
 
 func (ad *AuthData) AddCookiesToRequest(req *http.Request) {

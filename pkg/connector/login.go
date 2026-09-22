@@ -268,8 +268,13 @@ func (gl *GoogleLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, e
 func (gl *GoogleLoginProcess) StartWithOverride(ctx context.Context, override *bridgev2.UserLogin) (*bridgev2.LoginStep, error) {
 	meta := override.Metadata.(*UserLoginMetadata)
 	// Only allow reauth if the target login has crypto keys and was signed in with Google.
-	if meta != nil && meta.Session != nil && meta.Session.TachyonAuthToken != nil && meta.Session.PairingID != uuid.Nil {
+	if meta != nil && meta.Session != nil && meta.Session.TachyonAuthToken != nil && meta.Session.PairingID != uuid.Nil && meta.Session.Mobile != nil {
 		gl.Override = override
+	} else if meta != nil && meta.Session != nil && meta.Session.HasCookies() {
+		step, err := gl.submitWithAuthData(ctx, meta.Session, true)
+		if step != nil || err != nil {
+			return step, err
+		}
 	}
 	return loginStepCookies, nil
 }
@@ -329,6 +334,10 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	}
 	ad := libgm.NewAuthData()
 	ad.Cookies = cookies
+	return gl.submitWithAuthData(ctx, ad, false)
+}
+
+func (gl *GoogleLoginProcess) submitWithAuthData(ctx context.Context, ad *libgm.AuthData, repair bool) (*bridgev2.LoginStep, error) {
 	gl.Client = libgm.NewClient(
 		ad,
 		nil,
@@ -340,7 +349,14 @@ func (gl *GoogleLoginProcess) SubmitCookies(ctx context.Context, cookies map[str
 	})
 	err := gl.Client.FetchConfig(ctx)
 	if err != nil {
+		if repair {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config to re-pair with existing cookies")
+			return nil, nil
+		}
 		return nil, fmt.Errorf("%w: %w", ErrPairStartUnknown, err)
+	} else if repair && gl.Client.Config.GetDeviceInfo().GetEmail() == "" {
+		zerolog.Ctx(ctx).Debug().Msg("No email found in config, can't re-pair with existing cookies")
+		return nil, nil
 	}
 	var emoji string
 	bgCtx, cancel := context.WithCancel(gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx))
