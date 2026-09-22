@@ -161,8 +161,9 @@ message RPCGaiaData {
         message Item4 {
             message Item8 {
                 int32 unknownInt1 = 1; // present for destination device?
-                int32 unknownTimestamp = 2; // present for destination device?
+                uint64 unknownTimestamp = 2; // present for destination device?
                 bytes unknownBytes = 3; // present for local device?
+                int32 unknownInt2 = 4; // present for destination device?
             }
             string destOrSourceUUID = 1 [(pblite.pblite_binary) = true];
             int32 unknownInt3 = 3; // 1 for destination device, 6 for local device?

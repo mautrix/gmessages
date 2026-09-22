@@ -17,6 +17,7 @@
 package libgm
 
 import (
+	"cmp"
 	"context"
 	"crypto/ecdh"
 	"crypto/rand"
@@ -290,6 +291,7 @@ const GaiaInitTimeout = 20 * time.Second
 type primaryDeviceID struct {
 	RegID      string
 	UnknownInt uint64
+	UnknownTS  uint64
 	LastSeen   time.Time
 }
 
@@ -350,6 +352,7 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 	for _, dev := range sigResp.GetDeviceData().GetUnknownItems3() {
 		if pd, ok := primaryDeviceMap[dev.GetDestOrSourceUUID()]; ok {
 			pd.LastSeen = time.UnixMicro(dev.GetUnknownTimestampMicroseconds())
+			pd.UnknownTS = dev.GetItem8().GetUnknownTimestamp()
 		}
 	}
 	if len(primaryDevices) == 0 {
@@ -368,6 +371,7 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 	zerolog.Ctx(ctx).Debug().
 		Str("dest_reg_uuid", destRegDev.RegID).
 		Uint64("dest_reg_unknown_int", destRegDev.UnknownInt).
+		Uint64("dest_reg_unknown_ts", destRegDev.UnknownTS).
 		Time("dest_reg_last_seen", destRegDev.LastSeen).
 		Msg("Found UUID to use for gaia pairing")
 	destRegUUID, err := uuid.Parse(destRegDev.RegID)
@@ -470,7 +474,7 @@ func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (str
 		return "", fmt.Errorf("unsupported key derivation version %d", ps.ServerInit.GetConfirmedKeyDerivationVersion())
 	}
 	c.AuthData.PairingID = ps.UUID
-	return fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), ps.DestRegDevice.UnknownInt), nil
+	return fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), cmp.Or(ps.DestRegDevice.UnknownTS, ps.DestRegDevice.UnknownInt)), nil
 }
 
 func byteHash(bytes []byte) (out int32) {

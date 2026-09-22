@@ -2584,8 +2584,9 @@ func (x *RPCGaiaData_UnknownContainer_Item2_Item1) GetUnknownBigInt7() uint64 {
 type RPCGaiaData_UnknownContainer_Item4_Item8 struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	UnknownInt1      int32                  `protobuf:"varint,1,opt,name=unknownInt1,proto3" json:"unknownInt1,omitempty"`           // present for destination device?
-	UnknownTimestamp int32                  `protobuf:"varint,2,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // present for destination device?
+	UnknownTimestamp uint64                 `protobuf:"varint,2,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // present for destination device?
 	UnknownBytes     []byte                 `protobuf:"bytes,3,opt,name=unknownBytes,proto3" json:"unknownBytes,omitempty"`          // present for local device?
+	UnknownInt2      int32                  `protobuf:"varint,4,opt,name=unknownInt2,proto3" json:"unknownInt2,omitempty"`           // present for destination device?
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2627,7 +2628,7 @@ func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownInt1() int32 {
 	return 0
 }
 
-func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownTimestamp() int32 {
+func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownTimestamp() uint64 {
 	if x != nil {
 		return x.UnknownTimestamp
 	}
@@ -2639,6 +2640,13 @@ func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownBytes() []byte {
 		return x.UnknownBytes
 	}
 	return nil
+}
+
+func (x *RPCGaiaData_UnknownContainer_Item4_Item8) GetUnknownInt2() int32 {
+	if x != nil {
+		return x.UnknownInt2
+	}
+	return 0
 }
 
 type RegisterRefreshRequest_PushRegistration struct {
@@ -2928,10 +2936,10 @@ const file_authentication_proto_rawDesc = "" +
 	"\x1dconfirmedKeyDerivationVersion\x18\a \x01(\x05R\x1dconfirmedKeyDerivationVersion\x12\"\n" +
 	"\funknownBytes\x18\b \x01(\fR\funknownBytes\"F\n" +
 	"\x18RevokeGaiaPairingRequest\x12*\n" +
-	"\x10pairingAttemptID\x18\x01 \x01(\tR\x10pairingAttemptID\"\x85\b\n" +
+	"\x10pairingAttemptID\x18\x01 \x01(\tR\x10pairingAttemptID\"\xa8\b\n" +
 	"\vRPCGaiaData\x12\x18\n" +
 	"\acommand\x18\x01 \x01(\x05R\acommand\x12V\n" +
-	"\x0fmaybeServerData\x18l \x01(\v2,.authentication.RPCGaiaData.UnknownContainerR\x0fmaybeServerData\x1a\x83\a\n" +
+	"\x0fmaybeServerData\x18l \x01(\v2,.authentication.RPCGaiaData.UnknownContainerR\x0fmaybeServerData\x1a\xa6\a\n" +
 	"\x10UnknownContainer\x12H\n" +
 	"\x05item2\x18\x02 \x01(\v22.authentication.RPCGaiaData.UnknownContainer.Item2R\x05item2\x12B\n" +
 	"\x1cunknownTimestampMicroseconds\x18\x03 \x01(\x03R\x1cunknownTimestampMicroseconds\x12H\n" +
@@ -2942,17 +2950,18 @@ const file_authentication_proto_rawDesc = "" +
 	"\x10destOrSourceUUID\x18\x01 \x01(\tB\x04\x80\xb5\x18\x01R\x10destOrSourceUUID\x12 \n" +
 	"\vunknownInt4\x18\x04 \x01(\x05R\vunknownInt4\x12\"\n" +
 	"\flanguageCode\x18\x05 \x01(\tR\flanguageCode\x12&\n" +
-	"\x0eunknownBigInt7\x18\a \x01(\x04R\x0eunknownBigInt7\x1a\x92\x03\n" +
+	"\x0eunknownBigInt7\x18\a \x01(\x04R\x0eunknownBigInt7\x1a\xb5\x03\n" +
 	"\x05Item4\x120\n" +
 	"\x10destOrSourceUUID\x18\x01 \x01(\tB\x04\x80\xb5\x18\x01R\x10destOrSourceUUID\x12 \n" +
 	"\vunknownInt3\x18\x03 \x01(\x05R\vunknownInt3\x12 \n" +
 	"\vunknownInt4\x18\x04 \x01(\x05R\vunknownInt4\x12B\n" +
 	"\x1cunknownTimestampMicroseconds\x18\a \x01(\x03R\x1cunknownTimestampMicroseconds\x12T\n" +
-	"\x05item8\x18\b \x01(\v28.authentication.RPCGaiaData.UnknownContainer.Item4.Item8B\x04\x80\xb5\x18\x01R\x05item8\x1ay\n" +
+	"\x05item8\x18\b \x01(\v28.authentication.RPCGaiaData.UnknownContainer.Item4.Item8B\x04\x80\xb5\x18\x01R\x05item8\x1a\x9b\x01\n" +
 	"\x05Item8\x12 \n" +
 	"\vunknownInt1\x18\x01 \x01(\x05R\vunknownInt1\x12*\n" +
-	"\x10unknownTimestamp\x18\x02 \x01(\x05R\x10unknownTimestamp\x12\"\n" +
-	"\funknownBytes\x18\x03 \x01(\fR\funknownBytes\"\xa2\x02\n" +
+	"\x10unknownTimestamp\x18\x02 \x01(\x04R\x10unknownTimestamp\x12\"\n" +
+	"\funknownBytes\x18\x03 \x01(\fR\funknownBytes\x12 \n" +
+	"\vunknownInt2\x18\x04 \x01(\x05R\vunknownInt2\"\xa2\x02\n" +
 	"\x17AuthenticationContainer\x12=\n" +
 	"\vauthMessage\x18\x01 \x01(\v2\x1b.authentication.AuthMessageR\vauthMessage\x12F\n" +
 	"\x0ebrowserDetails\x18\x03 \x01(\v2\x1e.authentication.BrowserDetailsR\x0ebrowserDetails\x123\n" +
