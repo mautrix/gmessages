@@ -33,8 +33,6 @@ var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 	OutgoingMessageTimeouts: &bridgev2.OutgoingTimeoutConfig{
 		NoEchoTimeout: 1 * time.Minute,
 		NoEchoMessage: "phone has not confirmed message delivery",
-		NoAckTimeout:  3 * time.Minute,
-		NoAckMessage:  "phone is not responding",
 		CheckInterval: 1 * time.Minute,
 	},
 	Provisioning: bridgev2.ProvisioningCapabilities{
