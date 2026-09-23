@@ -29,6 +29,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/simplevent"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
@@ -93,11 +94,14 @@ func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived 
 	gc.SyncConversations(ctx, lastDataReceived, true)
 }
 
-// pendingSend records where a message that hasn't been echoed back yet was sent, so the chat
-// can be resynced if the phone never sends the remote echo.
+// pendingSend records a message that hasn't been echoed back yet, so the chat can be resynced
+// if the phone never sends the remote echo, or the send retried if the phone rejects it late.
 type pendingSend struct {
-	convID string
-	sentAt time.Time
+	convID  string
+	sentAt  time.Time
+	req     *gmproto.SendMessageRequest
+	evt     *event.Event
+	retried bool
 }
 
 const (
@@ -106,13 +110,25 @@ const (
 	pendingSendResyncExtraChats = 10
 )
 
-func (gc *GMClient) trackPendingSend(txnID networkid.TransactionID, convID string) {
-	if txnID == "" || convID == "" {
+func (gc *GMClient) trackPendingSend(txnID networkid.TransactionID, req *gmproto.SendMessageRequest, evt *event.Event) {
+	if txnID == "" || req.GetConversationID() == "" {
 		return
 	}
 	gc.pendingSendsLock.Lock()
 	defer gc.pendingSendsLock.Unlock()
-	gc.pendingSends[txnID] = pendingSend{convID: convID, sentAt: time.Now()}
+	gc.pendingSends[txnID] = pendingSend{convID: req.GetConversationID(), sentAt: time.Now(), req: req, evt: evt}
+}
+
+func (gc *GMClient) claimPendingSendRetry(txnID networkid.TransactionID) (send pendingSend, ok bool) {
+	gc.pendingSendsLock.Lock()
+	defer gc.pendingSendsLock.Unlock()
+	send, ok = gc.pendingSends[txnID]
+	if ok && !send.retried {
+		retried := send
+		retried.retried = true
+		gc.pendingSends[txnID] = retried
+	}
+	return
 }
 
 func (gc *GMClient) untrackPendingSend(txnID networkid.TransactionID) {

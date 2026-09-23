@@ -33,6 +33,7 @@ import (
 	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
@@ -88,7 +89,7 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			// The server accepted the message, so the phone may still send it whenever
 			// it comes back online. Keep the pending entry so the remote echo can
 			// resolve the original event (and correct the failure status) if that happens.
-			gc.trackPendingSend(txnID, req.GetConversationID())
+			gc.trackPendingSend(txnID, req, msg.Event)
 			return nil, bridgev2.WrapErrorInStatus(err).
 				WithMessage(PhoneNotRespondingMessage).
 				WithErrorReason(event.MessageStatusTooOld).
@@ -105,8 +106,51 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		return nil, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
 			WithIsCertain(!isTransientSendFailure(resp.Status)).WithSendNotice(true).WithErrorAsMessage()
 	}
-	gc.trackPendingSend(txnID, req.GetConversationID())
+	gc.trackPendingSend(txnID, req, msg.Event)
 	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
+}
+
+func (gc *GMClient) handleLateSendResponse(ctx context.Context, evt *events.LateSendMessageResponse) {
+	txnID := networkid.TransactionID(evt.TmpID)
+	log := zerolog.Ctx(ctx).With().
+		Str("tmp_id", evt.TmpID).
+		Str("response_status", evt.Response.GetStatus().String()).
+		Logger()
+	send, ok := gc.claimPendingSendRetry(txnID)
+	if !ok {
+		log.Debug().Msg("Got late send response for message that is no longer pending")
+		return
+	} else if evt.Response.GetStatus() == gmproto.SendMessageResponse_SUCCESS {
+		log.Debug().Msg("Phone accepted message send after the request timed out")
+		return
+	}
+	resp := evt.Response
+	if isTransientSendFailure(resp.GetStatus()) && !send.retried && gc.Client != nil {
+		log.Warn().Msg("Phone rejected timed out message send with transient status, retrying")
+		var err error
+		resp, err = gc.Client.SendMessage(ctx, send.req)
+		if errors.Is(err, libgm.ErrPhoneNotResponding) {
+			return
+		} else if err != nil {
+			log.Err(err).Msg("Failed to retry timed out message send")
+			gc.failPendingSend(ctx, txnID, send, err)
+			return
+		} else if resp.GetStatus() == gmproto.SendMessageResponse_SUCCESS {
+			return
+		}
+	}
+	log.Warn().Msg("Phone rejected message send after the request timed out")
+	gc.failPendingSend(ctx, txnID, send, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
+		WithIsCertain(!isTransientSendFailure(resp.GetStatus())).WithSendNotice(true).WithErrorAsMessage())
+}
+
+func (gc *GMClient) failPendingSend(ctx context.Context, txnID networkid.TransactionID, send pendingSend, err error) {
+	gc.untrackPendingSend(txnID)
+	if send.evt == nil {
+		return
+	}
+	msgStatus := bridgev2.WrapErrorInStatus(err)
+	gc.Main.br.Matrix.SendMessageStatus(ctx, &msgStatus, bridgev2.StatusEventInfoFromEvent(send.evt))
 }
 
 var sendRetryBackoff = []time.Duration{3 * time.Second, 8 * time.Second, 20 * time.Second}

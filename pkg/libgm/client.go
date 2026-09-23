@@ -150,6 +150,9 @@ type Client struct {
 
 	conversationsFetchedOnce bool
 
+	timedOutSends     map[string]timedOutSend
+	timedOutSendsLock sync.Mutex
+
 	GaiaHackyDeviceSwitcher int
 
 	PairCallback atomic.Pointer[func(data *gmproto.PairedData)]
@@ -183,6 +186,7 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSett
 		lphttp: httpSettings.WithGlobalTimeout(30 * time.Minute).Compile(),
 
 		pingShortCircuit:         make(chan struct{}),
+		timedOutSends:            make(map[string]timedOutSend),
 		pingInterval:             1 * time.Minute,
 		alertTimeoutCount:        4,
 		dataReceiveCheckInterval: DefaultBugleDefaultCheckInterval,

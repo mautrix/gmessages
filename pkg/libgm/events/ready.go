@@ -110,3 +110,9 @@ type PingFailed struct {
 }
 
 type HackySetActiveMayFail struct{}
+
+// LateSendMessageResponse is emitted when the phone responds to a message send after the request already timed out.
+type LateSendMessageResponse struct {
+	TmpID    string
+	Response *gmproto.SendMessageResponse
+}

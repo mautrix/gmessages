@@ -2,7 +2,9 @@ package libgm
 
 import (
 	"context"
+	"errors"
 
+	"github.com/google/uuid"
 	"go.mau.fi/util/ptr"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
@@ -81,8 +83,17 @@ func (c *Client) FetchMessages(ctx context.Context, conversationID string, count
 }
 
 func (c *Client) SendMessage(ctx context.Context, payload *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
-	actionType := gmproto.ActionType_SEND_MESSAGE
-	return typedResponse[*gmproto.SendMessageResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+	requestID := uuid.NewString()
+	resp, err := c.getSessionHandler().sendMessageWithParams(ctx, SendMessageParams{
+		Action:        gmproto.ActionType_SEND_MESSAGE,
+		Data:          payload,
+		RequestID:     requestID,
+		UserInitiated: true,
+	})
+	if errors.Is(err, ErrPhoneNotResponding) {
+		c.trackTimedOutSend(requestID, payload.GetTmpID())
+	}
+	return typedResponse[*gmproto.SendMessageResponse](resp, err)
 }
 
 func (c *Client) GetParticipantThumbnail(ctx context.Context, participantIDs ...string) (*gmproto.GetThumbnailResponse, error) {

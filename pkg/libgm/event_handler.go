@@ -307,6 +307,12 @@ func (c *Client) handleUpdatesEvent(msg *IncomingRPCMessage) {
 				Msg("Got unknown event type")
 		}
 	default:
+		if resp, ok := msg.DecryptedMessage.(*gmproto.SendMessageResponse); ok {
+			if tmpID, ok := c.popTimedOutSend(msg.Message.SessionID); ok {
+				c.triggerEvent(&events.LateSendMessageResponse{TmpID: tmpID, Response: resp})
+				return
+			}
+		}
 		c.Logger.Debug().
 			Str("request_id", msg.Message.SessionID).
 			Str("action_type", msg.Message.Action.String()).
