@@ -22,6 +22,7 @@ import (
 
 	"go.mau.fi/util/ffmpeg"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
@@ -59,7 +60,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 3, 6
+	return 3, 7
 }
 
 // The phone will compress outgoing media on MMS, so we don't need to limit it
@@ -74,7 +75,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID(chatType string) string {
-	base := "fi.mau.gmessages.capabilities.2026_09_16." + chatType
+	base := "fi.mau.gmessages.capabilities.2026_10_01." + chatType
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -203,10 +204,28 @@ var smsCaps = &event.RoomFeatures{
 	DeleteChat:    true,
 }
 
+var smsDMCaps, rcsDMCaps *event.RoomFeatures
+
+func init() {
+	smsDMCaps = smsCaps.Clone()
+	smsDMCaps.ID += "+dm"
+	smsDMCaps.BlockUser = true
+	smsDMCaps.ReportSpam = true
+	rcsDMCaps = rcsCaps.Clone()
+	rcsDMCaps.ID += "+dm"
+	rcsDMCaps.BlockUser = true
+	rcsDMCaps.ReportSpam = true
+}
+
 func (gc *GMClient) GetCapabilities(ctx context.Context, portal *bridgev2.Portal) *event.RoomFeatures {
 	if portal.Metadata.(*PortalMetadata).Type == gmproto.ConversationType_RCS {
+		if portal.RoomType == database.RoomTypeDM {
+			return rcsDMCaps
+		}
 		return rcsCaps
-	} else {
-		return smsCaps
 	}
+	if portal.RoomType == database.RoomTypeDM {
+		return smsDMCaps
+	}
+	return smsCaps
 }

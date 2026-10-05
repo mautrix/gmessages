@@ -60,7 +60,7 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 	}
 	gc.chatInfoCache.Set(conversationID, conv)
 	switch conv.GetStatus() {
-	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 		return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
 	}
 	return gc.wrapChatInfo(ctx, conv)
@@ -116,6 +116,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				event.EventReaction:    eventsDefaultPL,
 				event.EventRedaction:   0,
 				event.BeeperDeleteChat: 0,
+				event.BeeperBlockUser:  0,
 			},
 			UsersDefault:  ptr.Ptr(0),
 			EventsDefault: ptr.Ptr(eventsDefaultPL),
@@ -180,10 +181,11 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		avatar = gc.makeGroupAvatarFromURL(conv.GroupAvatarURL)
 	}
 	return &bridgev2.ChatInfo{
-		Name:    name,
-		Members: members,
-		Type:    &roomType,
-		Avatar:  avatar,
+		Name:        name,
+		UserBlocked: ptr.Ptr(conv.Status == gmproto.ConversationStatus_BLOCKED_FOLDER),
+		Members:     members,
+		Type:        &roomType,
+		Avatar:      avatar,
 		UserLocal: &bridgev2.UserLocalPortalInfo{
 			Tag: &tag,
 		},

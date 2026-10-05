@@ -25,6 +25,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/ffmpeg"
+	"go.mau.fi/util/ptr"
 	"go.mau.fi/util/variationselector"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -43,6 +44,7 @@ var (
 	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
 	_ bridgev2.TypingHandlingNetworkAPI      = (*GMClient)(nil)
 	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*GMClient)(nil)
+	_ bridgev2.UserBlockingNetworkAPI        = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -376,20 +378,12 @@ func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.Matrix
 	return gc.Client.SetTyping(ctx, convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
 }
 
-func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
-	if gc.Client == nil {
-		return bridgev2.ErrNotLoggedIn
-	}
-	convID, err := gc.conversationIDForPortal(ctx, chat.Portal)
-	if err != nil {
-		return err
-	}
-	var phone string
-	if chat.Portal.RoomType == database.RoomTypeDM {
-		if chat.Portal.OtherUserID != "" {
-			ghost, err := gc.Main.br.GetExistingGhostByID(ctx, chat.Portal.OtherUserID)
+func (gc *GMClient) findPhoneForConversation(ctx context.Context, portal *bridgev2.Portal, convID string) (phone string, alreadyDeleted bool, err error) {
+	if portal.RoomType == database.RoomTypeDM {
+		if portal.OtherUserID != "" {
+			ghost, err := gc.Main.br.GetExistingGhostByID(ctx, portal.OtherUserID)
 			if err != nil {
-				return fmt.Errorf("failed to get ghost: %w", err)
+				return "", false, fmt.Errorf("failed to get ghost: %w", err)
 			}
 			if ghost != nil {
 				phone = ghost.Metadata.(*GhostMetadata).Phone
@@ -398,13 +392,10 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 		if phone == "" {
 			conv, err := gc.Client.GetConversation(ctx, convID)
 			if err != nil {
-				return fmt.Errorf("failed to get conversation for phone number: %w", err)
+				return "", false, fmt.Errorf("failed to get conversation for phone number: %w", err)
 			}
 			if conv == nil || conv.GetStatus() == gmproto.ConversationStatus_DELETED {
-				zerolog.Ctx(ctx).Debug().
-					Str("conversation_id", convID).
-					Msg("Conversation not found on phone, skipping remote delete")
-				return nil
+				return "", true, nil
 			}
 			for _, pcp := range conv.Participants {
 				if pcp.IsVisible && !pcp.IsMe && pcp.ID.Number != "" {
@@ -413,14 +404,81 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 				}
 			}
 		}
-		if phone == "" {
-			zerolog.Ctx(ctx).Warn().
-				Str("conversation_id", convID).
-				Msg("Phone number not available for conversation, attempting delete without it")
+	}
+	return phone, false, nil
+}
+
+func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.MatrixDeleteChat) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
+	convID, err := gc.conversationIDForPortal(ctx, chat.Portal)
+	if err != nil {
+		return err
+	}
+	phone, alreadyDeleted, err := gc.findPhoneForConversation(ctx, chat.Portal, convID)
+	if err != nil {
+		return err
+	} else if alreadyDeleted {
+		zerolog.Ctx(ctx).Debug().
+			Str("conversation_id", convID).
+			Msg("Conversation not found on phone, skipping remote delete")
+		return nil
+	} else if phone == "" {
+		zerolog.Ctx(ctx).Warn().
+			Str("conversation_id", convID).
+			Msg("Phone number not available for conversation, attempting delete without it")
+	}
+	if err = gc.Client.DeleteConversation(ctx, convID, phone); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (gc *GMClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev2.MatrixBlockUser) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
+	if msg.Content.ReportSpam && !msg.Content.Block {
+		return fmt.Errorf("spam reporting requires blocking the user")
+	}
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
+	if err != nil {
+		return err
+	}
+	action := gmproto.ConversationActionStatus_UNBLOCK
+	var action5 *gmproto.ConversationAction5
+	if msg.Content.Block {
+		action5 = &gmproto.ConversationAction5{Field2: true}
+		action = gmproto.ConversationActionStatus_BLOCK
+		if msg.Content.ReportSpam {
+			action = gmproto.ConversationActionStatus_BLOCK_AND_REPORT
 		}
 	}
-	if err := gc.Client.DeleteConversation(ctx, convID, phone); err != nil {
+	phone, alreadyDeleted, err := gc.findPhoneForConversation(ctx, msg.Portal, convID)
+	if err != nil {
 		return err
+	} else if alreadyDeleted {
+		return fmt.Errorf("conversation not found on phone")
+	} else if phone == "" {
+		zerolog.Ctx(ctx).Warn().
+			Str("conversation_id", convID).
+			Msg("Phone number not available for conversation, attempting block without it")
+	}
+	resp, err := gc.Client.UpdateConversation(ctx, &gmproto.UpdateConversationRequest{
+		Action:         action,
+		ConversationID: convID,
+		Action5:        action5,
+		Data: &gmproto.UpdateConversationRequest_DeleteData{DeleteData: &gmproto.DeleteConversationData{
+			ConversationID: convID,
+			Phone:          ptr.NonZero(phone),
+		}},
+	})
+	if err != nil {
+		return err
+	}
+	if !resp.GetSuccess() {
+		return fmt.Errorf("conversation update returned non-success status")
 	}
 	return nil
 }
