@@ -617,14 +617,6 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 	reader := bufio.NewReader(rc)
 	buf := make([]byte, 2621440)
 	var accumulatedData []byte
-	n, err := reader.Read(buf[:2])
-	if err != nil {
-		log.Err(err).Msg("Error reading opening bytes")
-		return false
-	} else if n != 2 || string(buf[:2]) != "[[" {
-		log.Err(err).Msg("Opening is not [[")
-		return false
-	}
 	var closeIn *time.Timer
 	receivedEvents := false
 	onRead := func() {
@@ -640,13 +632,15 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 	}
 	streamEnded := make(chan struct{})
 	defer close(streamEnded)
-	var lastRead, lastReadStart time.Time
+	var lastReadLock sync.Mutex
+	var lastRead time.Time
+	lastReadStart := time.Now()
 	if background {
 		closeIn = time.NewTimer(10 * time.Second)
 		go func() {
 			select {
 			case <-closeIn.C:
-				c.closeLongPolling()
+				cancel()
 			case <-streamEnded:
 			}
 		}()
@@ -655,6 +649,9 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 		go func() {
 			select {
 			case <-closeIn.C:
+				lastReadLock.Lock()
+				lastReadStart, lastRead := lastReadStart, lastRead
+				lastReadLock.Unlock()
 				log.Warn().
 					Time("last_read_start", lastReadStart).
 					Time("last_read", lastRead).
@@ -664,14 +661,30 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 			}
 		}()
 	}
+	defer closeIn.Stop()
+	_, err := io.ReadFull(reader, buf[:2])
+	lastReadLock.Lock()
+	lastRead = time.Now()
+	lastReadLock.Unlock()
+	if err != nil {
+		log.Err(err).Msg("Error reading opening bytes")
+		return false
+	} else if string(buf[:2]) != "[[" {
+		log.Err(err).Msg("Opening is not [[")
+		return false
+	}
 	var expectEOF bool
 	for {
+		lastReadLock.Lock()
 		lastReadStart = time.Now()
-		n, err = reader.Read(buf)
+		lastReadLock.Unlock()
+		n, err := reader.Read(buf)
+		lastReadLock.Lock()
 		lastRead = time.Now()
+		lastReadLock.Unlock()
 		if err != nil {
 			var logEvt *zerolog.Event
-			if (errors.Is(err, io.EOF) && expectEOF) || c.disconnecting {
+			if (errors.Is(err, io.EOF) && expectEOF) || c.disconnecting || (background && errors.Is(err, context.Canceled)) {
 				logEvt = log.Trace()
 			} else {
 				logEvt = log.Warn()
