@@ -9,6 +9,9 @@ import (
 )
 
 func (c *Client) ListConversations(ctx context.Context, req *gmproto.ListConversationsRequest) (*gmproto.ListConversationsResponse, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	msgType := gmproto.MessageType_BUGLE_MESSAGE
 	if !c.conversationsFetchedOnce {
 		msgType = gmproto.MessageType_BUGLE_ANNOTATION

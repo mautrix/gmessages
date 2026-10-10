@@ -20,9 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/exerrors"
 	"go.mau.fi/util/jsontime"
 	"google.golang.org/protobuf/proto"
 	"maunium.net/go/mautrix/bridgev2"
@@ -35,6 +37,14 @@ import (
 )
 
 func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) (foundGap bool) {
+	defer func() {
+		if v := recover(); v != nil {
+			zerolog.Ctx(ctx).
+				Err(exerrors.RecoverToError(v)).
+				Bytes(zerolog.ErrorStackFieldName, debug.Stack()).
+				Msg("Conversation sync panicked")
+		}
+	}()
 	gc.syncingConversations.Store(true)
 	defer gc.syncingConversations.Store(false)
 	log := zerolog.Ctx(ctx)
