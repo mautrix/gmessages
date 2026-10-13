@@ -42,6 +42,7 @@ const (
 	GMBrowserInactiveTimeout    status.BridgeStateErrorCode = "gm-browser-inactive-timeout"
 	GMBrowserInactiveInactivity status.BridgeStateErrorCode = "gm-browser-inactive-inactivity"
 	GMPhoneNotResponding        status.BridgeStateErrorCode = "gm-phone-not-responding"
+	GMPhoneNotReady             status.BridgeStateErrorCode = "gm-phone-not-ready"
 	GMSwitchedToGoogleLogin     status.BridgeStateErrorCode = "gm-switched-to-google-login"
 )
 
@@ -63,6 +64,7 @@ func init() {
 		GMBrowserInactiveTimeout:    "Google Messages disconnected due to timeout",
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
 		GMPhoneNotResponding:        PhoneNotRespondingMessage,
+		GMPhoneNotReady:             "Waiting for your phone. Open the Google Messages app and make sure it's set as the default SMS app.",
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
 	})
 }
@@ -103,6 +105,11 @@ func (gc *GMClient) FillBridgeState(state status.BridgeState) status.BridgeState
 				state.StateEvent = status.StateBadCredentials
 			}
 			state.Error = gc.browserInactiveType
+		}
+		if state.Error == GMConnecting && gc.readyTimedOut {
+			state.StateEvent = status.StateTransientDisconnect
+			state.Error = GMPhoneNotReady
+			state.UserAction = status.UserActionOpenNative
 		}
 	}
 	return state

@@ -497,6 +497,19 @@ func (gc *GMClient) hackyResetActive() {
 	}
 }
 
+const readyTimeout = 15 * time.Minute
+
+func (gc *GMClient) handleReadyTimeout() {
+	if gc.ready {
+		return
+	}
+	gc.UserLogin.Log.Warn().Msg("Phone still hasn't marked the session as active")
+	gc.readyTimedOut = true
+	if gc.UserLogin.BridgeState.GetPrevUnsent().Error == GMConnecting {
+		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	}
+}
+
 type ReactionSyncEvent struct {
 	*gmproto.Message
 	g *GMClient

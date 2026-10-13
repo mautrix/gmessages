@@ -59,6 +59,8 @@ type GMClient struct {
 	mobileData             bool
 	PhoneResponding        bool
 	ready                  bool
+	readyTimedOut          bool
+	readyTimer             *time.Timer
 	sessionID              string
 	batteryLowAlertSent    time.Time
 	didHackySetActive      bool
@@ -196,7 +198,10 @@ func (gc *GMClient) Connect(ctx context.Context) {
 				},
 			})
 		}
+		return
 	}
+	gc.readyTimedOut = false
+	gc.readyTimer = time.AfterFunc(readyTimeout, gc.handleReadyTimeout)
 }
 
 func (gc *GMClient) Disconnect() {
@@ -205,6 +210,10 @@ func (gc *GMClient) Disconnect() {
 	gc.batteryLow = false
 	gc.SwitchedToGoogleLogin = false
 	gc.ready = false
+	gc.readyTimedOut = false
+	if gc.readyTimer != nil {
+		gc.readyTimer.Stop()
+	}
 	gc.browserInactiveType = ""
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
