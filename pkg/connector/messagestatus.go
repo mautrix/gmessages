@@ -45,6 +45,10 @@ func getFailMessage(status gmproto.MessageStatusType) string {
 	case gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT,
 		gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_DID_NOT_DECRYPT_NO_MORE_RETRY:
 		return "recipient failed to decrypt message"
+	case gmproto.MessageStatusType_OUTGOING_FAILED_TO_ENCRYPT:
+		return "failed to encrypt message"
+	case gmproto.MessageStatusType_OUTGOING_FAILED_RECIPIENT_NEGATIVE_DELIVERY:
+		return "message delivery failed"
 	case gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC:
 		return "generic carrier error, check google messages and try again"
 	case gmproto.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK:
