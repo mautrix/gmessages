@@ -133,6 +133,7 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 		meta = &MessageMetadata{
 			IsOutgoing:      true,
 			Type:            evt.GetMessageStatus().GetStatus(),
+			MessageType:     evt.Message.GetType(),
 			TextHash:        textHash,
 			GlobalPartCount: len(evt.MessageInfo),
 		}
@@ -196,7 +197,11 @@ func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.Matr
 			portalMeta.ForceRCS,
 		Reply: nil,
 	}
-	if msg.ReplyTo != nil {
+	if msg.ReplyTo != nil && msg.ReplyTo.Metadata.(*MessageMetadata).IsSMSOrMMS() {
+		zerolog.Ctx(ctx).Debug().
+			Str("reply_to_id", string(msg.ReplyTo.ID)).
+			Msg("Sending reply to SMS/MMS message without reply metadata")
+	} else if msg.ReplyTo != nil {
 		replyToID, err := gc.ParseMessageID(msg.ReplyTo.ID)
 		if err != nil {
 			return nil, fmt.Errorf("%w in reply to event", err)

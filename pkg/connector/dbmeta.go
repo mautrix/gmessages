@@ -71,7 +71,8 @@ type GhostMetadata struct {
 }
 
 type MessageMetadata struct {
-	Type gmproto.MessageStatusType `json:"type,omitempty"`
+	Type        gmproto.MessageStatusType `json:"type,omitempty"`
+	MessageType int64                     `json:"message_type,omitempty"`
 
 	GlobalMediaStatus string   `json:"media_status,omitempty"`
 	GlobalPartCount   int      `json:"part_count,omitempty"`
@@ -97,6 +98,15 @@ func (m *MessageMetadata) GetOrigMXID(mxid id.EventID) id.EventID {
 		return m.OrigMXID
 	}
 	return mxid
+}
+
+func (m *MessageMetadata) IsSMSOrMMS() bool {
+	switch m.MessageType {
+	case 1, 2, 3:
+		return true
+	default:
+		return false
+	}
 }
 
 type UserLoginMetadata struct {
