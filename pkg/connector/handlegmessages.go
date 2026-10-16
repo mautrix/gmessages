@@ -922,6 +922,7 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		Extra:   nil,
 		DBMetadata: &MessageMetadata{
 			Type:              msg.GetMessageStatus().GetStatus(),
+			MessageType:       msg.GetType(),
 			TextHash:          textHash,
 			GlobalMediaStatus: downloadStatus,
 			GlobalPartCount:   len(msg.MessageInfo),
@@ -1403,6 +1404,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 		var content event.MessageEventContent
 		dbMeta := &MessageMetadata{
 			Type:        m.GetMessageStatus().GetStatus(),
+			MessageType: m.GetType(),
 			MediaPartID: part.GetActionMessageID(),
 		}
 		partID := networkid.PartID(part.GetActionMessageID())
