@@ -143,7 +143,13 @@ message MessageInfo {
     oneof data {
         MessageContent messageContent = 2;
         MediaContent mediaContent = 3;
+        LocationContent locationContent = 5;
     }
+}
+
+message LocationContent {
+    MediaContent mediaContent = 1;
+    MessageContent messageContent = 2;
 }
 
 message MediaContent {
