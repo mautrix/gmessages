@@ -886,15 +886,20 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		content.FormattedBody = fmt.Sprintf("<strong>%s</strong>", event.TextToHTML(msg.GetSubject()))
 	}
 	for _, part := range msg.GetMessageInfo() {
-		data, ok := part.Data.(*gmproto.MessageInfo_MessageContent)
-		if !ok {
+		var text string
+		switch data := part.Data.(type) {
+		case *gmproto.MessageInfo_MessageContent:
+			text = data.MessageContent.GetContent()
+		case *gmproto.MessageInfo_LocationContent:
+			text = data.LocationContent.GetMessageContent().GetContent()
+		default:
 			continue
 		}
-		textHasher.Write([]byte(data.MessageContent.GetContent()))
+		textHasher.Write([]byte(text))
 		textHasher.Write([]byte{0x00})
-		content.Body = fmt.Sprintf("%s\n%s", content.Body, data.MessageContent.GetContent())
+		content.Body = fmt.Sprintf("%s\n%s", content.Body, text)
 		if content.Format == event.FormatHTML {
-			content.FormattedBody += fmt.Sprintf("<br>%s", event.TextToHTML(data.MessageContent.GetContent()))
+			content.FormattedBody += fmt.Sprintf("<br>%s", event.TextToHTML(text))
 		}
 	}
 	content.Body = strings.TrimPrefix(content.Body, "\n")
