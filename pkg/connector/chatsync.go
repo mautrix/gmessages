@@ -57,6 +57,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		log.Err(err).Msg("Failed to get conversation list")
 		return
 	}
+	gc.lastConversationList.Store(time.Now().UnixMilli())
 	log.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
 	var newestMessageTS time.Time
 	if !lastDataReceived.IsZero() {
@@ -110,6 +111,8 @@ type pendingSend struct {
 	convID string
 	sentAt time.Time
 }
+
+const browserActiveReadSyncInterval = 1 * time.Hour
 
 const (
 	pendingSendTrackMaxAge      = 1 * time.Hour
