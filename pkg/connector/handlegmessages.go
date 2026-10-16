@@ -334,7 +334,10 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 				Bool("was_inactive", wasInactive).
 				Bool("had_no_data_received", gc.noDataReceivedRecently).
 				Time("last_data_received", gc.lastDataReceived).
-				Msg("Session ID didn't change for browser active event, not resyncing")
+				Msg("Session ID didn't change for browser active event, syncing read state")
+			if !gc.syncingConversations.Load() {
+				go gc.SyncConversations(ctx, gc.lastDataReceived, true)
+			}
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()

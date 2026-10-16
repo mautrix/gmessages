@@ -83,6 +83,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		gc.lastDataReceived = newestMessageTS
 	}
 	if minimalSync {
+		gc.syncReadState(ctx, resp.GetConversations())
 		log.Debug().Msg("Minimal sync with no recent messages, not syncing conversations")
 		return
 	}
@@ -321,6 +322,47 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 	go gc.syncConversationBackground(log.WithContext(ctx), v, meta)
 }
 
+func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
+	return &simplevent.Receipt{
+		EventMeta: simplevent.EventMeta{
+			Type:      bridgev2.RemoteEventReadReceipt,
+			PortalKey: gc.portalKeyForConv(v),
+			Sender:    bridgev2.EventSender{IsFromMe: true},
+		},
+		LastTarget: gc.MakeMessageID(meta.readUpTo),
+		ReadUpTo:   meta.readUpToTS,
+	}
+}
+
+func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversation) {
+	markedRead := 0
+	for _, conv := range convs {
+		if conv.Unread {
+			continue
+		}
+		switch conv.Status {
+		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+			continue
+		}
+		if cached, ok := gc.chatInfoCache.Get(conv.ConversationID); ok && cached.LastMessageTimestamp > conv.LastMessageTimestamp {
+			continue
+		}
+		gc.conversationMetaLock.Lock()
+		existing, ok := gc.conversationMeta[conv.ConversationID]
+		wasUnread := ok && existing.unread
+		gc.conversationMetaLock.Unlock()
+		if !wasUnread {
+			continue
+		}
+		meta, _ := gc.syncConversationMeta(conv)
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, gc.makeReadReceipt(conv, meta))
+		markedRead++
+	}
+	if markedRead > 0 {
+		zerolog.Ctx(ctx).Debug().Int("count", markedRead).Msg("Marked chats read from conversation list")
+	}
+}
+
 func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
@@ -336,15 +378,7 @@ func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.C
 	}
 	var markReadEvt *simplevent.Receipt
 	if !v.Unread {
-		markReadEvt = &simplevent.Receipt{
-			EventMeta: simplevent.EventMeta{
-				Type:      bridgev2.RemoteEventReadReceipt,
-				PortalKey: gc.portalKeyForConv(v),
-				Sender:    bridgev2.EventSender{IsFromMe: true},
-			},
-			LastTarget: gc.MakeMessageID(meta.readUpTo),
-			ReadUpTo:   meta.readUpToTS,
-		}
+		markReadEvt = gc.makeReadReceipt(v, meta)
 	}
 	if !evt.AllowBackfill {
 		backfillEvt := &GMChatResync{
