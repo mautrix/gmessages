@@ -1,3 +1,16 @@
+# v26.10
+
+* Added support for re-pairing with existing cookies by just tapping the emoji
+  on your phone.
+* Added support for blocking and unblocking users.
+* Changed Google logins to use a potentially more stable ID, so that relogins
+  wouldn't have to delete all bridged rooms.
+* Changed room capabilities to reject captions in RCS chats.
+* Changed message bridging to drop reply metadata if the target was sent over
+  SMS even though the chat is currently RCS.
+* Fixed pending events not being acked on logout, which leads to old events
+  being replayed if the same cookies are used to relogin.
+
 # v26.09
 
 * Bumped minimum Go version to 1.26.
