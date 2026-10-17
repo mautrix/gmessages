@@ -284,6 +284,7 @@ var (
 	ErrPairingTimeout     = errors.New("pairing timed out")
 	ErrPairingInitTimeout = errors.New("client init timed out")
 	ErrHadMultipleDevices = errors.New("had multiple primary-looking devices")
+	ErrPhoneNotFound      = errors.New("previously paired phone not found for gaia pairing")
 )
 
 const GaiaInitTimeout = 20 * time.Second
@@ -366,6 +367,14 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 			Any("devices", primaryDevices).
 			Int("hacky_device_switcher", c.GaiaHackyDeviceSwitcher).
 			Msg("Found multiple primary-looking devices for gaia pairing")
+	}
+	if c.AuthData.DestPhoneID != 0 {
+		primaryDevices = slices.DeleteFunc(primaryDevices, func(pd *primaryDeviceID) bool {
+			return pd.UnknownTS != c.AuthData.DestPhoneID
+		})
+		if len(primaryDevices) == 0 {
+			return "", nil, ErrPhoneNotFound
+		}
 	}
 	destRegDev := primaryDevices[c.GaiaHackyDeviceSwitcher%len(primaryDevices)]
 	zerolog.Ctx(ctx).Debug().
@@ -474,6 +483,7 @@ func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (str
 		return "", fmt.Errorf("unsupported key derivation version %d", ps.ServerInit.GetConfirmedKeyDerivationVersion())
 	}
 	c.AuthData.PairingID = ps.UUID
+	c.AuthData.DestPhoneID = ps.DestRegDevice.UnknownTS
 	return fmt.Sprintf("%s/%d", c.AuthData.Mobile.GetSourceID(), cmp.Or(ps.DestRegDevice.UnknownTS, ps.DestRegDevice.UnknownInt)), nil
 }
 
