@@ -457,7 +457,7 @@ func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation
 	ctx = log.WithContext(ctx)
 	gc.dmsLock.Lock()
 	defer gc.dmsLock.Unlock()
-	insertNewConv := func(extraTasks func() error, cacheClear func()) error {
+	insertNewConv := func(extraTasks func(ctx context.Context) error, cacheClear func()) error {
 		conv := &gmdb.DirectConversation{
 			LoginID:       gc.UserLogin.ID,
 			PhoneNumber:   phoneNumber,
@@ -466,7 +466,7 @@ func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation
 		}
 		err := gc.Main.br.DB.DoTxn(ctx, nil, func(ctx context.Context) error {
 			if extraTasks != nil {
-				err := extraTasks()
+				err := extraTasks(ctx)
 				if err != nil {
 					return err
 				}
@@ -478,7 +478,7 @@ func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation
 			return nil
 		})
 		if err != nil {
-			return nil
+			return err
 		}
 		if cacheClear != nil {
 			cacheClear()
@@ -525,7 +525,7 @@ func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation
 				Time("old_last_message_ts", byPhone.LastMessageTS.Time).
 				Stringer("result", res).
 				Msg("Re-ID'd DM portal to match new conversation ID")
-			return insertNewConv(func() error {
+			return insertNewConv(func(ctx context.Context) error {
 				err = gc.Main.DB.DirectConversation.Delete(ctx, byPhone)
 				if err != nil {
 					return fmt.Errorf("failed to delete old DM conversation row after conversation ID change: %w", err)
@@ -545,7 +545,7 @@ func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation
 		log.Warn().
 			Str("old_phone_number", byID.PhoneNumber).
 			Msg("Phone number of DM conversation changed")
-		return insertNewConv(func() error {
+		return insertNewConv(func(ctx context.Context) error {
 			err := gc.Main.DB.DirectConversation.Delete(ctx, byID)
 			if err != nil {
 				return fmt.Errorf("failed to delete old DM conversation row after phone number change: %w", err)
@@ -560,7 +560,7 @@ func (gc *GMClient) deduplicateDM(ctx context.Context, evt *gmproto.Conversation
 			Str("old_phone_number", byID.PhoneNumber).
 			Str("old_portal_id_of_new_phone", string(byPhone.PortalID)).
 			Msg("Phone number of DM conversation changed and a conflicting conversation already exists")
-		return insertNewConv(func() error {
+		return insertNewConv(func(ctx context.Context) error {
 			err := gc.Main.DB.DirectConversation.Delete(ctx, byID)
 			if err != nil {
 				return fmt.Errorf("failed to delete old DM conversation row after phone number change with conflict: %w", err)
