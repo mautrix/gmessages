@@ -129,10 +129,20 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.GaiaLoggedOut:
 		log.Info().Msg("Got gaia logout event")
-		go gc.invalidateSession(ctx, status.BridgeState{
-			StateEvent: status.StateBadCredentials,
-			Error:      GMUnpaired,
-		}, true, false)
+		go func() {
+			state := status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpaired,
+			}
+			hasOtherPhone, err := gc.Client.HasOtherGaiaPhone(ctx)
+			if err != nil {
+				log.Err(err).Msg("Failed to check for other phones after gaia logout")
+			} else if hasOtherPhone {
+				log.Info().Msg("Another phone is registered on the Google account")
+				state.Error = GMUnpairedOtherPhone
+			}
+			gc.invalidateSession(ctx, state, true, false)
+		}()
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.AuthTokenRefreshed:
 		go func() {

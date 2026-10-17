@@ -321,16 +321,10 @@ func (c *Client) DoGaiaPairing(ctx context.Context, emojiCallback func(string)) 
 	return nil
 }
 
-func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingSession, error) {
-	if c == nil {
-		return "", nil, ErrClientIsNil
-	}
-	if !c.AuthData.HasCookies() {
-		return "", nil, ErrNoCookies
-	}
+func (c *Client) getGaiaPrimaryDevices(ctx context.Context) ([]*primaryDeviceID, error) {
 	sigResp, err := c.signInGaiaGetToken(ctx)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to prepare gaia pairing: %w", err)
+		return nil, err
 	}
 	// Don't log the whole object as it also contains the tachyon token
 	zerolog.Ctx(ctx).Debug().
@@ -355,6 +349,35 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 			pd.LastSeen = time.UnixMicro(dev.GetUnknownTimestampMicroseconds())
 			pd.UnknownTS = dev.GetItem8().GetUnknownTimestamp()
 		}
+	}
+	return primaryDevices, nil
+}
+
+func (c *Client) HasOtherGaiaPhone(ctx context.Context) (bool, error) {
+	if c == nil {
+		return false, ErrClientIsNil
+	} else if c.AuthData.DestPhoneID == 0 || !c.AuthData.HasCookies() {
+		return false, nil
+	}
+	primaryDevices, err := c.getGaiaPrimaryDevices(ctx)
+	if err != nil {
+		return false, err
+	}
+	return slices.ContainsFunc(primaryDevices, func(pd *primaryDeviceID) bool {
+		return pd.UnknownTS != c.AuthData.DestPhoneID
+	}), nil
+}
+
+func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingSession, error) {
+	if c == nil {
+		return "", nil, ErrClientIsNil
+	}
+	if !c.AuthData.HasCookies() {
+		return "", nil, ErrNoCookies
+	}
+	primaryDevices, err := c.getGaiaPrimaryDevices(ctx)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to prepare gaia pairing: %w", err)
 	}
 	if len(primaryDevices) == 0 {
 		return "", nil, ErrNoDevicesFound
