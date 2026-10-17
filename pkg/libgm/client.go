@@ -131,7 +131,7 @@ type Client struct {
 	evHandler      EventHandler
 	sessionHandler *SessionHandler
 
-	longPollingConn io.Closer
+	longPollingConn atomic.Pointer[io.ReadCloser]
 	listenID        int
 	skipCount       int
 	disconnecting   bool
@@ -367,7 +367,7 @@ func (c *Client) Disconnect() {
 
 func (c *Client) IsConnected() bool {
 	// TODO add better check (longPollingConn is set to nil while the polling reconnects)
-	return c != nil && c.longPollingConn != nil
+	return c != nil && c.longPollingConn.Load() != nil
 }
 
 func (c *Client) IsLoggedIn() bool {

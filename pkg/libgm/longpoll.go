@@ -588,7 +588,7 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 			}
 		}
 		log.Debug().Int("statusCode", resp.StatusCode).Msg("Long polling opened")
-		c.longPollingConn = resp.Body
+		c.longPollingConn.Store(&resp.Body)
 		if loggedIn && !disconnectedAt.IsZero() && time.Since(disconnectedAt) > longPollGapCatchUp {
 			// Events the phone sent while the connection was down may not be redelivered.
 			log.Warn().
@@ -602,7 +602,7 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 		}
 		cleanClose := c.readLongPoll(&log, resp.Body, background, cancel)
 		cancel()
-		c.longPollingConn = nil
+		c.longPollingConn.Store(nil)
 		if background {
 			return cleanClose
 		}
@@ -732,7 +732,7 @@ func (c *Client) closeLongPolling() {
 	if c == nil {
 		return
 	}
-	conn := c.longPollingConn
+	conn := c.longPollingConn.Swap(nil)
 	c.Logger.Debug().
 		Int("current_listen_id", c.listenID).
 		Bool("connection_open", conn != nil).
@@ -740,7 +740,6 @@ func (c *Client) closeLongPolling() {
 	c.listenID++
 	c.disconnecting = true
 	if conn != nil {
-		_ = conn.Close()
-		c.longPollingConn = nil
+		_ = (*conn).Close()
 	}
 }
