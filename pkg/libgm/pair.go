@@ -172,7 +172,9 @@ func (c *Client) Unpair(ctx context.Context) (err error) {
 	if c == nil {
 		return ErrClientIsNil
 	}
-	if c.AuthData.HasCookies() {
+	if c.AuthData.IsGoogleAccount() && c.AuthData.PairingID == uuid.Nil {
+		return nil
+	} else if c.AuthData.HasCookies() {
 		err = c.UnpairGaia(ctx)
 	} else {
 		_, err = c.UnpairBugle()

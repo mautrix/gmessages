@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"sync"
@@ -53,6 +54,15 @@ func (ad *AuthData) SetCookies(cookies map[string]string) {
 	ad.CookiesLock.Lock()
 	ad.Cookies = cookies
 	ad.CookiesLock.Unlock()
+}
+
+func (ad *AuthData) CopyForRepair() *AuthData {
+	newAD := NewAuthData()
+	ad.CookiesLock.RLock()
+	newAD.Cookies = maps.Clone(ad.Cookies)
+	ad.CookiesLock.RUnlock()
+	newAD.DestPhoneID = ad.DestPhoneID
+	return newAD
 }
 
 func (ad *AuthData) ClearPairing() {

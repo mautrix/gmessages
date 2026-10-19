@@ -273,7 +273,7 @@ func (gl *GoogleLoginProcess) StartWithOverride(ctx context.Context, override *b
 	if meta != nil && meta.Session != nil && meta.Session.TachyonAuthToken != nil && meta.Session.PairingID != uuid.Nil && meta.Session.Mobile != nil {
 		gl.Override = override
 	} else if meta != nil && meta.Session != nil && meta.Session.HasCookies() {
-		step, err := gl.submitWithAuthData(ctx, meta.Session, true)
+		step, err := gl.submitWithAuthData(ctx, meta.Session.CopyForRepair(), true)
 		if step != nil || err != nil {
 			return step, err
 		}
