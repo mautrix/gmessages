@@ -67,17 +67,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	ctx := log.WithContext(context.TODO())
 	switch evt := rawEvt.(type) {
 	case *events.ListenFatalError:
-		if errors.Is(evt.Error, events.ErrInvalidCredentials) || evt.Error.Error() == "http 401 while polling" {
-			errCode := GMLoggedOut401
-			if errors.Is(evt.Error, events.ErrInvalidCredentials) {
-				errCode = GMLoggedOutInvalidCreds
-			}
-			go gc.invalidateSession(ctx, status.BridgeState{
-				StateEvent: status.StateBadCredentials,
-				Error:      errCode,
-				Info:       map[string]any{"go_error": evt.Error.Error()},
-			}, false, true)
-		} else {
+		if !gc.invalidateSessionIfCredentialError(ctx, evt.Error) {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
 				StateEvent: status.StateUnknownError,
 				Error:      GMFatalError,
@@ -107,24 +97,26 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpaired404,
+				UserAction: status.UserActionRelogin,
 				Info: map[string]any{
 					"go_error": evt.Error.Error(),
 				},
 			}, true, false)
 		} else if evt.ErrorCount > 1 {
 			gc.UserLogin.BridgeState.Send(status.BridgeState{
-				StateEvent: status.StateUnknownError,
+				StateEvent: status.StateTransientDisconnect,
 				Error:      GMPingFailed,
 				Info:       map[string]any{"go_error": evt.Error.Error()},
 			})
 		} else {
-			log.Debug().Msg("Not sending unknown error for first ping fail")
+			log.Debug().Msg("Not sending bridge state for first ping fail")
 		}
 	case *gmproto.RevokePairData:
 		log.Info().Any("revoked_device", evt.GetRevokedDevice()).Msg("Got pair revoked event")
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMUnpaired,
+			UserAction: status.UserActionRelogin,
 		}, true, false)
 		//go gc.sendMarkdownBridgeAlert(ctx, true, "Unpaired from Google Messages. Log in again to continue using the bridge.")
 	case *events.GaiaLoggedOut:
@@ -133,6 +125,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			state := status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpaired,
+				UserAction: status.UserActionRelogin,
 			}
 			hasOtherPhone, err := gc.Client.HasOtherGaiaPhone(ctx)
 			if err != nil {
@@ -465,6 +458,31 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		}
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	}
+}
+
+// invalidateSessionIfCredentialError invalidates the session and sends a BAD_CREDENTIALS state if err means the
+// pairing or cookies are no longer valid.
+func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err error) bool {
+	state := status.BridgeState{
+		StateEvent: status.StateBadCredentials,
+		UserAction: status.UserActionRelogin,
+		Info:       map[string]any{"go_error": err.Error()},
+	}
+	var httpErr events.HTTPError
+	switch {
+	case errors.Is(err, events.ErrRequestedEntityNotFound):
+		state.Error = GMUnpaired404
+		go gc.invalidateSession(ctx, state, true, false)
+	case errors.Is(err, events.ErrInvalidCredentials):
+		state.Error = GMLoggedOutInvalidCreds
+		go gc.invalidateSession(ctx, state, false, true)
+	case errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusUnauthorized || httpErr.Resp.StatusCode == http.StatusForbidden):
+		state.Error = GMLoggedOut401
+		go gc.invalidateSession(ctx, state, false, true)
+	default:
+		return false
+	}
+	return true
 }
 
 func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeState, deletePairing, deleteCookies bool) {

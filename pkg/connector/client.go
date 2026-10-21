@@ -32,7 +32,6 @@ import (
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -136,18 +135,21 @@ func (gc *GMClient) Connect(ctx context.Context) {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedIn,
+			UserAction: status.UserActionRelogin,
 		})
 		return
 	} else if gc.Meta.Session.IsGoogleAccount() && !gc.Meta.Session.HasCookies() {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedInCanReauth,
+			UserAction: status.UserActionRelogin,
 		})
 		return
 	} else if gc.Meta.Session.IsGoogleAccount() && gc.Meta.Session.HasCookies() && gc.Meta.Session.PairingID == uuid.Nil {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMNotLoggedInCanRepair,
+			UserAction: status.UserActionRelogin,
 		})
 		return
 	}
@@ -167,36 +169,19 @@ func (gc *GMClient) Connect(ctx context.Context) {
 		go gc.invalidateSession(ctx, status.BridgeState{
 			StateEvent: status.StateBadCredentials,
 			Error:      GMLoggedOutNoEmailInConfig,
+			UserAction: status.UserActionRelogin,
 		}, false, true)
 		return
 	}
 	err = gc.Client.Connect(ctx)
-	if err != nil {
-		if errors.Is(err, events.ErrRequestedEntityNotFound) {
-			go gc.invalidateSession(ctx, status.BridgeState{
-				StateEvent: status.StateBadCredentials,
-				Error:      GMUnpaired404,
-				Info: map[string]any{
-					"go_error": err.Error(),
-				},
-			}, true, false)
-		} else if errors.Is(err, events.ErrInvalidCredentials) {
-			go gc.invalidateSession(ctx, status.BridgeState{
-				StateEvent: status.StateBadCredentials,
-				Error:      GMLoggedOutInvalidCreds,
-				Info: map[string]any{
-					"go_error": err.Error(),
-				},
-			}, false, true)
-		} else {
-			gc.UserLogin.BridgeState.Send(status.BridgeState{
-				StateEvent: status.StateUnknownError,
-				Error:      GMConnectionFailed,
-				Info: map[string]any{
-					"go_error": err.Error(),
-				},
-			})
-		}
+	if err != nil && !gc.invalidateSessionIfCredentialError(ctx, err) {
+		gc.UserLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateUnknownError,
+			Error:      GMConnectionFailed,
+			Info: map[string]any{
+				"go_error": err.Error(),
+			},
+		})
 	}
 }
 
