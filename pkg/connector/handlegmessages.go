@@ -1530,10 +1530,10 @@ func (gc *GMClient) convertGoogleMedia(
 		var err error
 		if msg.MediaID != "" {
 			mediaID = msg.MediaID
-			data, err = gc.Client.DownloadMedia(msg.MediaID, msg.DecryptionKey)
+			data, err = gc.Client.DownloadMedia(ctx, msg.MediaID, msg.DecryptionKey)
 		} else if msg.ThumbnailMediaID != "" {
 			mediaID = msg.ThumbnailMediaID
-			data, err = gc.Client.DownloadMedia(msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
+			data, err = gc.Client.DownloadMedia(ctx, msg.ThumbnailMediaID, msg.ThumbnailDecryptionKey)
 			isThumbnail = true
 		} else if len(msg.GetMediaData()) > 0 {
 			mediaID = "inline"

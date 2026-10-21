@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/crypto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
@@ -88,7 +89,7 @@ func init() {
 	}
 }
 
-func (c *Client) UploadMedia(data []byte, fileName, mime string) (*gmproto.MediaContent, error) {
+func (c *Client) UploadMedia(ctx context.Context, data []byte, fileName, mime string) (*gmproto.MediaContent, error) {
 	mediaType := MimeToMediaType[mime]
 	if mediaType.Type == 0 {
 		mediaType = MimeToMediaType[strings.Split(mime, "/")[0]]
@@ -102,11 +103,11 @@ func (c *Client) UploadMedia(data []byte, fileName, mime string) (*gmproto.Media
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt media: %w", err)
 	}
-	startUploadImage, err := c.StartUploadMedia(encryptedBytes, mime)
+	startUploadImage, err := c.StartUploadMedia(ctx, encryptedBytes, mime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start upload: %w", err)
 	}
-	upload, err := c.FinalizeUploadMedia(startUploadImage)
+	upload, err := c.FinalizeUploadMedia(ctx, startUploadImage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to finalize upload: %w", err)
 	}
@@ -152,11 +153,11 @@ func isStandardBase64(data []byte) bool {
 	return true
 }
 
-func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, error) {
+func (c *Client) FinalizeUploadMedia(ctx context.Context, upload *StartGoogleUpload) (*MediaUpload, error) {
 	encryptedImageSize := strconv.Itoa(len(upload.EncryptedMediaBytes))
 
 	finalizeUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "upload, finalize", "0", upload.MimeType, "")
-	req, err := http.NewRequest(http.MethodPost, upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, upload.UploadURL, bytes.NewBuffer(upload.EncryptedMediaBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
@@ -169,7 +170,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
+		return nil, events.HTTPError{Action: "finalizing media upload", Resp: res}
 	}
 	respData, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -198,7 +199,7 @@ func (c *Client) FinalizeUploadMedia(upload *StartGoogleUpload) (*MediaUpload, e
 	}, nil
 }
 
-func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*StartGoogleUpload, error) {
+func (c *Client) StartUploadMedia(ctx context.Context, encryptedImageBytes []byte, mime string) (*StartGoogleUpload, error) {
 	encryptedImageSize := strconv.Itoa(len(encryptedImageBytes))
 
 	startUploadHeaders := util.NewMediaUploadHeaders(encryptedImageSize, "start", "", mime, "resumable")
@@ -207,7 +208,7 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 		return nil, fmt.Errorf("failed to build payload: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, util.UploadMediaURL, bytes.NewBuffer([]byte(startUploadPayload)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
@@ -220,7 +221,7 @@ func (c *Client) StartUploadMedia(encryptedImageBytes []byte, mime string) (*Sta
 	_ = res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
+		return nil, events.HTTPError{Action: "starting media upload", Resp: res}
 	}
 
 	chunkGranularity, err := strconv.Atoi(res.Header.Get("x-goog-upload-chunk-granularity"))
@@ -262,7 +263,7 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 	return protoDataEncoded, nil
 }
 
-func (c *Client) DownloadMedia(mediaID string, key []byte) (io.ReadCloser, error) {
+func (c *Client) DownloadMedia(ctx context.Context, mediaID string, key []byte) (io.ReadCloser, error) {
 	cryptor, err := crypto.NewAESGCMHelper(key)
 	if err != nil {
 		return nil, err
@@ -284,7 +285,7 @@ func (c *Client) DownloadMedia(mediaID string, key []byte) (io.ReadCloser, error
 		return nil, fmt.Errorf("failed to marshal download request: %w", err)
 	}
 	downloadMetadataEncoded := base64.StdEncoding.EncodeToString(downloadMetadataBytes)
-	req, err := http.NewRequest(http.MethodGet, util.UploadMediaURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, util.UploadMediaURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare request: %w", err)
 	}
@@ -310,7 +311,7 @@ func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("avatar download http %d", resp.StatusCode)
+		return nil, events.HTTPError{Action: "downloading avatar", Resp: resp}
 	}
 	return io.ReadAll(http.MaxBytesReader(nil, resp.Body, 5*1024*1024))
 }

@@ -263,7 +263,7 @@ func (gc *GMClient) reuploadMedia(ctx context.Context, content *event.MessageEve
 		fileName += ".m4a"
 		content.Info.MimeType = "audio/mp4"
 	}
-	resp, err := gc.Client.UploadMedia(data, fileName, content.Info.MimeType)
+	resp, err := gc.Client.UploadMedia(ctx, data, fileName, content.Info.MimeType)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, err)
 	}
