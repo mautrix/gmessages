@@ -28,6 +28,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -72,9 +73,9 @@ var (
 	ErrPairTimeout            = bridgev2.RespError{Err: pairingErrMsgTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_TIMEOUT", StatusCode: http.StatusBadRequest}
 	ErrPairQRTimeout          = bridgev2.RespError{Err: pairingErrMsgQRTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_QR_TIMEOUT", StatusCode: http.StatusBadRequest}
 	ErrPairCallerNoPermission = bridgev2.RespError{Err: pairingErrMsgCallerNoPermission, ErrCode: "FI.MAU.GMESSAGES.ACCOUNT_CANT_PAIR", StatusCode: http.StatusBadRequest}
-	ErrPairStartUnknown       = bridgev2.RespError{Err: pairingErrMsgStartUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
-	ErrPairWaitUnknown        = bridgev2.RespError{Err: pairingErrMsgWaitUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
-	ErrPairQRRefreshUnknown   = bridgev2.RespError{Err: pairingErrMsgQRRefreshUnknown, ErrCode: "M_UNKNOWN", StatusCode: http.StatusInternalServerError}
+	ErrPairStartUnknown       = bridgev2.RespError(mautrix.MUnknown.WithMessage(pairingErrMsgStartUnknown))
+	ErrPairWaitUnknown        = bridgev2.RespError(mautrix.MUnknown.WithMessage(pairingErrMsgWaitUnknown))
+	ErrPairQRRefreshUnknown   = bridgev2.RespError(mautrix.MUnknown.WithMessage(pairingErrMsgQRRefreshUnknown))
 )
 
 var LoginFlows = []bridgev2.LoginFlow{{

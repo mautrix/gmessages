@@ -84,7 +84,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 			}
 			phone = ghost.Metadata.(*GhostMetadata).Phone
 			if phone == "" {
-				return nil, fmt.Errorf("phone number of ghost %s not known", netID)
+				return nil, fmt.Errorf("%w: phone number of ghost %s not known", ErrGhostPhoneUnknown, netID)
 			}
 			if !createChat {
 				log.Debug().Str("ghost_id", string(ghost.ID)).Msg("Returning ghost identifier")
@@ -119,13 +119,13 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		}},
 	})
 	if err != nil {
-		return nil, err
+		return nil, wrapRespError(err)
 	}
 	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
 	convCopy.LatestMessage = nil
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for DM")
 	if resp.GetConversation().GetConversationID() == "" {
-		return nil, fmt.Errorf("no conversation ID in response")
+		return nil, fmt.Errorf("%w: no conversation ID in response (status: %s)", ErrNoConversationInResponse, resp.GetStatus())
 	}
 	portalKey := gc.portalKeyForConv(resp.Conversation)
 	portalInfo, err := gc.wrapChatInfo(ctx, resp.Conversation)
@@ -176,6 +176,9 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 var (
 	ErrRCSGroupRequiresName = bridgev2.WrapRespErrManual(errors.New("RCS group creation requires a name"), "FI.MAU.GMESSAGES.RCS_REQUIRES_NAME", http.StatusBadRequest)
 	ErrMinimumTwoUsers      = bridgev2.WrapRespErr(errors.New("need at least 2 users to create a group"), mautrix.MInvalidParam)
+
+	ErrGhostPhoneUnknown        = bridgev2.RespError(mautrix.MInvalidParam.WithMessage("The contact's phone number isn't known, try using their phone number instead"))
+	ErrNoConversationInResponse = bridgev2.RespError(mautrix.MUnknown.WithMessage("Google Messages couldn't start the chat"))
 )
 
 func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreateParams) (*bridgev2.CreateChatResponse, error) {
@@ -198,7 +201,7 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 			}
 			phone = ghost.Metadata.(*GhostMetadata).Phone
 			if phone == "" {
-				return nil, fmt.Errorf("phone number of ghost %s not known", ghost.ID)
+				return nil, fmt.Errorf("%w: phone number of ghost %s not known", ErrGhostPhoneUnknown, ghost.ID)
 			}
 		} else {
 			// Hack to allow ResolveIdentifier results (raw phone numbers) here
@@ -219,18 +222,18 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 		resp, err = gc.Client.GetOrCreateConversation(ctx, reqData)
 	}
 	if err != nil {
-		return nil, err
+		return nil, wrapRespError(err)
 	}
 	if resp.Conversation == nil {
 		rawProto, _ := proto.Marshal(resp)
 		log.Warn().Str("raw_response", base64.StdEncoding.EncodeToString(rawProto)).Msg("No conversation data in create group response?")
-		return nil, fmt.Errorf("no conversation data in response (status: %s)", resp.GetStatus())
+		return nil, fmt.Errorf("%w: no conversation data in response (status: %s)", ErrNoConversationInResponse, resp.GetStatus())
 	}
 	convCopy := proto.Clone(resp.Conversation).(*gmproto.Conversation)
 	convCopy.LatestMessage = nil
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation data for new group")
 	if resp.GetConversation().GetConversationID() == "" {
-		return nil, fmt.Errorf("no conversation ID in response (status: %s)", resp.GetStatus())
+		return nil, fmt.Errorf("%w: no conversation ID in response (status: %s)", ErrNoConversationInResponse, resp.GetStatus())
 	}
 	portalKey := gc.portalKeyForConv(resp.Conversation)
 	portalInfo, err := gc.wrapChatInfo(ctx, resp.Conversation)
@@ -327,7 +330,7 @@ func (gc *GMClient) refreshContactsInBackground(ctx context.Context) {
 func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIdentifierResponse, error) {
 	contacts, err := gc.getOrFetchContacts(ctx)
 	if err != nil {
-		return nil, err
+		return nil, wrapRespError(err)
 	}
 	resp := make([]*bridgev2.ResolveIdentifierResponse, len(contacts))
 	for i, contact := range contacts {
