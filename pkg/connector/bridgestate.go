@@ -51,6 +51,8 @@ func init() {
 		GMListenError:               "Error polling messages from Google Messages server, the bridge will try to reconnect",
 		GMFatalError:                "Fatal error polling messages from Google Messages server",
 		GMConfigFetchFailed:         "Failed to initialize connection to Google Messages",
+		GMConnectionFailed:          "Failed to connect to Google Messages",
+		GMPingFailed:                "Couldn't reach Google Messages, the bridge will keep retrying",
 		GMNotLoggedIn:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotLoggedInCanReauth:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotLoggedInCanRepair:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
@@ -92,6 +94,7 @@ func (gc *GMClient) FillBridgeState(state status.BridgeState) status.BridgeState
 		if gc.SwitchedToGoogleLogin {
 			state.StateEvent = status.StateBadCredentials
 			state.Error = GMSwitchedToGoogleLogin
+			state.UserAction = status.UserActionRelogin
 		}
 		if gc.longPollingError != nil {
 			state.StateEvent = status.StateTransientDisconnect

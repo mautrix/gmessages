@@ -91,21 +91,23 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			// it comes back online. Keep the pending entry so the remote echo can
 			// resolve the original event (and correct the failure status) if that happens.
 			gc.trackPendingSend(txnID, req.GetConversationID())
-			return nil, bridgev2.WrapErrorInStatus(err).
-				WithMessage(PhoneNotRespondingMessage).
-				WithErrorReason(event.MessageStatusTooOld).
-				WithSendNotice(true)
+		} else {
+			msg.RemovePending(txnID)
 		}
-		msg.RemovePending(txnID)
-		return nil, err
+		return nil, wrapSendError(err)
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
 		zerolog.Ctx(ctx).Warn().
 			Str("response_status", resp.GetStatus().String()).
 			Str("google_account_switch", resp.GetGoogleAccountSwitch().GetAccount()).
 			Msg("Phone rejected message send")
 		msg.RemovePending(txnID)
-		return nil, bridgev2.WrapErrorInStatus((*responseStatusError)(resp)).
+		rse := (*responseStatusError)(resp)
+		msgStatus := bridgev2.WrapErrorInStatus(rse).
 			WithIsCertain(!isTransientSendFailure(resp.Status)).WithSendNotice(true).WithErrorAsMessage()
+		if rse.needsUserAction() {
+			msgStatus = msgStatus.WithStatus(event.MessageStatusFail)
+		}
+		return nil, msgStatus
 	}
 	gc.trackPendingSend(txnID, req.GetConversationID())
 	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
@@ -263,14 +265,17 @@ func (gc *GMClient) reuploadMedia(ctx context.Context, content *event.MessageEve
 		fileName += ".m4a"
 		content.Info.MimeType = "audio/mp4"
 	}
-	resp, err := gc.Client.UploadMedia(data, fileName, content.Info.MimeType)
+	resp, err := gc.Client.UploadMedia(ctx, data, fileName, content.Info.MimeType)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, err)
 	}
 	return resp, nil
 }
 
-var ErrNonSuccessResponse = bridgev2.WrapErrorInStatus(errors.New("got non-success response")).WithErrorAsMessage().WithSendNotice(true)
+var ErrNonSuccessResponse = bridgev2.WrapErrorInStatus(errors.New("got non-success response")).
+	WithMessage("Google Messages on your phone rejected the request").
+	WithIsCertain(true).
+	WithSendNotice(true)
 
 func (gc *GMClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2.MatrixMessageRemove) error {
 	if gc.Client == nil {
@@ -282,7 +287,7 @@ func (gc *GMClient) HandleMatrixMessageRemove(ctx context.Context, msg *bridgev2
 	}
 	resp, err := gc.Client.DeleteMessage(ctx, msgID)
 	if err != nil {
-		return err
+		return wrapSendError(err)
 	} else if !resp.Success {
 		return ErrNonSuccessResponse
 	}
@@ -315,7 +320,7 @@ func (gc *GMClient) HandleMatrixReaction(ctx context.Context, msg *bridgev2.Matr
 		SIMPayload:   gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, wrapSendError(err)
 	} else if !resp.Success {
 		return nil, ErrNonSuccessResponse
 	}
@@ -336,7 +341,7 @@ func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev
 		Action:       gmproto.SendReactionRequest_REMOVE,
 	})
 	if err != nil {
-		return err
+		return wrapSendError(err)
 	} else if !resp.Success {
 		return ErrNonSuccessResponse
 	}
@@ -423,7 +428,7 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 	}
 	phone, alreadyDeleted, err := gc.findPhoneForConversation(ctx, chat.Portal, convID)
 	if err != nil {
-		return err
+		return wrapSendError(err)
 	} else if alreadyDeleted {
 		zerolog.Ctx(ctx).Debug().
 			Str("conversation_id", convID).
@@ -435,17 +440,28 @@ func (gc *GMClient) HandleMatrixDeleteChat(ctx context.Context, chat *bridgev2.M
 			Msg("Phone number not available for conversation, attempting delete without it")
 	}
 	if err = gc.Client.DeleteConversation(ctx, convID, phone); err != nil {
-		return err
+		return wrapSendError(err)
 	}
 	return nil
 }
+
+var ErrReportSpamWithoutBlock = bridgev2.WrapErrorInStatus(errors.New("spam reporting requires blocking the user")).
+	WithMessage("reporting spam without blocking isn't supported on Google Messages").
+	WithErrorReason(event.MessageStatusUnsupported).
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true)
+
+var ErrConversationNotOnPhone = bridgev2.WrapErrorInStatus(errors.New("conversation not found on phone")).
+	WithMessage("this chat no longer exists on your phone").
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true)
 
 func (gc *GMClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev2.MatrixBlockUser) error {
 	if gc.Client == nil {
 		return bridgev2.ErrNotLoggedIn
 	}
 	if msg.Content.ReportSpam && !msg.Content.Block {
-		return fmt.Errorf("spam reporting requires blocking the user")
+		return ErrReportSpamWithoutBlock
 	}
 	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
 	if err != nil {
@@ -462,9 +478,9 @@ func (gc *GMClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev2.Mat
 	}
 	phone, alreadyDeleted, err := gc.findPhoneForConversation(ctx, msg.Portal, convID)
 	if err != nil {
-		return err
+		return wrapSendError(err)
 	} else if alreadyDeleted {
-		return fmt.Errorf("conversation not found on phone")
+		return ErrConversationNotOnPhone
 	} else if phone == "" {
 		zerolog.Ctx(ctx).Warn().
 			Str("conversation_id", convID).
@@ -480,10 +496,10 @@ func (gc *GMClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev2.Mat
 		}},
 	})
 	if err != nil {
-		return err
+		return wrapSendError(err)
 	}
 	if !resp.GetSuccess() {
-		return fmt.Errorf("conversation update returned non-success status")
+		return ErrNonSuccessResponse
 	}
 	return nil
 }

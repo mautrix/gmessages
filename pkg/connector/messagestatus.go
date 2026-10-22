@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/event"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
@@ -68,7 +69,16 @@ func wrapStatusInError(status gmproto.MessageStatusType) error {
 		return nil
 	}
 	errCode := errors.New(strings.TrimPrefix(status.String(), "OUTGOING_"))
-	return bridgev2.WrapErrorInStatus(errCode).
+	msgStatus := bridgev2.WrapErrorInStatus(errCode).
 		WithMessage(errorMessage).
+		WithIsCertain(true).
 		WithSendNotice(true)
+	switch status {
+	case gmproto.MessageStatusType_OUTGOING_FAILED_TOO_LARGE:
+		msgStatus = msgStatus.WithErrorReason(event.MessageStatusUnsupported).WithStatus(event.MessageStatusFail)
+	case gmproto.MessageStatusType_OUTGOING_FAILED_NO_RETRY_NO_FALLBACK,
+		gmproto.MessageStatusType_OUTGOING_FAILED_EMERGENCY_NUMBER:
+		msgStatus = msgStatus.WithStatus(event.MessageStatusFail)
+	}
+	return msgStatus
 }
