@@ -476,7 +476,7 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)
-	case errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusUnauthorized || httpErr.Resp.StatusCode == http.StatusForbidden):
+	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		go gc.invalidateSession(ctx, state, false, true)
 	default:
