@@ -111,12 +111,12 @@ func (m *MessageMetadata) IsSMSOrMMS() bool {
 
 type UserLoginMetadata struct {
 	lock               sync.RWMutex
-	Session            *libgm.AuthData
-	selfParticipantIDs []string
-	simMetadata        map[string]*gmproto.SIMCard
-	Settings           UserSettings
-	IDPrefix           string
-	PushKeys           *PushKeys
+	Session            *libgm.AuthData             `json:"session"`
+	SelfParticipantIDs []string                    `json:"self_participant_ids"`
+	SIMMetadata        map[string]*gmproto.SIMCard `json:"sim_metadata"`
+	Settings           UserSettings                `json:"settings"`
+	IDPrefix           string                      `json:"id_prefix"`
+	PushKeys           *PushKeys                   `json:"push_keys"`
 }
 
 type PushKeys struct {
@@ -169,14 +169,7 @@ type bridgeStateSIMMeta struct {
 	PhoneNumber   string `json:"phone_number"`
 }
 
-type serializableUserLoginMetadata struct {
-	Session            *libgm.AuthData             `json:"session"`
-	SelfParticipantIDs []string                    `json:"self_participant_ids"`
-	SimMetadata        map[string]*gmproto.SIMCard `json:"sim_metadata"`
-	Settings           UserSettings                `json:"settings"`
-	IDPrefix           string                      `json:"id_prefix"`
-	PushKeys           *PushKeys                   `json:"push_keys"`
-}
+type serializableUserLoginMetadata UserLoginMetadata
 
 func (ulm *UserLoginMetadata) CopyFrom(other any) {
 	otherULM, ok := other.(*UserLoginMetadata)
@@ -189,31 +182,23 @@ func (ulm *UserLoginMetadata) CopyFrom(other any) {
 func (ulm *UserLoginMetadata) MarshalJSON() ([]byte, error) {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
-	return json.Marshal(serializableUserLoginMetadata{
-		Session:            ulm.Session,
-		SelfParticipantIDs: ulm.selfParticipantIDs,
-		SimMetadata:        ulm.simMetadata,
-		Settings:           ulm.Settings,
-		IDPrefix:           ulm.IDPrefix,
-		PushKeys:           ulm.PushKeys,
-	})
+	return json.Marshal((*serializableUserLoginMetadata)(ulm))
 }
 
 func (ulm *UserLoginMetadata) UnmarshalJSON(data []byte) error {
-	var sulm serializableUserLoginMetadata
-	err := json.Unmarshal(data, &sulm)
-	if err != nil {
-		return err
-	}
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
-	ulm.Session = sulm.Session
-	ulm.selfParticipantIDs = sulm.SelfParticipantIDs
-	ulm.simMetadata = sulm.SimMetadata
-	ulm.Settings = sulm.Settings
-	ulm.IDPrefix = sulm.IDPrefix
-	ulm.PushKeys = sulm.PushKeys
-	return nil
+	ulm.clearUnlocked()
+	return json.Unmarshal(data, (*serializableUserLoginMetadata)(ulm))
+}
+
+func (ulm *UserLoginMetadata) clearUnlocked() {
+	ulm.Session = nil
+	ulm.SelfParticipantIDs = nil
+	ulm.SIMMetadata = nil
+	ulm.Settings = UserSettings{}
+	ulm.IDPrefix = ""
+	ulm.PushKeys = nil
 }
 
 func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
@@ -222,8 +207,8 @@ func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
 	}
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
-	if !slices.Contains(ulm.selfParticipantIDs, id) {
-		ulm.selfParticipantIDs = append(ulm.selfParticipantIDs, id)
+	if !slices.Contains(ulm.SelfParticipantIDs, id) {
+		ulm.SelfParticipantIDs = append(ulm.SelfParticipantIDs, id)
 		return true
 	}
 	return false
@@ -232,20 +217,20 @@ func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
 func (ulm *UserLoginMetadata) IsSelfParticipantID(id string) bool {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
-	return slices.Contains(ulm.selfParticipantIDs, id)
+	return slices.Contains(ulm.SelfParticipantIDs, id)
 }
 
 func (ulm *UserLoginMetadata) SIMCount() int {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
-	return len(ulm.simMetadata)
+	return len(ulm.SIMMetadata)
 }
 
 func (ulm *UserLoginMetadata) GetSIMsForBridgeState() []bridgeStateSIMMeta {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
-	data := make([]bridgeStateSIMMeta, 0, len(ulm.simMetadata))
-	for _, sim := range ulm.simMetadata {
+	data := make([]bridgeStateSIMMeta, 0, len(ulm.SIMMetadata))
+	for _, sim := range ulm.SIMMetadata {
 		data = append(data, bridgeStateSIMMeta{
 			CarrierName:   sim.GetSIMData().GetCarrierName(),
 			ColorHex:      sim.GetSIMData().GetColorHex(),
@@ -263,13 +248,13 @@ func (ulm *UserLoginMetadata) GetSIMsForBridgeState() []bridgeStateSIMMeta {
 func (ulm *UserLoginMetadata) GetSIMs() []*gmproto.SIMCard {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
-	return maps.Values(ulm.simMetadata)
+	return maps.Values(ulm.SIMMetadata)
 }
 
 func (ulm *UserLoginMetadata) GetSIM(participantID string) *gmproto.SIMCard {
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
-	return ulm.simMetadata[participantID]
+	return ulm.SIMMetadata[participantID]
 }
 
 func (ulm *UserLoginMetadata) SetSIMs(sims []*gmproto.SIMCard) bool {
@@ -280,13 +265,13 @@ func (ulm *UserLoginMetadata) SetSIMs(sims []*gmproto.SIMCard) bool {
 	for _, sim := range sims {
 		participantID := sim.GetSIMParticipant().GetID()
 		newMap[sim.GetSIMParticipant().GetID()] = sim
-		if !slices.Contains(ulm.selfParticipantIDs, participantID) {
-			ulm.selfParticipantIDs = append(ulm.selfParticipantIDs, participantID)
+		if !slices.Contains(ulm.SelfParticipantIDs, participantID) {
+			ulm.SelfParticipantIDs = append(ulm.SelfParticipantIDs, participantID)
 			participantIDsChanged = true
 		}
 	}
-	oldMap := ulm.simMetadata
-	ulm.simMetadata = newMap
+	oldMap := ulm.SIMMetadata
+	ulm.SIMMetadata = newMap
 	if participantIDsChanged || len(newMap) != len(oldMap) {
 		return true
 	}

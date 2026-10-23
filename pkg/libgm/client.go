@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -48,6 +49,14 @@ type AuthData struct {
 
 	Cookies     map[string]string `json:"cookies,omitempty"`
 	CookiesLock sync.RWMutex      `json:"-"`
+}
+
+type marshalableAuthData AuthData
+
+func (ad *AuthData) MarshalJSON() ([]byte, error) {
+	ad.CookiesLock.RLock()
+	defer ad.CookiesLock.RUnlock()
+	return json.Marshal((*marshalableAuthData)(ad))
 }
 
 func (ad *AuthData) SetCookies(cookies map[string]string) {
