@@ -615,7 +615,7 @@ func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background 
 	defer rc.Close()
 	c.disconnecting = false
 	reader := bufio.NewReader(rc)
-	buf := make([]byte, 2621440)
+	buf := make([]byte, 32*1024)
 	var accumulatedData []byte
 	n, err := reader.Read(buf[:2])
 	if err != nil {
