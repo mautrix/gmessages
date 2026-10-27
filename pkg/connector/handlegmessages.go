@@ -678,6 +678,18 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 	for _, part := range converted.Parts {
 		if existingPart, ok := existingPartMap[part.ID]; ok {
 			delete(existingPartMap, part.ID)
+			oldMeta := existingPart.Metadata.(*MessageMetadata)
+			newMeta := part.DBMetadata.(*MessageMetadata)
+			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending {
+				zerolog.Ctx(ctx).Debug().
+					Str("part_id", string(part.ID)).
+					Str("old_media_id", oldMeta.MediaID).
+					Str("new_media_id", newMeta.MediaID).
+					Msg("Not replacing already bridged media with unavailable update")
+				newMeta.MediaID = oldMeta.MediaID
+				newMeta.MediaPending = false
+				part.DontBridge = true
+			}
 			editPart := part.ToEditPart(existingPart)
 			if editPart.TopLevelExtra == nil {
 				editPart.TopLevelExtra = make(map[string]any)
