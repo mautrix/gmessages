@@ -680,7 +680,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			delete(existingPartMap, part.ID)
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
-			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending {
+			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && oldMeta.TextHash == newMeta.TextHash {
 				zerolog.Ctx(ctx).Debug().
 					Str("part_id", string(part.ID)).
 					Str("old_media_id", oldMeta.MediaID).
@@ -1500,7 +1500,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	if allowMergeCaption && textPart != nil && cm.MergeCaption() {
 		cm.Parts[0].ID = ""
 		mergedMeta := cm.Parts[0].DBMetadata.(*MessageMetadata)
-		textMeta := cm.Parts[0].DBMetadata.(*MessageMetadata)
+		textMeta := textPart.DBMetadata.(*MessageMetadata)
 		mergedMeta.GlobalMediaStatus = textMeta.GlobalMediaStatus
 		mergedMeta.GlobalPartCount = textMeta.GlobalPartCount
 		mergedMeta.TextHash = textMeta.TextHash
