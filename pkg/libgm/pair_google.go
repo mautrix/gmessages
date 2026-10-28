@@ -285,9 +285,11 @@ var (
 	ErrPairingInitTimeout = errors.New("client init timed out")
 	ErrHadMultipleDevices = errors.New("had multiple primary-looking devices")
 	ErrPhoneNotFound      = errors.New("previously paired phone not found for gaia pairing")
+	ErrPhoneInactive      = errors.New("phone hasn't been seen recently")
 )
 
 const GaiaInitTimeout = 20 * time.Second
+const GaiaPhoneInactiveAfter = 48 * time.Hour
 
 type primaryDeviceID struct {
 	RegID      string
@@ -430,7 +432,9 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			err = ErrPairingInitTimeout
-			if len(primaryDevices) > 1 {
+			if !destRegDev.LastSeen.IsZero() && time.Since(destRegDev.LastSeen) > GaiaPhoneInactiveAfter {
+				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrPhoneInactive)
+			} else if len(primaryDevices) > 1 {
 				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrHadMultipleDevices)
 			}
 			return "", nil, err
