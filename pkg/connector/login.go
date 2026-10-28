@@ -52,7 +52,8 @@ const (
 
 const (
 	pairingErrMsgNoDevices          = "No devices found. Make sure you've enabled account pairing in the Google Messages app on your phone."
-	pairingErrPhoneNotResponding    = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations. Alternatively, try QR pairing"
+	pairingErrPhoneNotResponding    = "Phone not responding. Make sure your phone is connected to the internet and that account pairing is enabled in the Google Messages app. You may need to keep the app open and/or disable battery optimizations."
+	pairingErrMsgPhoneInactive      = "Google Messages on your phone hasn't connected to this Google account recently. Open Google Messages on your phone, tap your profile picture, then Device pairing, and make sure it's signed in with the same Google account. Then try again."
 	pairingErrMsgPhoneNotFound      = "Your phone isn't ready for pairing. Open Google Messages on your phone, then try again. If you switched to a different phone, remove this account and add it again."
 	pairingErrMsgIncorrectEmoji     = "Incorrect emoji chosen on phone, please try again"
 	pairingErrMsgCallerNoPermission = "That Google Account doesn't seem to have permission to use Google Messages for Web"
@@ -68,6 +69,7 @@ var (
 	ErrPairNoDevices          = bridgev2.RespError{Err: pairingErrMsgNoDevices, ErrCode: "FI.MAU.GMESSAGES.PAIR_NO_DEVICES", StatusCode: http.StatusBadRequest}
 	ErrPairPhoneNotResponding = bridgev2.RespError{Err: pairingErrPhoneNotResponding, ErrCode: "FI.MAU.GMESSAGES.PAIR_INIT_TIMEOUT", StatusCode: http.StatusBadRequest}
 	ErrPairPhoneNotFound      = bridgev2.RespError{Err: pairingErrMsgPhoneNotFound, ErrCode: "FI.MAU.GMESSAGES.PAIR_PHONE_NOT_FOUND", StatusCode: http.StatusBadRequest}
+	ErrPairPhoneInactive      = bridgev2.RespError{Err: pairingErrMsgPhoneInactive, ErrCode: "FI.MAU.GMESSAGES.PAIR_PHONE_INACTIVE", StatusCode: http.StatusBadRequest}
 	ErrPairIncorrectEmoji     = bridgev2.RespError{Err: pairingErrMsgIncorrectEmoji, ErrCode: "FI.MAU.GMESSAGES.PAIR_INCORRECT_EMOJI", StatusCode: http.StatusBadRequest}
 	ErrPairCancelled          = bridgev2.RespError{Err: pairingErrMsgCancelled, ErrCode: "FI.MAU.GMESSAGES.PAIR_CANCELLED", StatusCode: http.StatusBadRequest}
 	ErrPairTimeout            = bridgev2.RespError{Err: pairingErrMsgTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_TIMEOUT", StatusCode: http.StatusBadRequest}
@@ -373,6 +375,8 @@ func (gl *GoogleLoginProcess) submitWithAuthData(ctx context.Context, ad *libgm.
 			return nil, ErrPairNoDevices
 		case errors.Is(err, libgm.ErrPhoneNotFound):
 			return nil, ErrPairPhoneNotFound
+		case errors.Is(err, libgm.ErrPhoneInactive):
+			return nil, ErrPairPhoneInactive
 		case errors.Is(err, libgm.ErrPairingInitTimeout):
 			return nil, ErrPairPhoneNotResponding
 		case errors.Is(err, events.ErrCallerNoPermission):
