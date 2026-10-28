@@ -432,7 +432,7 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			err = ErrPairingInitTimeout
-			if !destRegDev.LastSeen.IsZero() && time.Since(destRegDev.LastSeen) > GaiaPhoneInactiveAfter {
+			if destRegDev.LastSeen.Unix() > 0 && time.Since(destRegDev.LastSeen) > GaiaPhoneInactiveAfter {
 				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrPhoneInactive)
 			} else if len(primaryDevices) > 1 {
 				err = fmt.Errorf("%w (%w)", ErrPairingInitTimeout, ErrHadMultipleDevices)
