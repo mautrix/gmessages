@@ -437,6 +437,7 @@ func mergeSettings(old UserSettings, settings *gmproto.Settings) UserSettings {
 }
 
 func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settings) {
+	gc.phoneHasNoSIM.Store(settings.SIMCards == nil)
 	if settings.SIMCards == nil {
 		return
 	}

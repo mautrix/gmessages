@@ -21,6 +21,7 @@ import (
 )
 
 const PhoneNotRespondingMessage = "Your Google Messages app is not responding. Open the Google Messages app on your phone, ensure messages send, and battery optimization is off. If needed, remove and re-add the connection."
+const NoSIMMessage = "Google Messages on your phone isn't reporting a SIM card. If you moved your SIM to another phone, re-link the connection from that phone."
 
 const (
 	GMListenError               status.BridgeStateErrorCode = "gm-listen-error"

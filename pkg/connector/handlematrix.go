@@ -106,6 +106,8 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			WithIsCertain(!isTransientSendFailure(resp.Status)).WithSendNotice(true).WithErrorAsMessage()
 		if rse.needsUserAction() {
 			msgStatus = msgStatus.WithStatus(event.MessageStatusFail)
+		} else if resp.Status == gmproto.SendMessageResponse_FAILURE_2 && gc.phoneHasNoSIM.Load() {
+			msgStatus = msgStatus.WithMessage(NoSIMMessage)
 		}
 		return nil, msgStatus
 	}
