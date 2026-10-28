@@ -184,7 +184,14 @@ func (c *Client) deduplicateUpdate(id string, msg *IncomingRPCMessage) bool {
 func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	msg, err := c.decryptInternalMessage(rawMsg)
 	if err != nil {
-		c.Logger.Err(err).Str("message_id", rawMsg.ResponseID).Msg("Failed to decode incoming RPC message")
+		c.Logger.Err(err).
+			Str("message_id", rawMsg.ResponseID).
+			Stringer("bugle_route", rawMsg.BugleRoute).
+			Stringer("message_type", rawMsg.MessageType).
+			Bool("google_account", c.AuthData.IsGoogleAccount()).
+			Bool("mobile_matches", rawMsg.GetMobile().GetSourceID() == c.AuthData.Mobile.GetSourceID()).
+			Bool("browser_matches", rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID()).
+			Msg("Failed to decode incoming RPC message")
 		c.sessionHandler.queueMessageAck(rawMsg.ResponseID)
 		return
 	}
