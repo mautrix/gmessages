@@ -289,7 +289,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	// bad credentials synchronously.
 	err := c.refreshAuthToken(nil)
 	if err != nil {
-		if isFatalRefreshError(err) {
+		if IsFatalRefreshError(err) {
 			return fmt.Errorf("failed to refresh auth token: %w", err)
 		}
 		c.Logger.Warn().Err(err).Msg("Transient error refreshing auth token on connect, will retry in long polling loop")
@@ -509,7 +509,7 @@ func (c *Client) RegisterPush(ctx context.Context, keys *PushKeys) error {
 	return nil
 }
 
-func isFatalRefreshError(err error) bool {
+func IsFatalRefreshError(err error) bool {
 	if errors.Is(err, events.ErrInvalidCredentials) || errors.Is(err, events.ErrRequestedEntityNotFound) {
 		return true
 	}
