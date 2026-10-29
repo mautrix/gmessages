@@ -167,6 +167,22 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		return fetchResp, nil
 	}
 	fetchResp.HasMore = true
+	if params.Forward && params.AnchorMessage == nil {
+		newestMsg := fetchResp.Messages[len(fetchResp.Messages)-1]
+		existing, err := gc.Main.br.DB.Message.GetFirstPartByID(ctx, gc.UserLogin.ID, newestMsg.ID)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to check if newest backfill message is already bridged")
+		} else if existing != nil && existing.Room != params.Portal.PortalKey {
+			zerolog.Ctx(ctx).Warn().
+				Str("message_id", string(newestMsg.ID)).
+				Str("conversation_id", convID).
+				Str("message_conversation_id", lastRawMsg.GetConversationID()).
+				Str("existing_portal_id", string(existing.Room.ID)).
+				Time("existing_message_ts", existing.Timestamp).
+				Int("message_count", len(fetchResp.Messages)).
+				Msg("Initial forward backfill returned a message that is already bridged in another portal")
+		}
+	}
 	if params.Forward {
 		fetchResp.AggressiveDeduplication = params.AnchorMessage != nil
 		gc.conversationMetaLock.Lock()
