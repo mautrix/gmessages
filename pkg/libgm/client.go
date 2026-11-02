@@ -377,6 +377,7 @@ func (c *Client) Disconnect() {
 		return
 	}
 	c.closeLongPolling()
+	c.sessionHandler.stopAckInterval()
 	// Fail any requests that are still waiting for a response from the phone:
 	// the responses are delivered over the long polling connection, so they can
 	// never arrive after it has been torn down.
