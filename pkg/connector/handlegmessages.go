@@ -687,6 +687,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 					Str("new_media_id", newMeta.MediaID).
 					Msg("Not replacing already bridged media with unavailable update")
 				newMeta.MediaID = oldMeta.MediaID
+				newMeta.MediaKey, newMeta.MediaMIME = oldMeta.MediaKey, oldMeta.MediaMIME
 				newMeta.MediaPending = false
 				part.DontBridge = true
 			}
@@ -1469,7 +1470,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				MsgType: event.MsgNotice,
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
-		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
+		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, m.MessageID, data.MediaContent, dbMeta); err != nil {
 			dbMeta.MediaPending = true
 			dbMeta.MediaID = mediaID
 			log.Err(err).Msg("Failed to copy attachment")
@@ -1520,8 +1521,15 @@ func (gc *GMClient) convertGoogleMedia(
 	ctx context.Context,
 	portal *bridgev2.Portal,
 	intent bridgev2.MatrixAPI,
+	messageID string,
 	msg *gmproto.MediaContent,
+	dbMeta *MessageMetadata,
 ) (content *event.MessageEventContent, mediaID string, isThumbnail bool, mainErr error) {
+	if gc.Main.directMedia && msg.MediaID != "" && dbMeta.MediaPartID != "" {
+		if direct := gc.convertDirectMedia(ctx, portal, messageID, msg, dbMeta); direct != nil {
+			return direct, msg.MediaID, false, nil
+		}
+	}
 	content = &event.MessageEventContent{
 		MsgType: event.MsgFile,
 		Body:    msg.MediaName,
