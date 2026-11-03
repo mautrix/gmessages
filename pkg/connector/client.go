@@ -153,6 +153,13 @@ func (gc *GMClient) Connect(ctx context.Context) {
 			UserAction: status.UserActionRelogin,
 		})
 		return
+	} else if gc.Meta.Session.TachyonAuthToken == nil {
+		gc.UserLogin.BridgeState.Send(status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMNotLoggedIn,
+			UserAction: status.UserActionRelogin,
+		})
+		return
 	}
 	err := gc.Client.FetchConfig(ctx)
 	if err != nil {
