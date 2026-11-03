@@ -10,14 +10,15 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/util/exmime"
 	"go.mau.fi/util/ffmpeg"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/mediaproxy"
+
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
 var _ bridgev2.DirectMediableNetwork = (*GMConnector)(nil)
