@@ -657,9 +657,8 @@ const MaxDelayForNewMessagePart = 24 * time.Hour
 
 func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (*bridgev2.ConvertedEdit, error) {
 	converted := m.g.ConvertGoogleMessage(ctx, portal, intent, m.WrappedMessage, len(existing) == 1)
-	if converted == nil {
-		zerolog.Ctx(ctx).Warn().Msg("Didn't get converted parts for updated event")
-		return nil, nil
+	if converted == nil || len(converted.Parts) == 0 {
+		return nil, fmt.Errorf("%w: didn't get converted parts for updated event", bridgev2.ErrIgnoringRemoteEvent)
 	}
 	existingPartMap := make(map[networkid.PartID]*database.Message)
 	for _, msg := range existing {
