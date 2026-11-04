@@ -23,9 +23,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix"
@@ -112,29 +110,25 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 	} else if !bytes.Equal(hashGoogleMediaID(meta.MediaID), mediaHash) {
 		return nil, mautrix.MNotFound.WithMessage("Version mismatch, media was likely replaced")
 	}
-	return &mediaproxy.GetMediaResponseFile{
-		Callback: func(f *os.File) (*mediaproxy.FileMeta, error) {
-			data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
-			var httpErr events.HTTPError
-			if errors.As(err, &httpErr) {
-				switch httpErr.Resp.StatusCode {
-				case http.StatusNotFound, http.StatusGone:
-					return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
-				case http.StatusUnauthorized, http.StatusForbidden:
-					return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
-				case http.StatusTooManyRequests:
-					return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
-				default:
-					return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
-				}
-			} else if err != nil {
-				return nil, err
-			}
-			defer data.Close()
-			if _, err = io.Copy(f, data); err != nil {
-				return nil, fmt.Errorf("failed to download media: %w", err)
-			}
-			return &mediaproxy.FileMeta{ContentType: meta.MediaMIME}, nil
-		},
+	data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusNotFound, http.StatusGone:
+			return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
+		case http.StatusTooManyRequests:
+			return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
+		default:
+			return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
+		}
+	} else if err != nil {
+		return nil, err
+	}
+	return &mediaproxy.GetMediaResponseData{
+		Reader:        data,
+		ContentType:   meta.MediaMIME,
+		ContentLength: -1,
 	}, nil
 }
