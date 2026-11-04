@@ -26,5 +26,5 @@ repos:
       - id: zerolog-ban-msgf
       - id: zerolog-use-stringer
       - id: bridgelint
-        language_version: '1.27.3'
+        language: system
         verbose: true
