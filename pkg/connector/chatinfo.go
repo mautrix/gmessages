@@ -57,6 +57,8 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 	conv, err := gc.Client.GetConversation(ctx, conversationID)
 	if err != nil {
 		return nil, err
+	} else if conv == nil {
+		return nil, fmt.Errorf("conversation not found")
 	}
 	gc.chatInfoCache.Set(conversationID, conv)
 	switch conv.GetStatus() {
