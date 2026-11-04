@@ -43,7 +43,7 @@ func hashGoogleMediaID(mediaID string) []byte {
 }
 
 func encodeDirectMediaID(login networkid.UserLoginID, messageID, actionMessageID, mediaID string) networkid.MediaID {
-	data := binary.AppendUvarint(nil, uint64(len(login)))
+	data := binary.AppendUvarint([]byte{1}, uint64(len(login)))
 	data = append(data, login...)
 	data = binary.AppendUvarint(data, uint64(len(messageID)))
 	data = append(data, messageID...)
@@ -60,7 +60,10 @@ func cutLengthPrefixed(data []byte) (value, rest []byte, ok bool) {
 }
 
 func parseDirectMediaID(data networkid.MediaID) (login networkid.UserLoginID, messageID, actionMessageID string, mediaHash []byte, err error) {
-	loginBytes, rest, ok := cutLengthPrefixed(data)
+	if len(data) == 0 || data[0] != 1 {
+		return "", "", "", nil, mediaproxy.ErrInvalidMediaIDSyntax
+	}
+	loginBytes, rest, ok := cutLengthPrefixed(data[1:])
 	if !ok {
 		return "", "", "", nil, mediaproxy.ErrInvalidMediaIDSyntax
 	}

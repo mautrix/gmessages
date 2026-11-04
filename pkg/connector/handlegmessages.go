@@ -687,7 +687,9 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 					Str("new_media_id", newMeta.MediaID).
 					Msg("Not replacing already bridged media with unavailable update")
 				newMeta.MediaID = oldMeta.MediaID
-				newMeta.MediaKey, newMeta.MediaMIME = oldMeta.MediaKey, oldMeta.MediaMIME
+				if m.g.Main.directMedia {
+					newMeta.MediaKey, newMeta.MediaMIME = oldMeta.MediaKey, oldMeta.MediaMIME
+				}
 				newMeta.MediaPending = false
 				part.DontBridge = true
 			}
