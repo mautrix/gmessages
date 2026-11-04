@@ -1486,7 +1486,8 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				Str("part_id", part.GetActionMessageID()).
 				Str("media_id", mediaID).
 				Bool("is_thumbnail", isThumbnail).
-				Msg("Reuploaded media from Google Messages")
+				Bool("direct_media", len(dbMeta.MediaKey) > 0).
+				Msg("Converted media from Google Messages")
 			if isThumbnail {
 				go gc.requestFullMedia(ctx, m.MessageID, part.GetActionMessageID())
 			}
@@ -1527,11 +1528,6 @@ func (gc *GMClient) convertGoogleMedia(
 	msg *gmproto.MediaContent,
 	dbMeta *MessageMetadata,
 ) (content *event.MessageEventContent, mediaID string, isThumbnail bool, mainErr error) {
-	if gc.Main.directMedia && msg.MediaID != "" && dbMeta.MediaPartID != "" {
-		if direct := gc.convertDirectMedia(ctx, portal, messageID, msg, dbMeta); direct != nil {
-			return direct, msg.MediaID, false, nil
-		}
-	}
 	content = &event.MessageEventContent{
 		MsgType: event.MsgFile,
 		Body:    msg.MediaName,
@@ -1563,6 +1559,19 @@ func (gc *GMClient) convertGoogleMedia(
 			needAudioConvert = true
 		}
 		content.MSC3245Voice = &event.MSC3245Voice{}
+	}
+	if gc.Main.directMedia && msg.MediaID != "" && dbMeta.MediaPartID != "" && content.Info.MimeType != "" && !needAudioConvert {
+		directID := encodeDirectMediaID(gc.UserLogin.ID, messageID, dbMeta.MediaPartID, msg.MediaID)
+		content.URL, content.File, mainErr = portal.Bridge.GenerateContentURI(ctx, portal.MXID, directID)
+		if mainErr == nil {
+			dbMeta.MediaKey, dbMeta.MediaMIME = msg.DecryptionKey, content.Info.MimeType
+			content.Info.Size = int(msg.Size)
+			if !strings.ContainsRune(content.Body, '.') {
+				content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
+			}
+			return content, msg.MediaID, false, nil
+		}
+		zerolog.Ctx(ctx).Warn().Err(mainErr).Msg("Failed to generate direct media URI, falling back to reupload")
 	}
 	requireFile := content.Info.MimeType == "" || needAudioConvert
 	content.URL, content.File, mainErr = intent.UploadMediaStream(ctx, portal.MXID, msg.Size, requireFile, func(file io.Writer) (*bridgev2.FileStreamResult, error) {

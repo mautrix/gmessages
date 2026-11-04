@@ -1,3 +1,19 @@
+// mautrix-gmessages - A Matrix-Google Messages puppeting bridge.
+// Copyright (C) 2026 Tulir Asokan
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package connector
 
 import (
@@ -6,36 +22,27 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"mime"
-	"strings"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
 
 	"github.com/rs/zerolog"
-	"go.mau.fi/util/exmime"
-	"go.mau.fi/util/ffmpeg"
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
-	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/mediaproxy"
 
-	"go.mau.fi/mautrix-gmessages/pkg/libgm"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 )
 
 var _ bridgev2.DirectMediableNetwork = (*GMConnector)(nil)
 
-func (gc *GMConnector) SetUseDirectMedia() { gc.directMedia = true }
-
-func mediaMIME(msg *gmproto.MediaContent) string {
-	typ, _, err := mime.ParseMediaType(msg.MimeType)
-	if err == nil && strings.ContainsRune(typ, '/') && typ != "application/octet-stream" && !strings.ContainsRune(typ, '*') {
-		return typ
-	}
-	return libgm.FormatToMediaType[msg.GetFormat()].Format
+func (gc *GMConnector) SetUseDirectMedia() {
+	gc.directMedia = true
 }
 
 const mediaHashLength = 4
-
-var errDirectMediaNotFound = errors.New("media not found")
 
 func hashGoogleMediaID(mediaID string) []byte {
 	hash := sha256.Sum256([]byte(mediaID))
@@ -79,62 +86,55 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 	if err != nil {
 		return nil, err
 	}
+	zerolog.Ctx(ctx).Debug().
+		Str("login_id", string(loginID)).
+		Str("message_id", messageID).
+		Str("part_id", actionMessageID).
+		Msg("Direct downloading media")
 	login, err := gc.br.GetExistingUserLoginByID(ctx, loginID)
 	if err != nil {
-		return nil, err
-	}
-	if login == nil || !login.Client.IsLoggedIn() {
+		return nil, fmt.Errorf("failed to get user login: %w", err)
+	} else if login == nil || !login.Client.IsLoggedIn() {
 		return nil, bridgev2.ErrNotLoggedIn
 	}
 	client := login.Client.(*GMClient)
 	parts, err := gc.br.DB.Message.GetAllPartsByID(ctx, loginID, client.MakeMessageID(messageID))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 	part := DBMessages(parts).findMediaPart(actionMessageID)
 	if part == nil {
-		return nil, errDirectMediaNotFound
+		return nil, mautrix.MNotFound.WithMessage("Message not found")
 	}
 	meta := part.Metadata.(*MessageMetadata)
-	if len(meta.MediaKey) == 0 || !bytes.Equal(hashGoogleMediaID(meta.MediaID), mediaHash) {
-		return nil, errDirectMediaNotFound
+	if len(meta.MediaKey) == 0 {
+		return nil, mautrix.MNotFound.WithMessage("Message doesn't have direct media metadata")
+	} else if !bytes.Equal(hashGoogleMediaID(meta.MediaID), mediaHash) {
+		return nil, mautrix.MNotFound.WithMessage("Version mismatch, media was likely replaced")
 	}
-	data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
-	if err != nil {
-		return nil, err
-	}
-	return &mediaproxy.GetMediaResponseData{Reader: data, ContentType: meta.MediaMIME, ContentLength: -1}, nil
-}
-
-func (gc *GMClient) convertDirectMedia(ctx context.Context, portal *bridgev2.Portal, messageID string, msg *gmproto.MediaContent, dbMeta *MessageMetadata) *event.MessageEventContent {
-	mimeType := mediaMIME(msg)
-	if mimeType == "" || len(msg.DecryptionKey) != 32 {
-		return nil
-	}
-	content := &event.MessageEventContent{MsgType: event.MsgFile, Body: msg.MediaName, Info: &event.FileInfo{MimeType: mimeType, Size: int(msg.Size)}}
-	mediaClass, _, _ := strings.Cut(mimeType, "/")
-	switch mediaClass {
-	case "image":
-		content.MsgType = event.MsgImage
-	case "video":
-		content.MsgType = event.MsgVideo
-	case "audio":
-		if mimeType != "audio/ogg" && ffmpeg.Supported() {
-			return nil
-		}
-		content.MsgType = event.MsgAudio
-		content.MSC3245Voice = &event.MSC3245Voice{}
-	}
-	directID := encodeDirectMediaID(gc.UserLogin.ID, messageID, dbMeta.MediaPartID, msg.MediaID)
-	var err error
-	content.URL, content.File, err = portal.Bridge.GenerateContentURI(ctx, portal.MXID, directID)
-	if err != nil {
-		zerolog.Ctx(ctx).Debug().Err(err).Msg("Failed to generate direct media URI, falling back to upload")
-		return nil
-	}
-	dbMeta.MediaKey, dbMeta.MediaMIME = msg.DecryptionKey, mimeType
-	if !strings.ContainsRune(content.Body, '.') {
-		content.Body += exmime.ExtensionFromMimetype(mimeType)
-	}
-	return content
+	return &mediaproxy.GetMediaResponseFile{
+		Callback: func(f *os.File) (*mediaproxy.FileMeta, error) {
+			data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+			var httpErr events.HTTPError
+			if errors.As(err, &httpErr) {
+				switch httpErr.Resp.StatusCode {
+				case http.StatusNotFound, http.StatusGone:
+					return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
+				case http.StatusUnauthorized, http.StatusForbidden:
+					return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
+				case http.StatusTooManyRequests:
+					return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
+				default:
+					return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
+				}
+			} else if err != nil {
+				return nil, err
+			}
+			defer data.Close()
+			if _, err = io.Copy(f, data); err != nil {
+				return nil, fmt.Errorf("failed to download media: %w", err)
+			}
+			return &mediaproxy.FileMeta{ContentType: meta.MediaMIME}, nil
+		},
+	}, nil
 }

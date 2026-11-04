@@ -294,6 +294,10 @@ func (c *Client) DownloadMedia(ctx context.Context, mediaID string, key []byte) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		_ = res.Body.Close()
+		return nil, events.HTTPError{Action: "downloading media", Resp: res}
+	}
 	return cryptor.DecryptStream(res.Body), nil
 }
 
