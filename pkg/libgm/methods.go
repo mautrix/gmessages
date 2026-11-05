@@ -2,8 +2,11 @@ package libgm
 
 import (
 	"context"
+	"fmt"
 
 	"go.mau.fi/util/ptr"
+	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
@@ -172,9 +175,45 @@ func (c *Client) ackBrowserPresence(ctx context.Context) {
 	}
 }
 
-func (c *Client) GetFullSizeImage(ctx context.Context, messageID, actionMessageID string) (*gmproto.GetFullSizeImageResponse, error) {
+func (c *Client) GetFullSizeImage(ctx context.Context, messageID, actionMessageID string) (*gmproto.Message, error) {
 	payload := &gmproto.GetFullSizeImageRequest{MessageID: messageID, ActionMessageID: actionMessageID}
 	actionType := gmproto.ActionType_GET_FULL_SIZE_IMAGE
 
-	return typedResponse[*gmproto.GetFullSizeImageResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+	response, err := typedResponse[*gmproto.GetFullSizeImageResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+	if err != nil {
+		return nil, err
+	}
+	// Field 1 is message metadata, absent from the generated response schema.
+	data := response.ProtoReflect().GetUnknown()
+	var message *gmproto.Message
+	for len(data) > 0 {
+		number, typ, n := protowire.ConsumeTag(data)
+		if n < 0 {
+			return nil, protowire.ParseError(n)
+		}
+		data = data[n:]
+		if number == 1 {
+			if typ != protowire.BytesType {
+				return nil, fmt.Errorf("invalid full size image response message type: %d", typ)
+			}
+			value, size := protowire.ConsumeBytes(data)
+			if size < 0 {
+				return nil, protowire.ParseError(size)
+			}
+			if message == nil {
+				message = &gmproto.Message{}
+			}
+			if err = (proto.UnmarshalOptions{Merge: true}).Unmarshal(value, message); err != nil {
+				return nil, err
+			}
+			n = size
+		} else {
+			n = protowire.ConsumeFieldValue(number, typ, data)
+			if n < 0 {
+				return nil, protowire.ParseError(n)
+			}
+		}
+		data = data[n:]
+	}
+	return message, nil
 }

@@ -743,9 +743,8 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
 			if m.g.Main.directMedia {
-				if newMeta.MediaID == oldMeta.MediaID {
-					newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
-				}
+				newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
+				newMeta.inheritMediaIDs(oldMeta)
 			}
 			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
 				zerolog.Ctx(ctx).Debug().

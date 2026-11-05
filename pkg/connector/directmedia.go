@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -65,7 +66,16 @@ func (r abortOnMediaReadError) Read(p []byte) (int, error) {
 
 func (m *MessageMetadata) matchesMediaHash(hash []byte) bool {
 	return bytes.Equal(hashGoogleMediaID(m.MediaID), hash) ||
-		(m.RefreshedFromMediaID != "" && bytes.Equal(hashGoogleMediaID(m.RefreshedFromMediaID), hash))
+		(m.RefreshedFromMediaID != "" && bytes.Equal(hashGoogleMediaID(m.RefreshedFromMediaID), hash)) ||
+		slices.ContainsFunc(m.PriorMediaIDs, func(id string) bool { return bytes.Equal(hashGoogleMediaID(id), hash) })
+}
+
+func (m *MessageMetadata) inheritMediaIDs(old *MessageMetadata) {
+	for _, id := range append(slices.Clone(old.PriorMediaIDs), old.MediaID, old.RefreshedFromMediaID) {
+		if id != "" && !slices.Contains(m.PriorMediaIDs, id) {
+			m.PriorMediaIDs = append(m.PriorMediaIDs, id)
+		}
+	}
 }
 
 func hashGoogleMediaID(mediaID string) []byte {
@@ -191,37 +201,62 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 	if err != nil {
 		return nil, err
 	}
-	if _, err = gc.Client.GetFullSizeImage(ctx, messageID, meta.MediaPartID); err != nil {
+	message, err := gc.Client.GetFullSizeImage(ctx, messageID, meta.MediaPartID)
+	if err != nil {
 		return nil, err
 	}
-	for attempt := 0; attempt < 6; attempt++ {
-		if attempt > 0 {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-time.After(2 * time.Second):
-			}
-		}
-		response, err := gc.Client.FetchMessages(ctx, conversationID, 10, &gmproto.Cursor{
-			LastItemTimestamp: part.Timestamp.UnixMilli() + 1,
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, message := range response.GetMessages() {
-			if message.GetMessageID() != messageID {
-				continue
-			}
+	findMedia := func(message *gmproto.Message) *gmproto.MediaContent {
+		if message.GetMessageID() == messageID {
 			for _, info := range message.GetMessageInfo() {
 				media := info.GetMediaContent()
-				if info.GetActionMessageID() != meta.MediaPartID || media.GetMediaID() == "" || media.GetMediaID() == meta.MediaID || len(media.GetDecryptionKey()) != 32 {
-					continue
+				if info.GetActionMessageID() == meta.MediaPartID && media.GetMediaID() != "" && media.GetMediaID() != meta.MediaID && len(media.GetDecryptionKey()) == 32 {
+					return media
 				}
-				return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
 			}
 		}
+		return nil
 	}
-	return nil, nil
+	if media := findMedia(message); media != nil {
+		return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
+	}
+	for {
+		if updated, err := gc.saveRefreshedMedia(ctx, part, nil, mediaHash); updated != nil || err != nil {
+			return updated, err
+		}
+		var cursor *gmproto.Cursor
+		type cursorKey struct {
+			id        string
+			timestamp int64
+		}
+		seen := make(map[cursorKey]bool)
+		for {
+			response, err := gc.Client.FetchMessages(ctx, conversationID, 100, cursor)
+			if err != nil {
+				return nil, err
+			}
+			found := false
+			for _, message := range response.GetMessages() {
+				if media := findMedia(message); media != nil {
+					return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
+				}
+				found = found || message.GetMessageID() == messageID
+			}
+			cursor = response.GetCursor()
+			if found || cursor == nil || len(response.GetMessages()) == 0 {
+				break
+			}
+			key := cursorKey{cursor.LastItemID, cursor.LastItemTimestamp}
+			if seen[key] {
+				break
+			}
+			seen[key] = true
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
 }
 
 func (gc *GMClient) saveRefreshedMedia(ctx context.Context, part *database.Message, media *gmproto.MediaContent, mediaHash []byte) (*MessageMetadata, error) {
@@ -246,6 +281,7 @@ func (gc *GMClient) saveRefreshedMedia(ctx context.Context, part *database.Messa
 	if meta.RefreshedFromMediaID == "" {
 		meta.RefreshedFromMediaID = meta.MediaID
 	}
+	meta.inheritMediaIDs(meta)
 	meta.MediaID, meta.MediaKey = media.MediaID, media.DecryptionKey
 	if err = gc.Main.br.DB.Message.Update(ctx, updated); err != nil {
 		return nil, err
