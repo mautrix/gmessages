@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -48,6 +49,18 @@ const mediaHashLength = 4
 type directMediaPartKey struct {
 	MessageID networkid.MessageID
 	PartID    networkid.PartID
+}
+
+type abortOnMediaReadError struct {
+	io.ReadCloser
+}
+
+func (r abortOnMediaReadError) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
+	if err != nil && err != io.EOF {
+		panic(http.ErrAbortHandler)
+	}
+	return n, err
 }
 
 func (m *MessageMetadata) matchesMediaHash(hash []byte) bool {
@@ -161,7 +174,7 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 	} else if err != nil {
 		return nil, err
 	}
-	return &mediaproxy.GetMediaResponseData{Reader: data, ContentType: meta.MediaMIME}, nil
+	return &mediaproxy.GetMediaResponseData{Reader: abortOnMediaReadError{data}, ContentType: meta.MediaMIME}, nil
 }
 
 func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string, mediaHash []byte) (*MessageMetadata, error) {
@@ -171,9 +184,6 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 	if meta.MediaPartID == "" {
 		return nil, nil
 	}
-	key := directMediaPartKey{part.ID, part.PartID}
-	gc.directMediaOrigins.Store(key, *meta)
-	defer gc.directMediaOrigins.Delete(key)
 	if updated, err := gc.saveRefreshedMedia(ctx, part, nil, mediaHash); updated != nil || err != nil {
 		return updated, err
 	}

@@ -53,7 +53,6 @@ type GMClient struct {
 	fullMediaRequests    *exsync.Set[fullMediaRequestKey]
 	directMediaRefreshes singleflight.Group
 	directMediaLocks     exsync.KeyedMutex[directMediaPartKey]
-	directMediaOrigins   sync.Map
 
 	longPollingError       error
 	browserInactiveType    status.BridgeStateErrorCode
