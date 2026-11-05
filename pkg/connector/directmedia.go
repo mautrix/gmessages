@@ -21,17 +21,21 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/mediaproxy"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
 var _ bridgev2.DirectMediableNetwork = (*GMConnector)(nil)
@@ -107,11 +111,23 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 	meta := part.Metadata.(*MessageMetadata)
 	if len(meta.MediaKey) == 0 {
 		return nil, mautrix.MNotFound.WithMessage("Message doesn't have direct media metadata")
-	} else if !bytes.Equal(hashGoogleMediaID(meta.MediaID), mediaHash) {
+	} else if !bytes.Equal(hashGoogleMediaID(meta.MediaID), mediaHash) &&
+		(meta.RefreshedFromMediaID == "" || !bytes.Equal(hashGoogleMediaID(meta.RefreshedFromMediaID), mediaHash)) {
 		return nil, mautrix.MNotFound.WithMessage("Version mismatch, media was likely replaced")
 	}
 	data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
 	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusNotFound || httpErr.Resp.StatusCode == http.StatusGone) {
+		refreshed, refreshErr := client.refreshDirectMedia(ctx, part, messageID)
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		} else if refreshErr != nil {
+			zerolog.Ctx(ctx).Debug().Err(refreshErr).Msg("Failed to refresh direct media")
+		} else if refreshed != nil {
+			meta = refreshed
+			data, err = client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+		}
+	}
 	if errors.As(err, &httpErr) {
 		switch httpErr.Resp.StatusCode {
 		case http.StatusNotFound, http.StatusGone:
@@ -131,4 +147,79 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 		ContentType:   meta.MediaMIME,
 		ContentLength: -1,
 	}, nil
+}
+
+func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string) (*MessageMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	var original string
+	err := gc.Main.br.DB.QueryRow(ctx, "SELECT metadata FROM message WHERE bridge_id=$1 AND rowid=$2", part.BridgeID, part.RowID).Scan(&original)
+	if err != nil {
+		return nil, err
+	}
+	var meta MessageMetadata
+	if err = json.Unmarshal([]byte(original), &meta); err != nil {
+		return nil, err
+	}
+	previous := part.Metadata.(*MessageMetadata)
+	if meta.MediaPartID == "" || meta.MediaID != previous.MediaID || !bytes.Equal(meta.MediaKey, previous.MediaKey) || meta.MediaPartID != previous.MediaPartID || meta.RefreshedFromMediaID != previous.RefreshedFromMediaID {
+		return nil, nil
+	}
+	conversationID, err := gc.ParsePortalID(part.Room.ID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = gc.Client.GetFullSizeImage(ctx, messageID, meta.MediaPartID); err != nil {
+		return nil, err
+	}
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(500 * time.Millisecond):
+			}
+		}
+		response, err := gc.Client.FetchMessages(ctx, conversationID, 10, &gmproto.Cursor{
+			LastItemTimestamp: part.Timestamp.UnixMilli() + 1,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, message := range response.GetMessages() {
+			if message.GetMessageID() != messageID {
+				continue
+			}
+			for _, info := range message.GetMessageInfo() {
+				media := info.GetMediaContent()
+				if info.GetActionMessageID() != meta.MediaPartID || media.GetMediaID() == "" || media.GetMediaID() == meta.MediaID || len(media.GetDecryptionKey()) != 32 {
+					continue
+				}
+				meta.RefreshedFromMediaID = meta.MediaID
+				meta.MediaID, meta.MediaKey = media.MediaID, media.DecryptionKey
+				var metadata map[string]any
+				decoder := json.NewDecoder(bytes.NewBufferString(original))
+				decoder.UseNumber()
+				if err = decoder.Decode(&metadata); err != nil {
+					return nil, err
+				}
+				metadata["refreshed_from_media_id"] = meta.RefreshedFromMediaID
+				metadata["media_id"], metadata["media_key"] = meta.MediaID, meta.MediaKey
+				updated, err := json.Marshal(metadata)
+				if err != nil {
+					return nil, err
+				}
+				// Do not overwrite an edit or another refresh that completed during the request.
+				result, err := gc.Main.br.DB.Exec(ctx, "UPDATE message SET metadata=$1 WHERE bridge_id=$2 AND rowid=$3 AND metadata=$4", string(updated), part.BridgeID, part.RowID, original)
+				if err != nil {
+					return nil, err
+				}
+				if count, err := result.RowsAffected(); err != nil || count != 1 {
+					return nil, err
+				}
+				return &meta, nil
+			}
+		}
+	}
+	return nil, nil
 }
