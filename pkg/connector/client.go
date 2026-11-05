@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exsync"
+	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/status"
@@ -49,7 +50,10 @@ type GMClient struct {
 	Client    *libgm.Client
 	Meta      *UserLoginMetadata
 
-	fullMediaRequests *exsync.Set[fullMediaRequestKey]
+	fullMediaRequests    *exsync.Set[fullMediaRequestKey]
+	directMediaRefreshes singleflight.Group
+	directMediaLocks     exsync.KeyedMutex[directMediaPartKey]
+	directMediaOrigins   sync.Map
 
 	longPollingError       error
 	browserInactiveType    status.BridgeStateErrorCode

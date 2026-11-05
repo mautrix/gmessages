@@ -23,7 +23,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -44,6 +46,16 @@ func (gc *GMConnector) SetUseDirectMedia() {
 }
 
 const mediaHashLength = 4
+
+type directMediaPartKey struct {
+	MessageID networkid.MessageID
+	PartID    networkid.PartID
+}
+
+func (m *MessageMetadata) matchesMediaHash(hash []byte) bool {
+	return bytes.Equal(hashGoogleMediaID(m.MediaID), hash) ||
+		(m.RefreshedFromMediaID != "" && bytes.Equal(hashGoogleMediaID(m.RefreshedFromMediaID), hash))
+}
 
 func hashGoogleMediaID(mediaID string) []byte {
 	hash := sha256.Sum256([]byte(mediaID))
@@ -110,50 +122,68 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 	meta := part.Metadata.(*MessageMetadata)
 	if len(meta.MediaKey) == 0 {
 		return nil, mautrix.MNotFound.WithMessage("Message doesn't have direct media metadata")
-	} else if !bytes.Equal(hashGoogleMediaID(meta.MediaID), mediaHash) &&
-		(meta.RefreshedFromMediaID == "" || !bytes.Equal(hashGoogleMediaID(meta.RefreshedFromMediaID), mediaHash)) {
+	} else if !meta.matchesMediaHash(mediaHash) {
 		return nil, mautrix.MNotFound.WithMessage("Version mismatch, media was likely replaced")
 	}
-	data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
-	var httpErr events.HTTPError
-	if errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusNotFound || httpErr.Resp.StatusCode == http.StatusGone) {
-		refreshed, refreshErr := client.refreshDirectMedia(ctx, part, messageID)
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		} else if refreshErr != nil {
-			zerolog.Ctx(ctx).Debug().Err(refreshErr).Msg("Failed to refresh direct media")
-		} else if refreshed != nil {
-			meta = refreshed
-			data, err = client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+	return &mediaproxy.GetMediaResponseFile{Callback: func(f *os.File) (*mediaproxy.FileMeta, error) {
+		data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+		var httpErr events.HTTPError
+		if errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusNotFound || httpErr.Resp.StatusCode == http.StatusGone) {
+			result := client.directMediaRefreshes.DoChan(string(part.ID)+"\x00"+string(part.PartID), func() (any, error) {
+				return client.refreshDirectMedia(context.WithoutCancel(ctx), part, messageID, mediaHash)
+			})
+			var refreshed *MessageMetadata
+			var refreshErr error
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case res := <-result:
+				refreshErr = res.Err
+				refreshed, _ = res.Val.(*MessageMetadata)
+			}
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			} else if refreshErr != nil {
+				zerolog.Ctx(ctx).Debug().Err(refreshErr).Msg("Failed to refresh direct media")
+			} else if refreshed != nil && refreshed.matchesMediaHash(mediaHash) {
+				meta = refreshed
+				data, err = client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+			}
 		}
-	}
-	if errors.As(err, &httpErr) {
-		switch httpErr.Resp.StatusCode {
-		case http.StatusNotFound, http.StatusGone:
-			return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
-		case http.StatusUnauthorized, http.StatusForbidden:
-			return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
-		case http.StatusTooManyRequests:
-			return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
-		default:
-			return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
+		if errors.As(err, &httpErr) {
+			switch httpErr.Resp.StatusCode {
+			case http.StatusNotFound, http.StatusGone:
+				return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
+			case http.StatusUnauthorized, http.StatusForbidden:
+				return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
+			case http.StatusTooManyRequests:
+				return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
+			default:
+				return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
+			}
+		} else if err != nil {
+			return nil, err
 		}
-	} else if err != nil {
-		return nil, err
-	}
-	return &mediaproxy.GetMediaResponseData{
-		Reader:        data,
-		ContentType:   meta.MediaMIME,
-		ContentLength: -1,
-	}, nil
+		defer data.Close()
+		if _, err = io.Copy(f, data); err != nil {
+			return nil, fmt.Errorf("failed to download media: %w", err)
+		}
+		return &mediaproxy.FileMeta{ContentType: meta.MediaMIME}, nil
+	}}, nil
 }
 
-func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string) (*MessageMetadata, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string, mediaHash []byte) (*MessageMetadata, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	meta := part.Metadata.(*MessageMetadata)
 	if meta.MediaPartID == "" {
 		return nil, nil
+	}
+	key := directMediaPartKey{part.ID, part.PartID}
+	gc.directMediaOrigins.Store(key, *meta)
+	defer gc.directMediaOrigins.Delete(key)
+	if updated, err := gc.saveRefreshedMedia(ctx, part, nil, mediaHash); updated != nil || err != nil {
+		return updated, err
 	}
 	conversationID, err := gc.ParsePortalID(part.Room.ID)
 	if err != nil {
@@ -162,12 +192,12 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 	if _, err = gc.Client.GetFullSizeImage(ctx, messageID, meta.MediaPartID); err != nil {
 		return nil, err
 	}
-	for attempt := 0; attempt < 3; attempt++ {
+	for attempt := 0; attempt < 6; attempt++ {
 		if attempt > 0 {
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
-			case <-time.After(500 * time.Millisecond):
+			case <-time.After(2 * time.Second):
 			}
 		}
 		response, err := gc.Client.FetchMessages(ctx, conversationID, 10, &gmproto.Cursor{
@@ -185,25 +215,53 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 				if info.GetActionMessageID() != meta.MediaPartID || media.GetMediaID() == "" || media.GetMediaID() == meta.MediaID || len(media.GetDecryptionKey()) != 32 {
 					continue
 				}
-				updated, err := gc.Main.br.DB.Message.GetPartByID(ctx, gc.UserLogin.ID, part.ID, part.PartID)
-				if err != nil {
-					return nil, err
-				}
-				if updated == nil {
-					return nil, nil
-				}
-				updatedMeta := updated.Metadata.(*MessageMetadata)
-				if updatedMeta.MediaID != meta.MediaID {
-					return nil, nil
-				}
-				updatedMeta.RefreshedFromMediaID = updatedMeta.MediaID
-				updatedMeta.MediaID, updatedMeta.MediaKey = media.MediaID, media.DecryptionKey
-				if err = gc.Main.br.DB.Message.Update(ctx, updated); err != nil {
-					return nil, err
-				}
-				return updatedMeta, nil
+				return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
 			}
 		}
 	}
 	return nil, nil
+}
+
+func (gc *GMClient) saveRefreshedMedia(ctx context.Context, part *database.Message, media *gmproto.MediaContent, mediaHash []byte) (*MessageMetadata, error) {
+	key := directMediaPartKey{part.ID, part.PartID}
+	if err := gc.lockDirectMediaPart(ctx, key); err != nil {
+		return nil, err
+	}
+	defer gc.directMediaLocks.Unlock(key)
+	updated, err := gc.Main.br.DB.Message.GetPartByID(ctx, gc.UserLogin.ID, part.ID, part.PartID)
+	if err != nil || updated == nil {
+		return nil, err
+	}
+	meta := updated.Metadata.(*MessageMetadata)
+	if !meta.matchesMediaHash(mediaHash) {
+		return nil, mautrix.MNotFound.WithMessage("Version mismatch, media was likely replaced")
+	}
+	if meta.MediaID != part.Metadata.(*MessageMetadata).MediaID {
+		return meta, nil
+	} else if media == nil {
+		return nil, nil
+	}
+	if meta.RefreshedFromMediaID == "" {
+		meta.RefreshedFromMediaID = meta.MediaID
+	}
+	meta.MediaID, meta.MediaKey = media.MediaID, media.DecryptionKey
+	if err = gc.Main.br.DB.Message.Update(ctx, updated); err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+func (gc *GMClient) lockDirectMediaPart(ctx context.Context, key directMediaPartKey) error {
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		} else if gc.directMediaLocks.TryLock(key) {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(25 * time.Millisecond):
+		}
+	}
 }

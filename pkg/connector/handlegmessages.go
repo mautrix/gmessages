@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -608,9 +609,11 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 
 type MessageUpdateEvent struct {
 	*libgm.WrappedMessage
-	g             *GMClient
-	bundle        []*database.Message
-	chatIDChanged bool
+	g                *GMClient
+	bundle           []*database.Message
+	chatIDChanged    bool
+	lockedMediaParts []directMediaPartKey
+	mediaLocksHeld   bool
 }
 
 var (
@@ -655,7 +658,44 @@ func (m *MessageUpdateEvent) GetTimestamp() time.Time {
 
 const MaxDelayForNewMessagePart = 24 * time.Hour
 
+func (m *MessageUpdateEvent) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
+	for _, key := range m.lockedMediaParts {
+		m.g.directMediaLocks.Unlock(key)
+	}
+	m.lockedMediaParts = nil
+}
+
+func (gc *GMClient) lockDirectMediaParts(ctx context.Context, existing []*database.Message) (locked []directMediaPartKey, err error) {
+	if gc.Main.directMedia {
+		// PostHandle releases these locks after bridgev2 saves the event and its subevents.
+		parts := slices.Clone(existing)
+		slices.SortFunc(parts, func(a, b *database.Message) int { return strings.Compare(string(a.PartID), string(b.PartID)) })
+		for _, part := range parts {
+			key := directMediaPartKey{part.ID, part.PartID}
+			if err := gc.lockDirectMediaPart(ctx, key); err != nil {
+				return locked, err
+			}
+			locked = append(locked, key)
+			latest, err := gc.Main.br.DB.Message.GetPartByID(ctx, gc.UserLogin.ID, part.ID, part.PartID)
+			if err != nil {
+				return locked, err
+			} else if latest == nil {
+				return locked, bridgev2.ErrIgnoringRemoteEvent
+			}
+			*part = *latest
+		}
+	}
+	return locked, nil
+}
+
 func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (*bridgev2.ConvertedEdit, error) {
+	if !m.mediaLocksHeld {
+		var err error
+		m.lockedMediaParts, err = m.g.lockDirectMediaParts(ctx, existing)
+		if err != nil {
+			return nil, err
+		}
+	}
 	converted := m.g.ConvertGoogleMessage(ctx, portal, intent, m.WrappedMessage, len(existing) == 1)
 	if converted == nil || len(converted.Parts) == 0 {
 		return nil, fmt.Errorf("%w: didn't get converted parts for updated event", bridgev2.ErrIgnoringRemoteEvent)
@@ -680,6 +720,16 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			delete(existingPartMap, part.ID)
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
+			if m.g.Main.directMedia {
+				if newMeta.MediaID == oldMeta.MediaID {
+					newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
+				} else if origin, ok := m.g.directMediaOrigins.Load(directMediaPartKey{existingPart.ID, existingPart.PartID}); ok && origin.(MessageMetadata).MediaID == oldMeta.MediaID {
+					newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
+					if newMeta.RefreshedFromMediaID == "" {
+						newMeta.RefreshedFromMediaID = oldMeta.MediaID
+					}
+				}
+			}
 			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
 				zerolog.Ctx(ctx).Debug().
 					Str("part_id", string(part.ID)).
@@ -689,6 +739,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 				newMeta.MediaID = oldMeta.MediaID
 				if m.g.Main.directMedia {
 					newMeta.MediaKey, newMeta.MediaMIME = oldMeta.MediaKey, oldMeta.MediaMIME
+					newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
 				}
 				newMeta.MediaPending = false
 				part.DontBridge = true
@@ -721,7 +772,15 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 
 type MessageEvent struct {
 	*libgm.WrappedMessage
-	g *GMClient
+	g                *GMClient
+	lockedMediaParts []directMediaPartKey
+}
+
+func (m *MessageEvent) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
+	for _, key := range m.lockedMediaParts {
+		m.g.directMediaLocks.Unlock(key)
+	}
+	m.lockedMediaParts = nil
 }
 
 var (
@@ -1144,6 +1203,11 @@ const DeleteAndResendThreshold = 7 * 24 * time.Hour
 
 func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (bridgev2.UpsertResult, error) {
 	var result bridgev2.UpsertResult
+	var err error
+	m.lockedMediaParts, err = m.g.lockDirectMediaParts(ctx, existing)
+	if err != nil {
+		return result, err
+	}
 	log := *zerolog.Ctx(ctx)
 	dbm := DBMessages(existing)
 	existingMeta := dbm.GetMainMeta()
@@ -1257,6 +1321,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			g:              m.g,
 			bundle:         dbm,
 			chatIDChanged:  chatIDChanged,
+			mediaLocksHeld: true,
 		}
 		result.SubEvents = []bridgev2.RemoteEvent{editEvt, reactionSyncEvt}
 	}
