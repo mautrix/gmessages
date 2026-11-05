@@ -480,6 +480,12 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		go gc.invalidateSession(ctx, state, false, true)
+	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusForbidden:
+		state.Error = GMLoggedOut403
+		go gc.invalidateSession(ctx, state, false, true)
+	case libgm.IsFatalRefreshError(err):
+		state.Error = GMLoggedOutRefreshRejected
+		go gc.invalidateSession(ctx, state, false, true)
 	default:
 		return false
 	}
