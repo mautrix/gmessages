@@ -292,17 +292,19 @@ func (gc *GMClient) getOrFetchContacts(ctx context.Context) ([]*gmproto.Contact,
 			byNumber[number] = contact
 		}
 	}
+	gc.contactsLock.Lock()
 	gc.cachedContacts = resp.Contacts
 	gc.contactsByNumber = byNumber
 	gc.contactsFetchedAt = time.Now()
+	gc.contactsLock.Unlock()
 	return gc.cachedContacts, nil
 }
 
 func (gc *GMClient) lookupContactByNumber(ctx context.Context, phone string) *gmproto.Contact {
-	gc.contactsFetchLock.Lock()
+	gc.contactsLock.RLock()
 	contact, ok := gc.contactsByNumber[phone]
 	fetchedAt := gc.contactsFetchedAt
-	gc.contactsFetchLock.Unlock()
+	gc.contactsLock.RUnlock()
 	if ok {
 		return contact
 	}
