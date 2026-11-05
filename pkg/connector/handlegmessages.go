@@ -479,11 +479,19 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 		go gc.invalidateSession(ctx, state, false, true)
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
+		if isWorkspaceEmail(gc.Meta.Session.Mobile.GetSourceID()) {
+			state.Error = GMLoggedOutWorkspaceSession
+		}
 		go gc.invalidateSession(ctx, state, false, true)
 	default:
 		return false
 	}
 	return true
+}
+
+func isWorkspaceEmail(email string) bool {
+	_, domain, ok := strings.Cut(strings.ToLower(email), "@")
+	return ok && domain != "gmail.com" && domain != "googlemail.com"
 }
 
 func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeState, deletePairing, deleteCookies bool) {
