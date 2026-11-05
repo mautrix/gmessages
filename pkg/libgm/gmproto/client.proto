@@ -350,7 +350,7 @@ message GetFullSizeImageRequest {
 }
 
 message GetFullSizeImageResponse {
-
+    conversations.Message message = 1;
 }
 
 message GetUpdatesRequest {
