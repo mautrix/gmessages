@@ -27,7 +27,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -609,11 +608,9 @@ func (r *ReactionSyncEvent) GetReactions() *bridgev2.ReactionSyncData {
 
 type MessageUpdateEvent struct {
 	*libgm.WrappedMessage
-	g                *GMClient
-	bundle           []*database.Message
-	chatIDChanged    bool
-	lockedMediaParts []directMediaPartKey
-	mediaLockOwner   *MessageEvent
+	g             *GMClient
+	bundle        []*database.Message
+	chatIDChanged bool
 }
 
 var (
@@ -658,66 +655,7 @@ func (m *MessageUpdateEvent) GetTimestamp() time.Time {
 
 const MaxDelayForNewMessagePart = 24 * time.Hour
 
-func (m *MessageUpdateEvent) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
-	for _, key := range m.lockedMediaParts {
-		m.g.directMediaLocks.Unlock(key)
-	}
-	m.lockedMediaParts = nil
-}
-
-func (gc *GMClient) lockDirectMediaParts(ctx context.Context, existing []*database.Message) (locked []directMediaPartKey, err error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	complete := false
-	defer func() {
-		if !complete {
-			for _, key := range locked {
-				gc.directMediaLocks.Unlock(key)
-			}
-			locked = nil
-		}
-	}()
-	if gc.Main.directMedia {
-		// PostHandle releases these locks after bridgev2 saves the event and its subevents.
-		parts := slices.Clone(existing)
-		slices.SortFunc(parts, func(a, b *database.Message) int { return strings.Compare(string(a.PartID), string(b.PartID)) })
-		for _, part := range parts {
-			key := directMediaPartKey{part.ID, part.PartID}
-			if err := gc.lockDirectMediaPart(ctx, key); err != nil {
-				return locked, err
-			}
-			locked = append(locked, key)
-			latest, err := gc.Main.br.DB.Message.GetPartByID(ctx, gc.UserLogin.ID, part.ID, part.PartID)
-			if err != nil {
-				return locked, err
-			} else if latest == nil {
-				return locked, bridgev2.ErrIgnoringRemoteEvent
-			}
-			*part = *latest
-		}
-	}
-	complete = true
-	return locked, nil
-}
-
 func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (*bridgev2.ConvertedEdit, error) {
-	defer func() {
-		if p := recover(); p != nil {
-			if m.mediaLockOwner != nil {
-				m.mediaLockOwner.PostHandle(ctx, portal)
-			} else {
-				m.PostHandle(ctx, portal)
-			}
-			panic(p)
-		}
-	}()
-	if m.mediaLockOwner == nil {
-		var err error
-		m.lockedMediaParts, err = m.g.lockDirectMediaParts(ctx, existing)
-		if err != nil {
-			return nil, err
-		}
-	}
 	converted := m.g.ConvertGoogleMessage(ctx, portal, intent, m.WrappedMessage, len(existing) == 1)
 	if converted == nil || len(converted.Parts) == 0 {
 		return nil, fmt.Errorf("%w: didn't get converted parts for updated event", bridgev2.ErrIgnoringRemoteEvent)
@@ -786,15 +724,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 
 type MessageEvent struct {
 	*libgm.WrappedMessage
-	g                *GMClient
-	lockedMediaParts []directMediaPartKey
-}
-
-func (m *MessageEvent) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
-	for _, key := range m.lockedMediaParts {
-		m.g.directMediaLocks.Unlock(key)
-	}
-	m.lockedMediaParts = nil
+	g *GMClient
 }
 
 var (
@@ -1216,20 +1146,7 @@ func (m *MessageEvent) hasInProgressMedia() bool {
 const DeleteAndResendThreshold = 7 * 24 * time.Hour
 
 func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, existing []*database.Message) (bridgev2.UpsertResult, error) {
-	defer func() {
-		if p := recover(); p != nil {
-			m.PostHandle(ctx, portal)
-			panic(p)
-		}
-	}()
 	var result bridgev2.UpsertResult
-	var err error
-	m.lockedMediaParts, err = m.g.lockDirectMediaParts(ctx, existing)
-	if errors.Is(err, bridgev2.ErrIgnoringRemoteEvent) {
-		return result, nil
-	} else if err != nil {
-		return result, err
-	}
 	log := *zerolog.Ctx(ctx)
 	dbm := DBMessages(existing)
 	existingMeta := dbm.GetMainMeta()
@@ -1343,7 +1260,6 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			g:              m.g,
 			bundle:         dbm,
 			chatIDChanged:  chatIDChanged,
-			mediaLockOwner: m,
 		}
 		result.SubEvents = []bridgev2.RemoteEvent{editEvt, reactionSyncEvt}
 	}

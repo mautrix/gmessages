@@ -20,7 +20,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -29,6 +31,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.mau.fi/util/dbutil"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
@@ -46,11 +49,6 @@ func (gc *GMConnector) SetUseDirectMedia() {
 }
 
 const mediaHashLength = 4
-
-type directMediaPartKey struct {
-	MessageID networkid.MessageID
-	PartID    networkid.PartID
-}
 
 type abortOnMediaReadError struct {
 	io.ReadCloser
@@ -187,10 +185,6 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 }
 
 func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string, mediaHash []byte) (*MessageMetadata, error) {
-	type cursorKey struct {
-		id        string
-		timestamp int64
-	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	meta := part.Metadata.(*MessageMetadata)
@@ -222,55 +216,22 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 	if media := findMedia(message); media != nil {
 		return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
 	}
-	for {
-		if updated, err := gc.saveRefreshedMedia(ctx, part, nil, mediaHash); updated != nil || err != nil {
-			return updated, err
-		}
-		cursor := &gmproto.Cursor{LastItemTimestamp: part.Timestamp.UnixMilli() + 1}
-		seen := make(map[cursorKey]bool)
-		for page := 0; page < 3; page++ {
-			response, err := gc.Client.FetchMessages(ctx, conversationID, 100, cursor)
-			if err != nil {
-				return nil, err
-			}
-			found := false
-			for _, message := range response.GetMessages() {
-				if media := findMedia(message); media != nil {
-					return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
-				}
-				found = found || message.GetMessageID() == messageID
-			}
-			if found {
-				break
-			}
-			if page == 0 {
-				cursor = nil
-				continue
-			}
-			cursor = response.GetCursor()
-			if cursor == nil || len(response.GetMessages()) == 0 {
-				break
-			}
-			key := cursorKey{cursor.LastItemID, cursor.LastItemTimestamp}
-			if seen[key] {
-				break
-			}
-			seen[key] = true
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(2 * time.Second):
+	if updated, err := gc.saveRefreshedMedia(ctx, part, nil, mediaHash); updated != nil || err != nil {
+		return updated, err
+	}
+	response, err := gc.Client.FetchMessages(ctx, conversationID, 100, &gmproto.Cursor{LastItemTimestamp: part.Timestamp.UnixMilli() + 1})
+	if err != nil {
+		return nil, err
+	}
+	for _, message := range response.GetMessages() {
+		if media := findMedia(message); media != nil {
+			return gc.saveRefreshedMedia(ctx, part, media, mediaHash)
 		}
 	}
+	return gc.saveRefreshedMedia(ctx, part, nil, mediaHash)
 }
 
 func (gc *GMClient) saveRefreshedMedia(ctx context.Context, part *database.Message, media *gmproto.MediaContent, mediaHash []byte) (*MessageMetadata, error) {
-	key := directMediaPartKey{part.ID, part.PartID}
-	if err := gc.lockDirectMediaPart(ctx, key); err != nil {
-		return nil, err
-	}
-	defer gc.directMediaLocks.Unlock(key)
 	updated, err := gc.Main.br.DB.Message.GetPartByID(ctx, gc.UserLogin.ID, part.ID, part.PartID)
 	if err != nil || updated == nil {
 		return nil, err
@@ -284,24 +245,20 @@ func (gc *GMClient) saveRefreshedMedia(ctx context.Context, part *database.Messa
 	} else if media == nil {
 		return nil, nil
 	}
-	meta.MediaID, meta.MediaKey = media.MediaID, media.DecryptionKey
-	if err = gc.Main.br.DB.Message.Update(ctx, updated); err != nil {
+	patch, err := json.Marshal(map[string]any{"media_id": media.MediaID, "media_key": media.DecryptionKey})
+	if err != nil {
 		return nil, err
 	}
-	return meta, nil
-}
-
-func (gc *GMClient) lockDirectMediaPart(ctx context.Context, key directMediaPartKey) error {
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		} else if gc.directMediaLocks.TryLock(key) {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(25 * time.Millisecond):
-		}
+	db := gc.Main.br.DB.Message.GetDB()
+	query := `UPDATE message SET metadata=json_patch(metadata, $1)
+		WHERE bridge_id=$2 AND rowid=$3 AND metadata->>'media_id'=$4 AND metadata->>'media_key'=$5`
+	if db.Dialect == dbutil.Postgres {
+		query = `UPDATE message SET metadata=metadata || $1::jsonb
+			WHERE bridge_id=$2 AND rowid=$3 AND metadata->>'media_id'=$4 AND metadata->>'media_key'=$5`
 	}
+	_, err = db.Exec(ctx, query, string(patch), updated.BridgeID, updated.RowID, meta.MediaID, base64.StdEncoding.EncodeToString(meta.MediaKey))
+	if err != nil {
+		return nil, err
+	}
+	return gc.saveRefreshedMedia(ctx, part, nil, mediaHash)
 }
