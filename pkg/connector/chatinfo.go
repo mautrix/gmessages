@@ -229,7 +229,7 @@ const MinAvatarUpdateInterval = 24 * time.Hour
 
 func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost) (bool, error) {
 	meta := ghost.Metadata.(*GhostMetadata)
-	if time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval {
+	if time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval || !gc.PhoneResponding {
 		return false, nil
 	} else if meta.ContactID == "" && !phoneNumberMightHaveAvatar(meta.Phone) {
 		return false, nil
