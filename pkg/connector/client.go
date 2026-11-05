@@ -86,6 +86,7 @@ type GMClient struct {
 	stopMessageQueue atomic.Pointer[context.CancelFunc]
 
 	contactsFetchLock  sync.Mutex
+	contactsLock       sync.RWMutex
 	contactsFetchedAt  time.Time
 	cachedContacts     []*gmproto.Contact
 	contactsByNumber   map[string]*gmproto.Contact
