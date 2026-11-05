@@ -23,9 +23,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -125,51 +123,45 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 	} else if !meta.matchesMediaHash(mediaHash) {
 		return nil, mautrix.MNotFound.WithMessage("Version mismatch, media was likely replaced")
 	}
-	return &mediaproxy.GetMediaResponseFile{Callback: func(f *os.File) (*mediaproxy.FileMeta, error) {
-		data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
-		var httpErr events.HTTPError
-		if errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusNotFound || httpErr.Resp.StatusCode == http.StatusGone) {
-			result := client.directMediaRefreshes.DoChan(string(part.ID)+"\x00"+string(part.PartID), func() (any, error) {
-				return client.refreshDirectMedia(context.WithoutCancel(ctx), part, messageID, mediaHash)
-			})
-			var refreshed *MessageMetadata
-			var refreshErr error
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case res := <-result:
-				refreshErr = res.Err
-				refreshed, _ = res.Val.(*MessageMetadata)
-			}
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			} else if refreshErr != nil {
-				zerolog.Ctx(ctx).Debug().Err(refreshErr).Msg("Failed to refresh direct media")
-			} else if refreshed != nil && refreshed.matchesMediaHash(mediaHash) {
-				meta = refreshed
-				data, err = client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
-			}
+	data, err := client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) && (httpErr.Resp.StatusCode == http.StatusNotFound || httpErr.Resp.StatusCode == http.StatusGone) {
+		result := client.directMediaRefreshes.DoChan(string(part.ID)+"\x00"+string(part.PartID), func() (any, error) {
+			return client.refreshDirectMedia(context.WithoutCancel(ctx), part, messageID, mediaHash)
+		})
+		var refreshed *MessageMetadata
+		var refreshErr error
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case res := <-result:
+			refreshErr = res.Err
+			refreshed, _ = res.Val.(*MessageMetadata)
 		}
-		if errors.As(err, &httpErr) {
-			switch httpErr.Resp.StatusCode {
-			case http.StatusNotFound, http.StatusGone:
-				return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
-			case http.StatusUnauthorized, http.StatusForbidden:
-				return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
-			case http.StatusTooManyRequests:
-				return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
-			default:
-				return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
-			}
-		} else if err != nil {
-			return nil, err
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		} else if refreshErr != nil {
+			zerolog.Ctx(ctx).Debug().Err(refreshErr).Msg("Failed to refresh direct media")
+		} else if refreshed != nil && refreshed.matchesMediaHash(mediaHash) {
+			meta = refreshed
+			data, err = client.Client.DownloadMedia(ctx, meta.MediaID, meta.MediaKey)
 		}
-		defer data.Close()
-		if _, err = io.Copy(f, data); err != nil {
-			return nil, fmt.Errorf("failed to download media: %w", err)
+	}
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusNotFound, http.StatusGone:
+			return nil, mautrix.MNotFound.WithMessage("Media not found on Google Messages")
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return nil, mautrix.MForbidden.WithMessage("Google Messages denied access to the media")
+		case http.StatusTooManyRequests:
+			return nil, mautrix.MLimitExceeded.WithMessage("Rate limited by Google Messages while fetching the media").WithCanRetry(true)
+		default:
+			return nil, mautrix.MUnknown.WithMessage("Google Messages returned HTTP %d while fetching the media", httpErr.Resp.StatusCode).WithStatus(http.StatusBadGateway).WithCanRetry(true)
 		}
-		return &mediaproxy.FileMeta{ContentType: meta.MediaMIME}, nil
-	}}, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &mediaproxy.GetMediaResponseData{Reader: data, ContentType: meta.MediaMIME}, nil
 }
 
 func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string, mediaHash []byte) (*MessageMetadata, error) {
