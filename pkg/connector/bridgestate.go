@@ -30,6 +30,7 @@ const (
 	GMUnpaired404               status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
 	GMUnpairedOtherPhone        status.BridgeStateErrorCode = "gm-unpaired-other-phone"
 	GMLoggedOut401              status.BridgeStateErrorCode = "gm-logged-out-401-polling"
+	GMLoggedOutWorkspaceSession status.BridgeStateErrorCode = "gm-logged-out-workspace-session"
 	GMLoggedOutInvalidCreds     status.BridgeStateErrorCode = "gm-logged-out-invalid-credentials"
 	GMLoggedOutNoEmailInConfig  status.BridgeStateErrorCode = "gm-logged-out-no-email-in-config"
 	GMNotLoggedIn               status.BridgeStateErrorCode = "gm-not-logged-in"
@@ -61,6 +62,7 @@ func init() {
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpairedOtherPhone:        "Unpaired from Google Messages. Google Messages is also set up on another phone with this Google account, which can disconnect this one every day. Sign out of Google Messages on the other phone, then re-link the connection.",
 		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMLoggedOutWorkspaceSession: "Google signed out your Workspace account. Google Workspace signs accounts out of Google on the web every 14 days by default, which your Workspace admin can change in Google session control. Sign in again to reconnect.",
 		GMLoggedOutInvalidCreds:     "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutNoEmailInConfig:  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
