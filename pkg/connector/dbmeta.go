@@ -86,8 +86,7 @@ type MessageMetadata struct {
 	MediaMIME    string `json:"media_mime,omitempty"`
 	MediaPending bool   `json:"media_pending,omitempty"`
 
-	RefreshedFromMediaID string   `json:"refreshed_from_media_id,omitempty"`
-	PriorMediaIDs        []string `json:"prior_media_ids,omitempty"`
+	PriorMediaIDs []string `json:"prior_media_ids,omitempty"`
 
 	IsOutgoing      bool `json:"is_outgoing,omitempty"`
 	MSSSent         bool `json:"mss_sent,omitempty"`

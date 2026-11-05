@@ -66,12 +66,11 @@ func (r abortOnMediaReadError) Read(p []byte) (int, error) {
 
 func (m *MessageMetadata) matchesMediaHash(hash []byte) bool {
 	return bytes.Equal(hashGoogleMediaID(m.MediaID), hash) ||
-		(m.RefreshedFromMediaID != "" && bytes.Equal(hashGoogleMediaID(m.RefreshedFromMediaID), hash)) ||
 		slices.ContainsFunc(m.PriorMediaIDs, func(id string) bool { return bytes.Equal(hashGoogleMediaID(id), hash) })
 }
 
 func (m *MessageMetadata) inheritMediaIDs(old *MessageMetadata) {
-	for _, id := range append(slices.Clone(old.PriorMediaIDs), old.MediaID, old.RefreshedFromMediaID) {
+	for _, id := range old.PriorMediaIDs {
 		if id != "" && !slices.Contains(m.PriorMediaIDs, id) {
 			m.PriorMediaIDs = append(m.PriorMediaIDs, id)
 		}
@@ -188,6 +187,10 @@ func (gc *GMConnector) Download(ctx context.Context, mediaID networkid.MediaID, 
 }
 
 func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Message, messageID string, mediaHash []byte) (*MessageMetadata, error) {
+	type cursorKey struct {
+		id        string
+		timestamp int64
+	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	meta := part.Metadata.(*MessageMetadata)
@@ -223,13 +226,9 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 		if updated, err := gc.saveRefreshedMedia(ctx, part, nil, mediaHash); updated != nil || err != nil {
 			return updated, err
 		}
-		var cursor *gmproto.Cursor
-		type cursorKey struct {
-			id        string
-			timestamp int64
-		}
+		cursor := &gmproto.Cursor{LastItemTimestamp: part.Timestamp.UnixMilli() + 1}
 		seen := make(map[cursorKey]bool)
-		for {
+		for page := 0; page < 3; page++ {
 			response, err := gc.Client.FetchMessages(ctx, conversationID, 100, cursor)
 			if err != nil {
 				return nil, err
@@ -241,8 +240,15 @@ func (gc *GMClient) refreshDirectMedia(ctx context.Context, part *database.Messa
 				}
 				found = found || message.GetMessageID() == messageID
 			}
+			if found {
+				break
+			}
+			if page == 0 {
+				cursor = nil
+				continue
+			}
 			cursor = response.GetCursor()
-			if found || cursor == nil || len(response.GetMessages()) == 0 {
+			if cursor == nil || len(response.GetMessages()) == 0 {
 				break
 			}
 			key := cursorKey{cursor.LastItemID, cursor.LastItemTimestamp}
@@ -278,10 +284,6 @@ func (gc *GMClient) saveRefreshedMedia(ctx context.Context, part *database.Messa
 	} else if media == nil {
 		return nil, nil
 	}
-	if meta.RefreshedFromMediaID == "" {
-		meta.RefreshedFromMediaID = meta.MediaID
-	}
-	meta.inheritMediaIDs(meta)
 	meta.MediaID, meta.MediaKey = media.MediaID, media.DecryptionKey
 	if err = gc.Main.br.DB.Message.Update(ctx, updated); err != nil {
 		return nil, err

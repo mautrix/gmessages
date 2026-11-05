@@ -2,7 +2,6 @@ package libgm
 
 import (
 	"context"
-	"fmt"
 
 	"go.mau.fi/util/ptr"
 	"google.golang.org/protobuf/encoding/protowire"
@@ -183,34 +182,34 @@ func (c *Client) GetFullSizeImage(ctx context.Context, messageID, actionMessageI
 	if err != nil {
 		return nil, err
 	}
-	// Field 1 is message metadata, absent from the generated response schema.
+	// Field 1 is optional metadata; malformed data must not prevent polling.
 	data := response.ProtoReflect().GetUnknown()
 	var message *gmproto.Message
 	for len(data) > 0 {
 		number, typ, n := protowire.ConsumeTag(data)
 		if n < 0 {
-			return nil, protowire.ParseError(n)
+			return nil, nil
 		}
 		data = data[n:]
 		if number == 1 {
 			if typ != protowire.BytesType {
-				return nil, fmt.Errorf("invalid full size image response message type: %d", typ)
+				return nil, nil
 			}
 			value, size := protowire.ConsumeBytes(data)
 			if size < 0 {
-				return nil, protowire.ParseError(size)
+				return nil, nil
 			}
 			if message == nil {
 				message = &gmproto.Message{}
 			}
 			if err = (proto.UnmarshalOptions{Merge: true}).Unmarshal(value, message); err != nil {
-				return nil, err
+				return nil, nil
 			}
 			n = size
 		} else {
 			n = protowire.ConsumeFieldValue(number, typ, data)
 			if n < 0 {
-				return nil, protowire.ParseError(n)
+				return nil, nil
 			}
 		}
 		data = data[n:]

@@ -743,7 +743,6 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
 			if m.g.Main.directMedia {
-				newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
 				newMeta.inheritMediaIDs(oldMeta)
 			}
 			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
@@ -755,7 +754,6 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 				newMeta.MediaID = oldMeta.MediaID
 				if m.g.Main.directMedia {
 					newMeta.MediaKey, newMeta.MediaMIME = oldMeta.MediaKey, oldMeta.MediaMIME
-					newMeta.RefreshedFromMediaID = oldMeta.RefreshedFromMediaID
 				}
 				newMeta.MediaPending = false
 				part.DontBridge = true
@@ -1654,6 +1652,7 @@ func (gc *GMClient) convertGoogleMedia(
 		content.URL, content.File, mainErr = portal.Bridge.GenerateContentURI(ctx, portal.MXID, directID)
 		if mainErr == nil {
 			dbMeta.MediaKey, dbMeta.MediaMIME = msg.DecryptionKey, content.Info.MimeType
+			dbMeta.PriorMediaIDs = []string{msg.MediaID}
 			content.Info.Size = int(msg.Size)
 			if !strings.ContainsRune(content.Body, '.') {
 				content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
