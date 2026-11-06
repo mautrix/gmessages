@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.mau.fi/util/exsync"
+	"golang.org/x/sync/singleflight"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/status"
@@ -49,7 +50,10 @@ type GMClient struct {
 	Client    *libgm.Client
 	Meta      *UserLoginMetadata
 
-	fullMediaRequests *exsync.Set[fullMediaRequestKey]
+	fullMediaRequests          *exsync.Set[fullMediaRequestKey]
+	directMediaRefreshes       singleflight.Group
+	directMediaRefreshWaiters  *exsync.Map[fullMediaRequestKey, chan *gmproto.MediaContent]
+	directMediaRefreshFailures *exsync.Map[fullMediaRequestKey, directMediaRefreshFailure]
 
 	longPollingError       error
 	browserInactiveType    status.BridgeStateErrorCode
@@ -115,6 +119,9 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		pendingSends:        make(map[networkid.TransactionID]pendingSend),
 		dmsByPhone:          make(map[string]*gmdb.DirectConversation),
 		dmsByConv:           make(map[networkid.PortalID]*gmdb.DirectConversation),
+
+		directMediaRefreshWaiters:  exsync.NewMap[fullMediaRequestKey, chan *gmproto.MediaContent](),
+		directMediaRefreshFailures: exsync.NewMap[fullMediaRequestKey, directMediaRefreshFailure](),
 
 		messageQueue: make(chan *libgm.WrappedMessage, 128),
 	}

@@ -172,9 +172,13 @@ func (c *Client) ackBrowserPresence(ctx context.Context) {
 	}
 }
 
-func (c *Client) GetFullSizeImage(ctx context.Context, messageID, actionMessageID string) (*gmproto.GetFullSizeImageResponse, error) {
+func (c *Client) GetFullSizeImage(ctx context.Context, messageID, actionMessageID string) (*gmproto.Message, error) {
 	payload := &gmproto.GetFullSizeImageRequest{MessageID: messageID, ActionMessageID: actionMessageID}
 	actionType := gmproto.ActionType_GET_FULL_SIZE_IMAGE
 
-	return typedResponse[*gmproto.GetFullSizeImageResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+	response, err := typedResponse[*gmproto.GetFullSizeImageResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+	if err != nil {
+		return nil, err
+	}
+	return response.GetMessage(), nil
 }

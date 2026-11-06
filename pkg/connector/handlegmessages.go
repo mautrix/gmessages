@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -688,6 +689,9 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			delete(existingPartMap, part.ID)
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
+			if m.g.Main.directMedia {
+				newMeta.inheritMediaIDs(oldMeta)
+			}
 			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
 				zerolog.Ctx(ctx).Debug().
 					Str("part_id", string(part.ID)).
@@ -695,6 +699,9 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 					Str("new_media_id", newMeta.MediaID).
 					Msg("Not replacing already bridged media with unavailable update")
 				newMeta.MediaID = oldMeta.MediaID
+				if m.g.Main.directMedia {
+					newMeta.MediaKey, newMeta.MediaMIME = oldMeta.MediaKey, oldMeta.MediaMIME
+				}
 				newMeta.MediaPending = false
 				part.DontBridge = true
 			}
@@ -1118,7 +1125,7 @@ func (dbm DBMessages) MessageWasEdited(new *gmproto.Message) (edited bool, chang
 			}
 			existingPartMeta := existingPart.Metadata.(*MessageMetadata)
 			subDict.Str("old_media_id", existingPartMeta.MediaID)
-			didChange = existingPartMeta.MediaID != bestMediaID
+			didChange = existingPartMeta.MediaID != bestMediaID && !slices.Contains(existingPartMeta.MediaIDs, bestMediaID)
 			subDict.Bool("did_change", didChange)
 		}
 		changes.Dict(part.GetActionMessageID(), subDict)
@@ -1177,6 +1184,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 	chatIDChanged := dbm[0].Room.ID != portal.ID
 	hasPendingMedia := dbm.HasPendingMedia()
 	updatedMediaIsComplete := !m.hasInProgressMedia()
+	result.SaveParts = m.adoptRefreshedMedia(dbm)
 	messageWasEdited, changes := dbm.MessageWasEdited(m.Message)
 	doMessageResync := chatIDChanged ||
 		existingMeta.GlobalMediaStatus != downloadPendingStatusMessage(newStatus) ||
@@ -1477,7 +1485,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				MsgType: event.MsgNotice,
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
-		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
+		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, m.MessageID, data.MediaContent, dbMeta); err != nil {
 			dbMeta.MediaPending = true
 			dbMeta.MediaID = mediaID
 			log.Err(err).Msg("Failed to copy attachment")
@@ -1491,7 +1499,8 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				Str("part_id", part.GetActionMessageID()).
 				Str("media_id", mediaID).
 				Bool("is_thumbnail", isThumbnail).
-				Msg("Reuploaded media from Google Messages")
+				Bool("direct_media", len(dbMeta.MediaKey) > 0).
+				Msg("Converted media from Google Messages")
 			if isThumbnail {
 				go gc.requestFullMedia(ctx, m.MessageID, part.GetActionMessageID())
 			}
@@ -1528,7 +1537,9 @@ func (gc *GMClient) convertGoogleMedia(
 	ctx context.Context,
 	portal *bridgev2.Portal,
 	intent bridgev2.MatrixAPI,
+	messageID string,
 	msg *gmproto.MediaContent,
+	dbMeta *MessageMetadata,
 ) (content *event.MessageEventContent, mediaID string, isThumbnail bool, mainErr error) {
 	content = &event.MessageEventContent{
 		MsgType: event.MsgFile,
@@ -1561,6 +1572,20 @@ func (gc *GMClient) convertGoogleMedia(
 			needAudioConvert = true
 		}
 		content.MSC3245Voice = &event.MSC3245Voice{}
+	}
+	if gc.Main.directMedia && msg.MediaID != "" && dbMeta.MediaPartID != "" && content.Info.MimeType != "" && !needAudioConvert {
+		directID := encodeDirectMediaID(gc.UserLogin.ID, messageID, dbMeta.MediaPartID, msg.MediaID)
+		content.URL, content.File, mainErr = portal.Bridge.GenerateContentURI(ctx, portal.MXID, directID)
+		if mainErr == nil {
+			dbMeta.MediaKey, dbMeta.MediaMIME = msg.DecryptionKey, content.Info.MimeType
+			dbMeta.MediaIDs = []string{msg.MediaID}
+			content.Info.Size = int(msg.Size)
+			if !strings.ContainsRune(content.Body, '.') {
+				content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
+			}
+			return content, msg.MediaID, false, nil
+		}
+		zerolog.Ctx(ctx).Warn().Err(mainErr).Msg("Failed to generate direct media URI, falling back to reupload")
 	}
 	requireFile := content.Info.MimeType == "" || needAudioConvert
 	content.URL, content.File, mainErr = intent.UploadMediaStream(ctx, portal.MXID, msg.Size, requireFile, func(file io.Writer) (*bridgev2.FileStreamResult, error) {

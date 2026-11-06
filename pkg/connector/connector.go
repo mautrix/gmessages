@@ -28,9 +28,10 @@ import (
 )
 
 type GMConnector struct {
-	br     *bridgev2.Bridge
-	DB     *gmdb.GMDB
-	Config Config
+	br          *bridgev2.Bridge
+	DB          *gmdb.GMDB
+	Config      Config
+	directMedia bool
 }
 
 var _ bridgev2.NetworkConnector = (*GMConnector)(nil)

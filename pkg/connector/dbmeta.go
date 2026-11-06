@@ -82,7 +82,11 @@ type MessageMetadata struct {
 	TextHash     string `json:"text_hash,omitempty"`
 	MediaPartID  string `json:"media_part_id,omitempty"`
 	MediaID      string `json:"media_id,omitempty"`
+	MediaKey     []byte `json:"media_key,omitempty"`
+	MediaMIME    string `json:"media_mime,omitempty"`
 	MediaPending bool   `json:"media_pending,omitempty"`
+	// All media IDs the part has had, as direct media URIs embed a hash of the original one.
+	MediaIDs []string `json:"media_ids,omitempty"`
 
 	IsOutgoing      bool `json:"is_outgoing,omitempty"`
 	MSSSent         bool `json:"mss_sent,omitempty"`
