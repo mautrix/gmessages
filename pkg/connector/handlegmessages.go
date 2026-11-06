@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -1116,7 +1117,7 @@ func (dbm DBMessages) MessageWasEdited(new *gmproto.Message) (edited bool, chang
 			}
 			existingPartMeta := existingPart.Metadata.(*MessageMetadata)
 			subDict.Str("old_media_id", existingPartMeta.MediaID)
-			didChange = existingPartMeta.MediaID != bestMediaID
+			didChange = existingPartMeta.MediaID != bestMediaID && !slices.Contains(existingPartMeta.MediaIDs, bestMediaID)
 			subDict.Bool("did_change", didChange)
 		}
 		changes.Dict(part.GetActionMessageID(), subDict)
@@ -1175,6 +1176,7 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 	chatIDChanged := dbm[0].Room.ID != portal.ID
 	hasPendingMedia := dbm.HasPendingMedia()
 	updatedMediaIsComplete := !m.hasInProgressMedia()
+	result.SaveParts = m.adoptRefreshedMedia(dbm)
 	messageWasEdited, changes := dbm.MessageWasEdited(m.Message)
 	doMessageResync := chatIDChanged ||
 		existingMeta.GlobalMediaStatus != downloadPendingStatusMessage(newStatus) ||
@@ -1568,7 +1570,7 @@ func (gc *GMClient) convertGoogleMedia(
 		content.URL, content.File, mainErr = portal.Bridge.GenerateContentURI(ctx, portal.MXID, directID)
 		if mainErr == nil {
 			dbMeta.MediaKey, dbMeta.MediaMIME = msg.DecryptionKey, content.Info.MimeType
-			dbMeta.PriorMediaIDs = []string{msg.MediaID}
+			dbMeta.MediaIDs = []string{msg.MediaID}
 			content.Info.Size = int(msg.Size)
 			if !strings.ContainsRune(content.Body, '.') {
 				content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)

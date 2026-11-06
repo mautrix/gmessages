@@ -85,8 +85,8 @@ type MessageMetadata struct {
 	MediaKey     []byte `json:"media_key,omitempty"`
 	MediaMIME    string `json:"media_mime,omitempty"`
 	MediaPending bool   `json:"media_pending,omitempty"`
-
-	PriorMediaIDs []string `json:"prior_media_ids,omitempty"`
+	// All media IDs the part has had, as direct media URIs embed a hash of the original one.
+	MediaIDs []string `json:"media_ids,omitempty"`
 
 	IsOutgoing      bool `json:"is_outgoing,omitempty"`
 	MSSSent         bool `json:"mss_sent,omitempty"`
