@@ -102,7 +102,11 @@ func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived 
 	zerolog.Ctx(ctx).Debug().
 		Time("last_data_received", lastDataReceived).
 		Msg("Data resumed after quiet period, checking for missed events")
-	if _, err := gc.SyncConversations(ctx, lastDataReceived, true); err != nil {
+	gc.syncMissedEvents(ctx, lastDataReceived, true)
+}
+
+func (gc *GMClient) syncMissedEvents(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
+	if _, err := gc.SyncConversations(ctx, lastDataReceived, minimalSync); err != nil && !lastDataReceived.IsZero() {
 		gc.noDataReceivedRecently = true
 		gc.lastDataReceived = lastDataReceived
 	}

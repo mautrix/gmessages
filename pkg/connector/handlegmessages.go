@@ -329,7 +329,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 				Time("last_data_received", gc.lastDataReceived).
 				Msg("Session ID changed for browser active event, resyncing")
 			gc.sessionID = newSessionID
-			go gc.SyncConversations(ctx, gc.lastDataReceived, !sessionIDChanged && !wasInactive)
+			go gc.syncMissedEvents(ctx, gc.lastDataReceived, !sessionIDChanged && !wasInactive)
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
 		} else {
 			log.Debug().
