@@ -82,9 +82,9 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 			if prefix != gc.Meta.IDPrefix {
 				return nil, fmt.Errorf("%w: prefix mismatch", bridgev2.ErrResolveIdentifierTryNext)
 			}
-			phone = ghost.Metadata.(*GhostMetadata).Phone
-			if phone == "" {
-				return nil, fmt.Errorf("%w: phone number of ghost %s not known", ErrGhostPhoneUnknown, netID)
+			phone, err = gc.getGhostPhone(ctx, netID, ghost)
+			if err != nil {
+				return nil, err
 			}
 			if !createChat {
 				log.Debug().Str("ghost_id", string(ghost.ID)).Msg("Returning ghost identifier")
@@ -199,9 +199,9 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 			if err != nil {
 				return nil, fmt.Errorf("failed to get ghost %s: %w", user, err)
 			}
-			phone = ghost.Metadata.(*GhostMetadata).Phone
-			if phone == "" {
-				return nil, fmt.Errorf("%w: phone number of ghost %s not known", ErrGhostPhoneUnknown, ghost.ID)
+			phone, err = gc.getGhostPhone(ctx, user, ghost)
+			if err != nil {
+				return nil, err
 			}
 		} else {
 			// Hack to allow ResolveIdentifier results (raw phone numbers) here
@@ -327,6 +327,30 @@ func (gc *GMClient) refreshContactsInBackground(ctx context.Context) {
 			log.Warn().Err(err).Msg("Failed to refresh contact list")
 		}
 	}()
+}
+
+func (gc *GMClient) getGhostPhone(ctx context.Context, userID networkid.UserID, ghost *bridgev2.Ghost) (string, error) {
+	if ghost != nil {
+		if phone := ghost.Metadata.(*GhostMetadata).Phone; phone != "" {
+			return phone, nil
+		}
+	}
+	_, participantID := parseAnyID(string(userID))
+	if participantID == "" {
+		return "", fmt.Errorf("%w: phone number of ghost %s not known", ErrGhostPhoneUnknown, userID)
+	}
+	contacts, err := gc.getOrFetchContacts(ctx)
+	if err != nil {
+		return "", wrapRespError(err)
+	}
+	for _, contact := range contacts {
+		if contact.GetParticipantID() == participantID {
+			if phone := contact.GetNumber().GetNumber(); phone != "" {
+				return phone, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("%w: phone number of ghost %s not known", ErrGhostPhoneUnknown, userID)
 }
 
 func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIdentifierResponse, error) {
