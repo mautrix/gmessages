@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -437,7 +438,9 @@ func mergeSettings(old UserSettings, settings *gmproto.Settings) UserSettings {
 }
 
 func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settings) {
-	gc.phoneHasNoSIM.Store(settings.SIMCards == nil)
+	gc.phoneHasNoSIM.Store(!slices.ContainsFunc(settings.SIMCards, func(sim *gmproto.SIMCard) bool {
+		return sim.GetSIMData().GetInt1() != -1
+	}))
 	if settings.SIMCards == nil {
 		return
 	}
