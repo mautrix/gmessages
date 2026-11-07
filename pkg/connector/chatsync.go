@@ -36,7 +36,7 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
-func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) (foundGap bool) {
+func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) (foundGap bool, err error) {
 	defer func() {
 		if v := recover(); v != nil {
 			zerolog.Ctx(ctx).
@@ -55,7 +55,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	})
 	if err != nil {
 		log.Err(err).Msg("Failed to get conversation list")
-		return
+		return false, err
 	}
 	gc.lastConversationList.Store(time.Now().UnixMilli())
 	log.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
@@ -102,7 +102,10 @@ func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived 
 	zerolog.Ctx(ctx).Debug().
 		Time("last_data_received", lastDataReceived).
 		Msg("Data resumed after quiet period, checking for missed events")
-	gc.SyncConversations(ctx, lastDataReceived, true)
+	if _, err := gc.SyncConversations(ctx, lastDataReceived, true); err != nil {
+		gc.noDataReceivedRecently = true
+		gc.lastDataReceived = lastDataReceived
+	}
 }
 
 // pendingSend records where a message that hasn't been echoed back yet was sent, so the chat
@@ -243,7 +246,7 @@ func (gc *GMClient) recoverReceiveStall(ctx context.Context) {
 		if anchor.IsZero() {
 			return
 		}
-		if !gc.SyncConversations(ctx, anchor, true) {
+		if foundGap, _ := gc.SyncConversations(ctx, anchor, true); !foundGap {
 			log.Debug().Int("attempt", attempt).Msg("No receive stall detected")
 			return
 		}
