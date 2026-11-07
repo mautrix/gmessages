@@ -264,6 +264,9 @@ func (c *Client) buildStartUploadPayload() (string, error) {
 }
 
 func (c *Client) DownloadMedia(ctx context.Context, mediaID string, key []byte) (io.ReadCloser, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	cryptor, err := crypto.NewAESGCMHelper(key)
 	if err != nil {
 		return nil, err
@@ -298,6 +301,9 @@ func (c *Client) DownloadMedia(ctx context.Context, mediaID string, key []byte) 
 }
 
 func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error) {
+	if c == nil {
+		return nil, ErrClientIsNil
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
