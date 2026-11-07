@@ -96,7 +96,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
-	if lastDataReceived.IsZero() || gc.syncingConversations.Load() || gc.stallRecoveryRunning.Load() {
+	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
 		return
 	}
 	zerolog.Ctx(ctx).Debug().
