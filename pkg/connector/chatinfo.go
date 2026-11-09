@@ -164,7 +164,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			}
 		}
 	}
-	if conv.IsGroupChat && conv.ReadOnly && !hasSelf {
+	if conv.IsGroupChat && conv.Type == gmproto.ConversationType_RCS && conv.ReadOnly && !hasSelf {
 		self := members.MemberMap[""]
 		self.Membership = event.MembershipLeave
 		members.MemberMap[""] = self
