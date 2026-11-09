@@ -682,7 +682,10 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 	newMainMeta.MSSFailSent = prevMainMeta.MSSFailSent
 	newMainMeta.MSSDeliverySent = prevMainMeta.MSSDeliverySent
 	newMainMeta.ReadReceiptSent = prevMainMeta.ReadReceiptSent
-	newMainMeta.OrigMXID = prevMainMeta.OrigMXID
+	newMainMeta.CaptionFailed = prevMainMeta.CaptionFailed
+	if !m.chatIDChanged {
+		newMainMeta.OrigMXID = prevMainMeta.OrigMXID
+	}
 	if existing[0].HasFakeMXID() {
 		for _, part := range converted.Parts {
 			part.DontBridge = true
@@ -1193,9 +1196,12 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		(hasPendingMedia && updatedMediaIsComplete) ||
 		messageWasEdited ||
 		existingMeta.GlobalPartCount != len(m.MessageInfo)
-	needsMSSEvent := (existingMeta.IsOutgoing || existingMeta.MSSFailSent) && !existingMeta.MSSSent && isSuccessfullySentStatus(newStatus)
+	needsMSSEvent := (existingMeta.IsOutgoing || existingMeta.MSSFailSent) && !existingMeta.MSSSent && !existingMeta.CaptionFailed && isSuccessfullySentStatus(newStatus)
+	if needsMSSEvent && isCaption {
+		needsMSSEvent = m.g.captionRecovered(ctx, existingMeta.OrigMXID)
+	}
 	needsMSSFailureEvent := !existingMeta.MSSFailSent && !existingMeta.MSSSent && getFailMessage(newStatus) != ""
-	needsMSSDeliveryEvent := !existingMeta.MSSDeliverySent && portal.RoomType == database.RoomTypeDM && (newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED || newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED)
+	needsMSSDeliveryEvent := !existingMeta.MSSDeliverySent && !existingMeta.CaptionFailed && portal.RoomType == database.RoomTypeDM && (newStatus == gmproto.MessageStatusType_OUTGOING_DELIVERED || newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED)
 	needsReadReceipt := !existingMeta.ReadReceiptSent && portal.RoomType == database.RoomTypeDM && newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED
 	needsGroupReadReceipt := portal.RoomType != database.RoomTypeDM &&
 		newStatus == gmproto.MessageStatusType_OUTGOING_DISPLAYED &&

@@ -180,13 +180,31 @@ func (gc *GMClient) markCaptionFailed(ctx context.Context, mediaEventID id.Event
 		gc.failedCaptions.Add(mediaEventID)
 		return
 	}
-	meta := mediaMsg.Metadata.(*MessageMetadata)
-	meta.MSSSent = true
-	meta.MSSDeliverySent = true
+	mediaMsg.Metadata.(*MessageMetadata).CaptionFailed = true
 	err = gc.Main.br.DB.Message.Update(ctx, mediaMsg)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Stringer("media_event_id", mediaEventID).Msg("Failed to mark media message after failed caption")
 	}
+}
+
+func (gc *GMClient) captionRecovered(ctx context.Context, mediaEventID id.EventID) (mediaSent bool) {
+	mediaMsg, err := gc.Main.br.DB.Message.GetPartByMXID(ctx, mediaEventID)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Stringer("media_event_id", mediaEventID).Msg("Failed to get media message for recovered caption")
+		return false
+	} else if mediaMsg == nil {
+		return false
+	}
+	meta := mediaMsg.Metadata.(*MessageMetadata)
+	if getFailMessage(meta.Type) != "" {
+		return false
+	}
+	meta.CaptionFailed = false
+	err = gc.Main.br.DB.Message.Update(ctx, mediaMsg)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Stringer("media_event_id", mediaEventID).Msg("Failed to clear failed caption flag on media message")
+	}
+	return isSuccessfullySentStatus(meta.Type)
 }
 
 func (gc *GMClient) sendMessageWithRetry(ctx context.Context, req *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
@@ -264,12 +282,8 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 		meta.OrigMXID = dbMessage.MXID
 	}
 	dbMessage.Metadata = meta
-	if gc.failedCaptions.Pop(dbMessage.MXID) {
-		meta.MSSSent = true
-		meta.MSSDeliverySent = true
-		return true, bridgev2.ErrNoStatus
-	}
-	if meta.IsOutgoing && isSuccessfullySentStatus(meta.Type) {
+	meta.CaptionFailed = gc.failedCaptions.Pop(dbMessage.MXID)
+	if meta.IsOutgoing && !meta.CaptionFailed && isSuccessfullySentStatus(meta.Type) {
 		meta.MSSSent = true
 		return true, nil
 	}
