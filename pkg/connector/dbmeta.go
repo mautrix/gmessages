@@ -117,6 +117,8 @@ type UserLoginMetadata struct {
 	Settings           UserSettings                `json:"settings"`
 	IDPrefix           string                      `json:"id_prefix"`
 	PushKeys           *PushKeys                   `json:"push_keys"`
+
+	ChatListSyncPending bool `json:"chat_list_sync_pending,omitempty"`
 }
 
 type PushKeys struct {

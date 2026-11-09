@@ -84,6 +84,7 @@ type GMClient struct {
 
 	messageQueue     chan *libgm.WrappedMessage
 	stopMessageQueue atomic.Pointer[context.CancelFunc]
+	stopChatListSync atomic.Pointer[context.CancelFunc]
 
 	contactsFetchLock  sync.Mutex
 	contactsLock       sync.RWMutex
@@ -201,6 +202,9 @@ func (gc *GMClient) Disconnect() {
 	gc.SwitchedToGoogleLogin = false
 	gc.ready = false
 	gc.browserInactiveType = ""
+	if cancel := gc.stopChatListSync.Swap(nil); cancel != nil {
+		(*cancel)()
+	}
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
 	}
