@@ -1470,6 +1470,9 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	textPart, _ := getTextPart(m.Message)
 	if textPart != nil {
 		textPart.DontBridge = dontBridge
+		if !dontBridge && len(textPart.Content.BeeperLinkPreviews) > 0 {
+			gc.addLinkPreviewImage(ctx, portal, intent, m.Message, textPart.Content.BeeperLinkPreviews[0])
+		}
 		cm.Parts = append(cm.Parts, textPart)
 	}
 	isFirstPart := textPart == nil
