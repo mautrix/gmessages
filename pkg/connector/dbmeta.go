@@ -118,7 +118,8 @@ type UserLoginMetadata struct {
 	IDPrefix           string                      `json:"id_prefix"`
 	PushKeys           *PushKeys                   `json:"push_keys"`
 
-	ChatListSyncPending bool `json:"chat_list_sync_pending,omitempty"`
+	ChatListSyncPending  bool `json:"chat_list_sync_pending,omitempty"`
+	ChatListSyncAttempts int  `json:"chat_list_sync_attempts,omitempty"`
 }
 
 type PushKeys struct {
@@ -181,7 +182,10 @@ func (ulm *UserLoginMetadata) CopyFrom(other any) {
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
 	ulm.Session = otherULM.Session
-	ulm.ChatListSyncPending = ulm.ChatListSyncPending || otherULM.ChatListSyncPending
+	if otherULM.ChatListSyncPending {
+		ulm.ChatListSyncPending = true
+		ulm.ChatListSyncAttempts = otherULM.ChatListSyncAttempts
+	}
 }
 
 func (ulm *UserLoginMetadata) MarshalJSON() ([]byte, error) {
@@ -205,6 +209,7 @@ func (ulm *UserLoginMetadata) clearUnlocked() {
 	ulm.IDPrefix = ""
 	ulm.PushKeys = nil
 	ulm.ChatListSyncPending = false
+	ulm.ChatListSyncAttempts = 0
 }
 
 func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
@@ -232,10 +237,16 @@ func (ulm *UserLoginMetadata) IsChatListSyncPending() bool {
 	return ulm.ChatListSyncPending
 }
 
-func (ulm *UserLoginMetadata) ClearChatListSyncPending() {
+func (ulm *UserLoginMetadata) FinishChatListSyncAttempt(timedOut bool) (attempt int, stillPending bool) {
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
-	ulm.ChatListSyncPending = false
+	ulm.ChatListSyncAttempts++
+	attempt = ulm.ChatListSyncAttempts
+	if !timedOut || attempt >= maxChatListSyncAttempts {
+		ulm.ChatListSyncPending = false
+		ulm.ChatListSyncAttempts = 0
+	}
+	return attempt, ulm.ChatListSyncPending
 }
 
 func (ulm *UserLoginMetadata) SIMCount() int {

@@ -100,8 +100,9 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 }
 
 const (
-	chatListPageSize    = 25
-	chatListPageTimeout = 2 * time.Minute
+	chatListPageSize        = 25
+	chatListPageTimeout     = 2 * time.Minute
+	maxChatListSyncAttempts = 3
 )
 
 func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.ListConversationsResponse) {
@@ -146,14 +147,14 @@ func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.Lis
 			Msg("Failed to sync full chat list")
 		return
 	}
-	if timedOutPages == 0 {
-		gc.Meta.ClearChatListSyncPending()
-		err = gc.UserLogin.Save(ctx)
-		if err != nil {
-			log.Err(err).Msg("Failed to save user login after syncing full chat list")
-		}
+	attempt, stillPending := gc.Meta.FinishChatListSyncAttempt(timedOutPages > 0)
+	err = gc.UserLogin.Save(ctx)
+	if err != nil {
+		log.Err(err).Msg("Failed to save user login after syncing full chat list")
 	}
 	log.Info().
+		Int("attempt", attempt).
+		Bool("still_pending", stillPending).
 		Int("inbox_chats", inboxChats).
 		Int("inbox_pages", inboxPages).
 		Int("archive_chats", archiveChats).
