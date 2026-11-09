@@ -550,7 +550,7 @@ func (gc *GMClient) startPairedPhoneCheckTimer() {
 }
 
 func (gc *GMClient) checkPairedPhone(timer *time.Timer) {
-	if gc.PhoneResponding || gc.UserLogin.Client != gc {
+	if gc.PhoneResponding || gc.Client == nil || gc.UserLogin.Client != gc {
 		gc.pairedPhoneCheckLock.Lock()
 		if gc.pairedPhoneCheck == timer {
 			gc.pairedPhoneCheck = nil
