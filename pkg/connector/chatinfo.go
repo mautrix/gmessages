@@ -65,6 +65,10 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 	switch conv.GetStatus() {
 	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 		return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
+	case gmproto.ConversationStatus_SPAM_FOLDER:
+		if portal.MXID == "" && gc.hidesConversation(conv.GetStatus()) {
+			return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
+		}
 	}
 	return gc.wrapChatInfo(ctx, conv)
 }
