@@ -199,8 +199,12 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 			Bool("browser_matches", rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID()).
 			Msg("Failed to decode incoming RPC message")
 		c.sessionHandler.queueMessageAck(rawMsg.ResponseID)
-		if errors.Is(err, crypto.ErrHMACMismatch) && c.hmacFailures.Add(1) == hmacFailureLimit {
-			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("%w: %d data events in a row failed to decrypt", ErrPairingKeysRejected, hmacFailureLimit)})
+		if errors.Is(err, crypto.ErrHMACMismatch) {
+			if c.skipCount > 0 {
+				c.skipCount--
+			} else if rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID() && c.hmacFailures.Add(1) == hmacFailureLimit {
+				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("%w: %d data events in a row failed to decrypt", ErrPairingKeysRejected, hmacFailureLimit)})
+			}
 		}
 		return
 	}
