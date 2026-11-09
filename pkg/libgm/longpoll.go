@@ -24,7 +24,7 @@ import (
 )
 
 const defaultPingTimeout = 1 * time.Minute
-const minPingInterval = 30 * time.Second
+const minPingInterval = defaultPingTimeout
 const initialRecoveryInterval = 1 * time.Minute
 const maxRepingTickerTime = 64 * time.Minute
 
