@@ -1547,13 +1547,22 @@ func (gc *GMClient) convertGoogleMedia(
 		case gmproto.MediaFormats_IMAGE_UNSPECIFIED:
 			mediaClass = "image"
 		}
+		senderClass, _, _ := strings.Cut(msg.GetMimeType(), "/")
+		if senderClass != "" && (mediaClass == "" || mediaClass == senderClass) {
+			content.Info.MimeType = msg.GetMimeType()
+			mediaClass = senderClass
+		}
 	}
 	var needAudioConvert bool
 	switch mediaClass {
 	case "image":
 		content.MsgType = event.MsgImage
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 	case "video":
 		content.MsgType = event.MsgVideo
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 		// TODO convert weird formats to mp4
 	case "audio":
 		content.MsgType = event.MsgAudio
