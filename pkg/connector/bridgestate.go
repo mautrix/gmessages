@@ -74,6 +74,15 @@ func init() {
 	})
 }
 
+func (gc *GMClient) sendConnectedIfChanged() {
+	state := status.BridgeState{StateEvent: status.StateConnected}
+	prev := gc.UserLogin.BridgeState.GetPrevUnsent()
+	if filled := state.Fill(gc.UserLogin); prev.ShouldDeduplicate(&filled) {
+		return
+	}
+	gc.UserLogin.BridgeState.Send(state)
+}
+
 func (gc *GMClient) FillBridgeState(state status.BridgeState) status.BridgeState {
 	if state.Info == nil {
 		state.Info = make(map[string]any)
