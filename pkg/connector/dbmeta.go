@@ -178,7 +178,10 @@ func (ulm *UserLoginMetadata) CopyFrom(other any) {
 	if !ok || otherULM == nil {
 		panic(fmt.Errorf("invalid type %T provided to UserLoginMetadata.CopyFrom", other))
 	}
+	ulm.lock.Lock()
+	defer ulm.lock.Unlock()
 	ulm.Session = otherULM.Session
+	ulm.ChatListSyncPending = ulm.ChatListSyncPending || otherULM.ChatListSyncPending
 }
 
 func (ulm *UserLoginMetadata) MarshalJSON() ([]byte, error) {
@@ -201,6 +204,7 @@ func (ulm *UserLoginMetadata) clearUnlocked() {
 	ulm.Settings = UserSettings{}
 	ulm.IDPrefix = ""
 	ulm.PushKeys = nil
+	ulm.ChatListSyncPending = false
 }
 
 func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
@@ -220,6 +224,18 @@ func (ulm *UserLoginMetadata) IsSelfParticipantID(id string) bool {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
 	return slices.Contains(ulm.SelfParticipantIDs, id)
+}
+
+func (ulm *UserLoginMetadata) IsChatListSyncPending() bool {
+	ulm.lock.RLock()
+	defer ulm.lock.RUnlock()
+	return ulm.ChatListSyncPending
+}
+
+func (ulm *UserLoginMetadata) ClearChatListSyncPending() {
+	ulm.lock.Lock()
+	defer ulm.lock.Unlock()
+	ulm.ChatListSyncPending = false
 }
 
 func (ulm *UserLoginMetadata) SIMCount() int {

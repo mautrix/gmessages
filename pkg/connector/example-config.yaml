@@ -18,6 +18,7 @@ device_meta:
 # If this is disabled, the user must manually use the `set-active` command to reactivate the bridge.
 aggressive_reconnect: false
 # Number of chats to sync when connecting to Google Messages.
+# New logins also sync every inbox and archived chat once, 25 chats at a time.
 initial_chat_sync_count: 25
 # Interval at which to ping the phone to check if it's still connected.
 ping_interval: 20m

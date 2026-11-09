@@ -93,7 +93,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
 		gc.syncConversation(ctx, conv, "sync", nil)
 	}
-	if gc.Meta.ChatListSyncPending {
+	if gc.Meta.IsChatListSyncPending() {
 		go gc.syncFullChatList(ctx, resp)
 	}
 	return
@@ -111,6 +111,9 @@ func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.Lis
 		return
 	}
 	defer gc.stopChatListSync.CompareAndSwap(&cancel, nil)
+	if !gc.ready {
+		return
+	}
 	log := gc.UserLogin.Log.With().Str("action", "sync full chat list").Logger()
 	ctx = log.WithContext(ctx)
 	defer func() {
@@ -123,16 +126,18 @@ func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.Lis
 	start := time.Now()
 	log.Info().Msg("Syncing full chat list")
 	inboxChats, inboxPages := len(firstPage.GetConversations()), 1
-	var archiveChats, archivePages int
+	var archiveChats, archivePages, timedOutPages int
 	var err error
 	if firstPage.GetCursor() != nil {
 		var chats, pages int
-		chats, pages, err = gc.syncChatListFolder(ctx, gmproto.ListConversationsRequest_INBOX, firstPage.GetCursor())
+		chats, pages, timedOutPages, err = gc.syncChatListFolder(ctx, gmproto.ListConversationsRequest_INBOX, firstPage.GetCursor())
 		inboxChats += chats
 		inboxPages += pages
 	}
 	if err == nil {
-		archiveChats, archivePages, err = gc.syncChatListFolder(ctx, gmproto.ListConversationsRequest_ARCHIVE, nil)
+		var timedOut int
+		archiveChats, archivePages, timedOut, err = gc.syncChatListFolder(ctx, gmproto.ListConversationsRequest_ARCHIVE, nil)
+		timedOutPages += timedOut
 	}
 	if err != nil {
 		log.Err(err).
@@ -141,25 +146,28 @@ func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.Lis
 			Msg("Failed to sync full chat list")
 		return
 	}
-	gc.Meta.ChatListSyncPending = false
-	err = gc.UserLogin.Save(ctx)
-	if err != nil {
-		log.Err(err).Msg("Failed to save user login after syncing full chat list")
+	if timedOutPages == 0 {
+		gc.Meta.ClearChatListSyncPending()
+		err = gc.UserLogin.Save(ctx)
+		if err != nil {
+			log.Err(err).Msg("Failed to save user login after syncing full chat list")
+		}
 	}
 	log.Info().
 		Int("inbox_chats", inboxChats).
 		Int("inbox_pages", inboxPages).
 		Int("archive_chats", archiveChats).
 		Int("archive_pages", archivePages).
+		Int("timed_out_pages", timedOutPages).
 		Dur("duration", time.Since(start)).
 		Msg("Finished syncing full chat list")
 }
 
-func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListConversationsRequest_Folder, cursor *gmproto.Cursor) (chats, pages int, err error) {
+func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListConversationsRequest_Folder, cursor *gmproto.Cursor) (chats, pages, timedOutPages int, err error) {
 	for {
 		cli := gc.Client
 		if cli == nil {
-			return chats, pages, bridgev2.ErrNotLoggedIn
+			return chats, pages, timedOutPages, bridgev2.ErrNotLoggedIn
 		}
 		resp, err := cli.ListConversations(ctx, &gmproto.ListConversationsRequest{
 			Count:  chatListPageSize,
@@ -167,7 +175,7 @@ func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListC
 			Cursor: cursor,
 		})
 		if err != nil {
-			return chats, pages, err
+			return chats, pages, timedOutPages, err
 		}
 		pages++
 		convs := resp.GetConversations()
@@ -180,19 +188,23 @@ func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListC
 			Bool("has_next_page", next != nil).
 			Int64("cursor_ts", next.GetLastItemTimestamp()).
 			Msg("Fetched chat list page")
-		gc.syncChatListPage(ctx, convs)
+		if !gc.syncChatListPage(ctx, convs) {
+			timedOutPages++
+		}
 		if err = ctx.Err(); err != nil || len(convs) == 0 || next == nil || proto.Equal(next, cursor) {
-			return chats, pages, err
+			return chats, pages, timedOutPages, err
 		}
 		cursor = next
 	}
 }
 
-func (gc *GMClient) syncChatListPage(ctx context.Context, convs []*gmproto.Conversation) {
+func (gc *GMClient) syncChatListPage(ctx context.Context, convs []*gmproto.Conversation) bool {
 	handled := make(chan struct{}, len(convs))
 	for _, conv := range convs {
 		done := sync.OnceFunc(func() { handled <- struct{}{} })
-		if !(&GMChatResync{Conv: conv}).ShouldCreatePortal() {
+		if !(&GMChatResync{Conv: conv}).ShouldCreatePortal() ||
+			(!conv.IsGroupChat && getOtherUserPhone(conv) == "") ||
+			!gc.Main.br.Config.PortalCreateFilter.ShouldAllow(gc.UserLogin.ID, gc.portalKeyForConv(conv)) {
 			done()
 		}
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
@@ -208,11 +220,12 @@ func (gc *GMClient) syncChatListPage(ctx context.Context, convs []*gmproto.Conve
 			zerolog.Ctx(ctx).Warn().
 				Int("pending_count", len(convs)-i).
 				Msg("Chat list page wasn't fully handled in time, continuing")
-			return
+			return false
 		case <-ctx.Done():
-			return
+			return false
 		}
 	}
+	return true
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
