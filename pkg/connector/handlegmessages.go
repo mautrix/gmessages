@@ -1421,18 +1421,17 @@ func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Port
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
 		} else if lastMessage != nil && lastMessage.Timestamp.After(m.GetTimestamp()) {
-			if idToInt(lastMessage.ID) > idToInt(m.GetID()) {
-				log.Warn().
-					Str("last_message_id", string(lastMessage.ID)).
-					Time("last_message_ts", lastMessage.Timestamp).
-					Msg("Not handling old message even though it has higher ID than last new one")
-			} else {
+			if idToInt(m.GetID()) <= idToInt(lastMessage.ID) {
 				log.Debug().
 					Str("last_message_id", string(lastMessage.ID)).
 					Time("last_message_ts", lastMessage.Timestamp).
 					Msg("Not handling old message")
+				return nil, fmt.Errorf("%w: not handling old message", bridgev2.ErrIgnoringRemoteEvent)
 			}
-			return nil, fmt.Errorf("%w: not handling old message", bridgev2.ErrIgnoringRemoteEvent)
+			log.Debug().
+				Str("last_message_id", string(lastMessage.ID)).
+				Time("last_message_ts", lastMessage.Timestamp).
+				Msg("Handling old message as it has higher ID than last message")
 		}
 	}
 	return m.g.ConvertGoogleMessage(ctx, portal, intent, m.WrappedMessage, true), nil
