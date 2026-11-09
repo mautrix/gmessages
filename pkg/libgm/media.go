@@ -51,6 +51,7 @@ var MimeToMediaType = map[string]MediaType{
 	"audio/ogg":      {Extension: "ogg", Type: gmproto.MediaFormats_AUDIO_OGG},
 
 	"text/vcard":         {Extension: "vcard", Type: gmproto.MediaFormats_TEXT_VCARD},
+	"text/x-vcard":       {Extension: "vcf", Type: gmproto.MediaFormats_TEXT_VCARD},
 	"application/pdf":    {Extension: "pdf", Type: gmproto.MediaFormats_APP_PDF},
 	"text/plain":         {Extension: "txt", Type: gmproto.MediaFormats_APP_TXT},
 	"text/html":          {Extension: "html", Type: gmproto.MediaFormats_APP_HTML},
@@ -64,7 +65,11 @@ var MimeToMediaType = map[string]MediaType{
 	"application/zip":          {Extension: "zip", Type: gmproto.MediaFormats_APP_ZIP},
 	"application/java-archive": {Extension: "jar", Type: gmproto.MediaFormats_APP_JAR},
 	"text/x-calendar":          {Extension: "vcs", Type: gmproto.MediaFormats_CAL_TEXT_VCALENDAR},
+	"text/x-vcalendar":         {Extension: "vcs", Type: gmproto.MediaFormats_CAL_TEXT_XVCALENDAR},
 	"text/calendar":            {Extension: "ics", Type: gmproto.MediaFormats_CAL_TEXT_CALENDAR},
+	"application/vcs":          {Extension: "vcs", Type: gmproto.MediaFormats_CAL_APPLICATION_VCS},
+	"application/ics":          {Extension: "ics", Type: gmproto.MediaFormats_CAL_APPLICATION_ICS},
+	"application/hbs-vcs":      {Extension: "hbs-vcs", Type: gmproto.MediaFormats_CAL_APPLICATION_HBSVCS},
 
 	"image":       {Type: gmproto.MediaFormats_IMAGE_UNSPECIFIED},
 	"video":       {Type: gmproto.MediaFormats_VIDEO_UNSPECIFIED},
@@ -74,15 +79,14 @@ var MimeToMediaType = map[string]MediaType{
 }
 
 var FormatToMediaType = map[gmproto.MediaFormats]MediaType{
-	gmproto.MediaFormats_CAL_TEXT_XVCALENDAR: MimeToMediaType["text/x-calendar"],
-	gmproto.MediaFormats_CAL_APPLICATION_VCS: MimeToMediaType["text/x-calendar"],
-	gmproto.MediaFormats_CAL_APPLICATION_ICS: MimeToMediaType["text/calendar"],
-	//gmproto.MediaFormats_CAL_APPLICATION_HBSVCS: ???
+	gmproto.MediaFormats_TEXT_VCARD: {Extension: "vcard", Format: "text/vcard", Type: gmproto.MediaFormats_TEXT_VCARD},
 }
 
 func init() {
 	for key, mediaType := range MimeToMediaType {
-		if strings.ContainsRune(key, '/') {
+		if _, exists := FormatToMediaType[mediaType.Type]; exists {
+			continue
+		} else if strings.ContainsRune(key, '/') {
 			mediaType.Format = key
 		}
 		FormatToMediaType[mediaType.Type] = mediaType
