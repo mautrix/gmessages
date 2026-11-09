@@ -29,6 +29,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/bridgev2/status"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm"
@@ -81,6 +82,7 @@ type GMClient struct {
 
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
+	pendingCaptions  *exsync.Map[string, id.EventID]
 
 	messageQueue     chan *libgm.WrappedMessage
 	stopMessageQueue atomic.Pointer[context.CancelFunc]
@@ -113,6 +115,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		chatInfoCache:       exsync.NewMap[string, *gmproto.Conversation](),
 		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
 		pendingSends:        make(map[networkid.TransactionID]pendingSend),
+		pendingCaptions:     exsync.NewMap[string, id.EventID](),
 		dmsByPhone:          make(map[string]*gmdb.DirectConversation),
 		dmsByConv:           make(map[networkid.PortalID]*gmdb.DirectConversation),
 

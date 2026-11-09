@@ -1441,7 +1441,8 @@ func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Port
 func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, m *libgm.WrappedMessage, allowMergeCaption bool) *bridgev2.ConvertedMessage {
 	log := zerolog.Ctx(ctx)
 	var cm bridgev2.ConvertedMessage
-	dontBridge := shouldIgnoreStatus(m.GetMessageStatus().GetStatus(), portal.RoomType == database.RoomTypeDM)
+	captionOf, isCaption := gc.pendingCaptions.Pop(m.GetTmpID())
+	dontBridge := isCaption || shouldIgnoreStatus(m.GetMessageStatus().GetStatus(), portal.RoomType == database.RoomTypeDM)
 	if m.GetReplyMessage() != nil {
 		cm.ReplyTo = &networkid.MessageOptionalPartID{
 			MessageID: gc.MakeMessageID(m.GetReplyMessage().GetMessageID()),
@@ -1450,6 +1451,11 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	textPart, _ := getTextPart(m.Message)
 	if textPart != nil {
 		textPart.DontBridge = dontBridge
+		if isCaption {
+			textMeta := textPart.DBMetadata.(*MessageMetadata)
+			textMeta.OrigMXID = captionOf
+			textMeta.MSSDeliverySent = true
+		}
 		cm.Parts = append(cm.Parts, textPart)
 	}
 	isFirstPart := textPart == nil

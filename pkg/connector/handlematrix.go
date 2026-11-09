@@ -28,6 +28,7 @@ import (
 	"go.mau.fi/util/ffmpeg"
 	"go.mau.fi/util/ptr"
 	"go.mau.fi/util/variationselector"
+	"google.golang.org/protobuf/proto"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -67,26 +68,17 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 	if err != nil {
 		return nil, err
 	}
+	var captionReq *gmproto.SendMessageRequest
+	if msg.Portal.Metadata.(*PortalMetadata).Type == gmproto.ConversationType_RCS && len(req.MessagePayload.MessageInfo) > 1 {
+		captionReq = splitCaption(req)
+	}
 	msg.AddPendingToSave(nil, txnID, gc.handleRemoteEcho)
 	zerolog.Ctx(ctx).Debug().
 		Str("tmp_id", string(txnID)).
+		Str("caption_tmp_id", captionReq.GetTmpID()).
 		Str("participant_id", req.GetMessagePayload().GetParticipantID()).
 		Msg("Sending Matrix message to Google Messages")
-	resp, err := gc.Client.SendMessage(ctx, req)
-	for attempt := 0; err == nil && isTransientSendFailure(resp.Status) && attempt < len(sendRetryBackoff); attempt++ {
-		zerolog.Ctx(ctx).Warn().
-			Str("response_status", resp.GetStatus().String()).
-			Int("attempt", attempt+1).
-			Dur("retry_in", sendRetryBackoff[attempt]).
-			Msg("Phone rejected message send with transient status, retrying")
-		select {
-		case <-ctx.Done():
-			msg.RemovePending(txnID)
-			return nil, ctx.Err()
-		case <-time.After(sendRetryBackoff[attempt]):
-		}
-		resp, err = gc.Client.SendMessage(ctx, req)
-	}
+	resp, err := gc.sendMessageWithRetry(ctx, req)
 	if err != nil {
 		if errors.Is(err, libgm.ErrPhoneNotResponding) {
 			// The server accepted the message, so the phone may still send it whenever
@@ -114,7 +106,70 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		return nil, msgStatus
 	}
 	gc.trackPendingSend(txnID, req.GetConversationID())
+	if captionReq != nil {
+		err = gc.sendCaption(ctx, msg.Event.ID, captionReq)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
+}
+
+func splitCaption(req *gmproto.SendMessageRequest) *gmproto.SendMessageRequest {
+	tmpID := util.GenerateTmpID()
+	captionReq := proto.Clone(req).(*gmproto.SendMessageRequest)
+	captionReq.TmpID = tmpID
+	captionReq.MessagePayload.TmpID = tmpID
+	captionReq.MessagePayload.TmpID2 = tmpID
+	captionReq.MessagePayload.MessageInfo = captionReq.MessagePayload.MessageInfo[1:]
+	captionReq.Reply = nil
+	req.MessagePayload.MessageInfo = req.MessagePayload.MessageInfo[:1]
+	return captionReq
+}
+
+var ErrCaptionNotSent = bridgev2.WrapErrorInStatus(errors.New("failed to send caption")).
+	WithMessage("the attachment was sent, but the caption couldn't be sent").
+	WithIsCertain(true).
+	WithStatus(event.MessageStatusFail).
+	WithSendNotice(true)
+
+func (gc *GMClient) sendCaption(ctx context.Context, mediaEventID id.EventID, req *gmproto.SendMessageRequest) error {
+	gc.pendingCaptions.Set(req.TmpID, mediaEventID)
+	resp, err := gc.sendMessageWithRetry(ctx, req)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Str("caption_tmp_id", req.TmpID).Msg("Failed to send caption")
+		if !errors.Is(err, libgm.ErrPhoneNotResponding) {
+			gc.pendingCaptions.Delete(req.TmpID)
+		}
+		return ErrCaptionNotSent
+	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
+		zerolog.Ctx(ctx).Warn().
+			Str("caption_tmp_id", req.TmpID).
+			Str("response_status", resp.GetStatus().String()).
+			Msg("Phone rejected caption send")
+		gc.pendingCaptions.Delete(req.TmpID)
+		return ErrCaptionNotSent
+	}
+	return nil
+}
+
+func (gc *GMClient) sendMessageWithRetry(ctx context.Context, req *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
+	resp, err := gc.Client.SendMessage(ctx, req)
+	for attempt := 0; err == nil && isTransientSendFailure(resp.Status) && attempt < len(sendRetryBackoff); attempt++ {
+		zerolog.Ctx(ctx).Warn().
+			Str("tmp_id", req.TmpID).
+			Str("response_status", resp.GetStatus().String()).
+			Int("attempt", attempt+1).
+			Dur("retry_in", sendRetryBackoff[attempt]).
+			Msg("Phone rejected message send with transient status, retrying")
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(sendRetryBackoff[attempt]):
+		}
+		resp, err = gc.Client.SendMessage(ctx, req)
+	}
+	return resp, err
 }
 
 var sendRetryBackoff = []time.Duration{3 * time.Second, 8 * time.Second, 20 * time.Second}
