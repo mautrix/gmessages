@@ -474,6 +474,9 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrRequestedEntityNotFound):
 		state.Error = GMUnpaired404
 		go gc.invalidateSession(ctx, state, true, false)
+	case errors.Is(err, libgm.ErrPairingKeysRejected):
+		state.Error = GMUnpairedKeysRejected
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)

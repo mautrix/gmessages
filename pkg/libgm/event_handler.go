@@ -5,11 +5,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/crypto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
@@ -26,6 +28,10 @@ type IncomingRPCMessage struct {
 	DecryptedData    []byte
 	DecryptedMessage proto.Message
 }
+
+var ErrPairingKeysRejected = errors.New("data from the phone keeps failing to decrypt")
+
+const hmacFailureLimit = 20
 
 var responseType = map[gmproto.ActionType]proto.Message{
 	gmproto.ActionType_IS_BUGLE_DEFAULT:           &gmproto.IsBugleDefaultResponse{},
@@ -193,7 +199,13 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 			Bool("browser_matches", rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID()).
 			Msg("Failed to decode incoming RPC message")
 		c.sessionHandler.queueMessageAck(rawMsg.ResponseID)
+		if errors.Is(err, crypto.ErrHMACMismatch) && c.hmacFailures.Add(1) == hmacFailureLimit {
+			c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("%w: %d data events in a row failed to decrypt", ErrPairingKeysRejected, hmacFailureLimit)})
+		}
 		return
+	}
+	if msg.DecryptedData != nil {
+		c.hmacFailures.Store(0)
 	}
 
 	c.sessionHandler.queueMessageAck(msg.ResponseID)

@@ -10,6 +10,8 @@ import (
 	"io"
 )
 
+var ErrHMACMismatch = errors.New("HMAC mismatch")
+
 type AESCTRHelper struct {
 	AESKey  []byte `json:"aes_key"`
 	HMACKey []byte `json:"hmac_key"`
@@ -59,7 +61,7 @@ func (c *AESCTRHelper) Decrypt(encryptedData []byte) ([]byte, error) {
 	expectedHMAC := mac.Sum(nil)
 
 	if !hmac.Equal(hmacSignature, expectedHMAC) {
-		return nil, errors.New("HMAC mismatch")
+		return nil, ErrHMACMismatch
 	}
 
 	iv := encryptedDataWithoutHMAC[len(encryptedDataWithoutHMAC)-16:]
