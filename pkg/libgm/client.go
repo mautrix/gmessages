@@ -333,6 +333,10 @@ func (c *Client) postConnect() {
 		return
 	}
 	c.Logger.Debug().Msg("Sent set active session/get updates request")
+	select {
+	case c.pingShortCircuit <- struct{}{}:
+	default:
+	}
 }
 
 func (c *Client) Disconnect() {
