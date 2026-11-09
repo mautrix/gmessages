@@ -151,7 +151,9 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
-		gc.syncConversation(ctx, evt, "event")
+		gc.queueEvent(&log, evt.GetConversationID(), func() {
+			gc.syncConversation(ctx, evt, "event")
+		})
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {
@@ -173,14 +175,6 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Str("tmp_id", evt.GetTmpID()).
 			Bool("is_old", evt.IsOld).
 			Msg("Received message")
-		switch evt.GetMessageStatus().GetStatus() {
-		case gmproto.MessageStatusType_OUTGOING_COMPLETE, gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED,
-			gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_INCOMING_DELIVERED, gmproto.MessageStatusType_INCOMING_DISPLAYED:
-			err := gc.bumpDMLastMessageTime(ctx, evt.GetConversationID(), jsontime.UMicroInt(evt.GetTimestamp()))
-			if err != nil {
-				log.Err(err).Msg("Failed to bump DM last message time")
-			}
-		}
 		if evt.GetMessageStatus().GetStatus() == gmproto.MessageStatusType_MESSAGE_DELETED &&
 			(gc.syncingMobileDatabase.Load() || gc.syncingConversations.Load()) {
 			log.Debug().
@@ -192,17 +186,20 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		} else {
 			// There's an extra layer of queueing because QueueRemoteEvent calls some methods on MessageEvent,
 			// which may need to fetch conversations from the phone (to get the stable ID).
-			select {
-			case gc.messageQueue <- evt:
-			default:
-				log.Warn().
-					Str("conversation_id", evt.GetConversationID()).
-					Str("message_id", evt.GetMessageID()).
-					Msg("Message queue is full, messages may be out of order")
-				go func() {
-					gc.messageQueue <- evt
-				}()
-			}
+			gc.queueEvent(&log, evt.GetConversationID(), func() {
+				switch evt.GetMessageStatus().GetStatus() {
+				case gmproto.MessageStatusType_OUTGOING_COMPLETE, gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED,
+					gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_INCOMING_DELIVERED, gmproto.MessageStatusType_INCOMING_DISPLAYED:
+					err := gc.bumpDMLastMessageTime(ctx, evt.GetConversationID(), jsontime.UMicroInt(evt.GetTimestamp()))
+					if err != nil {
+						log.Err(err).Msg("Failed to bump DM last message time")
+					}
+				}
+				gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+					WrappedMessage: evt,
+					g:              gc,
+				})
+			})
 		}
 	case *gmproto.TypingData:
 		timeout := 15 * time.Second
@@ -226,7 +223,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 				Msg("Didn't find participant ID for typing notification")
 			return
 		}
-		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &simplevent.Typing{
+		typingEvt := &simplevent.Typing{
 			EventMeta: simplevent.EventMeta{
 				Type: bridgev2.RemoteEventTyping,
 				LogContext: func(c zerolog.Context) zerolog.Context {
@@ -240,6 +237,9 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			},
 			Timeout: timeout,
 			Type:    bridgev2.TypingTypeText,
+		}
+		gc.queueEvent(&log, evt.GetConversationID(), func() {
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, typingEvt)
 		})
 	case *gmproto.UserAlertEvent:
 		gc.handleUserAlert(ctx, evt)
@@ -273,14 +273,25 @@ func (gc *GMClient) handleMessageQueue(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case msg := <-gc.messageQueue:
-			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
-				WrappedMessage: msg,
-				g:              gc,
-			})
+		case fn := <-gc.messageQueue:
+			fn()
 		}
 	}
 }
+
+func (gc *GMClient) queueEvent(log *zerolog.Logger, conversationID string, fn func()) {
+	select {
+	case gc.messageQueue <- fn:
+	default:
+		log.Warn().
+			Str("conversation_id", conversationID).
+			Msg("Message queue is full, events may be out of order")
+		go func() {
+			gc.messageQueue <- fn
+		}()
+	}
+}
+
 func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountChange) {
 	log := zerolog.Ctx(ctx)
 	log.Debug().
@@ -453,10 +464,12 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 			Any("sims", gc.Meta.GetSIMs()).
 			Any("rcs_settings", gc.Meta.Settings).
 			Msg("Settings changed, saving")
-		err := gc.UserLogin.Save(ctx)
-		if err != nil {
-			log.Err(err).Msg("Failed to save SIM details")
-		}
+		go func() {
+			err := gc.UserLogin.Save(ctx)
+			if err != nil {
+				log.Err(err).Msg("Failed to save SIM details")
+			}
+		}()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	}
 }

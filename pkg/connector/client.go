@@ -82,7 +82,7 @@ type GMClient struct {
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
 
-	messageQueue     chan *libgm.WrappedMessage
+	messageQueue     chan func()
 	stopMessageQueue atomic.Pointer[context.CancelFunc]
 
 	contactsFetchLock  sync.Mutex
@@ -116,7 +116,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		dmsByPhone:          make(map[string]*gmdb.DirectConversation),
 		dmsByConv:           make(map[networkid.PortalID]*gmdb.DirectConversation),
 
-		messageQueue: make(chan *libgm.WrappedMessage, 128),
+		messageQueue: make(chan func(), 128),
 	}
 	convs, err := gc.DB.DirectConversation.GetAll(ctx, login.ID)
 	if err != nil {
