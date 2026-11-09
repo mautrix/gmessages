@@ -550,6 +550,14 @@ func (gc *GMClient) startPairedPhoneCheckTimer() {
 }
 
 func (gc *GMClient) checkPairedPhone(timer *time.Timer) {
+	if gc.PhoneResponding || gc.UserLogin.Client != gc {
+		gc.pairedPhoneCheckLock.Lock()
+		if gc.pairedPhoneCheck == timer {
+			gc.pairedPhoneCheck = nil
+		}
+		gc.pairedPhoneCheckLock.Unlock()
+		return
+	}
 	log := gc.UserLogin.Log.With().Str("action", "check paired phone").Logger()
 	ctx := log.WithContext(gc.Main.br.BackgroundCtx)
 	checkCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)

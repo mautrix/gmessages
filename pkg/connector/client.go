@@ -198,7 +198,6 @@ func (gc *GMClient) Connect(ctx context.Context) {
 }
 
 func (gc *GMClient) Disconnect() {
-	gc.cancelPairedPhoneCheck()
 	gc.longPollingError = errors.New("not connected")
 	gc.PhoneResponding = true
 	gc.batteryLow = false
@@ -208,6 +207,7 @@ func (gc *GMClient) Disconnect() {
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
 	}
+	gc.cancelPairedPhoneCheck()
 }
 
 func (gc *GMClient) ResetClient() {
