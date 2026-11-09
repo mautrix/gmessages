@@ -1421,7 +1421,7 @@ func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Port
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
 		} else if lastMessage != nil && lastMessage.Timestamp.After(m.GetTimestamp()) {
-			if idToInt(lastMessage.ID) > idToInt(m.GetID()) {
+			if idToInt(m.GetID()) > idToInt(lastMessage.ID) {
 				log.Warn().
 					Str("last_message_id", string(lastMessage.ID)).
 					Time("last_message_ts", lastMessage.Timestamp).
