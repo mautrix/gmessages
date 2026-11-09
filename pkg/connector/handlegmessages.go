@@ -1269,7 +1269,10 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 
 	if needsMSSFailureEvent && newStatus == gmproto.MessageStatusType_OUTGOING_FAILED_TO_ENCRYPT && existingMeta.IsOutgoing && !existingMeta.ResendAttempted {
 		existingMeta.ResendAttempted = true
-		err := m.g.Client.ResendMessage(ctx, m.ConversationID, m.MessageID)
+		err := m.g.Main.br.DB.Message.Update(ctx, dbm[0])
+		if err == nil {
+			err = m.g.Client.ResendMessage(ctx, m.ConversationID, m.MessageID)
+		}
 		if err != nil {
 			log.Err(err).Msg("Failed to resend message that failed to encrypt")
 		} else {
