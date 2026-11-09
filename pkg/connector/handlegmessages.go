@@ -86,6 +86,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneNotResponding:
 		gc.PhoneResponding = false
+		gc.noDataReceivedRecently = true
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneRespondingAgain:
 		gc.PhoneResponding = true

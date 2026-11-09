@@ -55,7 +55,8 @@ func parsePaginationCursor(cursor networkid.PaginationCursor) (*gmproto.Cursor, 
 }
 
 type backfillBundleData struct {
-	LatestMessageID string
+	LatestMessageID        string
+	CatchUpLatestMessageID string
 }
 
 // Allow messages that pre-date the anchor message if they are: sent by us and within this timeframe,
@@ -71,19 +72,23 @@ const catchUpPageSize = 50
 func (gc *GMClient) fetchMessagesSince(ctx context.Context, convID string, since time.Time, limit int) (*gmproto.ListMessagesResponse, error) {
 	merged := &gmproto.ListMessagesResponse{}
 	var cursor *gmproto.Cursor
+	var oldest *gmproto.Message
 	for len(merged.Messages) < limit {
 		resp, err := gc.Client.FetchMessages(ctx, convID, catchUpPageSize, cursor)
 		if err != nil {
 			return nil, err
 		}
-		merged.Messages = append(merged.Messages, resp.Messages...)
 		merged.Cursor = resp.Cursor
 		merged.TotalMessages = resp.TotalMessages
-		if len(resp.Messages) == 0 {
-			break
+		prevOldest := oldest
+		for _, msg := range resp.Messages {
+			if prevOldest != nil && msg.Timestamp >= prevOldest.Timestamp {
+				continue
+			}
+			merged.Messages = append(merged.Messages, msg)
+			oldest = msg
 		}
-		oldest := resp.Messages[len(resp.Messages)-1]
-		if !time.UnixMicro(oldest.Timestamp).After(since) {
+		if oldest == prevOldest || len(resp.Messages) < catchUpPageSize || !time.UnixMicro(oldest.Timestamp).After(since) {
 			break
 		}
 		cursor = resp.Cursor
@@ -128,9 +133,10 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 			}
 		}
 	}
-	var latestMessageID string
+	var latestMessageID, catchUpLatestMessageID string
 	if bundle, ok := params.BundledData.(*backfillBundleData); ok && params.Forward {
 		latestMessageID = bundle.LatestMessageID
+		catchUpLatestMessageID = bundle.CatchUpLatestMessageID
 	}
 	var resp *gmproto.ListMessagesResponse
 	if params.Forward && params.AnchorMessage != nil {
@@ -199,16 +205,14 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		fetchResp.Messages = append(fetchResp.Messages, backfillMsg)
 		lastRawMsg = msg
 	}
-	if params.Forward && params.AnchorMessage != nil && !slices.ContainsFunc(fetchResp.Messages, func(msg *bridgev2.BackfillMessage) bool {
+	if catchUpLatestMessageID != "" && params.AnchorMessage != nil && !slices.ContainsFunc(fetchResp.Messages, func(msg *bridgev2.BackfillMessage) bool {
 		return msg.Timestamp.After(anchorTS)
 	}) {
-		if conv, ok := gc.chatInfoCache.Get(convID); ok {
-			gc.conversationMetaLock.Lock()
-			if meta := gc.conversationMeta[convID]; meta != nil {
-				meta.emptyCatchUpLatestID = conv.LatestMessageID
-			}
-			gc.conversationMetaLock.Unlock()
+		gc.conversationMetaLock.Lock()
+		if meta := gc.conversationMeta[convID]; meta != nil {
+			meta.emptyCatchUpLatestID = catchUpLatestMessageID
 		}
+		gc.conversationMetaLock.Unlock()
 	}
 	if len(fetchResp.Messages) == 0 {
 		return fetchResp, nil

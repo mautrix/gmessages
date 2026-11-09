@@ -90,8 +90,8 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		// to avoid re-detecting the same gap on the next stall check.
 		gc.lastDataReceived = newestMessageTS
 	}
-	for _, conv := range gapConvs {
-		gc.queueMissedMessages(ctx, conv, lastDataReceived)
+	if len(gapConvs) > 0 {
+		go gc.queueMissedMessages(ctx, gapConvs, lastDataReceived, triggerConvID)
 	}
 	if minimalSync {
 		gc.syncReadState(ctx, resp.GetConversations())
@@ -105,41 +105,49 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	return
 }
 
-func (gc *GMClient) queueMissedMessages(ctx context.Context, conv *gmproto.Conversation, since time.Time) {
-	switch conv.GetStatus() {
-	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
-		return
-	}
-	log := zerolog.Ctx(ctx).With().Str("conversation_id", conv.GetConversationID()).Logger()
-	portal, err := gc.Main.br.GetExistingPortalByKey(ctx, gc.portalKeyForConv(conv))
-	if err != nil {
-		log.Err(err).Msg("Failed to get portal to fetch missed messages")
-		return
-	} else if portal == nil || portal.MXID == "" {
-		return
-	}
-	resp, err := gc.fetchMessagesSince(ctx, conv.GetConversationID(), since, gc.Main.br.Config.Backfill.MaxCatchupMessages)
-	if err != nil {
-		log.Err(err).Msg("Failed to fetch missed messages")
-		return
-	}
-	queued := 0
-	for _, msg := range slices.Backward(resp.GetMessages()) {
-		if !time.UnixMicro(msg.GetTimestamp()).After(since) {
+func (gc *GMClient) queueMissedMessages(ctx context.Context, convs []*gmproto.Conversation, since time.Time, triggerConvID string) {
+	for _, conv := range convs {
+		switch conv.GetStatus() {
+		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 			continue
 		}
-		rawData, _ := proto.Marshal(msg)
-		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
-			WrappedMessage: &libgm.WrappedMessage{Message: msg, Data: rawData},
-			g:              gc,
-		})
-		queued++
+		log := zerolog.Ctx(ctx).With().Str("conversation_id", conv.GetConversationID()).Logger()
+		lastMessage, err := gc.Main.br.DB.Message.GetLastPartAtOrBeforeTime(ctx, gc.portalKeyForConv(conv), time.Now().Add(10*time.Second))
+		if err != nil {
+			log.Err(err).Msg("Failed to get last message to check for missed messages")
+			continue
+		} else if lastMessage == nil || (conv.GetConversationID() != triggerConvID && !lastMessage.Timestamp.After(since)) {
+			continue
+		}
+		resp, err := gc.fetchMessagesSince(ctx, conv.GetConversationID(), since, gc.Main.br.Config.Backfill.MaxCatchupMessages)
+		if err != nil {
+			log.Err(err).Msg("Failed to fetch missed messages")
+			if errors.Is(err, libgm.ErrPhoneNotResponding) || ctx.Err() != nil {
+				return
+			}
+			continue
+		}
+		gc.chatInfoCache.GetOrSet(conv.GetConversationID(), conv)
+		queued := 0
+		for _, msg := range slices.Backward(resp.GetMessages()) {
+			if !time.UnixMicro(msg.GetTimestamp()).After(since) {
+				continue
+			}
+			rawData, _ := proto.Marshal(msg)
+			select {
+			case gc.messageQueue <- &libgm.WrappedMessage{Message: msg, Data: rawData}:
+				queued++
+			case <-ctx.Done():
+				return
+			}
+		}
+		log.Debug().
+			Time("since", since).
+			Str("bridged_latest_message_id", string(lastMessage.ID)).
+			Int("fetched_count", len(resp.GetMessages())).
+			Int("queued_count", queued).
+			Msg("Queued messages that weren't pushed during quiet period")
 	}
-	log.Debug().
-		Time("since", since).
-		Int("fetched_count", len(resp.GetMessages())).
-		Int("queued_count", queued).
-		Msg("Queued messages that weren't pushed during quiet period")
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time, triggerConvID string) {
@@ -678,7 +686,7 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 
 func (evt *GMChatResync) GetBundledBackfillData() any {
 	if evt.AllowBackfill {
-		return nil
+		return &backfillBundleData{CatchUpLatestMessageID: evt.Conv.LatestMessageID}
 	}
 	return &backfillBundleData{LatestMessageID: evt.Conv.LatestMessageID}
 }
