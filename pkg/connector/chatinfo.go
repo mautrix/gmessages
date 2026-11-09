@@ -138,10 +138,10 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				log.Debug().Any("participant", pcp).Msg("Added conversation participant to self participant IDs")
 				userLoginChanged = true
 			}
-		} else if pcp.ID.Number == "" {
-			log.Warn().Any("participant", pcp).Msg("No number found in non-self participant entry")
 		} else if !pcp.IsVisible {
 			log.Debug().Any("participant", pcp).Msg("Ignoring fake participant")
+		} else if pcp.ID.Number == "" {
+			log.Warn().Any("participant", pcp).Msg("No number found in non-self participant entry")
 		} else {
 			userID := gc.MakeUserID(pcp.ID.ParticipantID)
 			ghost, err := gc.Main.br.GetGhostByID(ctx, userID)
