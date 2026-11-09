@@ -54,6 +54,7 @@ type GMClient struct {
 	longPollingError       error
 	browserInactiveType    status.BridgeStateErrorCode
 	SwitchedToGoogleLogin  bool
+	googleAccountPairing   bool
 	batteryLow             bool
 	mobileData             bool
 	PhoneResponding        bool
@@ -199,6 +200,7 @@ func (gc *GMClient) Disconnect() {
 	gc.PhoneResponding = true
 	gc.batteryLow = false
 	gc.SwitchedToGoogleLogin = false
+	gc.googleAccountPairing = false
 	gc.ready = false
 	gc.browserInactiveType = ""
 	if cli := gc.Client; cli != nil {
