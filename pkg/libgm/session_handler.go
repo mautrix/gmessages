@@ -236,7 +236,7 @@ func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendM
 			return resp, nil
 		case <-ctx.Done():
 			s.cancelResponse(requestID, ch)
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("%w: %w", ErrNoServerResponse, ctx.Err())
 		case <-shortCircuit:
 			// Notify the pinger in order to trigger an event that the phone isn't responding
 			select {
