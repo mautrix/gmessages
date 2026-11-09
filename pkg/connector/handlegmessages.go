@@ -1547,8 +1547,8 @@ func (gc *GMClient) convertGoogleMedia(
 		case gmproto.MediaFormats_IMAGE_UNSPECIFIED:
 			mediaClass = "image"
 		}
-		senderClass, _, _ := strings.Cut(msg.GetMimeType(), "/")
-		if senderClass != "" && (mediaClass == "" || mediaClass == senderClass) {
+		senderClass, _, ok := strings.Cut(msg.GetMimeType(), "/")
+		if ok && msg.MediaID != "" && msg.GetMimeType() != "application/octet-stream" && (mediaClass == "" || mediaClass == senderClass) {
 			content.Info.MimeType = msg.GetMimeType()
 			mediaClass = senderClass
 		}
