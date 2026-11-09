@@ -52,7 +52,7 @@ const (
 	linkPreviewConnectTimeout = 2 * time.Second
 
 	linkPreviewImageCacheSize   = 512
-	linkPreviewFailureCacheTime = 30 * time.Minute
+	linkPreviewFailureCacheTime = 5 * time.Minute
 )
 
 var (
@@ -237,6 +237,9 @@ func (gc *GMClient) uploadLinkPreviewImage(ctx context.Context, portal *bridgev2
 	data, mimeType, err := fetchLinkPreviewImage(ctx, imageURL)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to fetch link preview image")
+		if ctx.Err() != nil {
+			return nil
+		}
 		return &cachedPreviewImage{failedAt: time.Now()}
 	}
 	mxc, file, err := intent.UploadMedia(ctx, portal.MXID, data, "", mimeType)
