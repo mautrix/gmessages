@@ -682,6 +682,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 	newMainMeta.MSSFailSent = prevMainMeta.MSSFailSent
 	newMainMeta.MSSDeliverySent = prevMainMeta.MSSDeliverySent
 	newMainMeta.ReadReceiptSent = prevMainMeta.ReadReceiptSent
+	newMainMeta.ResendAttempted = prevMainMeta.ResendAttempted
 
 	for _, part := range converted.Parts {
 		if existingPart, ok := existingPartMap[part.ID]; ok {
@@ -1266,6 +1267,16 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		result.SubEvents = []bridgev2.RemoteEvent{editEvt, reactionSyncEvt}
 	}
 
+	if needsMSSFailureEvent && newStatus == gmproto.MessageStatusType_OUTGOING_FAILED_TO_ENCRYPT && existingMeta.IsOutgoing && !existingMeta.ResendAttempted {
+		existingMeta.ResendAttempted = true
+		err := m.g.Client.ResendMessage(ctx, m.ConversationID, m.MessageID)
+		if err != nil {
+			log.Err(err).Msg("Failed to resend message that failed to encrypt")
+		} else {
+			log.Debug().Msg("Resent message that failed to encrypt")
+			needsMSSFailureEvent = false
+		}
+	}
 	if needsMSSEvent {
 		existingMeta.MSSSent = true
 		var deliveredTo []id.UserID
