@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -61,8 +62,7 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 		return nil, fmt.Errorf("conversation not found")
 	}
 	gc.chatInfoCache.Set(conversationID, conv)
-	switch conv.GetStatus() {
-	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+	if gc.hidesConversation(conv.GetStatus()) {
 		return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
 	}
 	return gc.wrapChatInfo(ctx, conv)
@@ -392,7 +392,7 @@ func (gc *GMClient) applySpamState(ctx context.Context, portal *bridgev2.Portal,
 	if err := dp.MuteRoom(ctx, portal.MXID, mutedUntil); err != nil {
 		log.Err(err).Bool("spam", isSpam).Msg("Failed to update room mute for spam folder change")
 	}
-	if isSpam || tag != event.RoomTagLowPriority {
+	if (isSpam || tag != event.RoomTagLowPriority) && slices.Contains(gc.Main.br.Config.OnlyBridgeTags, event.RoomTagLowPriority) {
 		if err := dp.TagRoom(ctx, portal.MXID, event.RoomTagLowPriority, isSpam); err != nil {
 			log.Err(err).Bool("spam", isSpam).Msg("Failed to update low priority tag for spam folder change")
 		}

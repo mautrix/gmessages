@@ -320,7 +320,10 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 	}
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
 	switch v.Status {
-	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED, gmproto.ConversationStatus_SPAM_FOLDER:
+		if gc.hidesConversation(v.Status) {
+			break
+		}
 		err := gc.deduplicateDM(ctx, v)
 		if errors.Is(err, errDontSyncConversation) {
 			return
@@ -350,8 +353,7 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 		if conv.Unread {
 			continue
 		}
-		switch conv.Status {
-		case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+		if gc.hidesConversation(conv.Status) {
 			continue
 		}
 		if cached, ok := gc.chatInfoCache.Get(conv.ConversationID); ok && cached.LastMessageTimestamp > conv.LastMessageTimestamp {
@@ -381,8 +383,7 @@ func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.C
 		AllowBackfill: time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
 	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
-	switch v.Status {
-	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+	if gc.hidesConversation(v.Status) {
 		// Don't send read/backfill events if the chat is being deleted
 		return
 	}
@@ -601,9 +602,10 @@ var (
 )
 
 func (evt *GMChatResync) GetType() bridgev2.RemoteEventType {
-	switch evt.Conv.GetStatus() {
-	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+	if evt.g.hidesConversation(evt.Conv.GetStatus()) {
 		return bridgev2.RemoteEventChatDelete
+	}
+	switch evt.Conv.GetStatus() {
 	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED, gmproto.ConversationStatus_BLOCKED_FOLDER, gmproto.ConversationStatus_SPAM_FOLDER:
 		return bridgev2.RemoteEventChatResync
 	default:
@@ -625,7 +627,18 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 		// Don't create portal for keep_archived/blocked/deleted
 		return false
 	}
-	return true
+	return !evt.g.hidesConversation(evt.Conv.GetStatus())
+}
+
+func (gc *GMClient) hidesConversation(status gmproto.ConversationStatus) bool {
+	switch status {
+	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+		return true
+	case gmproto.ConversationStatus_SPAM_FOLDER:
+		return gc.UserLogin.User.DoublePuppet(gc.Main.br.BackgroundCtx) == nil
+	default:
+		return false
+	}
 }
 
 func (evt *GMChatResync) GetBundledBackfillData() any {
