@@ -79,10 +79,11 @@ type MessageMetadata struct {
 	GlobalStatusText  string   `json:"status_text,omitempty"`
 	GroupReadBy       []string `json:"group_receipt_sent,omitempty"`
 
-	TextHash     string `json:"text_hash,omitempty"`
-	MediaPartID  string `json:"media_part_id,omitempty"`
-	MediaID      string `json:"media_id,omitempty"`
-	MediaPending bool   `json:"media_pending,omitempty"`
+	TextHash       string `json:"text_hash,omitempty"`
+	HasLinkPreview bool   `json:"has_link_preview,omitempty"`
+	MediaPartID    string `json:"media_part_id,omitempty"`
+	MediaID        string `json:"media_id,omitempty"`
+	MediaPending   bool   `json:"media_pending,omitempty"`
 
 	IsOutgoing      bool `json:"is_outgoing,omitempty"`
 	MSSSent         bool `json:"mss_sent,omitempty"`

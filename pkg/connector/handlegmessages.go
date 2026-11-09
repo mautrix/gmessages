@@ -955,7 +955,8 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		}
 	}
 	content.Body = strings.TrimPrefix(content.Body, "\n")
-	if preview := msg.GetLinkPreview(); preview.GetURL() != "" && (preview.GetTitle() != "" || preview.GetDescription() != "") {
+	if hasLinkPreview(msg) {
+		preview := msg.GetLinkPreview()
 		content.BeeperLinkPreviews = []*event.BeeperLinkPreview{{
 			MatchedURL: preview.GetURL(),
 			LinkPreview: event.LinkPreview{
@@ -963,12 +964,6 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 				Description: preview.GetDescription(),
 			},
 		}}
-		textHasher.Write([]byte(preview.GetURL()))
-		textHasher.Write([]byte{0x00})
-		textHasher.Write([]byte(preview.GetTitle()))
-		textHasher.Write([]byte{0x00})
-		textHasher.Write([]byte(preview.GetDescription()))
-		textHasher.Write([]byte{0x00})
 	}
 	var textHash string
 	if len(content.Body) > 0 {
@@ -996,10 +991,16 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 			Type:              msg.GetMessageStatus().GetStatus(),
 			MessageType:       msg.GetType(),
 			TextHash:          textHash,
+			HasLinkPreview:    content.BeeperLinkPreviews != nil,
 			GlobalMediaStatus: downloadStatus,
 			GlobalPartCount:   len(msg.MessageInfo),
 		},
 	}, textHash
+}
+
+func hasLinkPreview(msg *gmproto.Message) bool {
+	preview := msg.GetLinkPreview()
+	return preview.GetURL() != "" && (preview.GetTitle() != "" || preview.GetDescription() != "")
 }
 
 func shouldIgnoreStatus(status gmproto.MessageStatusType, isDM bool) bool {
@@ -1146,6 +1147,10 @@ func (dbm DBMessages) MessageWasEdited(new *gmproto.Message) (edited bool, chang
 		changes.
 			Str("old_text_hash", oldTextHash).
 			Str("new_text_hash", newTextHash)
+	}
+	if mainMeta := dbm.GetMainMeta(); !mainMeta.IsOutgoing && !mainMeta.HasLinkPreview && newTextHash != "" && hasLinkPreview(new) {
+		edited = true
+		changes.Bool("added_link_preview", true)
 	}
 	return
 }
@@ -1527,6 +1532,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 		mergedMeta.GlobalMediaStatus = textMeta.GlobalMediaStatus
 		mergedMeta.GlobalPartCount = textMeta.GlobalPartCount
 		mergedMeta.TextHash = textMeta.TextHash
+		mergedMeta.HasLinkPreview = textMeta.HasLinkPreview
 	}
 	if m.Data != nil && base64.StdEncoding.EncodedLen(len(m.Data)) < 8192 && len(cm.Parts) > 0 {
 		extra := cm.Parts[0].Extra
