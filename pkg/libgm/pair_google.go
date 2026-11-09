@@ -248,10 +248,10 @@ func (ps *PairingSession) ProcessServerInit(msg *gmproto.GaiaPairingResponseCont
 		}
 		y = y[1:]
 	}
-	if len(x) != 32 || len(y) != 32 {
+	if len(x) > 32 || len(y) > 32 {
 		return "", fmt.Errorf("invalid server key coordinate lengths: %d, %d", len(x), len(y))
 	}
-	serverPairingKeyDH, err := ecdh.P256().NewPublicKey(slices.Concat([]byte{4}, x, y))
+	serverPairingKeyDH, err := ecdh.P256().NewPublicKey(slices.Concat([]byte{4}, make([]byte, 32-len(x)), x, make([]byte, 32-len(y)), y))
 	if err != nil {
 		return "", fmt.Errorf("invalid server key: %w", err)
 	}
