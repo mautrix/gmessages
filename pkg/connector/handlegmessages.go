@@ -51,6 +51,8 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
+const pingPermissionDeniedLimit = 3
+
 func (gc *GMClient) handleGMEvent(rawEvt any) {
 	// Note: this is called synchronously and must not block on any requests to Google Messages.
 
@@ -97,6 +99,15 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpaired404,
+				UserAction: status.UserActionRelogin,
+				Info: map[string]any{
+					"go_error": evt.Error.Error(),
+				},
+			}, true, false)
+		} else if errors.Is(evt.Error, events.ErrCallerNoPermission) && evt.ErrorCount >= pingPermissionDeniedLimit {
+			go gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpaired403,
 				UserAction: status.UserActionRelogin,
 				Info: map[string]any{
 					"go_error": evt.Error.Error(),
