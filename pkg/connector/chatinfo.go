@@ -228,7 +228,7 @@ func (gc *GMClient) makeGroupAvatarFromURL(url string) *bridgev2.Avatar {
 	}
 }
 
-const MinAvatarUpdateInterval = 24 * time.Hour
+const MinAvatarUpdateInterval = 7 * 24 * time.Hour
 
 type participantThumbnails struct {
 	ids  []string
