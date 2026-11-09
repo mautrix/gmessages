@@ -1591,7 +1591,7 @@ func (gc *GMClient) convertGoogleMedia(
 		if needAudioConvert {
 			osFile := file.(*os.File)
 			_ = osFile.Close()
-			replPath, err = ffmpeg.ConvertPath(ctx, osFile.Name(), ".ogg", []string{}, []string{"-c:a", "libopus"}, true)
+			replPath, err = ffmpeg.ConvertPath(ctx, osFile.Name(), ".ogg", []string{}, []string{"-c:a", "libopus", "-af", "aresample=async=1:first_pts=0"}, true)
 			if err != nil {
 				return nil, fmt.Errorf("%w (%s to ogg): %w", bridgev2.ErrMediaConvertFailed, content.Info.MimeType, err)
 			}
