@@ -66,6 +66,37 @@ func mayResolvePendingSend(msg *gmproto.Message, msgTS time.Time) bool {
 	return msg.GetTmpID() != "" && time.Since(msgTS) < pendingSendMaxAge
 }
 
+const catchUpPageSize = 50
+
+func (gc *GMClient) fetchMessagesSince(ctx context.Context, convID string, since time.Time, limit int) (*gmproto.ListMessagesResponse, error) {
+	merged := &gmproto.ListMessagesResponse{}
+	var cursor *gmproto.Cursor
+	for len(merged.Messages) < limit {
+		resp, err := gc.Client.FetchMessages(ctx, convID, catchUpPageSize, cursor)
+		if err != nil {
+			return nil, err
+		}
+		merged.Messages = append(merged.Messages, resp.Messages...)
+		merged.Cursor = resp.Cursor
+		merged.TotalMessages = resp.TotalMessages
+		if len(resp.Messages) == 0 {
+			break
+		}
+		oldest := resp.Messages[len(resp.Messages)-1]
+		if !time.UnixMicro(oldest.Timestamp).After(since) {
+			break
+		}
+		cursor = resp.Cursor
+		if cursor == nil {
+			cursor = &gmproto.Cursor{
+				LastItemID:        oldest.MessageID,
+				LastItemTimestamp: time.UnixMicro(oldest.Timestamp).UnixMilli(),
+			}
+		}
+	}
+	return merged, nil
+}
+
 func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMessagesParams) (*bridgev2.FetchMessagesResponse, error) {
 	if gc.Client == nil {
 		return nil, bridgev2.ErrNotLoggedIn
@@ -101,7 +132,12 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 	if bundle, ok := params.BundledData.(*backfillBundleData); ok && params.Forward {
 		latestMessageID = bundle.LatestMessageID
 	}
-	resp, err := gc.Client.FetchMessages(ctx, convID, int64(params.Count), cursor)
+	var resp *gmproto.ListMessagesResponse
+	if params.Forward && params.AnchorMessage != nil {
+		resp, err = gc.fetchMessagesSince(ctx, convID, anchorTS, params.Count)
+	} else {
+		resp, err = gc.Client.FetchMessages(ctx, convID, int64(params.Count), cursor)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +198,17 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		}
 		fetchResp.Messages = append(fetchResp.Messages, backfillMsg)
 		lastRawMsg = msg
+	}
+	if params.Forward && params.AnchorMessage != nil && !slices.ContainsFunc(fetchResp.Messages, func(msg *bridgev2.BackfillMessage) bool {
+		return msg.Timestamp.After(anchorTS)
+	}) {
+		if conv, ok := gc.chatInfoCache.Get(convID); ok {
+			gc.conversationMetaLock.Lock()
+			if meta := gc.conversationMeta[convID]; meta != nil {
+				meta.emptyCatchUpLatestID = conv.LatestMessageID
+			}
+			gc.conversationMetaLock.Unlock()
+		}
 	}
 	if len(fetchResp.Messages) == 0 {
 		return fetchResp, nil

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -33,10 +34,11 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
-func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) (foundGap bool, err error) {
+func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool, triggerConvID string) (foundGap bool, err error) {
 	defer func() {
 		if v := recover(); v != nil {
 			zerolog.Ctx(ctx).
@@ -60,6 +62,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	gc.lastConversationList.Store(time.Now().UnixMilli())
 	log.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
 	var newestMessageTS time.Time
+	var gapConvs []*gmproto.Conversation
 	if !lastDataReceived.IsZero() {
 		for _, conv := range resp.GetConversations() {
 			lastMessageTS := time.UnixMicro(conv.GetLastMessageTimestamp())
@@ -67,6 +70,10 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 				newestMessageTS = lastMessageTS
 			}
 			if lastMessageTS.After(lastDataReceived) {
+				gapConvs = append(gapConvs, conv)
+				if conv.GetConversationID() == triggerConvID {
+					continue
+				}
 				log.Warn().
 					Time("last_message_ts", lastMessageTS).
 					Time("last_data_received", lastDataReceived).
@@ -83,6 +90,9 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		// to avoid re-detecting the same gap on the next stall check.
 		gc.lastDataReceived = newestMessageTS
 	}
+	for _, conv := range gapConvs {
+		gc.queueMissedMessages(ctx, conv, lastDataReceived)
+	}
 	if minimalSync {
 		gc.syncReadState(ctx, resp.GetConversations())
 		log.Debug().Msg("Minimal sync with no recent messages, not syncing conversations")
@@ -95,18 +105,56 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	return
 }
 
-func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
+func (gc *GMClient) queueMissedMessages(ctx context.Context, conv *gmproto.Conversation, since time.Time) {
+	switch conv.GetStatus() {
+	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+		return
+	}
+	log := zerolog.Ctx(ctx).With().Str("conversation_id", conv.GetConversationID()).Logger()
+	portal, err := gc.Main.br.GetExistingPortalByKey(ctx, gc.portalKeyForConv(conv))
+	if err != nil {
+		log.Err(err).Msg("Failed to get portal to fetch missed messages")
+		return
+	} else if portal == nil || portal.MXID == "" {
+		return
+	}
+	resp, err := gc.fetchMessagesSince(ctx, conv.GetConversationID(), since, gc.Main.br.Config.Backfill.MaxCatchupMessages)
+	if err != nil {
+		log.Err(err).Msg("Failed to fetch missed messages")
+		return
+	}
+	queued := 0
+	for _, msg := range slices.Backward(resp.GetMessages()) {
+		if !time.UnixMicro(msg.GetTimestamp()).After(since) {
+			continue
+		}
+		rawData, _ := proto.Marshal(msg)
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+			WrappedMessage: &libgm.WrappedMessage{Message: msg, Data: rawData},
+			g:              gc,
+		})
+		queued++
+	}
+	log.Debug().
+		Time("since", since).
+		Int("fetched_count", len(resp.GetMessages())).
+		Int("queued_count", queued).
+		Msg("Queued messages that weren't pushed during quiet period")
+}
+
+func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time, triggerConvID string) {
 	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
 		return
 	}
 	zerolog.Ctx(ctx).Debug().
 		Time("last_data_received", lastDataReceived).
+		Str("trigger_conversation_id", triggerConvID).
 		Msg("Data resumed after quiet period, checking for missed events")
-	gc.syncMissedEvents(ctx, lastDataReceived, true)
+	gc.syncMissedEvents(ctx, lastDataReceived, true, triggerConvID)
 }
 
-func (gc *GMClient) syncMissedEvents(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
-	if _, err := gc.SyncConversations(ctx, lastDataReceived, minimalSync); err != nil && !lastDataReceived.IsZero() {
+func (gc *GMClient) syncMissedEvents(ctx context.Context, lastDataReceived time.Time, minimalSync bool, triggerConvID string) {
+	if _, err := gc.SyncConversations(ctx, lastDataReceived, minimalSync, triggerConvID); err != nil && !lastDataReceived.IsZero() {
 		gc.noDataReceivedRecently = true
 		gc.lastDataReceived = lastDataReceived
 	}
@@ -250,7 +298,7 @@ func (gc *GMClient) recoverReceiveStall(ctx context.Context) {
 		if anchor.IsZero() {
 			return
 		}
-		if foundGap, _ := gc.SyncConversations(ctx, anchor, true); !foundGap {
+		if foundGap, _ := gc.SyncConversations(ctx, anchor, true, ""); !foundGap {
 			log.Debug().Int("attempt", attempt).Msg("No receive stall detected")
 			return
 		}
@@ -664,6 +712,16 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 		(time.UnixMicro(evt.Conv.LastMessageTimestamp).After(latestMessage.Timestamp) &&
 			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID))
 	if !needsBackfill {
+		return false, nil
+	}
+	evt.g.conversationMetaLock.Lock()
+	meta := evt.g.conversationMeta[evt.Conv.ConversationID]
+	alreadyFetched := meta != nil && meta.emptyCatchUpLatestID == evt.Conv.LatestMessageID
+	evt.g.conversationMetaLock.Unlock()
+	if alreadyFetched {
+		zerolog.Ctx(ctx).Debug().
+			Str("conv_latest_message_id", evt.Conv.LatestMessageID).
+			Msg("Not backfilling chat as the last fetch for the same latest message found nothing new")
 		return false, nil
 	}
 	logEvt := zerolog.Ctx(ctx).Debug().

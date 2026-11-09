@@ -147,7 +147,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *gmproto.Conversation:
 		gc.chatInfoCache.Set(evt.ConversationID, evt)
 		if gc.noDataReceivedRecently {
-			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
+			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived, evt.ConversationID)
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
@@ -155,7 +155,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {
-			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
+			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived, evt.GetConversationID())
 		}
 		gc.noDataReceivedRecently = false
 		gc.pushThrottled.Store(false)
@@ -329,7 +329,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 				Time("last_data_received", gc.lastDataReceived).
 				Msg("Session ID changed for browser active event, resyncing")
 			gc.sessionID = newSessionID
-			go gc.syncMissedEvents(ctx, gc.lastDataReceived, !sessionIDChanged && !wasInactive)
+			go gc.syncMissedEvents(ctx, gc.lastDataReceived, !sessionIDChanged && !wasInactive, "")
 			//go gc.sendMarkdownBridgeAlert(ctx, false, "Connected to Google Messages")
 		} else {
 			log.Debug().
@@ -340,7 +340,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 				Msg("Session ID didn't change for browser active event, not resyncing")
 			if !gc.syncingConversations.Load() && time.Since(time.UnixMilli(gc.lastConversationList.Load())) > browserActiveReadSyncInterval {
 				log.Debug().Msg("Syncing read state from conversation list")
-				go gc.SyncConversations(ctx, gc.lastDataReceived, true)
+				go gc.SyncConversations(ctx, gc.lastDataReceived, true, "")
 			}
 		}
 		gc.noDataReceivedRecently = false
@@ -351,7 +351,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	case gmproto.AlertType_MOBILE_DATABASE_SYNC_COMPLETE:
 		gc.syncingMobileDatabase.Store(false)
 		log.Debug().Msg("Making minimal sync due to mobile database sync complete event")
-		go gc.SyncConversations(ctx, gc.lastDataReceived, true)
+		go gc.SyncConversations(ctx, gc.lastDataReceived, true, "")
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
