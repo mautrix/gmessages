@@ -95,6 +95,13 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *events.HackySetActiveMayFail:
 		go gc.hackyResetActive()
 	case *events.PingFailed:
+		permissionDenied := errors.Is(evt.Error, events.ErrCallerNoPermission)
+		if !permissionDenied || evt.ConsecutiveErrors <= 1 {
+			gc.pingPermissionDenials.Store(0)
+		}
+		if permissionDenied {
+			gc.pingPermissionDenials.Add(1)
+		}
 		if errors.Is(evt.Error, events.ErrRequestedEntityNotFound) {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
@@ -104,7 +111,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 					"go_error": evt.Error.Error(),
 				},
 			}, true, false)
-		} else if errors.Is(evt.Error, events.ErrCallerNoPermission) && evt.ErrorCount >= pingPermissionDeniedLimit {
+		} else if permissionDenied && gc.pingPermissionDenials.Load() >= pingPermissionDeniedLimit {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpaired403,
