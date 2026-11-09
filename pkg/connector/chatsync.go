@@ -281,7 +281,7 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 		gc.conversationMeta[v.ConversationID] = meta
 	}
 	meta.unread = v.Unread
-	markedUnread := v.Unread && v.MarkedUnreadTimestamp != 0
+	markedUnread := v.Unread && v.MarkedUnreadTimestamp != 0 && v.MarkedUnreadTimestamp >= v.LastMessageTimestamp
 	newlyMarkedUnread = markedUnread && !meta.markedUnread
 	meta.markedUnread = markedUnread
 	if !v.Unread {
@@ -347,17 +347,31 @@ func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationM
 	}
 }
 
+func (gc *GMClient) makeMarkUnread(v *gmproto.Conversation) *simplevent.MarkUnread {
+	return &simplevent.MarkUnread{
+		EventMeta: simplevent.EventMeta{
+			Type:      bridgev2.RemoteEventMarkUnread,
+			PortalKey: gc.portalKeyForConv(v),
+			Sender:    bridgev2.EventSender{IsFromMe: true},
+		},
+		Unread: true,
+	}
+}
+
 func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversation) {
 	markedRead := 0
 	for _, conv := range convs {
-		if conv.Unread {
-			continue
-		}
 		switch conv.Status {
 		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 			continue
 		}
 		if cached, ok := gc.chatInfoCache.Get(conv.ConversationID); ok && cached.LastMessageTimestamp > conv.LastMessageTimestamp {
+			continue
+		}
+		if conv.Unread {
+			if _, _, newlyMarkedUnread := gc.syncConversationMeta(conv); newlyMarkedUnread {
+				gc.Main.br.QueueRemoteEvent(gc.UserLogin, gc.makeMarkUnread(conv))
+			}
 			continue
 		}
 		gc.conversationMetaLock.Lock()
@@ -389,18 +403,12 @@ func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.C
 		// Don't send read/backfill events if the chat is being deleted
 		return
 	}
-	var readStateEvt bridgev2.RemoteEvent
+	if newlyMarkedUnread {
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, gc.makeMarkUnread(v))
+	}
+	var markReadEvt *simplevent.Receipt
 	if !v.Unread {
-		readStateEvt = gc.makeReadReceipt(v, meta)
-	} else if newlyMarkedUnread {
-		readStateEvt = &simplevent.MarkUnread{
-			EventMeta: simplevent.EventMeta{
-				Type:      bridgev2.RemoteEventMarkUnread,
-				PortalKey: gc.portalKeyForConv(v),
-				Sender:    bridgev2.EventSender{IsFromMe: true},
-			},
-			Unread: true,
-		}
+		markReadEvt = gc.makeReadReceipt(v, meta)
 	}
 	if !evt.AllowBackfill {
 		backfillEvt := &GMChatResync{
@@ -427,12 +435,12 @@ func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.C
 				return
 			}
 			gc.Main.br.QueueRemoteEvent(gc.UserLogin, backfillEvt)
-			if readStateEvt != nil {
-				gc.Main.br.QueueRemoteEvent(gc.UserLogin, readStateEvt)
+			if markReadEvt != nil {
+				gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
 			}
 		}()
-	} else if readStateEvt != nil {
-		gc.Main.br.QueueRemoteEvent(gc.UserLogin, readStateEvt)
+	} else if markReadEvt != nil {
+		gc.Main.br.QueueRemoteEvent(gc.UserLogin, markReadEvt)
 	}
 }
 
