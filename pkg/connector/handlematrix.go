@@ -381,7 +381,7 @@ func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.M
 
 func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
 	if msg.Portal.Metadata.(*PortalMetadata).Type != gmproto.ConversationType_RCS ||
-		(gc.Meta.Settings.SettingsReceived && !gc.Meta.Settings.TypingNotifications) {
+		(msg.IsTyping && gc.Meta.Settings.SettingsReceived && !gc.Meta.Settings.TypingNotifications) {
 		return nil
 	}
 	if gc.Client == nil {
