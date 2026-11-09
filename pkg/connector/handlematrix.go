@@ -199,12 +199,14 @@ func (gc *GMClient) captionRecovered(ctx context.Context, mediaEventID id.EventI
 	if getFailMessage(meta.Type) != "" {
 		return false
 	}
+	mediaSent = isSuccessfullySentStatus(meta.Type)
 	meta.CaptionFailed = false
+	meta.MSSSent = meta.MSSSent || mediaSent
 	err = gc.Main.br.DB.Message.Update(ctx, mediaMsg)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Stringer("media_event_id", mediaEventID).Msg("Failed to clear failed caption flag on media message")
 	}
-	return isSuccessfullySentStatus(meta.Type)
+	return mediaSent
 }
 
 func (gc *GMClient) sendMessageWithRetry(ctx context.Context, req *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {

@@ -1358,6 +1358,9 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		}
 
 	}
+	if existingMeta.CaptionFailed {
+		existingMeta.Type = newStatus
+	}
 	result.SaveParts = true
 	return result, nil
 }
