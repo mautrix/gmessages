@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -45,6 +46,7 @@ var (
 	_ bridgev2.TypingHandlingNetworkAPI      = (*GMClient)(nil)
 	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*GMClient)(nil)
 	_ bridgev2.UserBlockingNetworkAPI        = (*GMClient)(nil)
+	_ bridgev2.RoomNameHandlingNetworkAPI    = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -504,4 +506,46 @@ func (gc *GMClient) HandleMatrixBlockUser(ctx context.Context, msg *bridgev2.Mat
 		return ErrNonSuccessResponse
 	}
 	return nil
+}
+
+var ErrRenameNotRCSGroup = bridgev2.WrapErrorInStatus(errors.New("only RCS group chats can be renamed")).
+	WithErrorAsMessage().
+	WithErrorReason(event.MessageStatusUnsupported).
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true).
+	WithSendNotice(true)
+
+var ErrEmptyGroupName = bridgev2.WrapErrorInStatus(errors.New("group names can't be empty")).
+	WithErrorAsMessage().
+	WithErrorReason(event.MessageStatusUnsupported).
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true).
+	WithSendNotice(true)
+
+func (gc *GMClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.MatrixRoomName) (bool, error) {
+	if gc.Client == nil {
+		return false, bridgev2.ErrNotLoggedIn
+	}
+	if msg.Portal.RoomType == database.RoomTypeDM || msg.Portal.Metadata.(*PortalMetadata).Type != gmproto.ConversationType_RCS {
+		return false, ErrRenameNotRCSGroup
+	} else if strings.TrimSpace(msg.Content.Name) == "" {
+		return false, ErrEmptyGroupName
+	}
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
+	if err != nil {
+		return false, err
+	}
+	resp, err := gc.Client.UpdateConversation(ctx, &gmproto.UpdateConversationRequest{
+		Action:         gmproto.ConversationActionStatus_RENAME_GROUP,
+		ConversationID: convID,
+		Data: &gmproto.UpdateConversationRequest_RenameData{RenameData: &gmproto.RenameGroupData{
+			Name: msg.Content.Name,
+		}},
+	})
+	if err != nil {
+		return false, wrapSendError(err)
+	} else if !resp.GetSuccess() {
+		return false, ErrNonSuccessResponse
+	}
+	return false, nil
 }
