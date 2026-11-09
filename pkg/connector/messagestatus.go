@@ -63,17 +63,22 @@ func getFailMessage(status gmproto.MessageStatusType) string {
 	}
 }
 
+const MMSProbablyTooLargeSize = 1024 * 1024
+
 func (gc *GMClient) getGenericFailMessage(msg *gmproto.Message) string {
 	if msg.GetType() < 1 || msg.GetType() > 3 {
 		return ""
-	} else if isDefault := gc.Meta.Settings.IsDefaultSMSApp; isDefault != nil && !*isDefault {
-		return NotDefaultSMSAppMessage
-	} else if msg.GetType() == 2 {
+	}
+	if msg.GetType() == 2 {
 		for _, part := range msg.GetMessageInfo() {
-			if part.GetMediaContent() != nil {
+			media := part.GetMediaContent()
+			if media.GetFormat() > gmproto.MediaFormats_IMAGE_UNSPECIFIED && media.GetSize() > MMSProbablyTooLargeSize {
 				return MMSTooLargeMessage
 			}
 		}
+	}
+	if isDefault := gc.Meta.Settings.IsDefaultSMSApp; isDefault != nil && !*isDefault {
+		return NotDefaultSMSAppMessage
 	}
 	return ""
 }

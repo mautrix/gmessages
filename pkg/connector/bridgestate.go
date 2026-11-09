@@ -23,7 +23,7 @@ import (
 const PhoneNotRespondingMessage = "Your Google Messages app is not responding. Open the Google Messages app on your phone, ensure messages send, and battery optimization is off. If needed, remove and re-add the connection."
 const NoSIMMessage = "Google Messages on your phone isn't reporting a SIM card. If you moved your SIM to another phone, re-link the connection from that phone."
 const NotDefaultSMSAppMessage = "Google Messages isn't set as the default SMS app on your phone, which can stop SMS and MMS from sending. Set Google Messages as the default SMS app, then try again."
-const MMSTooLargeMessage = "Your carrier didn't accept this MMS. The attachment is probably too large for MMS on your carrier, so try a smaller file or send a link instead."
+const MMSTooLargeMessage = "This MMS didn't send. The attachment is probably too large for your carrier's MMS limit, so try a smaller file or send a link instead."
 
 const (
 	GMListenError               status.BridgeStateErrorCode = "gm-listen-error"
