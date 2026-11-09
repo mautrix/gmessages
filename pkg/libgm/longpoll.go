@@ -37,6 +37,8 @@ const reconnectAfterTimeouts = 3
 // reopening it counts as a gap where events may have been missed.
 const longPollGapCatchUp = 1 * time.Minute
 
+const firstListenRetrySeconds = 2
+
 var pingIDCounter atomic.Uint64
 
 // phoneLiveness tracks whether the phone (for this bridge client) is responding
@@ -496,7 +498,7 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 				c.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
 			}
 			errorCount++
-			sleepSeconds := (errorCount + 1) * 5
+			sleepSeconds := listenRetrySeconds(errorCount)
 			if background {
 				if errorCount >= 3 {
 					return false
@@ -531,7 +533,7 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 				c.triggerEvent(&events.ListenTemporaryError{Error: err})
 			}
 			errorCount++
-			sleepSeconds := (errorCount + 1) * 5
+			sleepSeconds := listenRetrySeconds(errorCount)
 			if background {
 				if errorCount >= 3 {
 					return false
@@ -561,7 +563,7 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 				_ = resp.Body.Close()
 			}
 			errorCount++
-			sleepSeconds := (errorCount + 1) * 5
+			sleepSeconds := listenRetrySeconds(errorCount)
 			if background {
 				if errorCount >= 3 {
 					return false
@@ -609,6 +611,13 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 		disconnectedAt = time.Now()
 	}
 	return true
+}
+
+func listenRetrySeconds(errorCount int) int {
+	if errorCount == 1 {
+		return firstListenRetrySeconds
+	}
+	return (errorCount + 1) * 5
 }
 
 func (c *Client) readLongPoll(log *zerolog.Logger, rc io.ReadCloser, background bool, cancel context.CancelFunc) bool {
