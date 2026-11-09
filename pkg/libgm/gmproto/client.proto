@@ -189,6 +189,49 @@ message UpdateConversationRequest {
     }
 }
 
+message LeaveRCSGroupRequest {
+    string conversationID = 2;
+    settings.SIMPayload SIMPayload = 3;
+}
+
+message LeaveRCSGroupResponse {
+    bool success = 2;
+}
+
+message AddParticipantToRCSGroupRequest {
+    string conversationID = 2;
+    conversations.ContactNumber participant = 4;
+    settings.SIMPayload SIMPayload = 5;
+    bool unknownBool6 = 6;
+}
+
+message AddParticipantToRCSGroupResponse {
+    enum Status {
+        UNKNOWN_STATUS = 0;
+        SUCCESS = 1;
+        FAILURE = 2;
+        UNKNOWN_STATUS_3 = 3;
+    }
+    Status status = 2;
+}
+
+message RemoveParticipantFromRCSGroupRequest {
+    conversations.SomeKindOfGroupID conversationRef = 1;
+    conversations.SmallInfo participant = 2;
+}
+
+message RemoveParticipantFromRCSGroupResponse {
+    enum Result {
+        UNKNOWN_RESULT = 0;
+        SUCCESS = 1;
+        UNKNOWN_RESULT_2 = 2;
+        UNKNOWN_RESULT_3 = 3;
+        UNKNOWN_RESULT_4 = 4;
+        UNKNOWN_RESULT_5 = 5;
+    }
+    Result result = 1;
+}
+
 message ConversationAction5 {
     bool field2 = 2;
 }

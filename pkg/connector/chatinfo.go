@@ -129,6 +129,14 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			Redact:        ptr.Ptr(0),
 		},
 	}
+	if conv.IsGroupChat && conv.Type == gmproto.ConversationType_RCS {
+		members.MemberMap[""] = bridgev2.ChatMember{
+			EventSender: bridgev2.EventSender{IsFromMe: true},
+			PowerLevel:  ptr.Ptr(75),
+		}
+		members.PowerLevels.Invite = ptr.Ptr(50)
+		members.PowerLevels.Kick = ptr.Ptr(50)
+	}
 	hasSelf := false
 	nonSelfNumbers := make(exmaps.Set[string])
 	for _, pcp := range conv.Participants {
