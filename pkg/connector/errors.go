@@ -66,6 +66,16 @@ func isCredentialError(err error) bool {
 		(errors.As(err, &httpErr) && httpErr.Resp.StatusCode == http.StatusUnauthorized)
 }
 
+func isUncertainSendError(err error) bool {
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) {
+		return httpErr.Resp.StatusCode >= 500
+	}
+	return errors.Is(err, libgm.ErrPhoneNotResponding) ||
+		errors.Is(err, libgm.ErrConnectionClosed) ||
+		errors.Is(err, libgm.ErrNoServerResponse)
+}
+
 // wrapSendError turns an error from a Google Messages request made while handling a Matrix event into a message status.
 func wrapSendError(err error) error {
 	if err == nil || errors.As(err, &bridgev2.MessageStatus{}) {
@@ -97,6 +107,11 @@ func wrapSendError(err error) error {
 			WithMessage("Google Messages server returned an error").
 			WithErrorReason(event.MessageStatusNetworkError).
 			WithIsCertain(httpErr.Resp.StatusCode < 500).
+			WithSendNotice(true)
+	case errors.Is(err, libgm.ErrNoServerResponse):
+		return bridgev2.WrapErrorInStatus(err).
+			WithMessage("no response from Google Messages").
+			WithIsCertain(false).
 			WithSendNotice(true)
 	default:
 		return bridgev2.WrapErrorInStatus(err).

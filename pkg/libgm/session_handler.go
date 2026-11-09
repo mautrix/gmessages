@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http/httptrace"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
@@ -23,6 +26,8 @@ var ErrPhoneNotResponding = errors.New("phone did not respond to request")
 
 // ErrConnectionClosed is returned for requests that were still waiting for a response when the client was disconnected.
 var ErrConnectionClosed = errors.New("client disconnected before response was received")
+
+var ErrNoServerResponse = errors.New("request was sent, but the server didn't respond")
 
 // pingShortCircuitTimeout is how long to wait for a response before poking the ditto pinger
 // (which will send a PhoneNotResponding event if its ping doesn't get a response quickly either).
@@ -95,11 +100,22 @@ func (s *SessionHandler) sendAsyncMessageWithID(ctx context.Context, params Send
 		Stringer("message_action", params.Action).
 		Str("message_id", requestID).
 		Msg("Sending request to phone")
+	var requestWritten atomic.Bool
+	traceCtx := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		WroteRequest: func(info httptrace.WroteRequestInfo) {
+			if info.Err == nil {
+				requestWritten.Store(true)
+			}
+		},
+	})
 	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, false),
+		s.client.makeProtobufHTTPRequestContext(traceCtx, url, payload, ContentTypePBLite, false),
 	)
 	if err != nil {
 		s.cancelResponse(requestID, ch)
+		if requestWritten.Load() && !errors.As(err, &events.HTTPError{}) {
+			err = fmt.Errorf("%w: %w", ErrNoServerResponse, err)
+		}
 		return nil, "", err
 	}
 	return ch, requestID, nil

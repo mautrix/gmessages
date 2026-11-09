@@ -34,7 +34,6 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
@@ -88,7 +87,7 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		resp, err = gc.Client.SendMessage(ctx, req)
 	}
 	if err != nil {
-		if errors.Is(err, libgm.ErrPhoneNotResponding) {
+		if isUncertainSendError(err) {
 			// The server accepted the message, so the phone may still send it whenever
 			// it comes back online. Keep the pending entry so the remote echo can
 			// resolve the original event (and correct the failure status) if that happens.
