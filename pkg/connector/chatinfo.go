@@ -164,6 +164,11 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			}
 		}
 	}
+	if conv.IsGroupChat && conv.ReadOnly && !hasSelf {
+		self := members.MemberMap[""]
+		self.Membership = event.MembershipLeave
+		members.MemberMap[""] = self
+	}
 	if roomType == database.RoomTypeDM && len(members.MemberMap) == 1 {
 		return nil, fmt.Errorf("no other members found in DM conversation %s", conv.ConversationID)
 	}
