@@ -697,6 +697,13 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 				newMeta.MediaID = oldMeta.MediaID
 				newMeta.MediaPending = false
 				part.DontBridge = true
+			} else if newMeta.MediaPending && oldMeta.MediaPending && oldMeta.MediaID != "" && oldMeta.MediaID == newMeta.MediaID &&
+				oldMeta.TextHash == newMeta.TextHash && oldMeta.GlobalMediaStatus == newMeta.GlobalMediaStatus {
+				zerolog.Ctx(ctx).Debug().
+					Str("part_id", string(part.ID)).
+					Str("media_id", newMeta.MediaID).
+					Msg("Not re-sending unchanged failed media notice")
+				part.DontBridge = true
 			}
 			editPart := part.ToEditPart(existingPart)
 			if editPart.TopLevelExtra == nil {
