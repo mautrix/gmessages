@@ -1186,6 +1186,8 @@ func (x *ListMessagesResponse) GetCursor() *Cursor {
 
 type ListContactsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=pageToken,proto3" json:"pageToken,omitempty"`
+	Query         string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
 	I1            int32                  `protobuf:"varint,5,opt,name=i1,proto3" json:"i1,omitempty"` // = 1
 	I2            int32                  `protobuf:"varint,6,opt,name=i2,proto3" json:"i2,omitempty"` // = 350
 	I3            int32                  `protobuf:"varint,7,opt,name=i3,proto3" json:"i3,omitempty"` // = 50
@@ -1221,6 +1223,20 @@ func (x *ListContactsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListContactsRequest.ProtoReflect.Descriptor instead.
 func (*ListContactsRequest) Descriptor() ([]byte, []int) {
 	return file_client_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListContactsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListContactsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
 }
 
 func (x *ListContactsRequest) GetI1() int32 {
@@ -1335,6 +1351,7 @@ func (x *ListTopContactsRequest) GetCount() int32 {
 type ListContactsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Contacts      []*Contact             `protobuf:"bytes,2,rep,name=contacts,proto3" json:"contacts,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,3,opt,name=nextPageToken,proto3" json:"nextPageToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1374,6 +1391,13 @@ func (x *ListContactsResponse) GetContacts() []*Contact {
 		return x.Contacts
 	}
 	return nil
+}
+
+func (x *ListContactsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type ListTopContactsResponse struct {
@@ -3561,17 +3585,20 @@ const file_client_proto_rawDesc = "" +
 	"\bmessages\x18\x02 \x03(\v2\x16.conversations.MessageR\bmessages\x12\x1c\n" +
 	"\tsomeBytes\x18\x03 \x01(\fR\tsomeBytes\x12$\n" +
 	"\rtotalMessages\x18\x04 \x01(\x03R\rtotalMessages\x12&\n" +
-	"\x06cursor\x18\x05 \x01(\v2\x0e.client.CursorR\x06cursor\"E\n" +
-	"\x13ListContactsRequest\x12\x0e\n" +
+	"\x06cursor\x18\x05 \x01(\v2\x0e.client.CursorR\x06cursor\"y\n" +
+	"\x13ListContactsRequest\x12\x1c\n" +
+	"\tpageToken\x18\x03 \x01(\tR\tpageToken\x12\x14\n" +
+	"\x05query\x18\x04 \x01(\tR\x05query\x12\x0e\n" +
 	"\x02i1\x18\x05 \x01(\x05R\x02i1\x12\x0e\n" +
 	"\x02i2\x18\x06 \x01(\x05R\x02i2\x12\x0e\n" +
 	"\x02i3\x18\a \x01(\x05R\x02i3\")\n" +
 	"\x17PreFetchContactsRequest\x12\x0e\n" +
 	"\x02i2\x18\x02 \x01(\x05R\x02i2\".\n" +
 	"\x16ListTopContactsRequest\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\"J\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"p\n" +
 	"\x14ListContactsResponse\x122\n" +
-	"\bcontacts\x18\x02 \x03(\v2\x16.conversations.ContactR\bcontacts\"M\n" +
+	"\bcontacts\x18\x02 \x03(\v2\x16.conversations.ContactR\bcontacts\x12$\n" +
+	"\rnextPageToken\x18\x03 \x01(\tR\rnextPageToken\"M\n" +
 	"\x17ListTopContactsResponse\x122\n" +
 	"\bcontacts\x18\x01 \x03(\v2\x16.conversations.ContactR\bcontacts\"\xea\x01\n" +
 	"\x18ListConversationsRequest\x12\x14\n" +

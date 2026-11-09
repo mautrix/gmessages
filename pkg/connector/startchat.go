@@ -271,6 +271,7 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 const (
 	contactCacheTTL       = 5 * time.Minute
 	contactRefreshTimeout = 1 * time.Minute
+	maxContactListPages   = 100
 )
 
 func (gc *GMClient) getOrFetchContacts(ctx context.Context) ([]*gmproto.Contact, error) {
@@ -279,25 +280,53 @@ func (gc *GMClient) getOrFetchContacts(ctx context.Context) ([]*gmproto.Contact,
 	if time.Since(gc.contactsFetchedAt) < contactCacheTTL || !gc.PhoneResponding {
 		return gc.cachedContacts, nil
 	}
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
-	}
-	resp, err := gc.Client.ListContacts(ctx)
+	contacts, err := gc.fetchContactPages(ctx)
 	if err != nil {
-		return nil, err
+		if gc.contactsFetchedAt.IsZero() {
+			return nil, err
+		}
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to fetch contact list, returning cached list")
+		return gc.cachedContacts, nil
 	}
-	byNumber := make(map[string]*gmproto.Contact, len(resp.Contacts))
-	for _, contact := range resp.Contacts {
+	byNumber := make(map[string]*gmproto.Contact, len(contacts))
+	for _, contact := range contacts {
 		if number := contact.GetNumber().GetNumber(); number != "" {
 			byNumber[number] = contact
 		}
 	}
 	gc.contactsLock.Lock()
-	gc.cachedContacts = resp.Contacts
+	gc.cachedContacts = contacts
 	gc.contactsByNumber = byNumber
 	gc.contactsFetchedAt = time.Now()
 	gc.contactsLock.Unlock()
 	return gc.cachedContacts, nil
+}
+
+func (gc *GMClient) fetchContactPages(ctx context.Context) ([]*gmproto.Contact, error) {
+	var contacts []*gmproto.Contact
+	var pageToken string
+	pages := 0
+	for pages < maxContactListPages {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		resp, err := gc.Client.ListContacts(ctx, pageToken)
+		if err != nil {
+			return nil, err
+		}
+		pages++
+		contacts = append(contacts, resp.GetContacts()...)
+		pageToken = resp.GetNextPageToken()
+		if pageToken == "" {
+			break
+		}
+	}
+	zerolog.Ctx(ctx).Debug().
+		Int("contact_count", len(contacts)).
+		Int("pages", pages).
+		Bool("truncated", pageToken != "").
+		Msg("Fetched contact list")
+	return contacts, nil
 }
 
 func (gc *GMClient) lookupContactByNumber(ctx context.Context, phone string) *gmproto.Contact {
