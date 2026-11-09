@@ -118,11 +118,10 @@ func (c *Client) DeleteMessage(ctx context.Context, messageID string) (*gmproto.
 }
 
 func (c *Client) MarkRead(ctx context.Context, conversationID, messageID string) error {
-	payload := &gmproto.MessageReadRequest{ConversationID: conversationID, MessageID: messageID}
-	actionType := gmproto.ActionType_MESSAGE_READ
-
-	_, err := c.getSessionHandler().sendMessage(ctx, actionType, payload)
-	return err
+	return c.getSessionHandler().sendMessageNoResponse(ctx, SendMessageParams{
+		Action: gmproto.ActionType_MESSAGE_READ,
+		Data:   &gmproto.MessageReadRequest{ConversationID: conversationID, MessageID: messageID},
+	})
 }
 
 func (c *Client) SetTyping(ctx context.Context, convID string, simPayload *gmproto.SIMPayload) error {

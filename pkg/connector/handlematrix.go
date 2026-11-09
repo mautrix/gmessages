@@ -355,6 +355,8 @@ func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev
 func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.MatrixReadReceipt) error {
 	if gc.Client == nil {
 		return bridgev2.ErrNotLoggedIn
+	} else if !msg.ReadUpTo.After(msg.LastRead) {
+		return nil
 	}
 	targetMessage := msg.ExactMessage
 	if targetMessage == nil {

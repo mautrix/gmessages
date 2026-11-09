@@ -847,7 +847,10 @@ func getPhoneNumberParticipantID(chatInfo *gmproto.Conversation, phoneNumber str
 	return ""
 }
 
-const chatInfoFetchCooldown = 5 * time.Minute
+const (
+	chatInfoFetchCooldown = 5 * time.Minute
+	chatInfoFetchTimeout  = 10 * time.Second
+)
 
 type contextKey int
 
@@ -864,7 +867,7 @@ func (gc *GMClient) getChatInfoWithFetch(ctx context.Context, conversationID str
 	if ok {
 		return chatInfo
 	}
-	if ctx.Value(contextKeyNoFetch) != nil {
+	if ctx.Value(contextKeyNoFetch) != nil || !gc.PhoneResponding {
 		return nil
 	}
 	cli := gc.Client
@@ -878,7 +881,9 @@ func (gc *GMClient) getChatInfoWithFetch(ctx context.Context, conversationID str
 		Str("action", "fetch chat info for participant resolution").
 		Str("conversation_id", conversationID).
 		Logger()
-	conv, err := cli.GetConversation(log.WithContext(ctx), conversationID)
+	ctx, cancel := context.WithTimeout(log.WithContext(ctx), chatInfoFetchTimeout)
+	defer cancel()
+	conv, err := cli.GetConversation(ctx, conversationID)
 	if err != nil || conv == nil {
 		gc.chatInfoFetchFailed.Set(conversationID, time.Now())
 		log.Warn().AnErr("fetch_error", err).Msg("Failed to fetch conversation info on cache miss")
