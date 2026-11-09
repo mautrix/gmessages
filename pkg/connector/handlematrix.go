@@ -584,11 +584,22 @@ func (gc *GMClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMute) er
 }
 
 func (gc *GMClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.MatrixMarkedUnread) error {
-	if !msg.Content.Unread {
-		return gc.HandleMatrixReadReceipt(ctx, &bridgev2.MatrixReadReceipt{
-			Portal:   msg.Portal,
-			ReadUpTo: time.Now(),
-		})
+	if msg.Content.Unread {
+		return gc.updateConversationState(ctx, msg.Portal, gmproto.ConversationActionStatus_MARK_UNREAD)
 	}
-	return gc.updateConversationState(ctx, msg.Portal, gmproto.ConversationActionStatus_MARK_UNREAD)
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
+	if err != nil {
+		return err
+	}
+	gc.conversationMetaLock.Lock()
+	meta, ok := gc.conversationMeta[convID]
+	alreadyRead := ok && !meta.unread
+	gc.conversationMetaLock.Unlock()
+	if alreadyRead {
+		return nil
+	}
+	return gc.HandleMatrixReadReceipt(ctx, &bridgev2.MatrixReadReceipt{
+		Portal:   msg.Portal,
+		ReadUpTo: time.Now(),
+	})
 }
