@@ -70,11 +70,15 @@ func mayResolvePendingSend(msg *gmproto.Message, msgTS time.Time) bool {
 const catchUpPageSize = 50
 
 func (gc *GMClient) fetchMessagesSince(ctx context.Context, convID string, since time.Time, limit int) (*gmproto.ListMessagesResponse, error) {
+	cli := gc.Client
+	if cli == nil {
+		return nil, bridgev2.ErrNotLoggedIn
+	}
 	merged := &gmproto.ListMessagesResponse{}
 	var cursor *gmproto.Cursor
 	var oldest *gmproto.Message
 	for len(merged.Messages) < limit {
-		resp, err := gc.Client.FetchMessages(ctx, convID, catchUpPageSize, cursor)
+		resp, err := cli.FetchMessages(ctx, convID, catchUpPageSize, cursor)
 		if err != nil {
 			return nil, err
 		}

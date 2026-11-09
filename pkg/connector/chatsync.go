@@ -105,14 +105,29 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	return
 }
 
+const maxMissedMessagesPerResync = 50
+
 func (gc *GMClient) queueMissedMessages(ctx context.Context, convs []*gmproto.Conversation, since time.Time, triggerConvID string) {
+	defer func() {
+		if v := recover(); v != nil {
+			zerolog.Ctx(ctx).
+				Err(exerrors.RecoverToError(v)).
+				Bytes(zerolog.ErrorStackFieldName, debug.Stack()).
+				Msg("Queueing missed messages panicked")
+		}
+	}()
+	remaining := maxMissedMessagesPerResync
 	for _, conv := range convs {
+		if remaining <= 0 {
+			return
+		}
 		switch conv.GetStatus() {
 		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 			continue
 		}
 		log := zerolog.Ctx(ctx).With().Str("conversation_id", conv.GetConversationID()).Logger()
-		lastMessage, err := gc.Main.br.DB.Message.GetLastPartAtOrBeforeTime(ctx, gc.portalKeyForConv(conv), time.Now().Add(10*time.Second))
+		portalKey := gc.portalKeyForConv(conv)
+		lastMessage, err := gc.Main.br.DB.Message.GetLastPartAtOrBeforeTime(ctx, portalKey, time.Now().Add(10*time.Second))
 		if err != nil {
 			log.Err(err).Msg("Failed to get last message to check for missed messages")
 			continue
@@ -122,30 +137,44 @@ func (gc *GMClient) queueMissedMessages(ctx context.Context, convs []*gmproto.Co
 		resp, err := gc.fetchMessagesSince(ctx, conv.GetConversationID(), since, gc.Main.br.Config.Backfill.MaxCatchupMessages)
 		if err != nil {
 			log.Err(err).Msg("Failed to fetch missed messages")
-			if errors.Is(err, libgm.ErrPhoneNotResponding) || ctx.Err() != nil {
+			if errors.Is(err, libgm.ErrPhoneNotResponding) || errors.Is(err, bridgev2.ErrNotLoggedIn) || ctx.Err() != nil {
 				return
 			}
 			continue
 		}
 		gc.chatInfoCache.GetOrSet(conv.GetConversationID(), conv)
-		queued := 0
+		var missed []*gmproto.Message
 		for _, msg := range slices.Backward(resp.GetMessages()) {
 			if !time.UnixMicro(msg.GetTimestamp()).After(since) {
 				continue
 			}
+			existing, err := gc.Main.br.DB.Message.GetFirstPartByID(ctx, portalKey.Receiver, gc.MakeMessageID(msg.GetMessageID()))
+			if err != nil {
+				log.Err(err).Str("message_id", msg.GetMessageID()).Msg("Failed to check if missed message is already bridged")
+				continue
+			} else if existing == nil {
+				missed = append(missed, msg)
+			}
+		}
+		capped := len(missed) > remaining
+		if capped {
+			missed = missed[len(missed)-remaining:]
+		}
+		for _, msg := range missed {
 			rawData, _ := proto.Marshal(msg)
 			select {
 			case gc.messageQueue <- &libgm.WrappedMessage{Message: msg, Data: rawData}:
-				queued++
 			case <-ctx.Done():
 				return
 			}
 		}
+		remaining -= len(missed)
 		log.Debug().
 			Time("since", since).
 			Str("bridged_latest_message_id", string(lastMessage.ID)).
 			Int("fetched_count", len(resp.GetMessages())).
-			Int("queued_count", queued).
+			Int("queued_count", len(missed)).
+			Bool("capped", capped).
 			Msg("Queued messages that weren't pushed during quiet period")
 	}
 }
