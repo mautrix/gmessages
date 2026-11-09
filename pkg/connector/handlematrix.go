@@ -69,7 +69,8 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		return nil, err
 	}
 	var captionReq *gmproto.SendMessageRequest
-	if msg.Portal.Metadata.(*PortalMetadata).Type == gmproto.ConversationType_RCS && len(req.MessagePayload.MessageInfo) > 1 {
+	portalMeta := msg.Portal.Metadata.(*PortalMetadata)
+	if portalMeta.Type == gmproto.ConversationType_RCS && portalMeta.SendMode == gmproto.ConversationSendMode_SEND_MODE_AUTO && len(req.MessagePayload.MessageInfo) > 1 {
 		captionReq = splitCaption(req)
 	}
 	msg.AddPendingToSave(nil, txnID, gc.handleRemoteEcho)
@@ -124,33 +125,68 @@ func splitCaption(req *gmproto.SendMessageRequest) *gmproto.SendMessageRequest {
 	captionReq.MessagePayload.MessageInfo = captionReq.MessagePayload.MessageInfo[1:]
 	captionReq.Reply = nil
 	req.MessagePayload.MessageInfo = req.MessagePayload.MessageInfo[:1]
+	if strings.TrimSpace(captionReq.MessagePayload.MessageInfo[0].GetMessageContent().GetContent()) == "" {
+		return nil
+	}
 	return captionReq
 }
 
+type pendingCaption struct {
+	eventID   id.EventID
+	uncertain bool
+}
+
 var ErrCaptionNotSent = bridgev2.WrapErrorInStatus(errors.New("failed to send caption")).
-	WithMessage("the attachment was sent, but the caption couldn't be sent").
+	WithMessage("the caption failed to send, only the attachment went through").
 	WithIsCertain(true).
 	WithStatus(event.MessageStatusFail).
 	WithSendNotice(true)
 
+var ErrCaptionMayNotBeSent = bridgev2.WrapErrorInStatus(errors.New("phone didn't confirm caption")).
+	WithMessage("the caption may not have been sent, the attachment went through").
+	WithIsCertain(false).
+	WithSendNotice(true)
+
 func (gc *GMClient) sendCaption(ctx context.Context, mediaEventID id.EventID, req *gmproto.SendMessageRequest) error {
-	gc.pendingCaptions.Set(req.TmpID, mediaEventID)
+	gc.pendingCaptions.Set(req.TmpID, pendingCaption{eventID: mediaEventID})
 	resp, err := gc.sendMessageWithRetry(ctx, req)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Str("caption_tmp_id", req.TmpID).Msg("Failed to send caption")
-		if !errors.Is(err, libgm.ErrPhoneNotResponding) {
-			gc.pendingCaptions.Delete(req.TmpID)
+		gc.markCaptionFailed(ctx, mediaEventID)
+		if errors.Is(err, libgm.ErrPhoneNotResponding) {
+			gc.pendingCaptions.Set(req.TmpID, pendingCaption{eventID: mediaEventID, uncertain: true})
+			return ErrCaptionMayNotBeSent
 		}
+		gc.pendingCaptions.Delete(req.TmpID)
 		return ErrCaptionNotSent
 	} else if resp.Status != gmproto.SendMessageResponse_SUCCESS {
 		zerolog.Ctx(ctx).Warn().
 			Str("caption_tmp_id", req.TmpID).
 			Str("response_status", resp.GetStatus().String()).
 			Msg("Phone rejected caption send")
+		gc.markCaptionFailed(ctx, mediaEventID)
 		gc.pendingCaptions.Delete(req.TmpID)
 		return ErrCaptionNotSent
 	}
 	return nil
+}
+
+func (gc *GMClient) markCaptionFailed(ctx context.Context, mediaEventID id.EventID) {
+	mediaMsg, err := gc.Main.br.DB.Message.GetPartByMXID(ctx, mediaEventID)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Stringer("media_event_id", mediaEventID).Msg("Failed to get media message for failed caption")
+		return
+	} else if mediaMsg == nil {
+		gc.failedCaptions.Add(mediaEventID)
+		return
+	}
+	meta := mediaMsg.Metadata.(*MessageMetadata)
+	meta.MSSSent = true
+	meta.MSSDeliverySent = true
+	err = gc.Main.br.DB.Message.Update(ctx, mediaMsg)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Stringer("media_event_id", mediaEventID).Msg("Failed to mark media message after failed caption")
+	}
 }
 
 func (gc *GMClient) sendMessageWithRetry(ctx context.Context, req *gmproto.SendMessageRequest) (*gmproto.SendMessageResponse, error) {
@@ -228,6 +264,11 @@ func (gc *GMClient) handleRemoteEcho(rawEvt bridgev2.RemoteMessage, dbMessage *d
 		meta.OrigMXID = dbMessage.MXID
 	}
 	dbMessage.Metadata = meta
+	if gc.failedCaptions.Pop(dbMessage.MXID) {
+		meta.MSSSent = true
+		meta.MSSDeliverySent = true
+		return true, bridgev2.ErrNoStatus
+	}
 	if meta.IsOutgoing && isSuccessfullySentStatus(meta.Type) {
 		meta.MSSSent = true
 		return true, nil

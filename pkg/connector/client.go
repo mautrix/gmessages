@@ -82,7 +82,8 @@ type GMClient struct {
 
 	pendingSends     map[networkid.TransactionID]pendingSend
 	pendingSendsLock sync.Mutex
-	pendingCaptions  *exsync.Map[string, id.EventID]
+	pendingCaptions  *exsync.Map[string, pendingCaption]
+	failedCaptions   *exsync.Set[id.EventID]
 
 	messageQueue     chan *libgm.WrappedMessage
 	stopMessageQueue atomic.Pointer[context.CancelFunc]
@@ -115,7 +116,8 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 		chatInfoCache:       exsync.NewMap[string, *gmproto.Conversation](),
 		chatInfoFetchFailed: exsync.NewMap[string, time.Time](),
 		pendingSends:        make(map[networkid.TransactionID]pendingSend),
-		pendingCaptions:     exsync.NewMap[string, id.EventID](),
+		pendingCaptions:     exsync.NewMap[string, pendingCaption](),
+		failedCaptions:      exsync.NewSet[id.EventID](),
 		dmsByPhone:          make(map[string]*gmdb.DirectConversation),
 		dmsByConv:           make(map[networkid.PortalID]*gmdb.DirectConversation),
 

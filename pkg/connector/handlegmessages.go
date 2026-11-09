@@ -682,6 +682,12 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 	newMainMeta.MSSFailSent = prevMainMeta.MSSFailSent
 	newMainMeta.MSSDeliverySent = prevMainMeta.MSSDeliverySent
 	newMainMeta.ReadReceiptSent = prevMainMeta.ReadReceiptSent
+	newMainMeta.OrigMXID = prevMainMeta.OrigMXID
+	if existing[0].HasFakeMXID() {
+		for _, part := range converted.Parts {
+			part.DontBridge = true
+		}
+	}
 
 	for _, part := range converted.Parts {
 		if existingPart, ok := existingPartMap[part.ID]; ok {
@@ -1172,6 +1178,10 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		result.ContinueMessageHandling = true
 		return result, nil
 	}
+	isCaption := dbm[0].HasFakeMXID() && existingMeta.OrigMXID != ""
+	if isCaption {
+		m.g.pendingCaptions.Delete(m.GetTmpID())
+	}
 	reactionSyncEvt := &ReactionSyncEvent{Message: m.Message, g: m.g}
 	result.SubEvents = []bridgev2.RemoteEvent{reactionSyncEvt}
 	chatIDChanged := dbm[0].Room.ID != portal.ID
@@ -1292,6 +1302,9 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 			Sender:        dbm[0].SenderMXID,
 			StreamOrder:   m.GetStreamOrder(),
 		})
+		if isCaption {
+			m.g.markCaptionFailed(ctx, existingMeta.OrigMXID)
+		}
 	}
 	if needsMSSDeliveryEvent {
 		existingMeta.MSSDeliverySent = true
@@ -1441,7 +1454,7 @@ func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Port
 func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, m *libgm.WrappedMessage, allowMergeCaption bool) *bridgev2.ConvertedMessage {
 	log := zerolog.Ctx(ctx)
 	var cm bridgev2.ConvertedMessage
-	captionOf, isCaption := gc.pendingCaptions.Pop(m.GetTmpID())
+	caption, isCaption := gc.pendingCaptions.Get(m.GetTmpID())
 	dontBridge := isCaption || shouldIgnoreStatus(m.GetMessageStatus().GetStatus(), portal.RoomType == database.RoomTypeDM)
 	if m.GetReplyMessage() != nil {
 		cm.ReplyTo = &networkid.MessageOptionalPartID{
@@ -1453,8 +1466,9 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 		textPart.DontBridge = dontBridge
 		if isCaption {
 			textMeta := textPart.DBMetadata.(*MessageMetadata)
-			textMeta.OrigMXID = captionOf
+			textMeta.OrigMXID = caption.eventID
 			textMeta.MSSDeliverySent = true
+			textMeta.MSSFailSent = caption.uncertain
 		}
 		cm.Parts = append(cm.Parts, textPart)
 	}
