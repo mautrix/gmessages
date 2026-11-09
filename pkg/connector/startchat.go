@@ -309,21 +309,22 @@ func (gc *GMClient) lookupContactByNumber(ctx context.Context, phone string) *gm
 		return contact
 	}
 	if fetchedAt.IsZero() {
-		gc.prefetchContacts(ctx)
+		gc.refreshContactsInBackground(ctx)
 	}
 	return nil
 }
 
-func (gc *GMClient) prefetchContacts(ctx context.Context) {
-	if !gc.contactsPrefetched.CompareAndSwap(false, true) {
+func (gc *GMClient) refreshContactsInBackground(ctx context.Context) {
+	if !gc.contactsRefreshing.CompareAndSwap(false, true) {
 		return
 	}
-	log := zerolog.Ctx(ctx).With().Str("action", "prefetch contact list").Logger()
+	log := zerolog.Ctx(ctx).With().Str("action", "refresh contact list").Logger()
 	go func() {
+		defer gc.contactsRefreshing.Store(false)
 		ctx, cancel := context.WithTimeout(log.WithContext(context.Background()), contactRefreshTimeout)
 		defer cancel()
 		if _, err := gc.getOrFetchContacts(ctx); err != nil {
-			log.Warn().Err(err).Msg("Failed to prefetch contact list")
+			log.Warn().Err(err).Msg("Failed to refresh contact list")
 		}
 	}()
 }
