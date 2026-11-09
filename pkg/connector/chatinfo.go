@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -252,6 +253,10 @@ func (gc *GMClient) getParticipantThumbnails(ctx context.Context, thumbs *partic
 			thumbs.err = fmt.Errorf("failed to get participant thumbnails: %w", err)
 			return
 		}
+		zerolog.Ctx(ctx).Debug().
+			Int("requested_count", len(thumbs.ids)).
+			Int("returned_count", len(resp.GetThumbnail())).
+			Msg("Fetched participant thumbnails")
 		thumbs.data = make(map[string][]byte, len(resp.GetThumbnail()))
 		for _, thumb := range resp.GetThumbnail() {
 			thumbs.data[thumb.GetIdentifier()] = thumb.GetData().GetImageBuffer()
@@ -265,8 +270,19 @@ func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost
 	if err != nil {
 		return false, err
 	}
+	data, ok := thumbnails[participantID]
+	if !ok && len(thumbs.ids) > 1 {
+		zerolog.Ctx(ctx).Debug().
+			Str("participant_id", participantID).
+			Msg("Participant missing from batched thumbnail response, fetching it separately")
+		thumbnails, err = gc.getParticipantThumbnails(ctx, &participantThumbnails{ids: []string{participantID}})
+		if err != nil {
+			return false, err
+		}
+		data = thumbnails[participantID]
+	}
 	ghost.Metadata.(*GhostMetadata).AvatarUpdateTS = jsontime.UnixMilliNow()
-	if data := thumbnails[participantID]; len(data) == 0 {
+	if len(data) == 0 {
 		ghost.UpdateAvatar(ctx, &bridgev2.Avatar{Remove: true})
 	} else {
 		ghost.UpdateAvatar(ctx, &bridgev2.Avatar{
@@ -361,7 +377,7 @@ func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, thu
 	}
 	participantID, err := gc.ParseUserID(ghost.ID)
 	avatarDue := err == nil && gc.shouldUpdateGhostAvatar(meta, contactID, phone)
-	if avatarDue {
+	if avatarDue && !slices.Contains(thumbs.ids, participantID) {
 		thumbs.ids = append(thumbs.ids, participantID)
 	}
 	return &bridgev2.UserInfo{
