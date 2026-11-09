@@ -955,6 +955,21 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		}
 	}
 	content.Body = strings.TrimPrefix(content.Body, "\n")
+	if preview := msg.GetLinkPreview(); preview.GetURL() != "" && (preview.GetTitle() != "" || preview.GetDescription() != "") {
+		content.BeeperLinkPreviews = []*event.BeeperLinkPreview{{
+			MatchedURL: preview.GetURL(),
+			LinkPreview: event.LinkPreview{
+				Title:       preview.GetTitle(),
+				Description: preview.GetDescription(),
+			},
+		}}
+		textHasher.Write([]byte(preview.GetURL()))
+		textHasher.Write([]byte{0x00})
+		textHasher.Write([]byte(preview.GetTitle()))
+		textHasher.Write([]byte{0x00})
+		textHasher.Write([]byte(preview.GetDescription()))
+		textHasher.Write([]byte{0x00})
+	}
 	var textHash string
 	if len(content.Body) > 0 {
 		textHash = hex.EncodeToString(textHasher.Sum(nil))

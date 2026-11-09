@@ -53,6 +53,7 @@ message Message {
     repeated MessageInfo messageInfo = 10;
     int64 type = 11; // 1 = sms, 2 = downloaded mms, 3 = undownloaded mms, 4 = rcs?
     string tmpID = 12;
+    LinkPreview linkPreview = 13;
     optional string subject = 14;
     int64 someInt = 16;
     repeated ReactionEntry reactions = 19;
@@ -60,6 +61,14 @@ message Message {
     SomeKindOfGroupID someKindOfGroupID = 23;
     AnotherMessageID anotherMessageID = 24;
     Participant senderParticipant = 25;
+}
+
+message LinkPreview {
+    string URL = 1;
+    string title = 3;
+    string description = 4;
+    string imageURL = 5;
+    string domain = 6;
 }
 
 message ReactionEntry {
