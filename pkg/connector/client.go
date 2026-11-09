@@ -90,7 +90,7 @@ type GMClient struct {
 	contactsFetchedAt  time.Time
 	cachedContacts     []*gmproto.Contact
 	contactsByNumber   map[string]*gmproto.Contact
-	contactsRefreshing atomic.Bool
+	contactsPrefetched atomic.Bool
 }
 
 var _ bridgev2.NetworkAPI = &GMClient{}
