@@ -24,7 +24,6 @@ import (
 )
 
 const defaultPingTimeout = 1 * time.Minute
-const shortPingTimeout = 10 * time.Second
 const minPingInterval = 30 * time.Second
 const initialRecoveryInterval = 1 * time.Minute
 const maxRepingTickerTime = 64 * time.Minute
@@ -203,12 +202,11 @@ func (dp *dittoPinger) OnRespond(pingID uint64, dur time.Duration, reset *resett
 	reset.Done()
 }
 
-func (dp *dittoPinger) OnTimeout(pingID uint64, urgent bool, reset *resetter) {
+func (dp *dittoPinger) OnTimeout(pingID uint64, reset *resetter) {
 	timeouts, sendNotResponding := dp.client.phone.onTimeout(dp.alertTimeoutCount)
 	dp.log.Warn().
 		Uint64("ping_id", pingID).
 		Int("timeout_count", timeouts).
-		Bool("urgent", urgent).
 		Msg("Ditto ping is taking long, phone may be offline")
 	if sendNotResponding {
 		dp.client.triggerEvent(&events.PhoneNotResponding{})
@@ -231,7 +229,7 @@ func (dp *dittoPinger) WaitForResponse(ping pendingPing, timeout time.Duration, 
 		dp.OnRespond(ping.id, time.Since(ping.start), reset)
 		return
 	case <-timer.C:
-		dp.OnTimeout(ping.id, timeout == shortPingTimeout, reset)
+		dp.OnTimeout(ping.id, reset)
 	case <-reset.C:
 		dp.log.Debug().
 			Uint64("ping_id", ping.id).
@@ -371,7 +369,7 @@ func (dp *dittoPinger) Loop() {
 			} else {
 				pingID := pingIDCounter.Add(1)
 				dp.log.Debug().Uint64("ping_id", pingID).Msg("Ditto ping wait short-circuited")
-				dp.Ping(pingID, shortPingTimeout, newResetter())
+				dp.Ping(pingID, defaultPingTimeout, newResetter())
 			}
 		case <-time.After(dp.pingInterval):
 			if dp.recovering.Load() {
