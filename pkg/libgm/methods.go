@@ -117,6 +117,17 @@ func (c *Client) DeleteMessage(ctx context.Context, messageID string) (*gmproto.
 	return typedResponse[*gmproto.DeleteMessageResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
 }
 
+func (c *Client) ResendMessage(ctx context.Context, conversationID, messageID string) error {
+	payload := &gmproto.ResendMessageRequest{
+		MessageID:         messageID,
+		SomeKindOfGroupID: &gmproto.SomeKindOfGroupID{ConversationID: conversationID},
+	}
+	actionType := gmproto.ActionType_RESEND_MESSAGE
+
+	_, err := c.getSessionHandler().sendUserMessage(ctx, actionType, payload)
+	return err
+}
+
 func (c *Client) MarkRead(ctx context.Context, conversationID, messageID string) error {
 	payload := &gmproto.MessageReadRequest{ConversationID: conversationID, MessageID: messageID}
 	actionType := gmproto.ActionType_MESSAGE_READ
