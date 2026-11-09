@@ -80,6 +80,7 @@ var MimeToMediaType = map[string]MediaType{
 
 var FormatToMediaType = map[gmproto.MediaFormats]MediaType{
 	gmproto.MediaFormats_TEXT_VCARD: {Extension: "vcard", Format: "text/vcard", Type: gmproto.MediaFormats_TEXT_VCARD},
+	gmproto.MediaFormats_APP_TXT:    {Extension: "txt", Format: "text/plain", Type: gmproto.MediaFormats_APP_TXT},
 }
 
 func init() {
