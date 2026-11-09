@@ -111,7 +111,6 @@ func wrapSendError(err error) error {
 	case errors.Is(err, libgm.ErrNoServerResponse):
 		return bridgev2.WrapErrorInStatus(err).
 			WithMessage("no response from Google Messages").
-			WithIsCertain(false).
 			WithSendNotice(true)
 	default:
 		return bridgev2.WrapErrorInStatus(err).

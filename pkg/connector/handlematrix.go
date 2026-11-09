@@ -88,7 +88,7 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 	}
 	if err != nil {
 		if isUncertainSendError(err) {
-			// The server accepted the message, so the phone may still send it whenever
+			// The server may have accepted the message, so the phone may still send it whenever
 			// it comes back online. Keep the pending entry so the remote echo can
 			// resolve the original event (and correct the failure status) if that happens.
 			gc.trackPendingSend(txnID, req.GetConversationID())
