@@ -754,6 +754,12 @@ func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageEvent) ShouldCreatePortal() bool {
+	if conv, ok := m.g.chatInfoCache.Get(m.ConversationID); ok {
+		switch conv.GetStatus() {
+		case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+			return false
+		}
+	}
 	switch m.GetMessageStatus().GetStatus() {
 	case gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_OUTGOING_COMPLETE,
 		gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
