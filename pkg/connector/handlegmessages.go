@@ -288,9 +288,8 @@ func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountCh
 		Bool("enabled", v.GetEnabled()).
 		Bool("fake", v.IsFake).
 		Msg("Got account change event")
-	gc.googleAccountPairing = v.GetEnabled() || v.IsFake
+	gc.SwitchedToGoogleLogin = v.GetEnabled() || v.IsFake
 	if !v.IsFake {
-		gc.SwitchedToGoogleLogin = v.GetEnabled()
 		if gc.SwitchedToGoogleLogin {
 			//go gc.sendMarkdownBridgeAlert(ctx, true, "Switched to Google account pairing, please switch back or relogin with `login-google`.")
 		} else {

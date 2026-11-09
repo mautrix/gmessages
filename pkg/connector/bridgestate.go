@@ -84,7 +84,7 @@ func (gc *GMClient) FillBridgeState(state status.BridgeState) status.BridgeState
 		state.Info["battery_low"] = gc.batteryLow
 		state.Info["mobile_data"] = gc.mobileData
 		state.Info["browser_active"] = gc.browserInactiveType == ""
-		state.Info["google_account_pairing"] = gc.googleAccountPairing
+		state.Info["google_account_pairing"] = gc.SwitchedToGoogleLogin
 		if !gc.ready {
 			state.StateEvent = status.StateConnecting
 			state.Error = GMConnecting
