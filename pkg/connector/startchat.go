@@ -159,7 +159,7 @@ func (gc *GMClient) ResolveIdentifier(ctx context.Context, identifier string, cr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ghost: %w", err)
 		}
-		userInfo = gc.wrapParticipantInfo(ctx, ghost, otherUserInfo)
+		userInfo = gc.wrapParticipantInfo(ctx, ghost, otherUserInfo, &participantThumbnails{})
 	}
 	log.Debug().Str("other_user_id", string(otherUserID)).Str("portal_key", string(portalKey.ID)).Msg("Returning new chat response")
 	return &bridgev2.ResolveIdentifierResponse{
@@ -368,7 +368,7 @@ func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIden
 		resp[i] = &bridgev2.ResolveIdentifierResponse{
 			Ghost:    ghost,
 			UserID:   userID,
-			UserInfo: gc.wrapContactInfo(ctx, ghost, contact),
+			UserInfo: gc.wrapContactInfo(ctx, ghost, contact, &participantThumbnails{}),
 		}
 	}
 	return resp, nil
