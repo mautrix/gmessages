@@ -78,7 +78,7 @@ func (c *Client) signInGaiaInitial(ctx context.Context) (*gmproto.SignInGaiaResp
 	)
 }
 
-func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
+func (c *Client) signInGaia(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
 	pubKey, err := c.AuthData.RefreshKey.GetPublicKey()
 	if err != nil {
 		return nil, err
@@ -92,9 +92,13 @@ func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaRes
 	payload.Inner.SomeData = &gmproto.SignInGaiaRequest_Inner_Data{
 		SomeData: key,
 	}
-	resp, err := typedHTTPResponse[*gmproto.SignInGaiaResponse](
+	return typedHTTPResponse[*gmproto.SignInGaiaResponse](
 		c.makeProtobufHTTPRequestContext(ctx, util.SignInGaiaURL, payload, ContentTypePBLite, false),
 	)
+}
+
+func (c *Client) signInGaiaGetToken(ctx context.Context) (*gmproto.SignInGaiaResponse, error) {
+	resp, err := c.signInGaia(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -328,6 +332,10 @@ func (c *Client) getGaiaPrimaryDevices(ctx context.Context) ([]*primaryDeviceID,
 	if err != nil {
 		return nil, err
 	}
+	return gaiaPrimaryDevices(ctx, sigResp), nil
+}
+
+func gaiaPrimaryDevices(ctx context.Context, sigResp *gmproto.SignInGaiaResponse) []*primaryDeviceID {
 	// Don't log the whole object as it also contains the tachyon token
 	zerolog.Ctx(ctx).Debug().
 		Any("header", sigResp.Header).
@@ -352,7 +360,28 @@ func (c *Client) getGaiaPrimaryDevices(ctx context.Context) ([]*primaryDeviceID,
 			pd.UnknownTS = dev.GetItem8().GetUnknownTimestamp()
 		}
 	}
-	return primaryDevices, nil
+	return primaryDevices
+}
+
+func (c *Client) PairedPhoneRegistered(ctx context.Context) (bool, error) {
+	if c == nil {
+		return false, ErrClientIsNil
+	} else if !c.AuthData.HasCookies() || c.AuthData.DestRegID == uuid.Nil {
+		return true, nil
+	}
+	sigResp, err := c.signInGaia(ctx)
+	if err != nil {
+		return false, err
+	}
+	primaryDevices := gaiaPrimaryDevices(ctx, sigResp)
+	if len(primaryDevices) == 0 {
+		return true, nil
+	}
+	return slices.ContainsFunc(primaryDevices, func(pd *primaryDeviceID) bool {
+		regID, err := uuid.Parse(pd.RegID)
+		return (err == nil && regID == c.AuthData.DestRegID) ||
+			(c.AuthData.DestPhoneID != 0 && pd.UnknownTS == c.AuthData.DestPhoneID)
+	}), nil
 }
 
 func (c *Client) HasOtherGaiaPhone(ctx context.Context) (bool, error) {

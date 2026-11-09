@@ -70,6 +70,9 @@ type GMClient struct {
 	stallRecoveryRunning   atomic.Bool
 	lastConversationList   atomic.Int64
 
+	pairedPhoneCheck     *time.Timer
+	pairedPhoneCheckLock sync.Mutex
+
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
 	conversationMeta     map[string]*conversationMeta
@@ -195,6 +198,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 }
 
 func (gc *GMClient) Disconnect() {
+	gc.cancelPairedPhoneCheck()
 	gc.longPollingError = errors.New("not connected")
 	gc.PhoneResponding = true
 	gc.batteryLow = false
