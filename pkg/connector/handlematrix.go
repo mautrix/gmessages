@@ -40,13 +40,15 @@ import (
 )
 
 var (
-	_ bridgev2.ReactionHandlingNetworkAPI    = (*GMClient)(nil)
-	_ bridgev2.RedactionHandlingNetworkAPI   = (*GMClient)(nil)
-	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
-	_ bridgev2.TypingHandlingNetworkAPI      = (*GMClient)(nil)
-	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*GMClient)(nil)
-	_ bridgev2.UserBlockingNetworkAPI        = (*GMClient)(nil)
-	_ bridgev2.RoomNameHandlingNetworkAPI    = (*GMClient)(nil)
+	_ bridgev2.ReactionHandlingNetworkAPI     = (*GMClient)(nil)
+	_ bridgev2.RedactionHandlingNetworkAPI    = (*GMClient)(nil)
+	_ bridgev2.ReadReceiptHandlingNetworkAPI  = (*GMClient)(nil)
+	_ bridgev2.TypingHandlingNetworkAPI       = (*GMClient)(nil)
+	_ bridgev2.DeleteChatHandlingNetworkAPI   = (*GMClient)(nil)
+	_ bridgev2.UserBlockingNetworkAPI         = (*GMClient)(nil)
+	_ bridgev2.RoomNameHandlingNetworkAPI     = (*GMClient)(nil)
+	_ bridgev2.MuteHandlingNetworkAPI         = (*GMClient)(nil)
+	_ bridgev2.MarkedUnreadHandlingNetworkAPI = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -548,4 +550,45 @@ func (gc *GMClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.Matr
 		return false, ErrNonSuccessResponse
 	}
 	return false, nil
+}
+
+func (gc *GMClient) updateConversationState(ctx context.Context, portal *bridgev2.Portal, action gmproto.ConversationActionStatus) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
+	convID, err := gc.conversationIDForPortal(ctx, portal)
+	if err != nil {
+		return err
+	}
+	resp, err := gc.Client.UpdateConversation(ctx, &gmproto.UpdateConversationRequest{
+		Action:         action,
+		ConversationID: convID,
+		Data: &gmproto.UpdateConversationRequest_DeleteData{DeleteData: &gmproto.DeleteConversationData{
+			ConversationID: convID,
+		}},
+	})
+	if err != nil {
+		return wrapSendError(err)
+	} else if !resp.GetSuccess() {
+		return ErrNonSuccessResponse
+	}
+	return nil
+}
+
+func (gc *GMClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMute) error {
+	action := gmproto.ConversationActionStatus_UNMUTE_CONVERSATION
+	if msg.Content.IsMuted() {
+		action = gmproto.ConversationActionStatus_MUTE_CONVERSATION
+	}
+	return gc.updateConversationState(ctx, msg.Portal, action)
+}
+
+func (gc *GMClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.MatrixMarkedUnread) error {
+	if !msg.Content.Unread {
+		return gc.HandleMatrixReadReceipt(ctx, &bridgev2.MatrixReadReceipt{
+			Portal:   msg.Portal,
+			ReadUpTo: time.Now(),
+		})
+	}
+	return gc.updateConversationState(ctx, msg.Portal, gmproto.ConversationActionStatus_MARK_UNREAD)
 }

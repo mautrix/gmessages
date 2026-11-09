@@ -28,8 +28,11 @@ const (
 	ConversationActionStatus_UNKNOWN_ACTION_STATUS ConversationActionStatus = 0
 	ConversationActionStatus_DELETE                ConversationActionStatus = 1
 	ConversationActionStatus_UNBLOCK               ConversationActionStatus = 2
+	ConversationActionStatus_MUTE_CONVERSATION     ConversationActionStatus = 5
+	ConversationActionStatus_UNMUTE_CONVERSATION   ConversationActionStatus = 6
 	ConversationActionStatus_BLOCK                 ConversationActionStatus = 7
 	ConversationActionStatus_BLOCK_AND_REPORT      ConversationActionStatus = 8
+	ConversationActionStatus_MARK_UNREAD           ConversationActionStatus = 14
 	ConversationActionStatus_RENAME_GROUP          ConversationActionStatus = 17
 )
 
@@ -39,16 +42,22 @@ var (
 		0:  "UNKNOWN_ACTION_STATUS",
 		1:  "DELETE",
 		2:  "UNBLOCK",
+		5:  "MUTE_CONVERSATION",
+		6:  "UNMUTE_CONVERSATION",
 		7:  "BLOCK",
 		8:  "BLOCK_AND_REPORT",
+		14: "MARK_UNREAD",
 		17: "RENAME_GROUP",
 	}
 	ConversationActionStatus_value = map[string]int32{
 		"UNKNOWN_ACTION_STATUS": 0,
 		"DELETE":                1,
 		"UNBLOCK":               2,
+		"MUTE_CONVERSATION":     5,
+		"UNMUTE_CONVERSATION":   6,
 		"BLOCK":                 7,
 		"BLOCK_AND_REPORT":      8,
+		"MARK_UNREAD":           14,
 		"RENAME_GROUP":          17,
 	}
 )
@@ -3721,14 +3730,17 @@ const file_client_proto_rawDesc = "" +
 	"\x0factionMessageID\x18\x02 \x01(\tR\x0factionMessageID\"\x1a\n" +
 	"\x18GetFullSizeImageResponse\"1\n" +
 	"\x11GetUpdatesRequest\x12\x1c\n" +
-	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp*\x81\x01\n" +
+	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp*\xc2\x01\n" +
 	"\x18ConversationActionStatus\x12\x19\n" +
 	"\x15UNKNOWN_ACTION_STATUS\x10\x00\x12\n" +
 	"\n" +
 	"\x06DELETE\x10\x01\x12\v\n" +
-	"\aUNBLOCK\x10\x02\x12\t\n" +
+	"\aUNBLOCK\x10\x02\x12\x15\n" +
+	"\x11MUTE_CONVERSATION\x10\x05\x12\x17\n" +
+	"\x13UNMUTE_CONVERSATION\x10\x06\x12\t\n" +
 	"\x05BLOCK\x10\a\x12\x14\n" +
-	"\x10BLOCK_AND_REPORT\x10\b\x12\x10\n" +
+	"\x10BLOCK_AND_REPORT\x10\b\x12\x0f\n" +
+	"\vMARK_UNREAD\x10\x0e\x12\x10\n" +
 	"\fRENAME_GROUP\x10\x11*.\n" +
 	"\x16ConversationMuteStatus\x12\n" +
 	"\n" +

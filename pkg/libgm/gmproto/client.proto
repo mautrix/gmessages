@@ -214,8 +214,11 @@ enum ConversationActionStatus {
     UNKNOWN_ACTION_STATUS = 0;
     DELETE = 1;
     UNBLOCK = 2;
+    MUTE_CONVERSATION = 5;
+    UNMUTE_CONVERSATION = 6;
     BLOCK = 7;
     BLOCK_AND_REPORT = 8;
+    MARK_UNREAD = 14;
     RENAME_GROUP = 17;
 }
 
