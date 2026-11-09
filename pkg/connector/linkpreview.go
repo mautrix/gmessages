@@ -32,12 +32,14 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
@@ -46,8 +48,11 @@ import (
 const (
 	maxLinkPreviewImageSize   = 5 * 1024 * 1024
 	maxLinkPreviewRedirects   = 3
-	linkPreviewImageTimeout   = 10 * time.Second
-	linkPreviewConnectTimeout = 5 * time.Second
+	linkPreviewImageTimeout   = 3 * time.Second
+	linkPreviewConnectTimeout = 2 * time.Second
+
+	linkPreviewImageCacheSize   = 512
+	linkPreviewFailureCacheTime = 30 * time.Minute
 )
 
 var (
@@ -179,28 +184,96 @@ func fetchLinkPreviewImage(ctx context.Context, rawURL string) ([]byte, string, 
 	return data, mimeType, nil
 }
 
-func (gc *GMClient) addLinkPreviewImage(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg *gmproto.Message, preview *event.BeeperLinkPreview) {
-	imageURL := msg.GetLinkPreview().GetImageURL()
-	if imageURL == "" {
+type cachedPreviewImage struct {
+	url        id.ContentURIString
+	file       *event.EncryptedFileInfo
+	mimeType   string
+	size       int
+	width      int
+	height     int
+	failedAt   time.Time
+	cacheOrder uint64
+}
+
+type previewImageCache struct {
+	lock    sync.Mutex
+	entries map[string]*cachedPreviewImage
+	counter uint64
+}
+
+var linkPreviewImageCache = &previewImageCache{entries: make(map[string]*cachedPreviewImage)}
+
+func (pic *previewImageCache) get(key string) *cachedPreviewImage {
+	pic.lock.Lock()
+	defer pic.lock.Unlock()
+	entry, ok := pic.entries[key]
+	if !ok || (!entry.failedAt.IsZero() && time.Since(entry.failedAt) > linkPreviewFailureCacheTime) {
+		return nil
+	}
+	return entry
+}
+
+func (pic *previewImageCache) set(key string, entry *cachedPreviewImage) {
+	pic.lock.Lock()
+	defer pic.lock.Unlock()
+	pic.counter++
+	entry.cacheOrder = pic.counter
+	pic.entries[key] = entry
+	if len(pic.entries) <= linkPreviewImageCacheSize {
 		return
 	}
+	var oldestKey string
+	var oldestOrder uint64
+	for k, v := range pic.entries {
+		if oldestKey == "" || v.cacheOrder < oldestOrder {
+			oldestKey, oldestOrder = k, v.cacheOrder
+		}
+	}
+	delete(pic.entries, oldestKey)
+}
+
+func (gc *GMClient) uploadLinkPreviewImage(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, imageURL string) *cachedPreviewImage {
 	log := zerolog.Ctx(ctx)
 	data, mimeType, err := fetchLinkPreviewImage(ctx, imageURL)
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to fetch link preview image")
-		return
+		return &cachedPreviewImage{failedAt: time.Now()}
 	}
 	mxc, file, err := intent.UploadMedia(ctx, portal.MXID, data, "", mimeType)
 	if err != nil {
 		log.Err(err).Msg("Failed to upload link preview image")
+		return nil
+	}
+	entry := &cachedPreviewImage{url: mxc, file: file, mimeType: mimeType, size: len(data)}
+	if cfg, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil {
+		entry.width, entry.height = cfg.Width, cfg.Height
+	}
+	return entry
+}
+
+func (gc *GMClient) addLinkPreviewImage(ctx context.Context, portal *bridgev2.Portal, intent bridgev2.MatrixAPI, msg *gmproto.Message, preview *event.BeeperLinkPreview) {
+	imageURL := msg.GetLinkPreview().GetImageURL()
+	if imageURL == "" || portal.MXID == "" {
 		return
 	}
-	preview.ImageURL = mxc
-	preview.ImageEncryption = file
-	preview.ImageType = mimeType
-	preview.ImageSize = event.IntOrString(len(data))
-	if cfg, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil {
-		preview.ImageWidth = event.IntOrString(cfg.Width)
-		preview.ImageHeight = event.IntOrString(cfg.Height)
+	cacheKey := portal.MXID.String() + " " + imageURL
+	entry := linkPreviewImageCache.get(cacheKey)
+	if entry == nil {
+		entry = gc.uploadLinkPreviewImage(ctx, portal, intent, imageURL)
+		if entry == nil {
+			return
+		}
+		linkPreviewImageCache.set(cacheKey, entry)
+	}
+	if !entry.failedAt.IsZero() {
+		return
+	}
+	preview.ImageURL = entry.url
+	preview.ImageEncryption = entry.file
+	preview.ImageType = entry.mimeType
+	preview.ImageSize = event.IntOrString(entry.size)
+	if entry.width > 0 && entry.height > 0 {
+		preview.ImageWidth = event.IntOrString(entry.width)
+		preview.ImageHeight = event.IntOrString(entry.height)
 	}
 }
