@@ -1538,6 +1538,7 @@ func (gc *GMClient) convertGoogleMedia(
 		},
 	}
 	mediaClass, _, _ := strings.Cut(content.Info.MimeType, "/")
+	var senderMime string
 	if mediaClass == "" {
 		switch msg.GetFormat() {
 		case gmproto.MediaFormats_AUDIO_UNSPECIFIED:
@@ -1549,7 +1550,7 @@ func (gc *GMClient) convertGoogleMedia(
 		}
 		senderClass, _, ok := strings.Cut(msg.GetMimeType(), "/")
 		if ok && msg.MediaID != "" && msg.GetMimeType() != "application/octet-stream" && (mediaClass == "" || mediaClass == senderClass) {
-			content.Info.MimeType = msg.GetMimeType()
+			senderMime = msg.GetMimeType()
 			mediaClass = senderClass
 		}
 	}
@@ -1618,6 +1619,9 @@ func (gc *GMClient) convertGoogleMedia(
 				return nil, fmt.Errorf("failed to read file header: %w", err)
 			}
 			content.Info.MimeType = http.DetectContentType(header[:m])
+			if senderMime != "" && content.Info.MimeType == "application/octet-stream" {
+				content.Info.MimeType = senderMime
+			}
 		}
 		if !strings.ContainsRune(content.Body, '.') {
 			content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
