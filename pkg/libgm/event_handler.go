@@ -187,6 +187,14 @@ func (c *Client) deduplicateUpdate(id string, msg *IncomingRPCMessage) bool {
 	return false
 }
 
+func (c *Client) isResponseToPendingRequest(rawMsg *gmproto.IncomingRPCMessage) bool {
+	var data gmproto.RPCMessageData
+	if rawMsg.GetBugleRoute() != gmproto.BugleRoute_DataEvent || proto.Unmarshal(rawMsg.GetMessageData(), &data) != nil {
+		return false
+	}
+	return c.sessionHandler.hasResponseWaiter(data.GetSessionID())
+}
+
 func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 	msg, err := c.decryptInternalMessage(rawMsg)
 	if err != nil {
@@ -202,9 +210,7 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 		if errors.Is(err, crypto.ErrHMACMismatch) {
 			if c.skipCount > 0 {
 				c.skipCount--
-			} else if rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID() &&
-				rawMsg.GetMobile().GetSourceID() == c.AuthData.Mobile.GetSourceID() &&
-				c.hmacFailures.Add(1) == hmacFailureLimit {
+			} else if c.isResponseToPendingRequest(rawMsg) && c.hmacFailures.Add(1) == hmacFailureLimit {
 				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("%w: %d data events in a row failed to decrypt", ErrPairingKeysRejected, hmacFailureLimit)})
 			}
 		}
