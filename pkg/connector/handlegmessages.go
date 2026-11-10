@@ -1478,6 +1478,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 			textMeta.OrigMXID = caption.eventID
 			textMeta.MSSDeliverySent = true
 			textMeta.MSSFailSent = caption.uncertain
+			gc.reconcileNewCaption(ctx, portal, caption, m.GetMessageStatus().GetStatus(), textMeta)
 		}
 		cm.Parts = append(cm.Parts, textPart)
 	}

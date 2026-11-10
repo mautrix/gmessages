@@ -187,6 +187,19 @@ func (gc *GMClient) markCaptionFailed(ctx context.Context, mediaEventID id.Event
 	}
 }
 
+func (gc *GMClient) reconcileNewCaption(ctx context.Context, portal *bridgev2.Portal, caption pendingCaption, status gmproto.MessageStatusType, meta *MessageMetadata) {
+	info := &bridgev2.MessageStatusEventInfo{RoomID: portal.MXID, SourceEventID: caption.eventID}
+	if getFailMessage(status) != "" {
+		gc.markCaptionFailed(ctx, caption.eventID)
+		meta.MSSFailSent = true
+		msgStatus := ErrCaptionNotSent
+		portal.Bridge.Matrix.SendMessageStatus(ctx, &msgStatus, info)
+	} else if caption.uncertain && isSuccessfullySentStatus(status) && gc.captionRecovered(ctx, caption.eventID) {
+		meta.MSSSent = true
+		portal.Bridge.Matrix.SendMessageStatus(ctx, &bridgev2.MessageStatus{Status: event.MessageStatusSuccess}, info)
+	}
+}
+
 func (gc *GMClient) captionRecovered(ctx context.Context, mediaEventID id.EventID) (mediaSent bool) {
 	mediaMsg, err := gc.Main.br.DB.Message.GetPartByMXID(ctx, mediaEventID)
 	if err != nil {
