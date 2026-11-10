@@ -118,13 +118,6 @@ func typedResponse[T proto.Message](resp *IncomingRPCMessage, err error) (casted
 	return
 }
 
-func (s *SessionHandler) hasResponseWaiter(requestID string) bool {
-	s.responseWaitersLock.Lock()
-	defer s.responseWaitersLock.Unlock()
-	_, ok := s.responseWaiters[requestID]
-	return ok
-}
-
 func (s *SessionHandler) waitResponse(requestID string) chan *IncomingRPCMessage {
 	ch := make(chan *IncomingRPCMessage, 1)
 	s.responseWaitersLock.Lock()
