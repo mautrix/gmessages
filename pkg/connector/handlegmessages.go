@@ -274,11 +274,49 @@ func (gc *GMClient) handleMessageQueue(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case msg := <-gc.messageQueue:
+			gc.deduplicateDMBeforePortalCreation(ctx, msg)
 			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
 				WrappedMessage: msg,
 				g:              gc,
 			})
 		}
+	}
+}
+
+func (gc *GMClient) deduplicateDMBeforePortalCreation(ctx context.Context, msg *libgm.WrappedMessage) {
+	switch msg.GetMessageStatus().GetStatus() {
+	case gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_OUTGOING_COMPLETE,
+		gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
+	default:
+		return
+	}
+	portalKey := gc.MakePortalKey(msg.GetConversationID())
+	gc.dmsLock.Lock()
+	_, isKnownDM := gc.dmsByConv[portalKey.ID]
+	gc.dmsLock.Unlock()
+	if isKnownDM {
+		return
+	}
+	log := gc.UserLogin.Log.With().
+		Str("action", "deduplicate dm before portal creation").
+		Str("conversation_id", msg.GetConversationID()).
+		Str("message_id", msg.GetMessageID()).
+		Logger()
+	ctx = log.WithContext(ctx)
+	portal, err := gc.Main.br.GetExistingPortalByKey(ctx, portalKey)
+	if err != nil {
+		log.Err(err).Msg("Failed to check if portal exists")
+		return
+	} else if portal != nil {
+		return
+	}
+	conv := gc.getChatInfoWithFetch(ctx, msg.GetConversationID())
+	if conv == nil {
+		return
+	}
+	err = gc.deduplicateDM(ctx, conv)
+	if err != nil && !errors.Is(err, errDontSyncConversation) {
+		log.Err(err).Msg("Failed to deduplicate DM")
 	}
 }
 func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountChange) {
