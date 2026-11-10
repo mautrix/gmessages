@@ -202,7 +202,9 @@ func (c *Client) HandleRPCMsg(rawMsg *gmproto.IncomingRPCMessage) {
 		if errors.Is(err, crypto.ErrHMACMismatch) {
 			if c.skipCount > 0 {
 				c.skipCount--
-			} else if rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID() && c.hmacFailures.Add(1) == hmacFailureLimit {
+			} else if rawMsg.GetBrowser().GetSourceID() == c.AuthData.Browser.GetSourceID() &&
+			rawMsg.GetMobile().GetSourceID() == c.AuthData.Mobile.GetSourceID() &&
+			c.hmacFailures.Add(1) == hmacFailureLimit {
 				c.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("%w: %d data events in a row failed to decrypt", ErrPairingKeysRejected, hmacFailureLimit)})
 			}
 		}
