@@ -34,6 +34,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -145,6 +146,11 @@ func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.Lis
 			Int("inbox_chats", inboxChats).
 			Int("archive_chats", archiveChats).
 			Msg("Failed to sync full chat list")
+		if ctx.Err() != nil || errors.Is(err, libgm.ErrPhoneNotResponding) || errors.Is(err, bridgev2.ErrNotLoggedIn) {
+			return
+		}
+		timedOutPages++
+	} else if ctx.Err() != nil {
 		return
 	}
 	attempt, stillPending := gc.Meta.FinishChatListSyncAttempt(timedOutPages > 0)
