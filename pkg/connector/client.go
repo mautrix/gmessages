@@ -91,6 +91,11 @@ type GMClient struct {
 	cachedContacts     []*gmproto.Contact
 	contactsByNumber   map[string]*gmproto.Contact
 	contactsRefreshing atomic.Bool
+
+	stickerLock           sync.Mutex
+	stickerPacks          []*gmproto.StickerPack
+	stickerPacksFetchedAt time.Time
+	stickerPackCache      map[string]cachedStickerPack
 }
 
 var _ bridgev2.NetworkAPI = &GMClient{}
