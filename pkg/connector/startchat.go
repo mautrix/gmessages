@@ -275,30 +275,58 @@ const (
 	maxContactListPages = 100
 )
 
+type contactFetch struct {
+	done     chan struct{}
+	contacts []*gmproto.Contact
+	err      error
+}
+
 func (gc *GMClient) getOrFetchContacts(ctx context.Context) ([]*gmproto.Contact, error) {
 	gc.contactsFetchLock.Lock()
-	defer gc.contactsFetchLock.Unlock()
 	if time.Since(gc.contactsFetchedAt) < contactCacheTTL || !gc.PhoneResponding {
-		return gc.cachedContacts, nil
+		contacts := gc.cachedContacts
+		gc.contactsFetchLock.Unlock()
+		return contacts, nil
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), contactFetchTimeout)
+	fetch := gc.contactsFetch
+	if fetch == nil {
+		fetch = &contactFetch{done: make(chan struct{})}
+		gc.contactsFetch = fetch
+		go gc.runContactFetch(context.WithoutCancel(ctx), fetch)
+	}
+	gc.contactsFetchLock.Unlock()
+	select {
+	case <-fetch.done:
+		return fetch.contacts, fetch.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func (gc *GMClient) runContactFetch(ctx context.Context, fetch *contactFetch) {
+	ctx, cancel := context.WithTimeout(ctx, contactFetchTimeout)
 	defer cancel()
 	contacts, err := gc.fetchContactPages(ctx)
+	gc.contactsFetchLock.Lock()
+	defer gc.contactsFetchLock.Unlock()
+	gc.contactsFetch = nil
 	if err != nil {
-		return nil, err
-	}
-	byNumber := make(map[string]*gmproto.Contact, len(contacts))
-	for _, contact := range contacts {
-		if number := contact.GetNumber().GetNumber(); number != "" {
-			byNumber[number] = contact
+		fetch.err = err
+	} else {
+		byNumber := make(map[string]*gmproto.Contact, len(contacts))
+		for _, contact := range contacts {
+			if number := contact.GetNumber().GetNumber(); number != "" {
+				byNumber[number] = contact
+			}
 		}
+		gc.contactsLock.Lock()
+		gc.cachedContacts = contacts
+		gc.contactsByNumber = byNumber
+		gc.contactsFetchedAt = time.Now()
+		gc.contactsLock.Unlock()
+		fetch.contacts = contacts
 	}
-	gc.contactsLock.Lock()
-	gc.cachedContacts = contacts
-	gc.contactsByNumber = byNumber
-	gc.contactsFetchedAt = time.Now()
-	gc.contactsLock.Unlock()
-	return gc.cachedContacts, nil
+	close(fetch.done)
 }
 
 func (gc *GMClient) fetchContactPages(ctx context.Context) ([]*gmproto.Contact, error) {
@@ -310,6 +338,7 @@ func (gc *GMClient) fetchContactPages(ctx context.Context) ([]*gmproto.Contact, 
 	start := time.Now()
 	var contacts []*gmproto.Contact
 	var pageToken string
+	seenTokens := make(map[string]struct{})
 	pages := 0
 	for {
 		resp, err := cli.ListContacts(ctx, pageToken)
@@ -321,14 +350,17 @@ func (gc *GMClient) fetchContactPages(ctx context.Context) ([]*gmproto.Contact, 
 		nextPageToken := resp.GetNextPageToken()
 		if nextPageToken == "" {
 			break
-		} else if nextPageToken == pageToken || pages >= maxContactListPages {
+		}
+		_, repeated := seenTokens[nextPageToken]
+		if repeated || pages >= maxContactListPages {
 			log.Warn().
 				Int("contact_count", len(contacts)).
 				Int("pages", pages).
-				Bool("repeated_token", nextPageToken == pageToken).
+				Bool("repeated_token", repeated).
 				Msg("Stopped fetching contact list before the last page")
 			break
 		}
+		seenTokens[nextPageToken] = struct{}{}
 		pageToken = nextPageToken
 	}
 	log.Debug().
