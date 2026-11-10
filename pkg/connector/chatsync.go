@@ -342,9 +342,10 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
 	return &simplevent.Receipt{
 		EventMeta: simplevent.EventMeta{
-			Type:      bridgev2.RemoteEventReadReceipt,
-			PortalKey: gc.portalKeyForConv(v),
-			Sender:    bridgev2.EventSender{IsFromMe: true},
+			Type:           bridgev2.RemoteEventReadReceipt,
+			PortalKey:      gc.portalKeyForConv(v),
+			Sender:         bridgev2.EventSender{IsFromMe: true},
+			PostHandleFunc: clearMarkedUnread,
 		},
 		LastTarget: gc.MakeMessageID(meta.readUpTo),
 		ReadUpTo:   meta.readUpToTS,
@@ -353,26 +354,41 @@ func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationM
 
 type GMMarkUnread struct {
 	simplevent.MarkUnread
+	g         *GMClient
 	Timestamp int64
 }
 
-var (
-	_ bridgev2.RemotePreHandlerWithResult = (*GMMarkUnread)(nil)
-	_ bridgev2.RemotePostHandler          = (*GMMarkUnread)(nil)
-)
+var _ bridgev2.RemotePreHandlerWithResult = (*GMMarkUnread)(nil)
 
 func (evt *GMMarkUnread) PreHandleWithResult(ctx context.Context, portal *bridgev2.Portal) *bridgev2.EventHandlingResult {
-	if portal.Metadata.(*PortalMetadata).MarkedUnreadTS == evt.Timestamp {
+	meta := portal.Metadata.(*PortalMetadata)
+	if meta.MarkedUnreadTS == evt.Timestamp {
 		return &bridgev2.EventHandlingResultIgnored
 	}
-	return nil
+	dp := evt.g.UserLogin.User.DoublePuppet(ctx)
+	if dp == nil {
+		return &bridgev2.EventHandlingResultIgnored
+	}
+	if err := dp.MarkUnread(ctx, portal.MXID, true); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to bridge mark unread event")
+		res := bridgev2.EventHandlingResultFailed.WithError(err)
+		return &res
+	}
+	meta.MarkedUnreadTS = evt.Timestamp
+	if err := portal.Save(ctx); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to save portal after bridging mark unread")
+	}
+	return &bridgev2.EventHandlingResultSuccess
 }
 
-func (evt *GMMarkUnread) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
-	portal.Metadata.(*PortalMetadata).MarkedUnreadTS = evt.Timestamp
-	err := portal.Save(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("Failed to save portal after bridging mark unread")
+func clearMarkedUnread(ctx context.Context, portal *bridgev2.Portal) {
+	meta := portal.Metadata.(*PortalMetadata)
+	if meta.MarkedUnreadTS == 0 {
+		return
+	}
+	meta.MarkedUnreadTS = 0
+	if err := portal.Save(ctx); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to save portal after clearing mark unread")
 	}
 }
 
@@ -390,6 +406,7 @@ func (gc *GMClient) queueMarkUnread(v *gmproto.Conversation) {
 			},
 			Unread: true,
 		},
+		g:         gc,
 		Timestamp: ts,
 	})
 }
