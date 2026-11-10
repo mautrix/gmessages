@@ -307,11 +307,16 @@ func (gc *GMClient) deduplicateDMBeforePortalCreation(ctx context.Context, msg *
 	if err != nil {
 		log.Err(err).Msg("Failed to check if portal exists")
 		return
-	} else if portal != nil {
+	} else if portal != nil && portal.MXID != "" {
 		return
 	}
 	conv := gc.getChatInfoWithFetch(ctx, msg.GetConversationID())
 	if conv == nil {
+		return
+	}
+	switch conv.GetStatus() {
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
+	default:
 		return
 	}
 	err = gc.deduplicateDM(ctx, conv)
