@@ -299,8 +299,9 @@ func (x *Sticker) GetDescription() string {
 }
 
 type StickerImage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Url           string                   `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Dimensions    *StickerImage_Dimensions `protobuf:"bytes,5,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -340,6 +341,13 @@ func (x *StickerImage) GetUrl() string {
 		return x.Url
 	}
 	return ""
+}
+
+func (x *StickerImage) GetDimensions() *StickerImage_Dimensions {
+	if x != nil {
+		return x.Dimensions
+	}
+	return nil
 }
 
 type StickerUserContext_ClientInfo struct {
@@ -498,6 +506,58 @@ func (x *ListStickerPacksResponse_Item) GetPack() *StickerPack {
 	return nil
 }
 
+type StickerImage_Dimensions struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Width         int32                  `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
+	Height        int32                  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StickerImage_Dimensions) Reset() {
+	*x = StickerImage_Dimensions{}
+	mi := &file_stickers_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StickerImage_Dimensions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StickerImage_Dimensions) ProtoMessage() {}
+
+func (x *StickerImage_Dimensions) ProtoReflect() protoreflect.Message {
+	mi := &file_stickers_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StickerImage_Dimensions.ProtoReflect.Descriptor instead.
+func (*StickerImage_Dimensions) Descriptor() ([]byte, []int) {
+	return file_stickers_proto_rawDescGZIP(), []int{5, 0}
+}
+
+func (x *StickerImage_Dimensions) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *StickerImage_Dimensions) GetHeight() int32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
 var File_stickers_proto protoreflect.FileDescriptor
 
 const file_stickers_proto_rawDesc = "" +
@@ -531,9 +591,16 @@ const file_stickers_proto_rawDesc = "" +
 	"\aSticker\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12,\n" +
 	"\x05image\x18\x03 \x01(\v2\x16.stickers.StickerImageR\x05image\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\" \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x9f\x01\n" +
 	"\fStickerImage\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03urlB\fZ\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12A\n" +
+	"\n" +
+	"dimensions\x18\x05 \x01(\v2!.stickers.StickerImage.DimensionsR\n" +
+	"dimensions\x1a:\n" +
+	"\n" +
+	"Dimensions\x12\x14\n" +
+	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
+	"\x06height\x18\x02 \x01(\x05R\x06heightB\fZ\n" +
 	"../gmprotob\x06proto3"
 
 var (
@@ -548,7 +615,7 @@ func file_stickers_proto_rawDescGZIP() []byte {
 	return file_stickers_proto_rawDescData
 }
 
-var file_stickers_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_stickers_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_stickers_proto_goTypes = []any{
 	(*StickerUserContext)(nil),            // 0: stickers.StickerUserContext
 	(*ListStickerPacksRequest)(nil),       // 1: stickers.ListStickerPacksRequest
@@ -559,6 +626,7 @@ var file_stickers_proto_goTypes = []any{
 	(*StickerUserContext_ClientInfo)(nil), // 6: stickers.StickerUserContext.ClientInfo
 	(*StickerUserContext_Locale)(nil),     // 7: stickers.StickerUserContext.Locale
 	(*ListStickerPacksResponse_Item)(nil), // 8: stickers.ListStickerPacksResponse.Item
+	(*StickerImage_Dimensions)(nil),       // 9: stickers.StickerImage.Dimensions
 }
 var file_stickers_proto_depIdxs = []int32{
 	7, // 0: stickers.StickerUserContext.locale:type_name -> stickers.StickerUserContext.Locale
@@ -566,13 +634,14 @@ var file_stickers_proto_depIdxs = []int32{
 	8, // 2: stickers.ListStickerPacksResponse.items:type_name -> stickers.ListStickerPacksResponse.Item
 	4, // 3: stickers.StickerPack.stickers:type_name -> stickers.Sticker
 	5, // 4: stickers.Sticker.image:type_name -> stickers.StickerImage
-	6, // 5: stickers.StickerUserContext.Locale.client:type_name -> stickers.StickerUserContext.ClientInfo
-	3, // 6: stickers.ListStickerPacksResponse.Item.pack:type_name -> stickers.StickerPack
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	9, // 5: stickers.StickerImage.dimensions:type_name -> stickers.StickerImage.Dimensions
+	6, // 6: stickers.StickerUserContext.Locale.client:type_name -> stickers.StickerUserContext.ClientInfo
+	3, // 7: stickers.ListStickerPacksResponse.Item.pack:type_name -> stickers.StickerPack
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_stickers_proto_init() }
@@ -586,7 +655,7 @@ func file_stickers_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stickers_proto_rawDesc), len(file_stickers_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -17,12 +17,9 @@
 package connector
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image"
-	_ "image/gif"
-	_ "image/png"
+	"mime"
 	"net/http"
 	"path"
 	"slices"
@@ -32,7 +29,9 @@ import (
 	"github.com/rs/zerolog"
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
+	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
@@ -41,11 +40,6 @@ const stickerPackURLPrefix = "gmessages://"
 const stickerCacheTime = 1 * time.Hour
 
 var _ bridgev2.StickerImportingNetworkAPI = (*GMClient)(nil)
-
-type cachedStickerPack struct {
-	pack      *bridgev2.ImportedImagePack
-	fetchedAt time.Time
-}
 
 func stickerPackMetadata(pack *gmproto.StickerPack) event.ImagePackMetadata {
 	return event.ImagePackMetadata{
@@ -95,12 +89,6 @@ func (gc *GMClient) DownloadImagePack(ctx context.Context, packURL string) (*bri
 	if !ok || packID == "" {
 		return nil, mautrix.MNotFound.WithMessage("Unsupported sticker pack")
 	}
-	gc.stickerLock.Lock()
-	cached, ok := gc.stickerPackCache[packID]
-	gc.stickerLock.Unlock()
-	if ok && time.Since(cached.fetchedAt) < stickerCacheTime {
-		return cached.pack, nil
-	}
 	packs, err := gc.getStickerPacks(ctx)
 	if err != nil {
 		return nil, err
@@ -116,18 +104,22 @@ func (gc *GMClient) DownloadImagePack(ctx context.Context, packURL string) (*bri
 		Content:   &event.ImagePackEventContent{Images: make(map[string]*event.ImagePackImage, len(pack.GetStickers()))},
 	}
 	for _, sticker := range pack.GetStickers() {
-		data, err := gc.Client.DownloadSticker(ctx, sticker.GetImage().GetUrl())
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		} else if err != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).Str("sticker_id", sticker.GetName()).Msg("Failed to download sticker, skipping")
-			continue
-		}
-		config, _, _ := image.DecodeConfig(bytes.NewReader(data))
-		mimeType := http.DetectContentType(data)
-		mxc, _, err := gc.Main.br.Bot.UploadMedia(ctx, "", data, path.Base(sticker.GetImage().GetUrl()), mimeType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload sticker %s: %w", sticker.GetName(), err)
+		url := sticker.GetImage().GetUrl()
+		dbKey := database.Key("stickercache:" + url)
+		mxc := id.ContentURIString(gc.Main.br.DB.KV.Get(ctx, dbKey))
+		if mxc == "" {
+			data, err := gc.Client.DownloadSticker(ctx, url)
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			} else if err != nil {
+				zerolog.Ctx(ctx).Warn().Err(err).Str("sticker_id", sticker.GetName()).Msg("Failed to download sticker, skipping")
+				continue
+			}
+			mxc, _, err = gc.Main.br.Bot.UploadMedia(ctx, "", data, path.Base(url), http.DetectContentType(data))
+			if err != nil {
+				return nil, fmt.Errorf("failed to upload sticker %s: %w", sticker.GetName(), err)
+			}
+			gc.Main.br.DB.KV.Set(ctx, dbKey, string(mxc))
 		}
 		if metadata.AvatarURL == "" {
 			metadata.AvatarURL = mxc
@@ -136,10 +128,9 @@ func (gc *GMClient) DownloadImagePack(ctx context.Context, packURL string) (*bri
 			URL:  mxc,
 			Body: sticker.GetDescription(),
 			Info: &event.FileInfo{
-				MimeType: mimeType,
-				Size:     len(data),
-				Width:    config.Width,
-				Height:   config.Height,
+				MimeType: mime.TypeByExtension(path.Ext(url)),
+				Width:    int(sticker.GetImage().GetDimensions().GetWidth()),
+				Height:   int(sticker.GetImage().GetDimensions().GetHeight()),
 				BridgedSticker: &event.BridgedSticker{
 					Network: "gmessages",
 					ID:      sticker.GetName(),
@@ -152,13 +143,5 @@ func (gc *GMClient) DownloadImagePack(ctx context.Context, packURL string) (*bri
 		return nil, mautrix.MNotFound.WithMessage("Sticker pack is empty")
 	}
 	imported.Content.Metadata = metadata
-	if len(imported.Content.Images) == len(pack.GetStickers()) {
-		gc.stickerLock.Lock()
-		if gc.stickerPackCache == nil {
-			gc.stickerPackCache = make(map[string]cachedStickerPack)
-		}
-		gc.stickerPackCache[packID] = cachedStickerPack{pack: imported, fetchedAt: time.Now()}
-		gc.stickerLock.Unlock()
-	}
 	return imported, nil
 }

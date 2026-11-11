@@ -95,7 +95,6 @@ type GMClient struct {
 	stickerLock           sync.Mutex
 	stickerPacks          []*gmproto.StickerPack
 	stickerPacksFetchedAt time.Time
-	stickerPackCache      map[string]cachedStickerPack
 }
 
 var _ bridgev2.NetworkAPI = &GMClient{}
