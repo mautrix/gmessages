@@ -228,7 +228,7 @@ func (gc *GMClient) ConvertMatrixMessage(ctx context.Context, msg *bridgev2.Matr
 				Content: text,
 			}},
 		}}
-	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile:
+	case event.MsgImage, event.MsgVideo, event.MsgAudio, event.MsgFile, event.CapMsgSticker:
 		resp, err := gc.reuploadMedia(ctx, msg.Content)
 		if err != nil {
 			return nil, err

@@ -1,6 +1,7 @@
 package util
 
 const GoogleAPIKey = "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8"
+const StickerAPIKey = "AIzaSyApDNXtvOW_mQ84Wd79j_zU7IrPzCh12AU"
 const UserAgent = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
 const SecUA = `"Google Chrome";v="152", "Chromium";v="152", "Not-A.Brand";v="24"`
 const UAPlatform = "Android"
