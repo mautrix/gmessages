@@ -102,6 +102,7 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 						Msg("Errored decrypted data event content")
 					return nil, fmt.Errorf("failed to decode decrypted data event: %w", err)
 				}
+				fillMissingIDs(msg.DecryptedMessage)
 			}
 		} else if msg.Message.EncryptedData2 != nil {
 			msg.DecryptedData, err = c.AuthData.RequestCrypto.Decrypt(msg.Message.EncryptedData2)
@@ -128,6 +129,54 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 		return nil, fmt.Errorf("unknown bugle route %d", data.BugleRoute)
 	}
 	return msg, nil
+}
+
+func fillMissingConversationIDs(conv *gmproto.Conversation) {
+	if conv == nil {
+		return
+	}
+	if conv.ConversationID == "" {
+		conv.ConversationID = conv.GetSomeKindOfGroupID().GetConversationID()
+	}
+	if conv.LatestMessageID == "" {
+		conv.LatestMessageID = conv.GetLatestMessageAnotherID().GetMessageID()
+	}
+}
+
+func fillMissingMessageIDs(msg *gmproto.Message) {
+	if msg == nil {
+		return
+	}
+	if msg.MessageID == "" {
+		msg.MessageID = msg.GetAnotherMessageID().GetMessageID()
+	}
+	if msg.ConversationID == "" {
+		msg.ConversationID = msg.GetSomeKindOfGroupID().GetConversationID()
+	}
+}
+
+func fillMissingIDs(data proto.Message) {
+	switch typed := data.(type) {
+	case *gmproto.UpdateEvents:
+		for _, conv := range typed.GetConversationEvent().GetData() {
+			fillMissingConversationIDs(conv)
+		}
+		for _, msg := range typed.GetMessageEvent().GetData() {
+			fillMissingMessageIDs(msg)
+		}
+	case *gmproto.ListConversationsResponse:
+		for _, conv := range typed.GetConversations() {
+			fillMissingConversationIDs(conv)
+		}
+	case *gmproto.GetConversationResponse:
+		fillMissingConversationIDs(typed.GetConversation())
+	case *gmproto.GetOrCreateConversationResponse:
+		fillMissingConversationIDs(typed.GetConversation())
+	case *gmproto.ListMessagesResponse:
+		for _, msg := range typed.GetMessages() {
+			fillMissingMessageIDs(msg)
+		}
+	}
 }
 
 func (c *Client) deduplicateHash(id string, hash [32]byte) bool {
