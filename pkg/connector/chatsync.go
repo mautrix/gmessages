@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -33,6 +34,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -90,9 +92,147 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	}
 	for _, conv := range resp.GetConversations() {
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
-		gc.syncConversation(ctx, conv, "sync")
+		gc.syncConversation(ctx, conv, "sync", nil)
+	}
+	if gc.Meta.IsChatListSyncPending() {
+		go gc.syncFullChatList(ctx, resp)
 	}
 	return
+}
+
+const (
+	chatListPageSize        = 25
+	chatListPageTimeout     = 2 * time.Minute
+	maxChatListSyncAttempts = 3
+)
+
+func (gc *GMClient) syncFullChatList(ctx context.Context, firstPage *gmproto.ListConversationsResponse) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	if !gc.stopChatListSync.CompareAndSwap(nil, &cancel) {
+		return
+	}
+	defer gc.stopChatListSync.CompareAndSwap(&cancel, nil)
+	if !gc.ready {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "sync full chat list").Logger()
+	ctx = log.WithContext(ctx)
+	defer func() {
+		if v := recover(); v != nil {
+			log.Err(exerrors.RecoverToError(v)).
+				Bytes(zerolog.ErrorStackFieldName, debug.Stack()).
+				Msg("Full chat list sync panicked")
+		}
+	}()
+	start := time.Now()
+	log.Info().Msg("Syncing full chat list")
+	inboxChats, inboxPages := len(firstPage.GetConversations()), 1
+	var archiveChats, archivePages, timedOutPages int
+	var err error
+	if firstPage.GetCursor() != nil {
+		var chats, pages int
+		chats, pages, timedOutPages, err = gc.syncChatListFolder(ctx, gmproto.ListConversationsRequest_INBOX, firstPage.GetCursor())
+		inboxChats += chats
+		inboxPages += pages
+	}
+	if err == nil {
+		var timedOut int
+		archiveChats, archivePages, timedOut, err = gc.syncChatListFolder(ctx, gmproto.ListConversationsRequest_ARCHIVE, nil)
+		timedOutPages += timedOut
+	}
+	if err != nil {
+		log.Err(err).
+			Int("inbox_chats", inboxChats).
+			Int("archive_chats", archiveChats).
+			Msg("Failed to sync full chat list")
+		if ctx.Err() != nil || errors.Is(err, libgm.ErrPhoneNotResponding) || errors.Is(err, bridgev2.ErrNotLoggedIn) {
+			return
+		}
+		timedOutPages++
+	} else if ctx.Err() != nil {
+		return
+	}
+	attempt, stillPending := gc.Meta.FinishChatListSyncAttempt(timedOutPages > 0)
+	err = gc.UserLogin.Save(ctx)
+	if err != nil {
+		log.Err(err).Msg("Failed to save user login after syncing full chat list")
+	}
+	log.Info().
+		Int("attempt", attempt).
+		Bool("still_pending", stillPending).
+		Int("inbox_chats", inboxChats).
+		Int("inbox_pages", inboxPages).
+		Int("archive_chats", archiveChats).
+		Int("archive_pages", archivePages).
+		Int("timed_out_pages", timedOutPages).
+		Dur("duration", time.Since(start)).
+		Msg("Finished syncing full chat list")
+}
+
+func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListConversationsRequest_Folder, cursor *gmproto.Cursor) (chats, pages, timedOutPages int, err error) {
+	for {
+		cli := gc.Client
+		if cli == nil {
+			return chats, pages, timedOutPages, bridgev2.ErrNotLoggedIn
+		}
+		resp, err := cli.ListConversations(ctx, &gmproto.ListConversationsRequest{
+			Count:  chatListPageSize,
+			Folder: folder,
+			Cursor: cursor,
+		})
+		if err != nil {
+			return chats, pages, timedOutPages, err
+		}
+		pages++
+		convs := resp.GetConversations()
+		chats += len(convs)
+		next := resp.GetCursor()
+		zerolog.Ctx(ctx).Debug().
+			Stringer("folder", folder).
+			Int("page", pages).
+			Int("count", len(convs)).
+			Bool("has_next_page", next != nil).
+			Int64("cursor_ts", next.GetLastItemTimestamp()).
+			Msg("Fetched chat list page")
+		if !gc.syncChatListPage(ctx, convs) {
+			timedOutPages++
+		}
+		if err = ctx.Err(); err != nil || len(convs) == 0 || next == nil || proto.Equal(next, cursor) {
+			return chats, pages, timedOutPages, err
+		}
+		cursor = next
+	}
+}
+
+func (gc *GMClient) syncChatListPage(ctx context.Context, convs []*gmproto.Conversation) bool {
+	handled := make(chan struct{}, len(convs))
+	for _, conv := range convs {
+		done := sync.OnceFunc(func() { handled <- struct{}{} })
+		if !(&GMChatResync{Conv: conv}).ShouldCreatePortal() ||
+			(!conv.IsGroupChat && getOtherUserPhone(conv) == "") ||
+			!gc.Main.br.Config.PortalCreateFilter.ShouldAllow(gc.UserLogin.ID, gc.portalKeyForConv(conv)) {
+			done()
+		}
+		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
+		if !gc.syncConversation(ctx, conv, "full sync", done) {
+			done()
+		}
+	}
+	timeout := time.After(chatListPageTimeout)
+	for i := range convs {
+		select {
+		case <-handled:
+		case <-timeout:
+			zerolog.Ctx(ctx).Warn().
+				Int("pending_count", len(convs)-i).
+				Msg("Chat list page wasn't fully handled in time, continuing")
+			return false
+		case <-ctx.Done():
+			return false
+		}
+	}
+	return true
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
@@ -301,7 +441,7 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 	return
 }
 
-func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string) {
+func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string, postHandle func()) bool {
 	meta, suspiciousUnmarkedSpam := gc.syncConversationMeta(v)
 
 	log := zerolog.Ctx(ctx).With().
@@ -316,20 +456,21 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 	if suspiciousUnmarkedSpam {
 		log.Debug().Any("conversation_data", convCopy).
 			Msg("Dropping conversation update due to suspected race condition with spam flag")
-		return
+		return false
 	}
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
 	switch v.Status {
 	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
 		err := gc.deduplicateDM(ctx, v)
 		if errors.Is(err, errDontSyncConversation) {
-			return
+			return false
 		} else if err != nil {
 			log.Error().Err(err).Msg("Failed to deduplicate DM")
-			return
+			return false
 		}
 	}
-	go gc.syncConversationBackground(log.WithContext(ctx), v, meta)
+	go gc.syncConversationBackground(log.WithContext(ctx), v, meta, postHandle)
+	return true
 }
 
 func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
@@ -373,14 +514,17 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 	}
 }
 
-func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta) {
+func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, postHandle func()) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,
 		AllowBackfill: time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
+		postHandle:    postHandle,
 	}
-	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
+	if res := gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt); !res.Queued && postHandle != nil {
+		postHandle()
+	}
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 		// Don't send read/backfill events if the chat is being deleted
@@ -590,6 +734,8 @@ type GMChatResync struct {
 
 	AllowBackfill bool
 	OnlyBackfill  bool
+
+	postHandle func()
 }
 
 var (
@@ -598,6 +744,7 @@ var (
 	_ bridgev2.RemoteChatResyncBackfillBundle = (*GMChatResync)(nil)
 	_ bridgev2.RemoteChatDelete               = (*GMChatResync)(nil)
 	_ bridgev2.RemoteEventThatMayCreatePortal = (*GMChatResync)(nil)
+	_ bridgev2.RemotePostHandler              = (*GMChatResync)(nil)
 )
 
 func (evt *GMChatResync) GetType() bridgev2.RemoteEventType {
@@ -619,13 +766,19 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 		return false
 	}
 	switch evt.Conv.GetStatus() {
-	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED:
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
 		// continue to other checks
 	default:
-		// Don't create portal for keep_archived/spam/blocked/deleted
+		// Don't create portal for spam/blocked/deleted
 		return false
 	}
 	return true
+}
+
+func (evt *GMChatResync) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
+	if evt.postHandle != nil {
+		evt.postHandle()
+	}
 }
 
 func (evt *GMChatResync) GetBundledBackfillData() any {
