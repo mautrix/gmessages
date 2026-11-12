@@ -132,8 +132,14 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 }
 
 func fillMissingConversationIDs(conv *gmproto.Conversation) {
-	if conv != nil && conv.ConversationID == "" {
+	if conv == nil {
+		return
+	}
+	if conv.ConversationID == "" {
 		conv.ConversationID = conv.GetSomeKindOfGroupID().GetConversationID()
+	}
+	if conv.LatestMessageID == "" {
+		conv.LatestMessageID = conv.GetLatestMessageAnotherID().GetMessageID()
 	}
 }
 
