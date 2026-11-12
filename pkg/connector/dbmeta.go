@@ -61,6 +61,8 @@ type PortalMetadata struct {
 
 	OutgoingID     string `json:"outgoing_id"`
 	LegacyStableID string `json:"stable_id,omitempty"`
+
+	MarkedUnreadTS int64 `json:"marked_unread_ts,omitempty"`
 }
 
 type GhostMetadata struct {

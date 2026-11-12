@@ -2322,27 +2322,27 @@ func (x *MessageStatus) GetThirdCode() int64 {
 }
 
 type Conversation struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	ConversationID       string                 `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
-	Name                 string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	LatestMessage        *LatestMessage         `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
-	LastMessageTimestamp int64                  `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
-	Unread               bool                   `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
-	IsGroupChat          bool                   `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
-	DefaultOutgoingID    string                 `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
-	Status               ConversationStatus     `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConversationStatus" json:"status,omitempty"`
-	ReadOnly             bool                   `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
-	AvatarHexColor       string                 `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
-	LatestMessageID      string                 `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
-	SendMode             ConversationSendMode   `protobuf:"varint,18,opt,name=sendMode,proto3,enum=conversations.ConversationSendMode" json:"sendMode,omitempty"`
-	Participants         []*Participant         `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
-	OtherParticipants    []string               `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
-	Type                 ConversationType       `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
-	SubType              bool                   `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
-	Pinned               bool                   `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
-	SimParticipantMaybe  *SIMParticipant        `protobuf:"bytes,27,opt,name=simParticipantMaybe,proto3" json:"simParticipantMaybe,omitempty"`
-	UnknownTimestamp     int64                  `protobuf:"varint,28,opt,name=unknownTimestamp,proto3" json:"unknownTimestamp,omitempty"` // set to lastMessageTimestamp + 1000 when marking as unread?
-	ThirdType            bool                   `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	ConversationID        string                 `protobuf:"bytes,1,opt,name=conversationID,proto3" json:"conversationID,omitempty"`
+	Name                  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	LatestMessage         *LatestMessage         `protobuf:"bytes,4,opt,name=latestMessage,proto3" json:"latestMessage,omitempty"`
+	LastMessageTimestamp  int64                  `protobuf:"varint,5,opt,name=lastMessageTimestamp,proto3" json:"lastMessageTimestamp,omitempty"`
+	Unread                bool                   `protobuf:"varint,6,opt,name=unread,proto3" json:"unread,omitempty"`
+	IsGroupChat           bool                   `protobuf:"varint,10,opt,name=isGroupChat,proto3" json:"isGroupChat,omitempty"` // not certain
+	DefaultOutgoingID     string                 `protobuf:"bytes,11,opt,name=defaultOutgoingID,proto3" json:"defaultOutgoingID,omitempty"`
+	Status                ConversationStatus     `protobuf:"varint,12,opt,name=status,proto3,enum=conversations.ConversationStatus" json:"status,omitempty"`
+	ReadOnly              bool                   `protobuf:"varint,13,opt,name=readOnly,proto3" json:"readOnly,omitempty"`
+	AvatarHexColor        string                 `protobuf:"bytes,15,opt,name=avatarHexColor,proto3" json:"avatarHexColor,omitempty"`
+	LatestMessageID       string                 `protobuf:"bytes,17,opt,name=latestMessageID,proto3" json:"latestMessageID,omitempty"`
+	SendMode              ConversationSendMode   `protobuf:"varint,18,opt,name=sendMode,proto3,enum=conversations.ConversationSendMode" json:"sendMode,omitempty"`
+	Participants          []*Participant         `protobuf:"bytes,20,rep,name=participants,proto3" json:"participants,omitempty"`
+	OtherParticipants     []string               `protobuf:"bytes,21,rep,name=otherParticipants,proto3" json:"otherParticipants,omitempty"` // participant ids excluding me
+	Type                  ConversationType       `protobuf:"varint,22,opt,name=type,proto3,enum=conversations.ConversationType" json:"type,omitempty"`
+	SubType               bool                   `protobuf:"varint,24,opt,name=subType,proto3" json:"subType,omitempty"`
+	Pinned                bool                   `protobuf:"varint,26,opt,name=pinned,proto3" json:"pinned,omitempty"`
+	SimParticipantMaybe   *SIMParticipant        `protobuf:"bytes,27,opt,name=simParticipantMaybe,proto3" json:"simParticipantMaybe,omitempty"`
+	MarkedUnreadTimestamp int64                  `protobuf:"varint,28,opt,name=markedUnreadTimestamp,proto3" json:"markedUnreadTimestamp,omitempty"`
+	ThirdType             bool                   `protobuf:"varint,29,opt,name=thirdType,proto3" json:"thirdType,omitempty"`
 	// index 30 has an unknown int or bool
 	SomeKindOfGroupID             *SomeKindOfGroupID             `protobuf:"bytes,31,opt,name=someKindOfGroupID,proto3" json:"someKindOfGroupID,omitempty"`
 	SimCard                       *SIMCard                       `protobuf:"bytes,32,opt,name=simCard,proto3" json:"simCard,omitempty"`
@@ -2510,9 +2510,9 @@ func (x *Conversation) GetSimParticipantMaybe() *SIMParticipant {
 	return nil
 }
 
-func (x *Conversation) GetUnknownTimestamp() int64 {
+func (x *Conversation) GetMarkedUnreadTimestamp() int64 {
 	if x != nil {
-		return x.UnknownTimestamp
+		return x.MarkedUnreadTimestamp
 	}
 	return 0
 }
@@ -3358,7 +3358,7 @@ const file_conversations_proto_rawDesc = "" +
 	"\n" +
 	"statusText\x18\x05 \x01(\tR\n" +
 	"statusText\x12\x1c\n" +
-	"\tthirdCode\x18\x06 \x01(\x03R\tthirdCode\"\xf1\t\n" +
+	"\tthirdCode\x18\x06 \x01(\x03R\tthirdCode\"\xfb\t\n" +
 	"\fConversation\x12&\n" +
 	"\x0econversationID\x18\x01 \x01(\tR\x0econversationID\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12B\n" +
@@ -3378,8 +3378,8 @@ const file_conversations_proto_rawDesc = "" +
 	"\x04type\x18\x16 \x01(\x0e2\x1f.conversations.ConversationTypeR\x04type\x12\x18\n" +
 	"\asubType\x18\x18 \x01(\bR\asubType\x12\x16\n" +
 	"\x06pinned\x18\x1a \x01(\bR\x06pinned\x12J\n" +
-	"\x13simParticipantMaybe\x18\x1b \x01(\v2\x18.settings.SIMParticipantR\x13simParticipantMaybe\x12*\n" +
-	"\x10unknownTimestamp\x18\x1c \x01(\x03R\x10unknownTimestamp\x12\x1c\n" +
+	"\x13simParticipantMaybe\x18\x1b \x01(\v2\x18.settings.SIMParticipantR\x13simParticipantMaybe\x124\n" +
+	"\x15markedUnreadTimestamp\x18\x1c \x01(\x03R\x15markedUnreadTimestamp\x12\x1c\n" +
 	"\tthirdType\x18\x1d \x01(\bR\tthirdType\x12N\n" +
 	"\x11someKindOfGroupID\x18\x1f \x01(\v2 .conversations.SomeKindOfGroupIDR\x11someKindOfGroupID\x12+\n" +
 	"\asimCard\x18  \x01(\v2\x11.settings.SIMCardR\asimCard\x12r\n" +
