@@ -41,6 +41,9 @@ type conversationMeta struct {
 	unread                bool
 	readUpTo              string
 	readUpToTS            time.Time
+
+	recentQueuedMessages    [8]string
+	recentQueuedMessageNext int
 }
 
 type GMClient struct {

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -373,6 +374,36 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 	}
 }
 
+// trackQueuedMessage records a message the phone pushed that is on its way to the portal through
+// messageQueue, so a delayed backfill-only resync doesn't fetch it again from the phone.
+func (gc *GMClient) trackQueuedMessage(convID, msgID string) {
+	if convID == "" || msgID == "" {
+		return
+	}
+	gc.conversationMetaLock.Lock()
+	defer gc.conversationMetaLock.Unlock()
+	meta, ok := gc.conversationMeta[convID]
+	if !ok {
+		meta = &conversationMeta{}
+		gc.conversationMeta[convID] = meta
+	}
+	if slices.Contains(meta.recentQueuedMessages[:], msgID) {
+		return
+	}
+	meta.recentQueuedMessages[meta.recentQueuedMessageNext] = msgID
+	meta.recentQueuedMessageNext = (meta.recentQueuedMessageNext + 1) % len(meta.recentQueuedMessages)
+}
+
+func (gc *GMClient) wasMessageQueued(convID, msgID string) bool {
+	if convID == "" || msgID == "" {
+		return false
+	}
+	gc.conversationMetaLock.Lock()
+	defer gc.conversationMetaLock.Unlock()
+	meta, ok := gc.conversationMeta[convID]
+	return ok && slices.Contains(meta.recentQueuedMessages[:], msgID)
+}
+
 func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
@@ -664,6 +695,14 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 		(time.UnixMicro(evt.Conv.LastMessageTimestamp).After(latestMessage.Timestamp) &&
 			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID))
 	if !needsBackfill {
+		return false, nil
+	} else if evt.OnlyBackfill && evt.g.wasMessageQueued(evt.Conv.ConversationID, evt.Conv.LatestMessageID) {
+		// The phone already pushed the latest message, it's just stuck behind other events in the
+		// message queue. Fetching it would block the portal until the phone answers, and its own
+		// event will bridge it anyway.
+		zerolog.Ctx(ctx).Debug().
+			Str("conv_latest_message_id", evt.Conv.LatestMessageID).
+			Msg("Not backfilling chat as the latest message was already received and is queued")
 		return false, nil
 	}
 	logEvt := zerolog.Ctx(ctx).Debug().

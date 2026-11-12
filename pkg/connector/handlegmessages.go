@@ -192,6 +192,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		} else {
 			// There's an extra layer of queueing because QueueRemoteEvent calls some methods on MessageEvent,
 			// which may need to fetch conversations from the phone (to get the stable ID).
+			gc.trackQueuedMessage(evt.GetConversationID(), evt.GetMessageID())
 			select {
 			case gc.messageQueue <- evt:
 			default:
