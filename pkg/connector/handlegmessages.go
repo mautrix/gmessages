@@ -75,6 +75,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			})
 		}
 	case *events.ListenTemporaryError:
+		gc.pushStreamGen.Add(1)
 		gc.longPollingError = evt.Error
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateTransientDisconnect,
@@ -254,6 +255,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *events.AccountChange:
 		gc.handleAccountChange(ctx, evt)
 	case *events.NoDataReceived:
+		gc.pushStreamGen.Add(1)
 		gc.noDataReceivedRecently = true
 		go gc.recoverReceiveStall(ctx)
 	case *events.PairSuccessful:
