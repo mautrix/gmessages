@@ -117,6 +117,14 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 					Msg("Errored decrypted data event content")
 				return nil, fmt.Errorf("failed to decode decrypted field 2 data event: %w", err)
 			}
+			c.Logger.Debug().
+				Str("message_id", data.ResponseID).
+				Str("request_id", msg.Message.SessionID).
+				Stringer("message_action", msg.Message.Action).
+				Int("data_length", len(msg.DecryptedData)).
+				Int("unknown_length", len(ed2c.ProtoReflect().GetUnknown())).
+				Bool("has_account_change", ed2c.AccountChange != nil).
+				Msg("Got data event with encrypted data in field 11")
 			// Hacky hack to have User.handleAccountChange do the right-ish thing on startup
 			if strings.ContainsRune(ed2c.GetAccountChange().GetAccount(), '@') {
 				c.triggerEvent(&events.AccountChange{
