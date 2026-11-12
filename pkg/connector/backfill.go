@@ -171,7 +171,7 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		fetchResp.AggressiveDeduplication = params.AnchorMessage != nil
 		gc.conversationMetaLock.Lock()
 		meta := gc.conversationMeta[convID]
-		if meta != nil {
+		if meta != nil && meta.readUpTo != "" {
 			lastWrappedMsg := fetchResp.Messages[len(fetchResp.Messages)-1]
 			fetchResp.MarkRead = !meta.unread || !meta.readUpToTS.Before(lastWrappedMsg.Timestamp) || meta.readUpTo == lastRawMsg.MessageID
 		}
