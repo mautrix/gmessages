@@ -28,6 +28,7 @@ import (
 	"go.mau.fi/util/exsync"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/simplevent"
 	"maunium.net/go/mautrix/bridgev2/status"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
@@ -123,7 +124,15 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 	if err != nil {
 		return err
 	}
+	emptyIDPortal := gcli.MakePortalID("")
 	for _, conv := range convs {
+		if conv.PortalID == emptyIDPortal {
+			err = gc.DB.DirectConversation.Delete(ctx, conv)
+			if err != nil {
+				return err
+			}
+			continue
+		}
 		gcli.dmsByPhone[conv.PhoneNumber] = conv
 		gcli.dmsByConv[conv.PortalID] = conv
 	}
@@ -163,6 +172,7 @@ func (gc *GMClient) Connect(ctx context.Context) {
 		})
 		return
 	}
+	gc.deleteEmptyIDPortal(ctx)
 	err := gc.Client.FetchConfig(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to fetch config")
@@ -193,6 +203,34 @@ func (gc *GMClient) Connect(ctx context.Context) {
 			},
 		})
 	}
+}
+
+func (gc *GMClient) deleteEmptyIDPortal(ctx context.Context) {
+	portalKey := gc.MakePortalKey("")
+	portal, err := gc.Main.br.GetExistingPortalByKey(ctx, portalKey)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to check for portal with empty conversation ID")
+		return
+	} else if portal == nil {
+		return
+	}
+	zerolog.Ctx(ctx).Info().
+		Stringer("portal_mxid", portal.MXID).
+		Msg("Deleting portal with empty conversation ID")
+	if portal.MXID == "" {
+		err = portal.Delete(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to delete roomless portal with empty conversation ID")
+		}
+		return
+	}
+	gc.Main.br.QueueRemoteEvent(gc.UserLogin, &simplevent.ChatDelete{
+		EventMeta: simplevent.EventMeta{
+			Type:      bridgev2.RemoteEventChatDelete,
+			PortalKey: portalKey,
+		},
+		OnlyForMe: true,
+	})
 }
 
 func (gc *GMClient) Disconnect() {
