@@ -68,6 +68,7 @@ type GMClient struct {
 	pushThrottled          atomic.Bool
 	phoneHasNoSIM          atomic.Bool
 	stallRecoveryRunning   atomic.Bool
+	pingPermissionDenials  atomic.Int32
 	lastConversationList   atomic.Int64
 	avatarFetchTimedOutAt  atomic.Int64
 

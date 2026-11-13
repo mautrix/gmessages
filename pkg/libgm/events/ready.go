@@ -105,8 +105,9 @@ type PhoneNotResponding struct{}
 type PhoneRespondingAgain struct{}
 
 type PingFailed struct {
-	Error      error
-	ErrorCount int
+	Error             error
+	ErrorCount        int
+	ConsecutiveErrors int
 }
 
 type HackySetActiveMayFail struct{}

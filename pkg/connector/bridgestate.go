@@ -28,6 +28,7 @@ const (
 	GMFatalError                status.BridgeStateErrorCode = "gm-listen-fatal-error"
 	GMUnpaired                  status.BridgeStateErrorCode = "gm-unpaired"
 	GMUnpaired404               status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
+	GMUnpaired403               status.BridgeStateErrorCode = "gm-unpaired-permission-denied"
 	GMUnpairedOtherPhone        status.BridgeStateErrorCode = "gm-unpaired-other-phone"
 	GMLoggedOut401              status.BridgeStateErrorCode = "gm-logged-out-401-polling"
 	GMLoggedOutWorkspaceSession status.BridgeStateErrorCode = "gm-logged-out-workspace-session"
@@ -60,6 +61,7 @@ func init() {
 		GMNotLoggedInCanRepair:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpaired403:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpairedOtherPhone:        "Unpaired from Google Messages. Google Messages is also set up on another phone with this Google account, which can disconnect this one every day. Sign out of Google Messages on the other phone, then re-link the connection.",
 		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutWorkspaceSession: "Google signed this account out. If it's a Google Workspace account, Google signs it out of Google on the web every 14 days by default; on some Workspace plans the admin can change this in Google session control. Sign in again to reconnect.",
