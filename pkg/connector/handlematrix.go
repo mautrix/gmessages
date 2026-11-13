@@ -47,6 +47,7 @@ var (
 	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*GMClient)(nil)
 	_ bridgev2.UserBlockingNetworkAPI        = (*GMClient)(nil)
 	_ bridgev2.RoomNameHandlingNetworkAPI    = (*GMClient)(nil)
+	_ bridgev2.MembershipHandlingNetworkAPI  = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -548,4 +549,137 @@ func (gc *GMClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.Matr
 		return false, ErrNonSuccessResponse
 	}
 	return false, nil
+}
+
+var ErrMembershipNotRCSGroup = bridgev2.WrapErrorInStatus(errors.New("members can only be changed in RCS group chats")).
+	WithErrorAsMessage().
+	WithErrorReason(event.MessageStatusUnsupported).
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true).
+	WithSendNotice(true)
+
+var ErrParticipantNotFound = bridgev2.WrapErrorInStatus(errors.New("that person isn't in this group")).
+	WithErrorAsMessage().
+	WithErrorReason(event.MessageStatusUnsupported).
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true).
+	WithSendNotice(true)
+
+var ErrUnknownPhoneNumber = bridgev2.WrapErrorInStatus(errors.New("phone number of the invited user is unknown")).
+	WithErrorAsMessage().
+	WithErrorReason(event.MessageStatusUnsupported).
+	WithStatus(event.MessageStatusFail).
+	WithIsCertain(true).
+	WithSendNotice(true)
+
+func (gc *GMClient) HandleMatrixMembership(ctx context.Context, msg *bridgev2.MatrixMembershipChange) (*bridgev2.MatrixMembershipResult, error) {
+	if msg.Type != bridgev2.Invite && msg.Type != bridgev2.Kick && msg.Type != bridgev2.Leave {
+		return nil, nil
+	} else if msg.Type.IsSelf && msg.OrigSender != nil {
+		return nil, nil
+	} else if msg.Type != bridgev2.Leave && msg.Target == nil {
+		return nil, nil
+	}
+	if msg.Portal.RoomType == database.RoomTypeDM || msg.Portal.Metadata.(*PortalMetadata).Type != gmproto.ConversationType_RCS {
+		if msg.Type == bridgev2.Leave {
+			return nil, nil
+		}
+		return nil, ErrMembershipNotRCSGroup
+	} else if gc.Client == nil {
+		return nil, bridgev2.ErrNotLoggedIn
+	}
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
+	if err != nil {
+		return nil, err
+	}
+	switch msg.Type {
+	case bridgev2.Leave:
+		return nil, gc.leaveRCSGroup(ctx, msg.Portal, convID)
+	case bridgev2.Kick:
+		return nil, gc.removeRCSGroupParticipant(ctx, convID, msg.Target)
+	default:
+		return nil, gc.addRCSGroupParticipant(ctx, msg.Portal, convID, msg.Target)
+	}
+}
+
+func (gc *GMClient) leaveRCSGroup(ctx context.Context, portal *bridgev2.Portal, convID string) error {
+	resp, err := gc.Client.LeaveRCSGroup(ctx, &gmproto.LeaveRCSGroupRequest{
+		ConversationID: convID,
+		SIMPayload:     gc.GetSIM(portal).GetSIMData().GetSIMPayload(),
+	})
+	if err != nil {
+		return wrapSendError(err)
+	} else if !resp.GetSuccess() {
+		return ErrNonSuccessResponse
+	}
+	return nil
+}
+
+func (gc *GMClient) removeRCSGroupParticipant(ctx context.Context, convID string, target bridgev2.GhostOrUserLogin) error {
+	ghost, ok := target.(*bridgev2.Ghost)
+	if !ok {
+		return ErrParticipantNotFound
+	}
+	participantID, err := gc.ParseUserID(ghost.ID)
+	if err != nil {
+		return ErrParticipantNotFound
+	}
+	conv, err := gc.Client.GetConversation(ctx, convID)
+	if err != nil {
+		return wrapSendError(err)
+	}
+	var participant *gmproto.SmallInfo
+	for _, pcp := range conv.GetParticipants() {
+		if !pcp.GetIsMe() && pcp.GetID().GetParticipantID() == participantID {
+			participant = pcp.GetID()
+			break
+		}
+	}
+	if participant == nil {
+		return ErrParticipantNotFound
+	}
+	convRef := conv.GetSomeKindOfGroupID()
+	if convRef == nil {
+		convRef = &gmproto.SomeKindOfGroupID{ConversationID: convID}
+	}
+	resp, err := gc.Client.RemoveParticipantFromRCSGroup(ctx, &gmproto.RemoveParticipantFromRCSGroupRequest{
+		ConversationRef: convRef,
+		Participant:     participant,
+	})
+	if err != nil {
+		return wrapSendError(err)
+	} else if resp.GetResult() != gmproto.RemoveParticipantFromRCSGroupResponse_SUCCESS {
+		zerolog.Ctx(ctx).Debug().Stringer("result", resp.GetResult()).Msg("Phone didn't remove group participant")
+		return ErrNonSuccessResponse
+	}
+	return nil
+}
+
+func (gc *GMClient) addRCSGroupParticipant(ctx context.Context, portal *bridgev2.Portal, convID string, target bridgev2.GhostOrUserLogin) error {
+	ghost, ok := target.(*bridgev2.Ghost)
+	if !ok {
+		return ErrUnknownPhoneNumber
+	}
+	phone, err := gc.getGhostPhone(ctx, ghost.ID, ghost)
+	if errors.Is(err, ErrGhostPhoneUnknown) {
+		return ErrUnknownPhoneNumber
+	} else if err != nil {
+		return err
+	}
+	resp, err := gc.Client.AddParticipantToRCSGroup(ctx, &gmproto.AddParticipantToRCSGroupRequest{
+		ConversationID: convID,
+		Participant: &gmproto.ContactNumber{
+			MysteriousInt: 2,
+			Number:        phone,
+			Number2:       phone,
+		},
+		SIMPayload: gc.GetSIM(portal).GetSIMData().GetSIMPayload(),
+	})
+	if err != nil {
+		return wrapSendError(err)
+	} else if resp.GetStatus() != gmproto.AddParticipantToRCSGroupResponse_SUCCESS {
+		zerolog.Ctx(ctx).Debug().Stringer("status", resp.GetStatus()).Msg("Phone didn't add group participant")
+		return ErrNonSuccessResponse
+	}
+	return nil
 }

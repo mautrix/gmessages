@@ -47,6 +47,10 @@ var responseType = map[gmproto.ActionType]proto.Message{
 	gmproto.ActionType_GET_FULL_SIZE_IMAGE:        &gmproto.GetFullSizeImageResponse{},
 	gmproto.ActionType_PRE_FETCH_CONTACTS:         &gmproto.ListContactsResponse{},
 	gmproto.ActionType_FETCH_BLOCKED_CONTACTS:     &gmproto.ListContactsResponse{},
+
+	gmproto.ActionType_LEAVE_RCS_GROUP:                   &gmproto.LeaveRCSGroupResponse{},
+	gmproto.ActionType_ADD_PARTICIPANT_TO_RCS_GROUP:      &gmproto.AddParticipantToRCSGroupResponse{},
+	gmproto.ActionType_REMOVE_PARTICIPANT_FROM_RCS_GROUP: &gmproto.RemoveParticipantFromRCSGroupResponse{},
 }
 
 func GetResponseTypeMap() map[gmproto.ActionType]proto.Message {

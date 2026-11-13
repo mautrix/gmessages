@@ -105,6 +105,21 @@ func (c *Client) UpdateConversation(ctx context.Context, payload *gmproto.Update
 	return typedResponse[*gmproto.UpdateConversationResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
 }
 
+func (c *Client) LeaveRCSGroup(ctx context.Context, payload *gmproto.LeaveRCSGroupRequest) (*gmproto.LeaveRCSGroupResponse, error) {
+	actionType := gmproto.ActionType_LEAVE_RCS_GROUP
+	return typedResponse[*gmproto.LeaveRCSGroupResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+}
+
+func (c *Client) AddParticipantToRCSGroup(ctx context.Context, payload *gmproto.AddParticipantToRCSGroupRequest) (*gmproto.AddParticipantToRCSGroupResponse, error) {
+	actionType := gmproto.ActionType_ADD_PARTICIPANT_TO_RCS_GROUP
+	return typedResponse[*gmproto.AddParticipantToRCSGroupResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+}
+
+func (c *Client) RemoveParticipantFromRCSGroup(ctx context.Context, payload *gmproto.RemoveParticipantFromRCSGroupRequest) (*gmproto.RemoveParticipantFromRCSGroupResponse, error) {
+	actionType := gmproto.ActionType_REMOVE_PARTICIPANT_FROM_RCS_GROUP
+	return typedResponse[*gmproto.RemoveParticipantFromRCSGroupResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
+}
+
 func (c *Client) SendReaction(ctx context.Context, payload *gmproto.SendReactionRequest) (*gmproto.SendReactionResponse, error) {
 	actionType := gmproto.ActionType_SEND_REACTION
 	return typedResponse[*gmproto.SendReactionResponse](c.getSessionHandler().sendUserMessage(ctx, actionType, payload))
