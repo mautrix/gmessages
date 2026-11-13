@@ -1538,6 +1538,7 @@ func (gc *GMClient) convertGoogleMedia(
 		},
 	}
 	mediaClass, _, _ := strings.Cut(content.Info.MimeType, "/")
+	var senderMime string
 	if mediaClass == "" {
 		switch msg.GetFormat() {
 		case gmproto.MediaFormats_AUDIO_UNSPECIFIED:
@@ -1547,13 +1548,22 @@ func (gc *GMClient) convertGoogleMedia(
 		case gmproto.MediaFormats_IMAGE_UNSPECIFIED:
 			mediaClass = "image"
 		}
+		senderClass, _, ok := strings.Cut(msg.GetMimeType(), "/")
+		if ok && msg.MediaID != "" && msg.GetMimeType() != "application/octet-stream" && (mediaClass == "" || mediaClass == senderClass) {
+			senderMime = msg.GetMimeType()
+			mediaClass = senderClass
+		}
 	}
 	var needAudioConvert bool
 	switch mediaClass {
 	case "image":
 		content.MsgType = event.MsgImage
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 	case "video":
 		content.MsgType = event.MsgVideo
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 		// TODO convert weird formats to mp4
 	case "audio":
 		content.MsgType = event.MsgAudio
@@ -1609,6 +1619,9 @@ func (gc *GMClient) convertGoogleMedia(
 				return nil, fmt.Errorf("failed to read file header: %w", err)
 			}
 			content.Info.MimeType = http.DetectContentType(header[:m])
+			if senderMime != "" && content.Info.MimeType == "application/octet-stream" {
+				content.Info.MimeType = senderMime
+			}
 		}
 		if !strings.ContainsRune(content.Body, '.') {
 			content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
