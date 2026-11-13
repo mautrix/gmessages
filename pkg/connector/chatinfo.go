@@ -21,7 +21,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -133,6 +135,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	}
 	hasSelf := false
 	nonSelfNumbers := make(exmaps.Set[string])
+	thumbs := &participantThumbnails{}
 	for _, pcp := range conv.Participants {
 		if pcp.IsMe {
 			hasSelf = true
@@ -153,7 +156,7 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			nonSelfNumbers.Add(normalizeIdentifier(pcp.ID))
 			members.MemberMap[userID] = bridgev2.ChatMember{
 				EventSender: bridgev2.EventSender{Sender: gc.MakeUserID(pcp.ID.ParticipantID)},
-				UserInfo:    gc.wrapParticipantInfo(ctx, ghost, pcp),
+				UserInfo:    gc.wrapParticipantInfo(ctx, ghost, pcp, thumbs),
 				PowerLevel:  ptr.Ptr(50),
 			}
 		}
@@ -227,34 +230,69 @@ func (gc *GMClient) makeGroupAvatarFromURL(url string) *bridgev2.Avatar {
 	}
 }
 
-const MinAvatarUpdateInterval = 24 * time.Hour
+const MinAvatarUpdateInterval = 7 * 24 * time.Hour
 const avatarFetchTimeoutCooldown = 10 * time.Minute
 
-func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost) (bool, error) {
-	meta := ghost.Metadata.(*GhostMetadata)
-	if time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval || !gc.PhoneResponding {
-		return false, nil
-	} else if meta.ContactID == "" && !phoneNumberMightHaveAvatar(meta.Phone) {
-		return false, nil
+type participantThumbnails struct {
+	ids  []string
+	once sync.Once
+	data map[string][]byte
+	err  error
+}
+
+func (gc *GMClient) shouldUpdateGhostAvatar(meta *GhostMetadata, contactID, phone string) bool {
+	if !gc.PhoneResponding {
+		return false
+	} else if meta.ContactID == contactID && time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval {
+		return false
 	} else if time.Since(time.Unix(0, gc.avatarFetchTimedOutAt.Load())) < avatarFetchTimeoutCooldown {
-		return false, nil
+		return false
 	}
-	participantID, err := gc.ParseUserID(ghost.ID)
+	return contactID != "" || phoneNumberMightHaveAvatar(phone)
+}
+
+func (gc *GMClient) getParticipantThumbnails(ctx context.Context, thumbs *participantThumbnails) (map[string][]byte, error) {
+	thumbs.once.Do(func() {
+		resp, err := gc.Client.GetParticipantThumbnail(ctx, thumbs.ids...)
+		if errors.Is(err, libgm.ErrPhoneNotResponding) {
+			gc.avatarFetchTimedOutAt.Store(time.Now().UnixNano())
+		}
+		if err != nil {
+			thumbs.err = fmt.Errorf("failed to get participant thumbnails: %w", err)
+			return
+		}
+		zerolog.Ctx(ctx).Debug().
+			Int("requested_count", len(thumbs.ids)).
+			Int("returned_count", len(resp.GetThumbnail())).
+			Msg("Fetched participant thumbnails")
+		thumbs.data = make(map[string][]byte, len(resp.GetThumbnail()))
+		for _, thumb := range resp.GetThumbnail() {
+			thumbs.data[thumb.GetIdentifier()] = thumb.GetData().GetImageBuffer()
+		}
+	})
+	return thumbs.data, thumbs.err
+}
+
+func (gc *GMClient) updateGhostAvatar(ctx context.Context, ghost *bridgev2.Ghost, participantID string, thumbs *participantThumbnails) (bool, error) {
+	thumbnails, err := gc.getParticipantThumbnails(ctx, thumbs)
 	if err != nil {
 		return false, err
 	}
-	resp, err := gc.Client.GetParticipantThumbnail(ctx, participantID)
-	if errors.Is(err, libgm.ErrPhoneNotResponding) {
-		gc.avatarFetchTimedOutAt.Store(time.Now().UnixNano())
+	data, ok := thumbnails[participantID]
+	if !ok && len(thumbs.ids) > 1 {
+		zerolog.Ctx(ctx).Debug().
+			Str("participant_id", participantID).
+			Msg("Participant missing from batched thumbnail response, fetching it separately")
+		thumbnails, err = gc.getParticipantThumbnails(ctx, &participantThumbnails{ids: []string{participantID}})
+		if err != nil {
+			return false, err
+		}
+		data = thumbnails[participantID]
 	}
-	if err != nil {
-		return false, fmt.Errorf("failed to get participant thumbnail: %w", err)
-	}
-	meta.AvatarUpdateTS = jsontime.UnixMilliNow()
-	if len(resp.Thumbnail) == 0 || len(resp.Thumbnail[0].GetData().GetImageBuffer()) == 0 {
+	ghost.Metadata.(*GhostMetadata).AvatarUpdateTS = jsontime.UnixMilliNow()
+	if len(data) == 0 {
 		ghost.UpdateAvatar(ctx, &bridgev2.Avatar{Remove: true})
 	} else {
-		data := resp.Thumbnail[0].GetData().GetImageBuffer()
 		ghost.UpdateAvatar(ctx, &bridgev2.Avatar{
 			ID: networkid.AvatarID(fmt.Sprintf("hash:%x", sha256.Sum256(data))),
 			Get: func(ctx context.Context) ([]byte, error) {
@@ -271,10 +309,11 @@ func phoneNumberMightHaveAvatar(phone string) bool {
 	return strings.HasSuffix(phone, ".goog") || phone == GeminiPhoneNumber
 }
 
-func (gc *GMClient) wrapParticipantInfo(ctx context.Context, ghost *bridgev2.Ghost, contact *gmproto.Participant) *bridgev2.UserInfo {
+func (gc *GMClient) wrapParticipantInfo(ctx context.Context, ghost *bridgev2.Ghost, contact *gmproto.Participant, thumbs *participantThumbnails) *bridgev2.UserInfo {
 	return gc.makeUserInfo(
 		ctx,
 		ghost,
+		thumbs,
 		contact.GetID().GetNumber(),
 		contact.GetFormattedNumber(),
 		contact.GetContactID(),
@@ -283,10 +322,11 @@ func (gc *GMClient) wrapParticipantInfo(ctx context.Context, ghost *bridgev2.Gho
 	)
 }
 
-func (gc *GMClient) wrapContactInfo(ctx context.Context, ghost *bridgev2.Ghost, contact *gmproto.Contact) *bridgev2.UserInfo {
+func (gc *GMClient) wrapContactInfo(ctx context.Context, ghost *bridgev2.Ghost, contact *gmproto.Contact, thumbs *participantThumbnails) *bridgev2.UserInfo {
 	return gc.makeUserInfo(
 		ctx,
 		ghost,
+		thumbs,
 		contact.GetNumber().GetNumber(),
 		contact.GetNumber().GetFormattedNumber(),
 		contact.GetContactID(),
@@ -315,7 +355,7 @@ func (gc *GMClient) inheritNameByPhone(ctx context.Context, phone string) string
 	return ""
 }
 
-func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
+func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, thumbs *participantThumbnails, phone, formattedNumber, contactID, fullName, firstName string) *bridgev2.UserInfo {
 	var identifiers []string
 	if phone != "" {
 		identifiers = append(identifiers, fmt.Sprintf("tel:%s", phone))
@@ -343,12 +383,18 @@ func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, pho
 	if !hasName && meta.HasName {
 		name = nil
 	}
+	participantID, err := gc.ParseUserID(ghost.ID)
+	avatarDue := err == nil && gc.shouldUpdateGhostAvatar(meta, contactID, phone)
+	if avatarDue && !slices.Contains(thumbs.ids, participantID) {
+		thumbs.ids = append(thumbs.ids, participantID)
+	}
 	return &bridgev2.UserInfo{
 		Identifiers: identifiers,
 		Name:        name,
 		IsBot:       ptr.Ptr(false),
 		ExtraUpdates: func(ctx context.Context, ghost *bridgev2.Ghost) (changed bool) {
 			meta := ghost.Metadata.(*GhostMetadata)
+			avatarDue := avatarDue && gc.shouldUpdateGhostAvatar(meta, contactID, phone)
 			if meta.ContactID != contactID {
 				changed = true
 				meta.ContactID = contactID
@@ -364,11 +410,13 @@ func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, pho
 				changed = true
 				meta.Phone = phone
 			}
-			avatarChanged, err := gc.updateGhostAvatar(ctx, ghost)
-			if err != nil {
-				zerolog.Ctx(ctx).Err(err).Msg("Failed to update ghost avatar")
+			if avatarDue {
+				avatarChanged, err := gc.updateGhostAvatar(ctx, ghost, participantID, thumbs)
+				if err != nil {
+					zerolog.Ctx(ctx).Err(err).Msg("Failed to update ghost avatar")
+				}
+				changed = changed || avatarChanged
 			}
-			changed = changed || avatarChanged
 			return
 		},
 	}
