@@ -217,6 +217,13 @@ func (gc *GMClient) deleteEmptyIDPortal(ctx context.Context) {
 	zerolog.Ctx(ctx).Info().
 		Stringer("portal_mxid", portal.MXID).
 		Msg("Deleting portal with empty conversation ID")
+	if portal.MXID == "" {
+		err = portal.Delete(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msg("Failed to delete roomless portal with empty conversation ID")
+		}
+		return
+	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, &simplevent.ChatDelete{
 		EventMeta: simplevent.EventMeta{
 			Type:      bridgev2.RemoteEventChatDelete,
