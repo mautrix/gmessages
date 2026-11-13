@@ -153,6 +153,7 @@ type Client struct {
 	longPollingConn atomic.Pointer[io.ReadCloser]
 	listenID        int
 	skipCount       int
+	hmacFailures    atomic.Int32
 	disconnecting   bool
 
 	pingInterval             time.Duration
