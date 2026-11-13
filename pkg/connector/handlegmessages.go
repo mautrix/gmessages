@@ -1285,6 +1285,11 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 	} else if needsMSSFailureEvent {
 		existingMeta.MSSFailSent = true
 		msgStatus := wrapStatusInError(newStatus).(bridgev2.MessageStatus)
+		if newStatus == gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC {
+			if failMessage := m.g.getGenericFailMessage(m.Message); failMessage != "" {
+				msgStatus = msgStatus.WithMessage(failMessage)
+			}
+		}
 		portal.Bridge.Matrix.SendMessageStatus(ctx, &msgStatus, &bridgev2.MessageStatusEventInfo{
 			RoomID:        portal.MXID,
 			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
