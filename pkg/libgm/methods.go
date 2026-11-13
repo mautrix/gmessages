@@ -38,11 +38,12 @@ func (c *Client) DeleteConversation(ctx context.Context, conversationID, phone s
 	return err
 }
 
-func (c *Client) ListContacts(ctx context.Context) (*gmproto.ListContactsResponse, error) {
+func (c *Client) ListContacts(ctx context.Context, pageToken string) (*gmproto.ListContactsResponse, error) {
 	payload := &gmproto.ListContactsRequest{
-		I1: 1,
-		I2: 350,
-		I3: 50,
+		PageToken: pageToken,
+		I1:        1,
+		I2:        350,
+		I3:        50,
 	}
 	actionType := gmproto.ActionType_LIST_CONTACTS
 	return typedResponse[*gmproto.ListContactsResponse](c.getSessionHandler().sendMessage(ctx, actionType, payload))
