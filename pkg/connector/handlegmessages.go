@@ -864,7 +864,7 @@ func (gc *GMClient) getChatInfoWithFetch(ctx context.Context, conversationID str
 	if ok {
 		return chatInfo
 	}
-	if ctx.Value(contextKeyNoFetch) != nil {
+	if ctx.Value(contextKeyNoFetch) != nil || !gc.PhoneResponding {
 		return nil
 	}
 	cli := gc.Client
