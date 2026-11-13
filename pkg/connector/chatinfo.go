@@ -19,6 +19,7 @@ package connector
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -34,6 +35,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2/networkid"
 	"maunium.net/go/mautrix/event"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -229,6 +231,7 @@ func (gc *GMClient) makeGroupAvatarFromURL(url string) *bridgev2.Avatar {
 }
 
 const MinAvatarUpdateInterval = 7 * 24 * time.Hour
+const avatarFetchTimeoutCooldown = 10 * time.Minute
 
 type participantThumbnails struct {
 	ids  []string
@@ -242,6 +245,8 @@ func (gc *GMClient) shouldUpdateGhostAvatar(meta *GhostMetadata, contactID, phon
 		return false
 	} else if meta.ContactID == contactID && time.Since(meta.AvatarUpdateTS.Time) < MinAvatarUpdateInterval {
 		return false
+	} else if time.Since(time.Unix(0, gc.avatarFetchTimedOutAt.Load())) < avatarFetchTimeoutCooldown {
+		return false
 	}
 	return contactID != "" || phoneNumberMightHaveAvatar(phone)
 }
@@ -249,6 +254,9 @@ func (gc *GMClient) shouldUpdateGhostAvatar(meta *GhostMetadata, contactID, phon
 func (gc *GMClient) getParticipantThumbnails(ctx context.Context, thumbs *participantThumbnails) (map[string][]byte, error) {
 	thumbs.once.Do(func() {
 		resp, err := gc.Client.GetParticipantThumbnail(ctx, thumbs.ids...)
+		if errors.Is(err, libgm.ErrPhoneNotResponding) {
+			gc.avatarFetchTimedOutAt.Store(time.Now().UnixNano())
+		}
 		if err != nil {
 			thumbs.err = fmt.Errorf("failed to get participant thumbnails: %w", err)
 			return
