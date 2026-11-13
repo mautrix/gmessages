@@ -71,6 +71,9 @@ type GMClient struct {
 	lastConversationList   atomic.Int64
 	avatarFetchTimedOutAt  atomic.Int64
 
+	pairedPhoneCheck     *time.Timer
+	pairedPhoneCheckLock sync.Mutex
+
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
 	conversationMeta     map[string]*conversationMeta
@@ -205,6 +208,7 @@ func (gc *GMClient) Disconnect() {
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
 	}
+	gc.cancelPairedPhoneCheck()
 }
 
 func (gc *GMClient) ResetClient() {
