@@ -41,6 +41,10 @@ type conversationMeta struct {
 	unread                bool
 	readUpTo              string
 	readUpToTS            time.Time
+
+	queuedMessages    []string
+	queuedMessageNext int
+	queuedMessageGen  uint64
 }
 
 type GMClient struct {
@@ -69,6 +73,7 @@ type GMClient struct {
 	phoneHasNoSIM          atomic.Bool
 	stallRecoveryRunning   atomic.Bool
 	lastConversationList   atomic.Int64
+	pushStreamGen          atomic.Uint64
 	avatarFetchTimedOutAt  atomic.Int64
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
@@ -133,6 +138,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 }
 
 func (gc *GMClient) Connect(ctx context.Context) {
+	gc.pushStreamGen.Add(1)
 	go gc.handleMessageQueue(ctx)
 	if gc.Client == nil {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
