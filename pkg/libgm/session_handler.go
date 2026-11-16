@@ -223,6 +223,7 @@ func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendM
 			return nil, ctx.Err()
 		case <-shortCircuit:
 			// Notify the pinger in order to trigger an event that the phone isn't responding
+			s.client.phone.markUserWaiting()
 			select {
 			case s.client.pingShortCircuit <- true:
 			default:

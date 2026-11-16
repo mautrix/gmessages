@@ -370,9 +370,6 @@ func (dp *dittoPinger) Loop() {
 	for {
 		select {
 		case userWaiting := <-dp.client.pingShortCircuit:
-			if userWaiting {
-				dp.client.phone.markUserWaiting()
-			}
 			if dp.recovering.Load() {
 				// Recovery pings are already in flight, but the user is actively waiting
 				// for a request, so don't make them wait out the backoff for a notice.
