@@ -48,6 +48,7 @@ type phoneLiveness struct {
 	timeouts              int
 	sendFails             int
 	notRespondingSent     bool
+	userWaiting           bool
 	recoveryInterval      time.Duration
 	lastRecoveryReconnect time.Time
 
@@ -63,6 +64,7 @@ func (pl *phoneLiveness) onLiveness() (notRespondingSent, wasFailing, needsCatch
 	needsCatchUp = notRespondingSent || pl.timeouts >= setActiveSessionAfterTimeouts
 	pl.firstPingDone = true
 	pl.notRespondingSent = false
+	pl.userWaiting = false
 	pl.timeouts = 0
 	pl.sendFails = 0
 	pl.recoveryInterval = 0
@@ -74,7 +76,7 @@ func (pl *phoneLiveness) onTimeout(alertTimeoutCount int, canAlert bool) (timeou
 	defer pl.lock.Unlock()
 	pl.timeouts++
 	timeouts = pl.timeouts
-	alert := canAlert && (!pl.firstPingDone || timeouts >= alertTimeoutCount)
+	alert := (canAlert || pl.userWaiting) && (!pl.firstPingDone || timeouts >= alertTimeoutCount)
 	sendNotResponding = alert && !pl.notRespondingSent
 	if sendNotResponding {
 		pl.notRespondingSent = true
@@ -85,11 +87,17 @@ func (pl *phoneLiveness) onTimeout(alertTimeoutCount int, canAlert bool) (timeou
 func (pl *phoneLiveness) shouldMarkNotResponding(alertTimeoutCount int) bool {
 	pl.lock.Lock()
 	defer pl.lock.Unlock()
-	if pl.notRespondingSent || pl.timeouts < alertTimeoutCount {
+	if pl.notRespondingSent || (pl.firstPingDone && pl.timeouts < alertTimeoutCount) {
 		return false
 	}
 	pl.notRespondingSent = true
 	return true
+}
+
+func (pl *phoneLiveness) markUserWaiting() {
+	pl.lock.Lock()
+	pl.userWaiting = true
+	pl.lock.Unlock()
 }
 
 func (pl *phoneLiveness) timeoutCount() int {
@@ -362,6 +370,9 @@ func (dp *dittoPinger) Loop() {
 	for {
 		select {
 		case userWaiting := <-dp.client.pingShortCircuit:
+			if userWaiting {
+				dp.client.phone.markUserWaiting()
+			}
 			if dp.recovering.Load() {
 				// Recovery pings are already in flight, but the user is actively waiting
 				// for a request, so don't make them wait out the backoff for a notice.
