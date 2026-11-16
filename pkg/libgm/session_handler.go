@@ -224,7 +224,7 @@ func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendM
 		case <-shortCircuit:
 			// Notify the pinger in order to trigger an event that the phone isn't responding
 			select {
-			case s.client.pingShortCircuit <- struct{}{}:
+			case s.client.pingShortCircuit <- true:
 			default:
 			}
 			// A nil channel blocks forever, so this only ever fires once per request.

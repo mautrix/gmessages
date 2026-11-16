@@ -157,7 +157,7 @@ type Client struct {
 
 	pingInterval             time.Duration
 	alertTimeoutCount        int
-	pingShortCircuit         chan struct{}
+	pingShortCircuit         chan bool
 	phone                    phoneLiveness
 	dataReceiveCheckInterval time.Duration
 	nextDataReceiveCheck     time.Time
@@ -202,7 +202,7 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSett
 		http:   httpSettings.Compile(),
 		lphttp: httpSettings.WithGlobalTimeout(30 * time.Minute).Compile(),
 
-		pingShortCircuit:         make(chan struct{}),
+		pingShortCircuit:         make(chan bool),
 		pingInterval:             1 * time.Minute,
 		alertTimeoutCount:        4,
 		dataReceiveCheckInterval: DefaultBugleDefaultCheckInterval,
@@ -347,7 +347,7 @@ func (c *Client) postConnect() {
 		case <-time.After(5 * time.Second):
 			c.Logger.Warn().Msg("Checking bugle default on connect is taking long")
 			select {
-			case c.pingShortCircuit <- struct{}{}:
+			case c.pingShortCircuit <- false:
 			default:
 			}
 		case <-doneChan:
