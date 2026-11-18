@@ -757,7 +757,7 @@ func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageEvent) ShouldCreatePortal() bool {
-	if conv, ok := m.g.chatInfoCache.Get(m.ConversationID); ok && m.g.hidesConversation(conv.GetStatus()) {
+	if conv, ok := m.g.chatInfoCache.Get(m.ConversationID); ok && conv.GetStatus() == gmproto.ConversationStatus_SPAM_FOLDER {
 		return false
 	}
 	switch m.GetMessageStatus().GetStatus() {

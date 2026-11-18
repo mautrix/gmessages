@@ -61,7 +61,6 @@ type PortalMetadata struct {
 
 	OutgoingID     string `json:"outgoing_id"`
 	LegacyStableID string `json:"stable_id,omitempty"`
-	Spam           bool   `json:"spam,omitempty"`
 }
 
 type GhostMetadata struct {

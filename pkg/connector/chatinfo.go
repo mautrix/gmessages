@@ -21,7 +21,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -68,7 +67,7 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 		return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
 	case gmproto.ConversationStatus_SPAM_FOLDER:
-		if portal.MXID == "" && gc.hidesConversation(conv.GetStatus()) {
+		if portal.MXID == "" {
 			return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
 		}
 	}
@@ -179,15 +178,15 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			log.Warn().Msg("Failed to save user login")
 		}
 	}
-	isSpam := conv.Status == gmproto.ConversationStatus_SPAM_FOLDER
 	var tag event.RoomTag
+	var mutedUntil *time.Time
 	if conv.Pinned {
 		tag = event.RoomTagFavourite
-	} else if conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED || isSpam {
+	} else if conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED {
 		tag = event.RoomTagLowPriority
 	}
-	var mutedUntil *time.Time
-	if isSpam {
+	if conv.Status == gmproto.ConversationStatus_SPAM_FOLDER {
+		tag = event.RoomTagLowPriority
 		mutedUntil = &event.MutedForever
 	}
 	var avatar *bridgev2.Avatar
@@ -222,13 +221,6 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 			if meta.LegacyStableID != "" {
 				meta.LegacyStableID = ""
 				changed = true
-			}
-			if meta.Spam != isSpam {
-				meta.Spam = isSpam
-				changed = true
-				if portal.MXID != "" {
-					gc.applySpamState(ctx, portal, isSpam, tag)
-				}
 			}
 			return
 		},
@@ -389,25 +381,5 @@ func (gc *GMClient) makeUserInfo(ctx context.Context, ghost *bridgev2.Ghost, pho
 			changed = changed || avatarChanged
 			return
 		},
-	}
-}
-
-func (gc *GMClient) applySpamState(ctx context.Context, portal *bridgev2.Portal, isSpam bool, tag event.RoomTag) {
-	dp := gc.UserLogin.User.DoublePuppet(ctx)
-	if dp == nil {
-		return
-	}
-	log := zerolog.Ctx(ctx)
-	mutedUntil := bridgev2.Unmuted
-	if isSpam {
-		mutedUntil = event.MutedForever
-	}
-	if err := dp.MuteRoom(ctx, portal.MXID, mutedUntil); err != nil {
-		log.Err(err).Bool("spam", isSpam).Msg("Failed to update room mute for spam folder change")
-	}
-	if (isSpam || tag != event.RoomTagLowPriority) && slices.Contains(gc.Main.br.Config.OnlyBridgeTags, event.RoomTagLowPriority) {
-		if err := dp.TagRoom(ctx, portal.MXID, event.RoomTagLowPriority, isSpam); err != nil {
-			log.Err(err).Bool("spam", isSpam).Msg("Failed to update low priority tag for spam folder change")
-		}
 	}
 }
