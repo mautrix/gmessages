@@ -379,7 +379,7 @@ func (gc *GMClient) lookupContactByNumber(ctx context.Context, phone string) *gm
 	if ok {
 		return contact
 	}
-	if time.Since(fetchedAt) >= contactCacheTTL {
+	if fetchedAt.IsZero() {
 		gc.refreshContactsInBackground(ctx)
 	}
 	return nil

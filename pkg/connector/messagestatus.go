@@ -63,6 +63,26 @@ func getFailMessage(status gmproto.MessageStatusType) string {
 	}
 }
 
+const MMSProbablyTooLargeSize = 1024 * 1024
+
+func (gc *GMClient) getGenericFailMessage(msg *gmproto.Message) string {
+	if msg.GetType() < 1 || msg.GetType() > 3 {
+		return ""
+	}
+	if msg.GetType() == 2 {
+		for _, part := range msg.GetMessageInfo() {
+			media := part.GetMediaContent()
+			if media.GetFormat() > gmproto.MediaFormats_IMAGE_UNSPECIFIED && media.GetSize() > MMSProbablyTooLargeSize {
+				return MMSTooLargeMessage
+			}
+		}
+	}
+	if isDefault := gc.Meta.Settings.IsDefaultSMSApp; isDefault != nil && !*isDefault {
+		return NotDefaultSMSAppMessage
+	}
+	return ""
+}
+
 func wrapStatusInError(status gmproto.MessageStatusType) error {
 	errorMessage := getFailMessage(status)
 	if errorMessage == "" {

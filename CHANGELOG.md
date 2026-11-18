@@ -1,3 +1,20 @@
+# v26.11
+
+* Added support for bridging location messages to Matrix.
+* Added read receipt sync when resyncing chat list.
+* Added more descriptive error when a send fails and the phone has no SIM card.
+* Added support for renaming RCS groups from Matrix.
+* Changed relogin to fail if the previously paired phone ID no longer exists.
+  * When this happens, make a new login and log out the old one manually instead
+    of using the relogin command.
+* Reduced long polling stream read buffer to save some memory.
+* Changed message handling to prevent replacing already bridged media with an
+  unavailable media placeholder.
+* Fixed Google account pairing failing when the ephemeral public key is shorter
+  than expected.
+* Fixed reading chat/user IDs from messages when the phone sends them in a new
+  format.
+
 # v26.10
 
 * Added support for re-pairing with existing cookies by just tapping the emoji
