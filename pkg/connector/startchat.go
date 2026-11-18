@@ -272,7 +272,6 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 const (
 	contactCacheTTL     = 5 * time.Minute
 	contactFetchTimeout = 2 * time.Minute
-	maxContactListPages = 100
 )
 
 type contactFetch struct {
@@ -310,7 +309,10 @@ func (gc *GMClient) runContactFetch(ctx context.Context, fetch *contactFetch) {
 	gc.contactsFetchLock.Lock()
 	defer gc.contactsFetchLock.Unlock()
 	gc.contactsFetch = nil
-	if err != nil {
+	if err != nil && !gc.contactsFetchedAt.IsZero() {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to fetch contact list, using cached list")
+		fetch.contacts = gc.cachedContacts
+	} else if err != nil {
 		fetch.err = err
 	} else {
 		byNumber := make(map[string]*gmproto.Contact, len(contacts))
@@ -334,38 +336,27 @@ func (gc *GMClient) fetchContactPages(ctx context.Context) ([]*gmproto.Contact, 
 	if cli == nil {
 		return nil, libgm.ErrClientIsNil
 	}
-	log := zerolog.Ctx(ctx)
 	start := time.Now()
 	var contacts []*gmproto.Contact
 	var pageToken string
 	seenTokens := make(map[string]struct{})
-	pages := 0
 	for {
 		resp, err := cli.ListContacts(ctx, pageToken)
 		if err != nil {
 			return nil, err
 		}
-		pages++
 		contacts = append(contacts, resp.GetContacts()...)
-		nextPageToken := resp.GetNextPageToken()
-		if nextPageToken == "" {
+		pageToken = resp.GetNextPageToken()
+		if pageToken == "" {
 			break
+		} else if _, seen := seenTokens[pageToken]; seen {
+			return nil, fmt.Errorf("contact list page token repeated after %d pages", len(seenTokens)+1)
 		}
-		_, repeated := seenTokens[nextPageToken]
-		if repeated || pages >= maxContactListPages {
-			log.Warn().
-				Int("contact_count", len(contacts)).
-				Int("pages", pages).
-				Bool("repeated_token", repeated).
-				Msg("Stopped fetching contact list before the last page")
-			break
-		}
-		seenTokens[nextPageToken] = struct{}{}
-		pageToken = nextPageToken
+		seenTokens[pageToken] = struct{}{}
 	}
-	log.Debug().
+	zerolog.Ctx(ctx).Debug().
 		Int("contact_count", len(contacts)).
-		Int("pages", pages).
+		Int("pages", len(seenTokens)+1).
 		Dur("duration", time.Since(start)).
 		Msg("Fetched contact list")
 	return contacts, nil
@@ -425,14 +416,7 @@ func (gc *GMClient) getGhostPhone(ctx context.Context, userID networkid.UserID, 
 func (gc *GMClient) GetContactList(ctx context.Context) ([]*bridgev2.ResolveIdentifierResponse, error) {
 	contacts, err := gc.getOrFetchContacts(ctx)
 	if err != nil {
-		gc.contactsLock.RLock()
-		contacts = gc.cachedContacts
-		hasCache := !gc.contactsFetchedAt.IsZero()
-		gc.contactsLock.RUnlock()
-		if !hasCache {
-			return nil, wrapRespError(err)
-		}
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to fetch contact list, returning cached list")
+		return nil, wrapRespError(err)
 	}
 	resp := make([]*bridgev2.ResolveIdentifierResponse, len(contacts))
 	for i, contact := range contacts {
