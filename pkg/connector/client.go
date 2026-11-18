@@ -69,6 +69,7 @@ type GMClient struct {
 	phoneHasNoSIM          atomic.Bool
 	stallRecoveryRunning   atomic.Bool
 	lastConversationList   atomic.Int64
+	avatarFetchTimedOutAt  atomic.Int64
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
