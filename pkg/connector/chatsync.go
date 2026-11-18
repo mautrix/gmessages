@@ -90,7 +90,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	}
 	for _, conv := range resp.GetConversations() {
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
-		gc.syncConversation(ctx, conv, "sync", lastDataReceived)
+		gc.syncConversation(ctx, conv, "sync")
 	}
 	return
 }
@@ -100,9 +100,6 @@ func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived 
 		return
 	}
 	gc.runInMessageOrder(func() {
-		if gc.syncingConversations.Load() {
-			return
-		}
 		zerolog.Ctx(ctx).Debug().
 			Time("last_data_received", lastDataReceived).
 			Msg("Data resumed after quiet period, checking for missed events")
@@ -255,12 +252,7 @@ func (gc *GMClient) recoverReceiveStall(ctx context.Context) {
 		if anchor.IsZero() {
 			return
 		}
-		foundGapCh := make(chan bool, 1)
-		gc.runInMessageOrder(func() {
-			foundGap, _ := gc.SyncConversations(ctx, anchor, true)
-			foundGapCh <- foundGap
-		})
-		if !<-foundGapCh {
+		if foundGap, _ := gc.SyncConversations(ctx, anchor, true); !foundGap {
 			log.Debug().Int("attempt", attempt).Msg("No receive stall detected")
 			return
 		}
@@ -311,7 +303,7 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 	return
 }
 
-func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string, missedSince time.Time) {
+func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string) {
 	meta, suspiciousUnmarkedSpam := gc.syncConversationMeta(v)
 
 	log := zerolog.Ctx(ctx).With().
@@ -339,7 +331,7 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			return
 		}
 	}
-	if !missedSince.IsZero() && time.UnixMicro(v.LastMessageTimestamp).After(missedSince) {
+	if source == "sync" {
 		gc.syncConversationBackground(log.WithContext(ctx), v, meta, true)
 	} else {
 		go gc.syncConversationBackground(log.WithContext(ctx), v, meta, false)
@@ -387,12 +379,12 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 	}
 }
 
-func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, hasMissedMessages bool) {
+func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, fromChatList bool) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,
-		AllowBackfill: hasMissedMessages || time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
+		AllowBackfill: fromChatList || time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
 	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
 	switch v.Status {
