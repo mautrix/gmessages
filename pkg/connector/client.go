@@ -69,6 +69,7 @@ type GMClient struct {
 	phoneHasNoSIM          atomic.Bool
 	stallRecoveryRunning   atomic.Bool
 	lastConversationList   atomic.Int64
+	avatarFetchTimedOutAt  atomic.Int64
 
 	pairedPhoneCheck     *time.Timer
 	pairedPhoneCheckLock sync.Mutex

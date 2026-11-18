@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -300,7 +301,7 @@ func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountCh
 			gc.ready = true
 		}
 	}
-	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	gc.sendConnectedIfChanged()
 }
 
 func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEvent) {
@@ -393,7 +394,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
 		}*/
 	}
-	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	gc.sendConnectedIfChanged()
 }
 
 func (gc *GMClient) aggressiveSetActive() {
@@ -439,7 +440,9 @@ func mergeSettings(old UserSettings, settings *gmproto.Settings) UserSettings {
 }
 
 func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settings) {
-	gc.phoneHasNoSIM.Store(settings.SIMCards == nil)
+	gc.phoneHasNoSIM.Store(!slices.ContainsFunc(settings.SIMCards, func(sim *gmproto.SIMCard) bool {
+		return sim.GetSIMData().GetInt1() != -1
+	}))
 	if settings.SIMCards == nil {
 		return
 	}
@@ -459,7 +462,7 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		if err != nil {
 			log.Err(err).Msg("Failed to save SIM details")
 		}
-		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		gc.sendConnectedIfChanged()
 	}
 }
 
@@ -1357,6 +1360,11 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 	} else if needsMSSFailureEvent {
 		existingMeta.MSSFailSent = true
 		msgStatus := wrapStatusInError(newStatus).(bridgev2.MessageStatus)
+		if newStatus == gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC {
+			if failMessage := m.g.getGenericFailMessage(m.Message); failMessage != "" {
+				msgStatus = msgStatus.WithMessage(failMessage)
+			}
+		}
 		portal.Bridge.Matrix.SendMessageStatus(ctx, &msgStatus, &bridgev2.MessageStatusEventInfo{
 			RoomID:        portal.MXID,
 			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
@@ -1493,7 +1501,7 @@ func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Port
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
 		} else if lastMessage != nil && lastMessage.Timestamp.After(m.GetTimestamp()) {
-			if idToInt(lastMessage.ID) > idToInt(m.GetID()) {
+			if idToInt(m.GetID()) > idToInt(lastMessage.ID) {
 				log.Warn().
 					Str("last_message_id", string(lastMessage.ID)).
 					Time("last_message_ts", lastMessage.Timestamp).
@@ -1610,6 +1618,7 @@ func (gc *GMClient) convertGoogleMedia(
 		},
 	}
 	mediaClass, _, _ := strings.Cut(content.Info.MimeType, "/")
+	var senderMime string
 	if mediaClass == "" {
 		switch msg.GetFormat() {
 		case gmproto.MediaFormats_AUDIO_UNSPECIFIED:
@@ -1619,13 +1628,22 @@ func (gc *GMClient) convertGoogleMedia(
 		case gmproto.MediaFormats_IMAGE_UNSPECIFIED:
 			mediaClass = "image"
 		}
+		senderClass, _, ok := strings.Cut(msg.GetMimeType(), "/")
+		if ok && msg.MediaID != "" && msg.GetMimeType() != "application/octet-stream" && (mediaClass == "" || mediaClass == senderClass) {
+			senderMime = msg.GetMimeType()
+			mediaClass = senderClass
+		}
 	}
 	var needAudioConvert bool
 	switch mediaClass {
 	case "image":
 		content.MsgType = event.MsgImage
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 	case "video":
 		content.MsgType = event.MsgVideo
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 		// TODO convert weird formats to mp4
 	case "audio":
 		content.MsgType = event.MsgAudio
@@ -1681,6 +1699,9 @@ func (gc *GMClient) convertGoogleMedia(
 				return nil, fmt.Errorf("failed to read file header: %w", err)
 			}
 			content.Info.MimeType = http.DetectContentType(header[:m])
+			if senderMime != "" && content.Info.MimeType == "application/octet-stream" {
+				content.Info.MimeType = senderMime
+			}
 		}
 		if !strings.ContainsRune(content.Body, '.') {
 			content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
