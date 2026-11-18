@@ -1661,10 +1661,12 @@ func (gc *GMClient) resendMessage(ctx context.Context, msg *libgm.WrappedMessage
 	err := gc.Client.ResendMessage(ctx, msg.GetConversationID(), msg.GetMessageID())
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("Failed to resend message that failed to encrypt")
-		gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
-			WrappedMessage: msg,
-			g:              gc,
-		})
+		if ctx.Err() == nil {
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+				WrappedMessage: msg,
+				g:              gc,
+			})
+		}
 	} else {
 		zerolog.Ctx(ctx).Debug().Msg("Resent message that failed to encrypt")
 	}
