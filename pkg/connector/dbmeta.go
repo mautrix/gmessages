@@ -17,6 +17,7 @@
 package connector
 
 import (
+	"context"
 	"crypto/ecdh"
 	"crypto/rand"
 	"encoding/json"
@@ -118,8 +119,7 @@ type UserLoginMetadata struct {
 	IDPrefix           string                      `json:"id_prefix"`
 	PushKeys           *PushKeys                   `json:"push_keys"`
 
-	ChatListSyncPending  bool `json:"chat_list_sync_pending,omitempty"`
-	ChatListSyncAttempts int  `json:"chat_list_sync_attempts,omitempty"`
+	ChatListSynced bool `json:"chat_list_synced,omitempty"`
 }
 
 type PushKeys struct {
@@ -182,10 +182,7 @@ func (ulm *UserLoginMetadata) CopyFrom(other any) {
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
 	ulm.Session = otherULM.Session
-	if otherULM.ChatListSyncPending {
-		ulm.ChatListSyncPending = true
-		ulm.ChatListSyncAttempts = otherULM.ChatListSyncAttempts
-	}
+	ulm.ChatListSynced = otherULM.ChatListSynced
 }
 
 func (ulm *UserLoginMetadata) MarshalJSON() ([]byte, error) {
@@ -208,8 +205,7 @@ func (ulm *UserLoginMetadata) clearUnlocked() {
 	ulm.Settings = UserSettings{}
 	ulm.IDPrefix = ""
 	ulm.PushKeys = nil
-	ulm.ChatListSyncPending = false
-	ulm.ChatListSyncAttempts = 0
+	ulm.ChatListSynced = false
 }
 
 func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
@@ -231,22 +227,20 @@ func (ulm *UserLoginMetadata) IsSelfParticipantID(id string) bool {
 	return slices.Contains(ulm.SelfParticipantIDs, id)
 }
 
-func (ulm *UserLoginMetadata) IsChatListSyncPending() bool {
+func (ulm *UserLoginMetadata) IsChatListSynced() bool {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
-	return ulm.ChatListSyncPending
+	return ulm.ChatListSynced
 }
 
-func (ulm *UserLoginMetadata) FinishChatListSyncAttempt(timedOut bool) (attempt int, stillPending bool) {
+func (ulm *UserLoginMetadata) MarkChatListSynced(ctx context.Context) bool {
 	ulm.lock.Lock()
 	defer ulm.lock.Unlock()
-	ulm.ChatListSyncAttempts++
-	attempt = ulm.ChatListSyncAttempts
-	if !timedOut || attempt >= maxChatListSyncAttempts {
-		ulm.ChatListSyncPending = false
-		ulm.ChatListSyncAttempts = 0
+	if ctx.Err() != nil {
+		return false
 	}
-	return attempt, ulm.ChatListSyncPending
+	ulm.ChatListSynced = true
+	return true
 }
 
 func (ulm *UserLoginMetadata) SIMCount() int {

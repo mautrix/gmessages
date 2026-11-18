@@ -446,9 +446,8 @@ func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, cli
 		ID:         loginID,
 		RemoteName: remoteName,
 		Metadata: &UserLoginMetadata{
-			Session:             client.AuthData,
-			IDPrefix:            idPrefix,
-			ChatListSyncPending: true,
+			Session:  client.AuthData,
+			IDPrefix: idPrefix,
 		},
 	}, &bridgev2.NewLoginParams{
 		DeleteOnConflict: true,
