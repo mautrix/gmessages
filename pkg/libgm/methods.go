@@ -125,11 +125,11 @@ func (c *Client) MarkRead(ctx context.Context, conversationID, messageID string)
 	return err
 }
 
-func (c *Client) SetTyping(ctx context.Context, convID string, simPayload *gmproto.SIMPayload) error {
+func (c *Client) SetTyping(ctx context.Context, convID string, typing bool, simPayload *gmproto.SIMPayload) error {
 	return c.getSessionHandler().sendMessageNoResponse(ctx, SendMessageParams{
 		Action: gmproto.ActionType_TYPING_UPDATES,
 		Data: &gmproto.TypingUpdateRequest{
-			Data:       &gmproto.TypingUpdateRequest_Data{ConversationID: convID, Typing: true},
+			Data:       &gmproto.TypingUpdateRequest_Data{ConversationID: convID, Typing: typing},
 			SIMPayload: simPayload,
 		},
 	})

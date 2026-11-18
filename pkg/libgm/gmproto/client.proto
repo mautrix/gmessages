@@ -185,6 +185,7 @@ message UpdateConversationRequest {
     oneof data {
         DeleteConversationData deleteData = 6;
         UpdateConversationData updateData = 1;
+        RenameGroupData renameData = 7;
     }
 }
 
@@ -195,6 +196,10 @@ message ConversationAction5 {
 message DeleteConversationData {
     string conversationID = 1;
     optional string phone = 3;
+}
+
+message RenameGroupData {
+    string name = 1;
 }
 
 message UpdateConversationData {
@@ -211,6 +216,7 @@ enum ConversationActionStatus {
     UNBLOCK = 2;
     BLOCK = 7;
     BLOCK_AND_REPORT = 8;
+    RENAME_GROUP = 17;
 }
 
 enum ConversationMuteStatus {
