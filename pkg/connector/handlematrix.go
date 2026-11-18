@@ -343,6 +343,7 @@ func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev
 		MessageID:    msgID,
 		ReactionData: gmproto.MakeReactionData(msg.TargetReaction.Emoji),
 		Action:       gmproto.SendReactionRequest_REMOVE,
+		SIMPayload:   gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload(),
 	})
 	if err != nil {
 		return wrapSendError(err)
@@ -379,7 +380,8 @@ func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.M
 }
 
 func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
-	if !msg.IsTyping {
+	if msg.Portal.Metadata.(*PortalMetadata).Type != gmproto.ConversationType_RCS ||
+		(msg.IsTyping && gc.Meta.Settings.SettingsReceived && !gc.Meta.Settings.TypingNotifications) {
 		return nil
 	}
 	if gc.Client == nil {
@@ -389,7 +391,7 @@ func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.Matrix
 	if err != nil {
 		return err
 	}
-	return gc.Client.SetTyping(ctx, convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
+	return gc.Client.SetTyping(ctx, convID, msg.IsTyping, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
 }
 
 func (gc *GMClient) findPhoneForConversation(ctx context.Context, portal *bridgev2.Portal, convID string) (phone string, alreadyDeleted bool, err error) {
