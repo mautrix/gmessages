@@ -1654,9 +1654,13 @@ func (gc *GMClient) convertGoogleMedia(
 
 func isPermanentMediaError(err error) bool {
 	var httpErr events.HTTPError
-	return errors.Is(err, bridgev2.ErrMediaTooLarge) ||
-		errors.Is(err, bridgev2.ErrMediaConvertFailed) ||
-		(errors.As(err, &httpErr) && httpErr.Resp.StatusCode >= 400 && httpErr.Resp.StatusCode < 500)
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusBadRequest, http.StatusNotFound, http.StatusGone:
+			return true
+		}
+	}
+	return errors.Is(err, bridgev2.ErrMediaTooLarge) || errors.Is(err, bridgev2.ErrMediaConvertFailed)
 }
 
 type fullMediaRequestKey struct {
