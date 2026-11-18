@@ -428,7 +428,7 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 		}
 		gc.conversationMetaLock.Lock()
 		existing, ok := gc.conversationMeta[conv.ConversationID]
-		wasUnread := ok && existing.unread
+		wasUnread := !ok || existing.unread
 		gc.conversationMetaLock.Unlock()
 		if !wasUnread {
 			continue
