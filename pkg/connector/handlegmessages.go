@@ -698,7 +698,9 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 					Str("old_media_id", oldMeta.MediaID).
 					Str("new_media_id", newMeta.MediaID).
 					Msg("Not replacing already bridged media with unavailable update")
-				newMeta.MediaID = oldMeta.MediaID
+				if !newMeta.MediaFailed {
+					newMeta.MediaID = oldMeta.MediaID
+				}
 				newMeta.MediaPending = false
 				newMeta.MediaFailed = false
 				part.DontBridge = true
@@ -1488,7 +1490,8 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
 		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
-			dbMeta.MediaFailed = true
+			dbMeta.MediaFailed = isPermanentMediaError(err)
+			dbMeta.MediaPending = !dbMeta.MediaFailed
 			dbMeta.MediaID = mediaID
 			log.Err(err).Msg("Failed to copy attachment")
 			content = event.MessageEventContent{
@@ -1647,6 +1650,13 @@ func (gc *GMClient) convertGoogleMedia(
 		mainErr = fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, mainErr)
 	}
 	return
+}
+
+func isPermanentMediaError(err error) bool {
+	var httpErr events.HTTPError
+	return errors.Is(err, bridgev2.ErrMediaTooLarge) ||
+		errors.Is(err, bridgev2.ErrMediaConvertFailed) ||
+		(errors.As(err, &httpErr) && httpErr.Resp.StatusCode >= 400 && httpErr.Resp.StatusCode < 500)
 }
 
 type fullMediaRequestKey struct {
