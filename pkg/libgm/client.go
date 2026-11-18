@@ -171,6 +171,7 @@ type Client struct {
 	conversationsFetchedOnce bool
 
 	GaiaHackyDeviceSwitcher int
+	BrowserDetails          *gmproto.BrowserDetails
 
 	PairCallback atomic.Pointer[func(data *gmproto.PairedData)]
 
@@ -206,6 +207,8 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSett
 		pingInterval:             1 * time.Minute,
 		alertTimeoutCount:        4,
 		dataReceiveCheckInterval: DefaultBugleDefaultCheckInterval,
+
+		BrowserDetails: util.BrowserDetailsMessage,
 	}
 	sessionHandler.client = cli
 	return cli

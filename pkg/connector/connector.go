@@ -31,6 +31,8 @@ type GMConnector struct {
 	br     *bridgev2.Bridge
 	DB     *gmdb.GMDB
 	Config Config
+
+	browserDetails *gmproto.BrowserDetails
 }
 
 var _ bridgev2.NetworkConnector = (*GMConnector)(nil)
@@ -39,18 +41,23 @@ func (gc *GMConnector) Init(bridge *bridgev2.Bridge) {
 	gc.DB = gmdb.New(bridge.ID, bridge.DB.Database, bridge.Log.With().Str("db_section", "gmessages").Logger())
 	gc.br = bridge
 
-	util.BrowserDetailsMessage.OS = gc.Config.DeviceMeta.OS
+	gc.browserDetails = &gmproto.BrowserDetails{
+		UserAgent:   util.UserAgent,
+		BrowserType: util.BrowserDetailsMessage.BrowserType,
+		OS:          gc.Config.DeviceMeta.OS,
+		DeviceType:  util.BrowserDetailsMessage.DeviceType,
+	}
 	browserVal, ok := gmproto.BrowserType_value[gc.Config.DeviceMeta.Browser]
 	if !ok {
 		gc.br.Log.Error().Str("browser_value", gc.Config.DeviceMeta.Browser).Msg("Invalid browser value")
 	} else {
-		util.BrowserDetailsMessage.BrowserType = gmproto.BrowserType(browserVal)
+		gc.browserDetails.BrowserType = gmproto.BrowserType(browserVal)
 	}
 	deviceVal, ok := gmproto.DeviceType_value[gc.Config.DeviceMeta.Type]
 	if !ok {
 		gc.br.Log.Error().Str("device_type_value", gc.Config.DeviceMeta.Type).Msg("Invalid device type value")
 	} else {
-		util.BrowserDetailsMessage.DeviceType = gmproto.DeviceType(deviceVal)
+		gc.browserDetails.DeviceType = gmproto.DeviceType(deviceVal)
 	}
 }
 

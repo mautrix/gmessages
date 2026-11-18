@@ -126,6 +126,7 @@ func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error
 		ql.User.Log.With().Str("component", "libgm").Str("parent_action", "qr pair").Logger(),
 		ql.Main.br.GetHTTPClientSettings(),
 	)
+	ql.Client.BrowserDetails = ql.Main.browserDetails
 	ql.Client.SetEventHandler(func(evt any) {
 		ql.Client.Logger.Warn().Type("event_type", evt).Msg("Unexpected pre-pairing event")
 	})
@@ -349,6 +350,7 @@ func (gl *GoogleLoginProcess) submitWithAuthData(ctx context.Context, ad *libgm.
 		gl.User.Log.With().Str("component", "libgm").Str("parent_action", "google pair").Logger(),
 		gl.Main.br.GetHTTPClientSettings(),
 	)
+	gl.Client.BrowserDetails = gl.Main.browserDetails
 	gl.Client.SetEventHandler(func(evt any) {
 		gl.Client.Logger.Warn().Type("event_type", evt).Msg("Unexpected pre-pairing event")
 	})
