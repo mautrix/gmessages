@@ -299,7 +299,7 @@ func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountCh
 			gc.ready = true
 		}
 	}
-	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	gc.sendConnectedIfChanged()
 }
 
 func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEvent) {
@@ -392,7 +392,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
 		}*/
 	}
-	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	gc.sendConnectedIfChanged()
 }
 
 func (gc *GMClient) aggressiveSetActive() {
@@ -460,7 +460,7 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		if err != nil {
 			log.Err(err).Msg("Failed to save SIM details")
 		}
-		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		gc.sendConnectedIfChanged()
 	}
 }
 
