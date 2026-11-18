@@ -184,6 +184,10 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	} else if conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED || conv.Status == gmproto.ConversationStatus_SPAM_FOLDER {
 		tag = event.RoomTagLowPriority
 	}
+	mutedUntil := bridgev2.Unmuted
+	if conv.Status == gmproto.ConversationStatus_SPAM_FOLDER {
+		mutedUntil = event.MutedForever
+	}
 	var avatar *bridgev2.Avatar
 	if conv.GroupAvatarURL != "" {
 		avatar = gc.makeGroupAvatarFromURL(conv.GroupAvatarURL)
@@ -195,7 +199,8 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		Type:        &roomType,
 		Avatar:      avatar,
 		UserLocal: &bridgev2.UserLocalPortalInfo{
-			Tag: &tag,
+			Tag:        &tag,
+			MutedUntil: &mutedUntil,
 		},
 		CanBackfill: true,
 		ExtraUpdates: func(ctx context.Context, portal *bridgev2.Portal) (changed bool) {
