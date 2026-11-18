@@ -18,6 +18,7 @@ package connector
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -691,7 +692,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			delete(existingPartMap, part.ID)
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
-			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
+			if (newMeta.MediaPending || newMeta.MediaFailed) && oldMeta.MediaID != "" && !oldMeta.MediaPending && !oldMeta.MediaFailed && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
 				zerolog.Ctx(ctx).Debug().
 					Str("part_id", string(part.ID)).
 					Str("old_media_id", oldMeta.MediaID).
@@ -699,13 +700,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 					Msg("Not replacing already bridged media with unavailable update")
 				newMeta.MediaID = oldMeta.MediaID
 				newMeta.MediaPending = false
-				part.DontBridge = true
-			} else if !m.chatIDChanged && newMeta.MediaPending && oldMeta.MediaPending && oldMeta.MediaID != "" && oldMeta.MediaID == newMeta.MediaID &&
-				oldMeta.TextHash == newMeta.TextHash && oldMeta.GlobalMediaStatus == newMeta.GlobalMediaStatus {
-				zerolog.Ctx(ctx).Debug().
-					Str("part_id", string(part.ID)).
-					Str("media_id", newMeta.MediaID).
-					Msg("Not re-sending unchanged failed media notice")
+				newMeta.MediaFailed = false
 				part.DontBridge = true
 			}
 			editPart := part.ToEditPart(existingPart)
@@ -1493,7 +1488,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
 		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
-			dbMeta.MediaPending = true
+			dbMeta.MediaFailed = true
 			dbMeta.MediaID = mediaID
 			log.Err(err).Msg("Failed to copy attachment")
 			content = event.MessageEventContent{
@@ -1588,6 +1583,7 @@ func (gc *GMClient) convertGoogleMedia(
 		content.MSC3245Voice = &event.MSC3245Voice{}
 	}
 	requireFile := content.Info.MimeType == "" || needAudioConvert
+	mediaID = cmp.Or(msg.MediaID, msg.ThumbnailMediaID)
 	content.URL, content.File, mainErr = intent.UploadMediaStream(ctx, portal.MXID, msg.Size, requireFile, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
 		var data io.ReadCloser
 		var err error
