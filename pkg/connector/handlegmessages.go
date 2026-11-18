@@ -39,6 +39,7 @@ import (
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"golang.org/x/exp/maps"
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -1014,7 +1015,7 @@ func (gc *GMClient) addLinkPreviewImage(ctx context.Context, msg *gmproto.Messag
 	if !ok {
 		return
 	}
-	mxPreview, err := conn.GetURLPreview(ctx, preview.MatchedURL)
+	mxPreview, err := conn.GetURLPreview(mautrix.WithMaxRetries(ctx, 0), preview.MatchedURL)
 	if err != nil {
 		zerolog.Ctx(ctx).Debug().Err(err).Msg("Failed to get link preview image from homeserver")
 		return
