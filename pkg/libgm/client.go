@@ -330,9 +330,9 @@ func (c *Client) postConnect() {
 		c.triggerEvent(&events.PingFailed{
 			Error: fmt.Errorf("failed to set active session: %w", err),
 		})
-		return
+	} else {
+		c.Logger.Debug().Msg("Sent set active session/get updates request")
 	}
-	c.Logger.Debug().Msg("Sent set active session/get updates request")
 	select {
 	case c.pingShortCircuit <- struct{}{}:
 	default:
