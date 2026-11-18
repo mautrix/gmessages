@@ -70,6 +70,7 @@ type GMClient struct {
 	stallRecoveryRunning   atomic.Bool
 	pingPermissionDenials  atomic.Int32
 	lastConversationList   atomic.Int64
+	avatarFetchTimedOutAt  atomic.Int64
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
