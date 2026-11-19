@@ -84,9 +84,11 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		})
 	case *events.ListenRecovered:
 		gc.longPollingError = nil
+		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneNotResponding:
 		gc.PhoneResponding = false
+		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneRespondingAgain:
 		gc.PhoneResponding = true
@@ -516,6 +518,43 @@ func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeSt
 		gc.Client = nil
 	}
 	gc.UserLogin.BridgeState.Send(state)
+}
+
+const pairedPhoneCheckInterval = 6 * time.Hour
+
+func (gc *GMClient) checkPairedPhone() {
+	cli, sess := gc.Client, gc.Meta.Session
+	if gc.PhoneResponding || cli == nil || sess == nil || !sess.IsGoogleAccount() ||
+		!gc.phoneCheckRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer gc.phoneCheckRunning.Store(false)
+	if time.Since(gc.Meta.PhoneCheckedAt.Time) < pairedPhoneCheckInterval {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "check paired phone").Logger()
+	ctx := log.WithContext(gc.Main.br.BackgroundCtx)
+	gc.Meta.PhoneCheckedAt = jsontime.UnixNow()
+	if err := gc.UserLogin.Save(ctx); err != nil {
+		log.Err(err).Msg("Failed to save paired phone check time")
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	registered, err := cli.PairedPhoneRegistered(checkCtx)
+	cancel()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to check if the paired phone is still registered")
+	} else if registered {
+		log.Debug().Msg("Paired phone is still registered on the Google account")
+	} else if gc.Client != cli || gc.PhoneResponding {
+		log.Debug().Msg("Paired phone is no longer registered, but the phone responded or the client was replaced")
+	} else {
+		log.Warn().Msg("Paired phone is no longer registered on the Google account")
+		gc.invalidateSession(ctx, status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMPairedPhoneGone,
+			UserAction: status.UserActionRelogin,
+		}, true, false)
+	}
 }
 
 func (gc *GMClient) hackyResetActive() {

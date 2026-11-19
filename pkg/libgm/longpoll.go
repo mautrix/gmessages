@@ -227,8 +227,10 @@ func (dp *dittoPinger) WaitForResponse(ping pendingPing, timeout time.Duration, 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 	select {
-	case <-ping.ch:
-		dp.OnRespond(ping.id, time.Since(ping.start), reset)
+	case _, ok := <-ping.ch:
+		if ok {
+			dp.OnRespond(ping.id, time.Since(ping.start), reset)
+		}
 		return
 	case <-timer.C:
 		dp.OnTimeout(ping.id, timeout == shortPingTimeout, reset)

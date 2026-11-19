@@ -115,6 +115,7 @@ type UserLoginMetadata struct {
 	SelfParticipantIDs []string                    `json:"self_participant_ids"`
 	SIMMetadata        map[string]*gmproto.SIMCard `json:"sim_metadata"`
 	Settings           UserSettings                `json:"settings"`
+	PhoneCheckedAt     jsontime.Unix               `json:"phone_checked_at,omitzero"`
 	IDPrefix           string                      `json:"id_prefix"`
 	PushKeys           *PushKeys                   `json:"push_keys"`
 }
