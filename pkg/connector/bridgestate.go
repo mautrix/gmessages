@@ -74,7 +74,7 @@ func init() {
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
 		GMPhoneNotResponding:        PhoneNotRespondingMessage,
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
-		GMPairedPhoneGone:           "Google Messages on your phone was reset or moved to another phone, so this connection no longer works. Remove this account and add it again.",
+		GMPairedPhoneGone:           "Google Messages on your phone was reset or moved to another phone, please re-link the connection to continue using SMS/RCS",
 	})
 }
 
