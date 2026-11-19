@@ -39,6 +39,7 @@ var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 		CheckInterval: 1 * time.Minute,
 	},
 	Provisioning: bridgev2.ProvisioningCapabilities{
+		ImagePackImport: true,
 		ResolveIdentifier: bridgev2.ResolveIdentifierCapabilities{
 			CreateDM:    true,
 			LookupPhone: false, // There's no lookup, you can just DM any phone number
@@ -61,7 +62,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 3, 8
+	return 3, 9
 }
 
 // The phone will compress outgoing media on MMS, so we don't need to limit it
@@ -76,7 +77,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID(chatType string) string {
-	base := "fi.mau.gmessages.capabilities.2026_11_09." + chatType
+	base := "fi.mau.gmessages.capabilities.2026_11_10." + chatType
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -155,6 +156,10 @@ var rcsCaps = &event.RoomFeatures{
 			Caption:   event.CapLevelRejected,
 			MaxSize:   MaxFileSize,
 		},
+		event.CapMsgSticker: {
+			MimeTypes: imageMimes,
+			MaxSize:   MaxFileSize,
+		},
 	},
 	State: event.StateFeatureMap{
 		event.StateRoomName.Type: {Level: event.CapLevelFullySupported},
@@ -198,6 +203,10 @@ var smsCaps = &event.RoomFeatures{
 		event.CapMsgGIF: {
 			MimeTypes: gifMimes,
 			Caption:   event.CapLevelFullySupported,
+			MaxSize:   MaxFileSize,
+		},
+		event.CapMsgSticker: {
+			MimeTypes: imageMimes,
 			MaxSize:   MaxFileSize,
 		},
 	},

@@ -1,0 +1,52 @@
+syntax = "proto3";
+package stickers;
+
+option go_package = "../gmproto";
+
+message StickerUserContext {
+    message ClientInfo {
+        int32 type = 1;
+        string version = 2;
+    }
+    message Locale {
+        ClientInfo client = 1;
+        string language = 2;
+        string region = 3;
+    }
+    Locale locale = 1;
+    string version = 2;
+    int32 clientType = 4;
+}
+
+message ListStickerPacksRequest {
+    StickerUserContext userContext = 1;
+}
+
+message ListStickerPacksResponse {
+    message Item {
+        StickerPack pack = 1;
+    }
+    repeated Item items = 2;
+}
+
+message StickerPack {
+    string name = 1;
+    string title = 6;
+    string artist = 8;
+    repeated Sticker stickers = 17;
+}
+
+message Sticker {
+    string name = 1;
+    StickerImage image = 3;
+    string description = 5;
+}
+
+message StickerImage {
+    message Dimensions {
+        int32 width = 1;
+        int32 height = 2;
+    }
+    string url = 1;
+    Dimensions dimensions = 5;
+}
