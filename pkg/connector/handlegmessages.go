@@ -52,8 +52,6 @@ import (
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
-const pingPermissionDeniedLimit = 3
-
 func (gc *GMClient) handleGMEvent(rawEvt any) {
 	// Note: this is called synchronously and must not block on any requests to Google Messages.
 
@@ -96,26 +94,10 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *events.HackySetActiveMayFail:
 		go gc.hackyResetActive()
 	case *events.PingFailed:
-		permissionDenied := errors.Is(evt.Error, events.ErrCallerNoPermission)
-		if !permissionDenied || evt.ConsecutiveErrors <= 1 {
-			gc.pingPermissionDenials.Store(0)
-		}
-		if permissionDenied {
-			gc.pingPermissionDenials.Add(1)
-		}
 		if errors.Is(evt.Error, events.ErrRequestedEntityNotFound) {
 			go gc.invalidateSession(ctx, status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpaired404,
-				UserAction: status.UserActionRelogin,
-				Info: map[string]any{
-					"go_error": evt.Error.Error(),
-				},
-			}, true, false)
-		} else if permissionDenied && gc.pingPermissionDenials.Load() >= pingPermissionDeniedLimit {
-			go gc.invalidateSession(ctx, status.BridgeState{
-				StateEvent: status.StateBadCredentials,
-				Error:      GMUnpaired403,
 				UserAction: status.UserActionRelogin,
 				Info: map[string]any{
 					"go_error": evt.Error.Error(),
@@ -498,6 +480,9 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)
+	case errors.Is(err, libgm.ErrPairingPermissionDenied):
+		state.Error = GMUnpaired403
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		if isWorkspaceEmail(gc.Meta.Session.Mobile.GetSourceID()) {

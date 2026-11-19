@@ -47,7 +47,6 @@ type phoneLiveness struct {
 	lastPingTime          time.Time
 	timeouts              int
 	sendFails             int
-	sendFailStreak        int
 	notRespondingSent     bool
 	recoveryInterval      time.Duration
 	lastRecoveryReconnect time.Time
@@ -66,7 +65,6 @@ func (pl *phoneLiveness) onLiveness() (notRespondingSent, wasFailing, needsCatch
 	pl.notRespondingSent = false
 	pl.timeouts = 0
 	pl.sendFails = 0
-	pl.sendFailStreak = 0
 	pl.recoveryInterval = 0
 	return
 }
@@ -268,20 +266,15 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, reset *resette
 	if err != nil {
 		pl.lock.Lock()
 		pl.sendFails++
-		pl.sendFailStreak++
-		sendFails, sendFailStreak := pl.sendFails, pl.sendFailStreak
+		sendFails := pl.sendFails
 		pl.lock.Unlock()
 		dp.log.Err(err).Uint64("ping_id", pingID).Msg("Error sending ping")
 		dp.client.triggerEvent(&events.PingFailed{
-			Error:             fmt.Errorf("failed to notify ditto activity: %w", err),
-			ErrorCount:        sendFails,
-			ConsecutiveErrors: sendFailStreak,
+			Error:      fmt.Errorf("failed to notify ditto activity: %w", err),
+			ErrorCount: sendFails,
 		})
 		return
 	}
-	pl.lock.Lock()
-	pl.sendFailStreak = 0
-	pl.lock.Unlock()
 	go dp.WaitForResponse(pendingPing{
 		id:        pingID,
 		requestID: requestID,
