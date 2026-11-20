@@ -183,7 +183,7 @@ message MessageStatus {
     int64 subCode = 3;
     string errMsg = 4;
     string statusText = 5;
-    int64 thirdCode = 6;
+    bool isEncrypted = 6;
 }
 
 message Conversation {
@@ -217,6 +217,22 @@ message Conversation {
     string groupAvatarURL = 34;
     AnotherMessageID latestMessageAnotherID = 35;
     // index 37 has an unknown byte string (\001)
+    EncryptionInfo encryptionInfo = 39;
+}
+
+message EncryptionInfo {
+    repeated EncryptionProtocol supportedProtocols = 3;
+    EncryptionReadiness readiness = 5;
+}
+
+message EncryptionReadiness {
+    bool isReady = 1;
+    int64 timestamp = 2;
+}
+
+enum EncryptionProtocol {
+    UNKNOWN_ENCRYPTION_PROTOCOL = 0;
+    MLS = 2;
 }
 
 message Participant {

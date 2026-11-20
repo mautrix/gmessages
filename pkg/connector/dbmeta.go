@@ -89,6 +89,7 @@ type MessageMetadata struct {
 	MSSFailSent     bool `json:"mss_fail_sent,omitempty"`
 	MSSDeliverySent bool `json:"mss_delivery_sent,omitempty"`
 	ReadReceiptSent bool `json:"read_receipt_sent,omitempty"`
+	ResendAttempted bool `json:"resend_attempted,omitempty"`
 
 	OrigMXID id.EventID `json:"orig_mxid,omitempty"`
 }

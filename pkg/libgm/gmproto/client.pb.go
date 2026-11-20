@@ -2889,10 +2889,11 @@ func (x *SendReactionResponse) GetSuccess() bool {
 }
 
 type ResendMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MessageID     string                 `protobuf:"bytes,2,opt,name=messageID,proto3" json:"messageID,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	MessageID         string                 `protobuf:"bytes,2,opt,name=messageID,proto3" json:"messageID,omitempty"`
+	SomeKindOfGroupID *SomeKindOfGroupID     `protobuf:"bytes,5,opt,name=someKindOfGroupID,proto3" json:"someKindOfGroupID,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ResendMessageRequest) Reset() {
@@ -2930,6 +2931,13 @@ func (x *ResendMessageRequest) GetMessageID() string {
 		return x.MessageID
 	}
 	return ""
+}
+
+func (x *ResendMessageRequest) GetSomeKindOfGroupID() *SomeKindOfGroupID {
+	if x != nil {
+		return x.SomeKindOfGroupID
+	}
+	return nil
 }
 
 type TypingUpdateRequest struct {
@@ -3701,9 +3709,10 @@ const file_client_proto_rawDesc = "" +
 	"\n" +
 	"\x06SWITCH\x10\x03\"0\n" +
 	"\x14SendReactionResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"4\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x84\x01\n" +
 	"\x14ResendMessageRequest\x12\x1c\n" +
-	"\tmessageID\x18\x02 \x01(\tR\tmessageID\"\xc9\x01\n" +
+	"\tmessageID\x18\x02 \x01(\tR\tmessageID\x12N\n" +
+	"\x11someKindOfGroupID\x18\x05 \x01(\v2 .conversations.SomeKindOfGroupIDR\x11someKindOfGroupID\"\xc9\x01\n" +
 	"\x13TypingUpdateRequest\x124\n" +
 	"\x04data\x18\x02 \x01(\v2 .client.TypingUpdateRequest.DataR\x04data\x124\n" +
 	"\n" +
@@ -3831,6 +3840,7 @@ var file_client_proto_goTypes = []any{
 	(*MessageContent)(nil),                             // 77: conversations.MessageContent
 	(*AccountChangeOrSomethingEvent)(nil),              // 78: events.AccountChangeOrSomethingEvent
 	(*ReactionData)(nil),                               // 79: conversations.ReactionData
+	(*SomeKindOfGroupID)(nil),                          // 80: conversations.SomeKindOfGroupID
 }
 var file_client_proto_depIdxs = []int32{
 	66, // 0: client.ReceiveMessagesRequest.auth:type_name -> authentication.AuthMessage
@@ -3877,17 +3887,18 @@ var file_client_proto_depIdxs = []int32{
 	79, // 41: client.SendReactionRequest.reactionData:type_name -> conversations.ReactionData
 	5,  // 42: client.SendReactionRequest.action:type_name -> client.SendReactionRequest.Action
 	75, // 43: client.SendReactionRequest.SIMPayload:type_name -> settings.SIMPayload
-	64, // 44: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
-	75, // 45: client.TypingUpdateRequest.SIMPayload:type_name -> settings.SIMPayload
-	65, // 46: client.SettingsUpdateRequest.pushSettings:type_name -> client.SettingsUpdateRequest.PushSettings
-	59, // 47: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
-	68, // 48: client.AckMessageRequest.Message.device:type_name -> authentication.Device
-	18, // 49: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
-	50, // [50:50] is the sub-list for method output_type
-	50, // [50:50] is the sub-list for method input_type
-	50, // [50:50] is the sub-list for extension type_name
-	50, // [50:50] is the sub-list for extension extendee
-	0,  // [0:50] is the sub-list for field type_name
+	80, // 44: client.ResendMessageRequest.someKindOfGroupID:type_name -> conversations.SomeKindOfGroupID
+	64, // 45: client.TypingUpdateRequest.data:type_name -> client.TypingUpdateRequest.Data
+	75, // 46: client.TypingUpdateRequest.SIMPayload:type_name -> settings.SIMPayload
+	65, // 47: client.SettingsUpdateRequest.pushSettings:type_name -> client.SettingsUpdateRequest.PushSettings
+	59, // 48: client.ReceiveMessagesRequest.UnknownEmptyObject2.unknown:type_name -> client.ReceiveMessagesRequest.UnknownEmptyObject1
+	68, // 49: client.AckMessageRequest.Message.device:type_name -> authentication.Device
+	18, // 50: client.GetThumbnailResponse.Thumbnail.data:type_name -> client.ThumbnailData
+	51, // [51:51] is the sub-list for method output_type
+	51, // [51:51] is the sub-list for method input_type
+	51, // [51:51] is the sub-list for extension type_name
+	51, // [51:51] is the sub-list for extension extendee
+	0,  // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_client_proto_init() }

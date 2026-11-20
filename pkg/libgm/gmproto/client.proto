@@ -328,6 +328,7 @@ message SendReactionResponse {
 
 message ResendMessageRequest {
     string messageID = 2;
+    conversations.SomeKindOfGroupID someKindOfGroupID = 5;
 }
 
 message TypingUpdateRequest {

@@ -724,6 +724,7 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 	newMainMeta.MSSFailSent = prevMainMeta.MSSFailSent
 	newMainMeta.MSSDeliverySent = prevMainMeta.MSSDeliverySent
 	newMainMeta.ReadReceiptSent = prevMainMeta.ReadReceiptSent
+	newMainMeta.ResendAttempted = prevMainMeta.ResendAttempted
 
 	for _, part := range converted.Parts {
 		if existingPart, ok := existingPartMap[part.ID]; ok {
@@ -1308,6 +1309,11 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 		result.SubEvents = []bridgev2.RemoteEvent{editEvt, reactionSyncEvt}
 	}
 
+	if needsMSSFailureEvent && newStatus == gmproto.MessageStatusType_OUTGOING_FAILED_TO_ENCRYPT && existingMeta.IsOutgoing && !existingMeta.ResendAttempted && m.canResend(portal) {
+		existingMeta.ResendAttempted = true
+		needsMSSFailureEvent = false
+		go m.g.resendMessage(ctx, m.WrappedMessage)
+	}
 	if needsMSSEvent {
 		existingMeta.MSSSent = true
 		var deliveredTo []id.UserID
@@ -1688,6 +1694,35 @@ func (gc *GMClient) convertGoogleMedia(
 type fullMediaRequestKey struct {
 	MessageID       string
 	ActionMessageID string
+}
+
+func (m *MessageEvent) canResend(portal *bridgev2.Portal) bool {
+	if portal.RoomType != database.RoomTypeDM {
+		return true
+	}
+	conv, _ := m.g.chatInfoCache.Get(m.ConversationID)
+	encryption := conv.GetEncryptionInfo()
+	readiness := encryption.GetReadiness()
+	ts := m.GetTimestamp().UnixMilli()
+	return slices.Contains(encryption.GetSupportedProtocols(), gmproto.EncryptionProtocol_MLS) &&
+		m.GetMessageStatus().GetIsEncrypted() &&
+		readiness.GetIsReady() &&
+		ts > 0 && ts < readiness.GetTimestamp()
+}
+
+func (gc *GMClient) resendMessage(ctx context.Context, msg *libgm.WrappedMessage) {
+	err := gc.Client.ResendMessage(ctx, msg.GetConversationID(), msg.GetMessageID())
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("Failed to resend message that failed to encrypt")
+		if ctx.Err() == nil {
+			gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
+				WrappedMessage: msg,
+				g:              gc,
+			})
+		}
+	} else {
+		zerolog.Ctx(ctx).Debug().Msg("Resent message that failed to encrypt")
+	}
 }
 
 func (gc *GMClient) requestFullMedia(ctx context.Context, messageID, actionMessageID string) {
