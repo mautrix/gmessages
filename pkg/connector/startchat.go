@@ -32,6 +32,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/networkid"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
 
@@ -269,35 +270,96 @@ func (gc *GMClient) CreateGroup(ctx context.Context, params *bridgev2.GroupCreat
 }
 
 const (
-	contactCacheTTL       = 5 * time.Minute
-	contactRefreshTimeout = 1 * time.Minute
+	contactCacheTTL     = 5 * time.Minute
+	contactFetchTimeout = 2 * time.Minute
 )
+
+type contactFetch struct {
+	done     chan struct{}
+	contacts []*gmproto.Contact
+	err      error
+}
 
 func (gc *GMClient) getOrFetchContacts(ctx context.Context) ([]*gmproto.Contact, error) {
 	gc.contactsFetchLock.Lock()
-	defer gc.contactsFetchLock.Unlock()
 	if time.Since(gc.contactsFetchedAt) < contactCacheTTL || !gc.PhoneResponding {
-		return gc.cachedContacts, nil
+		contacts := gc.cachedContacts
+		gc.contactsFetchLock.Unlock()
+		return contacts, nil
 	}
-	if ctx.Err() != nil {
+	fetch := gc.contactsFetch
+	if fetch == nil {
+		fetch = &contactFetch{done: make(chan struct{})}
+		gc.contactsFetch = fetch
+		go gc.runContactFetch(context.WithoutCancel(ctx), fetch)
+	}
+	gc.contactsFetchLock.Unlock()
+	select {
+	case <-fetch.done:
+		return fetch.contacts, fetch.err
+	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-	resp, err := gc.Client.ListContacts(ctx)
-	if err != nil {
-		return nil, err
-	}
-	byNumber := make(map[string]*gmproto.Contact, len(resp.Contacts))
-	for _, contact := range resp.Contacts {
-		if number := contact.GetNumber().GetNumber(); number != "" {
-			byNumber[number] = contact
+}
+
+func (gc *GMClient) runContactFetch(ctx context.Context, fetch *contactFetch) {
+	ctx, cancel := context.WithTimeout(ctx, contactFetchTimeout)
+	defer cancel()
+	contacts, err := gc.fetchContactPages(ctx)
+	gc.contactsFetchLock.Lock()
+	defer gc.contactsFetchLock.Unlock()
+	gc.contactsFetch = nil
+	if err != nil && !gc.contactsFetchedAt.IsZero() {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to fetch contact list, using cached list")
+		fetch.contacts = gc.cachedContacts
+	} else if err != nil {
+		fetch.err = err
+	} else {
+		byNumber := make(map[string]*gmproto.Contact, len(contacts))
+		for _, contact := range contacts {
+			if number := contact.GetNumber().GetNumber(); number != "" {
+				byNumber[number] = contact
+			}
 		}
+		gc.contactsLock.Lock()
+		gc.cachedContacts = contacts
+		gc.contactsByNumber = byNumber
+		gc.contactsFetchedAt = time.Now()
+		gc.contactsLock.Unlock()
+		fetch.contacts = contacts
 	}
-	gc.contactsLock.Lock()
-	gc.cachedContacts = resp.Contacts
-	gc.contactsByNumber = byNumber
-	gc.contactsFetchedAt = time.Now()
-	gc.contactsLock.Unlock()
-	return gc.cachedContacts, nil
+	close(fetch.done)
+}
+
+func (gc *GMClient) fetchContactPages(ctx context.Context) ([]*gmproto.Contact, error) {
+	cli := gc.Client
+	if cli == nil {
+		return nil, libgm.ErrClientIsNil
+	}
+	start := time.Now()
+	var contacts []*gmproto.Contact
+	var pageToken string
+	seenTokens := make(map[string]struct{})
+	for {
+		resp, err := cli.ListContacts(ctx, pageToken)
+		if err != nil {
+			return nil, err
+		}
+		contacts = append(contacts, resp.GetContacts()...)
+		pageToken = resp.GetNextPageToken()
+		if pageToken == "" {
+			break
+		} else if _, seen := seenTokens[pageToken]; seen {
+			return nil, fmt.Errorf("contact list page token repeated after %d pages", len(seenTokens)+1)
+		}
+		seenTokens[pageToken] = struct{}{}
+	}
+	zerolog.Ctx(ctx).Debug().
+		Int("contact_count", len(contacts)).
+		Int("pages", len(seenTokens)+1).
+		Dur("duration", time.Since(start)).
+		Msg("Fetched contact list")
+	return contacts, nil
 }
 
 func (gc *GMClient) lookupContactByNumber(ctx context.Context, phone string) *gmproto.Contact {
@@ -321,9 +383,7 @@ func (gc *GMClient) refreshContactsInBackground(ctx context.Context) {
 	log := zerolog.Ctx(ctx).With().Str("action", "refresh contact list").Logger()
 	go func() {
 		defer gc.contactsRefreshing.Store(false)
-		ctx, cancel := context.WithTimeout(log.WithContext(context.Background()), contactRefreshTimeout)
-		defer cancel()
-		if _, err := gc.getOrFetchContacts(ctx); err != nil {
+		if _, err := gc.getOrFetchContacts(log.WithContext(context.Background())); err != nil {
 			log.Warn().Err(err).Msg("Failed to refresh contact list")
 		}
 	}()
