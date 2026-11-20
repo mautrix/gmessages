@@ -96,13 +96,15 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
-	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
+	if lastDataReceived.IsZero() {
 		return
 	}
-	zerolog.Ctx(ctx).Debug().
-		Time("last_data_received", lastDataReceived).
-		Msg("Data resumed after quiet period, checking for missed events")
-	gc.syncMissedEvents(ctx, lastDataReceived, true)
+	gc.runInMessageOrder(func() {
+		zerolog.Ctx(ctx).Debug().
+			Time("last_data_received", lastDataReceived).
+			Msg("Data resumed after quiet period, checking for missed events")
+		gc.syncMissedEvents(ctx, lastDataReceived, true)
+	})
 }
 
 func (gc *GMClient) syncMissedEvents(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
@@ -329,7 +331,11 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			return
 		}
 	}
-	go gc.syncConversationBackground(log.WithContext(ctx), v, meta)
+	if source == "sync" {
+		gc.syncConversationBackground(log.WithContext(ctx), v, meta, true)
+	} else {
+		go gc.syncConversationBackground(log.WithContext(ctx), v, meta, false)
+	}
 }
 
 func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
@@ -373,12 +379,12 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 	}
 }
 
-func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta) {
+func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, fromChatList bool) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,
-		AllowBackfill: time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
+		AllowBackfill: fromChatList || time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
 	}
 	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
 	switch v.Status {

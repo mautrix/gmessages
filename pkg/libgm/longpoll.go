@@ -198,7 +198,7 @@ func (dp *dittoPinger) OnRespond(pingID uint64, dur time.Duration, reset *resett
 		dp.client.triggerEvent(&events.PhoneRespondingAgain{})
 	}
 	if needsCatchUp {
-		go dp.client.requestUpdatesAfterGap(dp.log, "phone started responding to pings again")
+		dp.client.requestUpdatesAfterGap(dp.log, "phone started responding to pings again")
 	}
 	reset.Done()
 }
@@ -388,7 +388,7 @@ func (dp *dittoPinger) Loop() {
 		}
 		if dp.client.shouldDoDataReceiveCheck() {
 			dp.log.Warn().Msg("No data received recently, sending extra GET_UPDATES call")
-			go dp.client.requestUpdatesAfterGap(dp.log, "no data received recently")
+			dp.client.requestUpdatesAfterGap(dp.log, "no data received recently")
 		}
 	}
 }
@@ -413,22 +413,24 @@ func (c *Client) onPhoneActivity(source string) {
 		c.triggerEvent(&events.PhoneRespondingAgain{})
 	}
 	if needsCatchUp {
-		go c.requestUpdatesAfterGap(&c.Logger, "phone started responding again")
+		c.requestUpdatesAfterGap(&c.Logger, "phone started responding again")
 	}
 }
 
 func (c *Client) requestUpdatesAfterGap(log *zerolog.Logger, reason string) {
 	c.triggerEvent(&events.NoDataReceived{})
-	err := c.sessionHandler.sendMessageNoResponse(log.WithContext(context.TODO()), SendMessageParams{
-		Action:    gmproto.ActionType_GET_UPDATES,
-		OmitTTL:   true,
-		RequestID: c.sessionHandler.sessionID,
-	})
-	if err != nil {
-		log.Err(err).Str("reason", reason).Msg("Failed to send extra GET_UPDATES call")
-	} else {
-		log.Debug().Str("reason", reason).Msg("Sent extra GET_UPDATES call")
-	}
+	go func() {
+		err := c.sessionHandler.sendMessageNoResponse(log.WithContext(context.TODO()), SendMessageParams{
+			Action:    gmproto.ActionType_GET_UPDATES,
+			OmitTTL:   true,
+			RequestID: c.sessionHandler.sessionID,
+		})
+		if err != nil {
+			log.Err(err).Str("reason", reason).Msg("Failed to send extra GET_UPDATES call")
+		} else {
+			log.Debug().Str("reason", reason).Msg("Sent extra GET_UPDATES call")
+		}
+	}()
 }
 
 func (c *Client) shouldDoDataReceiveCheck() bool {
@@ -596,7 +598,7 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 			log.Warn().
 				Time("disconnected_at", disconnectedAt).
 				Msg("Long polling was disconnected for a while, requesting updates")
-			go c.requestUpdatesAfterGap(&log, "long polling was disconnected")
+			c.requestUpdatesAfterGap(&log, "long polling was disconnected")
 		}
 		if onFirstConnect != nil {
 			go onFirstConnect()
