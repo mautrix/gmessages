@@ -61,7 +61,7 @@ func (gc *GMConnector) GetCapabilities() *bridgev2.NetworkGeneralCapabilities {
 }
 
 func (gc *GMConnector) GetBridgeInfoVersion() (info, caps int) {
-	return 3, 8
+	return 3, 9
 }
 
 // The phone will compress outgoing media on MMS, so we don't need to limit it
@@ -76,7 +76,7 @@ func supportedIfFFmpeg() event.CapabilitySupportLevel {
 }
 
 func capID(chatType string) string {
-	base := "fi.mau.gmessages.capabilities.2026_11_09." + chatType
+	base := "fi.mau.gmessages.capabilities.2026_11_10." + chatType
 	if ffmpeg.Supported() {
 		return base + "+ffmpeg"
 	}
@@ -159,6 +159,11 @@ var rcsCaps = &event.RoomFeatures{
 	State: event.StateFeatureMap{
 		event.StateRoomName.Type: {Level: event.CapLevelFullySupported},
 	},
+	MemberActions: event.MemberFeatureMap{
+		event.MemberActionInvite: event.CapLevelFullySupported,
+		event.MemberActionKick:   event.CapLevelFullySupported,
+		event.MemberActionLeave:  event.CapLevelFullySupported,
+	},
 	Reply:               event.CapLevelFullySupported,
 	DeleteForMe:         true,
 	Reaction:            event.CapLevelFullySupported,
@@ -218,6 +223,7 @@ func init() {
 	rcsDMCaps = rcsCaps.Clone()
 	rcsDMCaps.ID += "+dm"
 	rcsDMCaps.State = nil
+	rcsDMCaps.MemberActions = nil
 	rcsDMCaps.BlockUser = true
 	rcsDMCaps.ReportSpam = true
 }
