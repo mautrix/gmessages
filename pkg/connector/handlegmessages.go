@@ -403,7 +403,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 }
 
 const (
-	aggressiveSetActiveTakeoverWindow = 1 * time.Hour
+	aggressiveSetActiveTakeoverWindow = 2 * time.Minute
 	maxAggressiveSetActiveBackoff     = 30 * time.Minute
 )
 
