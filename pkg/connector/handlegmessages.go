@@ -363,9 +363,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
+		gc.aggressiveSetActiveStreak.Store(0)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
 		gc.browserInactiveType = GMBrowserInactiveInactivity
 		becameInactive = true
+		gc.aggressiveSetActiveStreak.Store(0)
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
 		gc.mobileData = true
 	case gmproto.AlertType_MOBILE_WIFI_CONNECTION:
