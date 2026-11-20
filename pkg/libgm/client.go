@@ -143,7 +143,6 @@ type updateDedupItem struct {
 }
 
 const DefaultBugleDefaultCheckInterval = 2*time.Hour + 55*time.Minute
-const minBugleDefaultCheckInterval = 1 * time.Hour
 
 type Client struct {
 	Logger         zerolog.Logger
@@ -157,13 +156,11 @@ type Client struct {
 
 	pingInterval             time.Duration
 	alertTimeoutCount        int
-	pingShortCircuit         chan struct{}
+	pingShortCircuit         chan bool
 	phone                    phoneLiveness
 	dataReceiveCheckInterval time.Duration
 	nextDataReceiveCheck     time.Time
 	nextDataReceiveCheckLock sync.Mutex
-	lastBugleDefaultCheck    time.Time
-	bugleDefaultCheckLock    sync.Mutex
 
 	recentUpdates    [8]updateDedupItem
 	recentUpdatesPtr int
@@ -202,7 +199,7 @@ func NewClient(authData *AuthData, pk *PushKeys, logger zerolog.Logger, httpSett
 		http:   httpSettings.Compile(),
 		lphttp: httpSettings.WithGlobalTimeout(30 * time.Minute).Compile(),
 
-		pingShortCircuit:         make(chan struct{}),
+		pingShortCircuit:         make(chan bool),
 		pingInterval:             1 * time.Minute,
 		alertTimeoutCount:        4,
 		dataReceiveCheckInterval: DefaultBugleDefaultCheckInterval,
@@ -333,43 +330,13 @@ func (c *Client) postConnect() {
 		c.triggerEvent(&events.PingFailed{
 			Error: fmt.Errorf("failed to set active session: %w", err),
 		})
-		return
+	} else {
+		c.Logger.Debug().Msg("Sent set active session/get updates request")
 	}
-	c.Logger.Debug().Msg("Sent set active session/get updates request")
-
-	if !c.shouldCheckBugleDefault() {
-		c.Logger.Debug().Msg("Skipping bugle default check, already checked recently")
-		return
+	select {
+	case c.pingShortCircuit <- false:
+	default:
 	}
-	doneChan := make(chan struct{})
-	go func() {
-		select {
-		case <-time.After(5 * time.Second):
-			c.Logger.Warn().Msg("Checking bugle default on connect is taking long")
-			select {
-			case c.pingShortCircuit <- struct{}{}:
-			default:
-			}
-		case <-doneChan:
-		}
-	}()
-	bugleRes, err := c.IsBugleDefault(ctx)
-	close(doneChan)
-	if err != nil {
-		c.Logger.Err(err).Msg("Failed to check bugle default")
-		return
-	}
-	c.Logger.Debug().Bool("bugle_default", bugleRes.Success).Msg("Got is bugle default response on connect")
-}
-
-func (c *Client) shouldCheckBugleDefault() bool {
-	c.bugleDefaultCheckLock.Lock()
-	defer c.bugleDefaultCheckLock.Unlock()
-	if time.Since(c.lastBugleDefaultCheck) < minBugleDefaultCheckInterval {
-		return false
-	}
-	c.lastBugleDefaultCheck = time.Now()
-	return true
 }
 
 func (c *Client) Disconnect() {

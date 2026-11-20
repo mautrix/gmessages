@@ -24,7 +24,6 @@ import (
 )
 
 const defaultPingTimeout = 1 * time.Minute
-const shortPingTimeout = 10 * time.Second
 const minPingInterval = 30 * time.Second
 const initialRecoveryInterval = 1 * time.Minute
 const maxRepingTickerTime = 64 * time.Minute
@@ -45,9 +44,11 @@ type phoneLiveness struct {
 
 	firstPingDone         bool
 	lastPingTime          time.Time
+	pingsInFlight         int
 	timeouts              int
 	sendFails             int
 	notRespondingSent     bool
+	userWaiting           bool
 	recoveryInterval      time.Duration
 	lastRecoveryReconnect time.Time
 
@@ -63,18 +64,19 @@ func (pl *phoneLiveness) onLiveness() (notRespondingSent, wasFailing, needsCatch
 	needsCatchUp = notRespondingSent || pl.timeouts >= setActiveSessionAfterTimeouts
 	pl.firstPingDone = true
 	pl.notRespondingSent = false
+	pl.userWaiting = false
 	pl.timeouts = 0
 	pl.sendFails = 0
 	pl.recoveryInterval = 0
 	return
 }
 
-func (pl *phoneLiveness) onTimeout(alertTimeoutCount int) (timeouts int, sendNotResponding bool) {
+func (pl *phoneLiveness) onTimeout(alertTimeoutCount int, canAlert bool) (timeouts int, sendNotResponding bool) {
 	pl.lock.Lock()
 	defer pl.lock.Unlock()
 	pl.timeouts++
 	timeouts = pl.timeouts
-	alert := !pl.firstPingDone || timeouts >= alertTimeoutCount
+	alert := (canAlert || pl.userWaiting) && (!pl.firstPingDone || timeouts >= alertTimeoutCount)
 	sendNotResponding = alert && !pl.notRespondingSent
 	if sendNotResponding {
 		pl.notRespondingSent = true
@@ -85,11 +87,17 @@ func (pl *phoneLiveness) onTimeout(alertTimeoutCount int) (timeouts int, sendNot
 func (pl *phoneLiveness) shouldMarkNotResponding(alertTimeoutCount int) bool {
 	pl.lock.Lock()
 	defer pl.lock.Unlock()
-	if pl.notRespondingSent || pl.timeouts < alertTimeoutCount {
+	if pl.notRespondingSent || (pl.firstPingDone && pl.timeouts < alertTimeoutCount) {
 		return false
 	}
 	pl.notRespondingSent = true
 	return true
+}
+
+func (pl *phoneLiveness) markUserWaiting() {
+	pl.lock.Lock()
+	pl.userWaiting = true
+	pl.lock.Unlock()
 }
 
 func (pl *phoneLiveness) timeoutCount() int {
@@ -203,12 +211,12 @@ func (dp *dittoPinger) OnRespond(pingID uint64, dur time.Duration, reset *resett
 	reset.Done()
 }
 
-func (dp *dittoPinger) OnTimeout(pingID uint64, urgent bool, reset *resetter) {
-	timeouts, sendNotResponding := dp.client.phone.onTimeout(dp.alertTimeoutCount)
+func (dp *dittoPinger) OnTimeout(pingID uint64, canAlert bool, reset *resetter) {
+	timeouts, sendNotResponding := dp.client.phone.onTimeout(dp.alertTimeoutCount, canAlert)
 	dp.log.Warn().
 		Uint64("ping_id", pingID).
 		Int("timeout_count", timeouts).
-		Bool("urgent", urgent).
+		Bool("can_alert", canAlert).
 		Msg("Ditto ping is taking long, phone may be offline")
 	if sendNotResponding {
 		dp.client.triggerEvent(&events.PhoneNotResponding{})
@@ -221,11 +229,17 @@ type pendingPing struct {
 	requestID string
 	start     time.Time
 	ch        chan *IncomingRPCMessage
+	canAlert  bool
 }
 
 func (dp *dittoPinger) WaitForResponse(ping pendingPing, timeout time.Duration, reset *resetter) {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
+	defer func() {
+		dp.client.phone.lock.Lock()
+		dp.client.phone.pingsInFlight--
+		dp.client.phone.lock.Unlock()
+	}()
 	select {
 	case _, ok := <-ping.ch:
 		if ok {
@@ -233,7 +247,7 @@ func (dp *dittoPinger) WaitForResponse(ping pendingPing, timeout time.Duration, 
 		}
 		return
 	case <-timer.C:
-		dp.OnTimeout(ping.id, timeout == shortPingTimeout, reset)
+		dp.OnTimeout(ping.id, ping.canAlert, reset)
 	case <-reset.C:
 		dp.log.Debug().
 			Uint64("ping_id", ping.id).
@@ -245,19 +259,21 @@ func (dp *dittoPinger) WaitForResponse(ping pendingPing, timeout time.Duration, 
 	dp.client.sessionHandler.cancelResponse(ping.requestID, ping.ch)
 }
 
-func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, reset *resetter) {
+func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, canAlert bool, reset *resetter) {
 	pl := &dp.client.phone
 	pl.lock.Lock()
-	if time.Since(pl.lastPingTime) < minPingInterval {
+	if pl.pingsInFlight > 0 || time.Since(pl.lastPingTime) < minPingInterval {
 		dp.log.Debug().
 			Uint64("ping_id", pingID).
 			Time("last_ping_time", pl.lastPingTime).
+			Int("pings_in_flight", pl.pingsInFlight).
 			Msg("Skipping ping since last one was too recently")
 		pl.lock.Unlock()
 		return
 	}
 	now := time.Now()
 	pl.lastPingTime = now
+	pl.pingsInFlight++
 	pl.lock.Unlock()
 
 	// Publish the generation only for pings that are actually sent, so data from the phone
@@ -267,6 +283,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, reset *resette
 	pingChan, requestID, err := dp.client.notifyDittoActivity(dp.ctx)
 	if err != nil {
 		pl.lock.Lock()
+		pl.pingsInFlight--
 		pl.sendFails++
 		sendFails := pl.sendFails
 		pl.lock.Unlock()
@@ -282,6 +299,7 @@ func (dp *dittoPinger) Ping(pingID uint64, timeout time.Duration, reset *resette
 		requestID: requestID,
 		start:     now,
 		ch:        pingChan,
+		canAlert:  canAlert,
 	}, timeout, reset)
 }
 
@@ -302,6 +320,7 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 	defer dp.recovering.Store(false)
 	pl := &dp.client.phone
 	didSetActiveSession := false
+	sentPing := false
 	for {
 		select {
 		case <-time.After(pl.getRecoveryInterval()):
@@ -325,7 +344,7 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 		}
 		reconnected := false
 		switch {
-		case timeouts >= reconnectAfterTimeouts && pl.canDoRecovery():
+		case timeouts >= reconnectAfterTimeouts && sentPing && pl.canDoRecovery():
 			dp.log.Warn().
 				Int("timeout_count", timeouts).
 				Msg("Phone hasn't responded to pings, reconnecting to get a new listener session")
@@ -353,18 +372,19 @@ func (dp *dittoPinger) recoveryLoop(reset *resetter) {
 			Uint64("ping_id", pingID).
 			Int("timeout_count", timeouts).
 			Msg("Sending recovery ping")
-		dp.Ping(pingID, defaultPingTimeout, reset)
+		dp.Ping(pingID, defaultPingTimeout, true, reset)
+		sentPing = true
 	}
 }
 
 func (dp *dittoPinger) Loop() {
 	for {
 		select {
-		case <-dp.client.pingShortCircuit:
+		case userWaiting := <-dp.client.pingShortCircuit:
 			if dp.recovering.Load() {
 				// Recovery pings are already in flight, but the user is actively waiting
 				// for a request, so don't make them wait out the backoff for a notice.
-				if dp.client.phone.shouldMarkNotResponding(dp.alertTimeoutCount) {
+				if userWaiting && dp.client.phone.shouldMarkNotResponding(dp.alertTimeoutCount) {
 					dp.log.Debug().Msg("Ditto ping wait short-circuited during recovery, sending PhoneNotResponding immediately")
 					dp.client.triggerEvent(&events.PhoneNotResponding{})
 				} else {
@@ -373,7 +393,7 @@ func (dp *dittoPinger) Loop() {
 			} else {
 				pingID := pingIDCounter.Add(1)
 				dp.log.Debug().Uint64("ping_id", pingID).Msg("Ditto ping wait short-circuited")
-				dp.Ping(pingID, shortPingTimeout, newResetter())
+				dp.Ping(pingID, defaultPingTimeout, userWaiting, newResetter())
 			}
 		case <-time.After(dp.pingInterval):
 			if dp.recovering.Load() {
@@ -381,7 +401,7 @@ func (dp *dittoPinger) Loop() {
 			} else {
 				pingID := pingIDCounter.Add(1)
 				dp.log.Trace().Uint64("ping_id", pingID).Msg("Doing normal ditto ping")
-				dp.Ping(pingID, defaultPingTimeout, newResetter())
+				dp.Ping(pingID, defaultPingTimeout, true, newResetter())
 			}
 		case <-dp.stop:
 			return
