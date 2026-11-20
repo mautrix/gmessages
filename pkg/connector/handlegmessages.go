@@ -482,6 +482,9 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)
+	case errors.Is(err, libgm.ErrPairingPermissionDenied):
+		state.Error = GMUnpaired403
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		if isWorkspaceEmail(gc.Meta.Session.Mobile.GetSourceID()) {
