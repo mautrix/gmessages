@@ -568,7 +568,7 @@ func (c *Client) cancelGaiaPairing(ctx context.Context, sess *PairingSession) er
 func (c *Client) sendGaiaPairingMessage(ctx context.Context, sess *PairingSession, action gmproto.ActionType, msg []byte) (*gmproto.GaiaPairingResponseContainer, error) {
 	reqContainer := &gmproto.GaiaPairingRequestContainer{
 		PairingAttemptID: sess.UUID.String(),
-		BrowserDetails:   util.BrowserDetailsMessage,
+		BrowserDetails:   c.BrowserDetails,
 		StartTimestamp:   sess.Start.UnixMilli(),
 		Data:             msg,
 	}

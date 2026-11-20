@@ -99,7 +99,7 @@ func (c *Client) RegisterPhoneRelay() (*gmproto.RegisterPhoneRelayResponse, erro
 			Network:       util.QRNetwork,
 			ConfigVersion: util.ConfigMessage,
 		},
-		BrowserDetails: util.BrowserDetailsMessage,
+		BrowserDetails: c.BrowserDetails,
 		Data: &gmproto.AuthenticationContainer_KeyData{
 			KeyData: &gmproto.KeyData{
 				EcdsaKeys: &gmproto.ECDSAKeys{

@@ -226,6 +226,7 @@ func (gc *GMClient) NewClient() {
 			gc.UserLogin.Log.With().Str("component", "libgm").Logger(),
 			gc.Main.br.GetHTTPClientSettings(),
 		)
+		gc.Client.BrowserDetails = gc.Main.browserDetails
 		gc.Client.SetPingInterval(gc.Main.Config.PingInterval)
 		gc.Client.SetAlertTimeoutCount(gc.Main.Config.AlertTimeoutCount)
 		gc.Client.SetDataReceiveCheckInterval(gc.Main.Config.DataReceiveCheckInterval)
