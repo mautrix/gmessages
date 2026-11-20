@@ -64,8 +64,12 @@ func (gc *GMClient) GetChatInfo(ctx context.Context, portal *bridgev2.Portal) (*
 	}
 	gc.chatInfoCache.Set(conversationID, conv)
 	switch conv.GetStatus() {
-	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+	case gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 		return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
+	case gmproto.ConversationStatus_SPAM_FOLDER:
+		if portal.MXID == "" {
+			return nil, fmt.Errorf("conversation is in a blocked status: %s", conv.GetStatus())
+		}
 	}
 	return gc.wrapChatInfo(ctx, conv)
 }
@@ -177,8 +181,12 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 	var tag event.RoomTag
 	if conv.Pinned {
 		tag = event.RoomTagFavourite
-	} else if conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED {
+	} else if conv.Status == gmproto.ConversationStatus_ARCHIVED || conv.Status == gmproto.ConversationStatus_KEEP_ARCHIVED || conv.Status == gmproto.ConversationStatus_SPAM_FOLDER {
 		tag = event.RoomTagLowPriority
+	}
+	mutedUntil := bridgev2.Unmuted
+	if conv.Status == gmproto.ConversationStatus_SPAM_FOLDER {
+		mutedUntil = event.MutedForever
 	}
 	var avatar *bridgev2.Avatar
 	if conv.GroupAvatarURL != "" {
@@ -191,7 +199,8 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		Type:        &roomType,
 		Avatar:      avatar,
 		UserLocal: &bridgev2.UserLocalPortalInfo{
-			Tag: &tag,
+			Tag:        &tag,
+			MutedUntil: &mutedUntil,
 		},
 		CanBackfill: true,
 		ExtraUpdates: func(ctx context.Context, portal *bridgev2.Portal) (changed bool) {
