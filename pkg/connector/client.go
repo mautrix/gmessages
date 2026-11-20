@@ -74,6 +74,7 @@ type GMClient struct {
 
 	lastAggressiveSetActive   atomic.Int64
 	aggressiveSetActiveStreak atomic.Int32
+	aggressiveSetActiveGen    atomic.Uint64
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
@@ -208,6 +209,7 @@ func (gc *GMClient) Disconnect() {
 	gc.browserInactiveType = ""
 	gc.lastAggressiveSetActive.Store(0)
 	gc.aggressiveSetActiveStreak.Store(0)
+	gc.aggressiveSetActiveGen.Add(1)
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
 	}

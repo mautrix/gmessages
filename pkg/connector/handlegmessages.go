@@ -408,6 +408,7 @@ const (
 )
 
 func (gc *GMClient) aggressiveSetActive(takeoverStreak int) {
+	gen := gc.aggressiveSetActiveGen.Add(1)
 	sleepTimes := []time.Duration{5 * time.Second, 10 * time.Second, 30 * time.Second}
 	if takeoverStreak > 0 {
 		sleepTimes[0] = min(sleepTimes[0]<<min(takeoverStreak, 10), maxAggressiveSetActiveBackoff)
@@ -421,6 +422,9 @@ func (gc *GMClient) aggressiveSetActive(takeoverStreak int) {
 			Int("sleep_seconds", int(sleep.Seconds())).
 			Msg("Aggressively reactivating bridge session after sleep")
 		time.Sleep(sleep)
+		if gc.aggressiveSetActiveGen.Load() != gen {
+			return
+		}
 		if gc.browserInactiveType == "" {
 			gc.UserLogin.Log.Info().Msg("Bridge session became active on its own, not reactivating")
 			return
