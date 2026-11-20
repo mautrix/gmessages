@@ -207,7 +207,7 @@ message Conversation {
     bool subType = 24;
     bool pinned = 26;
     settings.SIMParticipant simParticipantMaybe = 27;
-    int64 unknownTimestamp = 28; // set to lastMessageTimestamp + 1000 when marking as unread?
+    int64 markedUnreadTimestamp = 28;
     bool thirdType = 29;
     // index 30 has an unknown int or bool
     SomeKindOfGroupID someKindOfGroupID = 31;
