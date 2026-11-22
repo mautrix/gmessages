@@ -56,7 +56,7 @@ const (
 	pairingErrMsgPhoneInactive      = "Google Messages on your phone hasn't connected to this Google account recently. Open Google Messages on your phone, tap your profile picture, then Device pairing, and make sure it's signed in with the same Google account. Then try again."
 	pairingErrMsgPhoneNotFound      = "Your phone isn't ready for pairing. Open Google Messages on your phone, then try again. If you switched to a different phone, remove this account and add it again."
 	pairingErrMsgIncorrectEmoji     = "Incorrect emoji chosen on phone, please try again"
-	pairingErrMsgCallerNoPermission = "Google blocked pairing for this account, which usually happens with Google Workspace and supervised accounts. Try signing in with a personal Google account instead."
+	pairingErrMsgCallerNoPermission = "Google didn't allow this account to pair with Google Messages for Web. This can happen with Google Workspace and supervised accounts, so try signing in with a personal Google account instead."
 	pairingErrMsgCancelled          = "Pairing cancelled on phone"
 	pairingErrMsgTimeout            = "Pairing timed out, please try again"
 	pairingErrMsgQRTimeout          = "Scanning QR code timed out, please try again"
