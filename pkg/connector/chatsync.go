@@ -398,8 +398,7 @@ func (gc *GMClient) trackQueuedMessage(convID, msgID string) {
 	defer gc.conversationMetaLock.Unlock()
 	meta, ok := gc.conversationMeta[convID]
 	if !ok {
-		meta = &conversationMeta{}
-		gc.conversationMeta[convID] = meta
+		return
 	}
 	if meta.queuedMessageGen != gen {
 		meta.queuedMessages = meta.queuedMessages[:0]
@@ -742,7 +741,7 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID))
 	if !needsBackfill {
 		return false, nil
-	} else if evt.OnlyBackfill && latestMessage != nil && evt.g.latestMessagesWereQueued(evt.Conv, latestMessage) {
+	} else if evt.OnlyBackfill && evt.meta != nil && latestMessage != nil && evt.g.latestMessagesWereQueued(evt.Conv, latestMessage) {
 		// Both the newest bridged message and the chat's latest message were pushed without a gap
 		// in between, so everything after the bridged one is already queued behind other events.
 		// Fetching would block the portal until the phone answers, and the queued events bridge

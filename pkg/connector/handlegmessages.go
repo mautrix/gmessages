@@ -320,6 +320,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	}
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
+		gc.pushStreamGen.Add(1)
 		gc.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
@@ -361,9 +362,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		log.Debug().Msg("Making minimal sync due to mobile database sync complete event")
 		go gc.SyncConversations(ctx, gc.lastDataReceived, true)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
+		gc.pushStreamGen.Add(1)
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
+		gc.pushStreamGen.Add(1)
 		gc.browserInactiveType = GMBrowserInactiveInactivity
 		becameInactive = true
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
@@ -383,6 +386,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			gc.batteryLowAlertSent = time.Time{}
 		}
 	case gmproto.AlertType_PUSH_THROTTLE_STARTED:
+		gc.pushStreamGen.Add(1)
 		gc.pushThrottled.Store(true)
 		return
 	case gmproto.AlertType_PUSH_THROTTLE_ENDED:
