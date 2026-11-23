@@ -48,6 +48,7 @@ const (
 	GMBrowserInactiveInactivity status.BridgeStateErrorCode = "gm-browser-inactive-inactivity"
 	GMPhoneNotResponding        status.BridgeStateErrorCode = "gm-phone-not-responding"
 	GMSwitchedToGoogleLogin     status.BridgeStateErrorCode = "gm-switched-to-google-login"
+	GMPairedPhoneGone           status.BridgeStateErrorCode = "gm-paired-phone-gone"
 )
 
 func init() {
@@ -73,6 +74,7 @@ func init() {
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
 		GMPhoneNotResponding:        PhoneNotRespondingMessage,
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
+		GMPairedPhoneGone:           "Google Messages on your phone was reset or moved to another phone, please re-link the connection to continue using SMS/RCS",
 	})
 }
 

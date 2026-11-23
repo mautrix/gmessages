@@ -1360,6 +1360,7 @@ type Message struct {
 	MessageInfo       []*MessageInfo         `protobuf:"bytes,10,rep,name=messageInfo,proto3" json:"messageInfo,omitempty"`
 	Type              int64                  `protobuf:"varint,11,opt,name=type,proto3" json:"type,omitempty"` // 1 = sms, 2 = downloaded mms, 3 = undownloaded mms, 4 = rcs?
 	TmpID             string                 `protobuf:"bytes,12,opt,name=tmpID,proto3" json:"tmpID,omitempty"`
+	LinkPreview       *LinkPreview           `protobuf:"bytes,13,opt,name=linkPreview,proto3" json:"linkPreview,omitempty"`
 	Subject           *string                `protobuf:"bytes,14,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
 	SomeInt           int64                  `protobuf:"varint,16,opt,name=someInt,proto3" json:"someInt,omitempty"`
 	Reactions         []*ReactionEntry       `protobuf:"bytes,19,rep,name=reactions,proto3" json:"reactions,omitempty"`
@@ -1464,6 +1465,13 @@ func (x *Message) GetTmpID() string {
 	return ""
 }
 
+func (x *Message) GetLinkPreview() *LinkPreview {
+	if x != nil {
+		return x.LinkPreview
+	}
+	return nil
+}
+
 func (x *Message) GetSubject() string {
 	if x != nil && x.Subject != nil {
 		return *x.Subject
@@ -1513,6 +1521,82 @@ func (x *Message) GetSenderParticipant() *Participant {
 	return nil
 }
 
+type LinkPreview struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	URL           string                 `protobuf:"bytes,1,opt,name=URL,proto3" json:"URL,omitempty"`
+	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	ImageURL      string                 `protobuf:"bytes,5,opt,name=imageURL,proto3" json:"imageURL,omitempty"`
+	Domain        string                 `protobuf:"bytes,6,opt,name=domain,proto3" json:"domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LinkPreview) Reset() {
+	*x = LinkPreview{}
+	mi := &file_conversations_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkPreview) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkPreview) ProtoMessage() {}
+
+func (x *LinkPreview) ProtoReflect() protoreflect.Message {
+	mi := &file_conversations_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkPreview.ProtoReflect.Descriptor instead.
+func (*LinkPreview) Descriptor() ([]byte, []int) {
+	return file_conversations_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LinkPreview) GetURL() string {
+	if x != nil {
+		return x.URL
+	}
+	return ""
+}
+
+func (x *LinkPreview) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *LinkPreview) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LinkPreview) GetImageURL() string {
+	if x != nil {
+		return x.ImageURL
+	}
+	return ""
+}
+
+func (x *LinkPreview) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
 type ReactionEntry struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Data           *ReactionData          `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
@@ -1523,7 +1607,7 @@ type ReactionEntry struct {
 
 func (x *ReactionEntry) Reset() {
 	*x = ReactionEntry{}
-	mi := &file_conversations_proto_msgTypes[6]
+	mi := &file_conversations_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1535,7 +1619,7 @@ func (x *ReactionEntry) String() string {
 func (*ReactionEntry) ProtoMessage() {}
 
 func (x *ReactionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[6]
+	mi := &file_conversations_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1548,7 +1632,7 @@ func (x *ReactionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactionEntry.ProtoReflect.Descriptor instead.
 func (*ReactionEntry) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{6}
+	return file_conversations_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReactionEntry) GetData() *ReactionData {
@@ -1576,7 +1660,7 @@ type CustomEmojiData struct {
 
 func (x *CustomEmojiData) Reset() {
 	*x = CustomEmojiData{}
-	mi := &file_conversations_proto_msgTypes[7]
+	mi := &file_conversations_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1588,7 +1672,7 @@ func (x *CustomEmojiData) String() string {
 func (*CustomEmojiData) ProtoMessage() {}
 
 func (x *CustomEmojiData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[7]
+	mi := &file_conversations_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1601,7 +1685,7 @@ func (x *CustomEmojiData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomEmojiData.ProtoReflect.Descriptor instead.
 func (*CustomEmojiData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{7}
+	return file_conversations_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CustomEmojiData) GetUuid() string {
@@ -1636,7 +1720,7 @@ type ReactionData struct {
 
 func (x *ReactionData) Reset() {
 	*x = ReactionData{}
-	mi := &file_conversations_proto_msgTypes[8]
+	mi := &file_conversations_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1648,7 +1732,7 @@ func (x *ReactionData) String() string {
 func (*ReactionData) ProtoMessage() {}
 
 func (x *ReactionData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[8]
+	mi := &file_conversations_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1661,7 +1745,7 @@ func (x *ReactionData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReactionData.ProtoReflect.Descriptor instead.
 func (*ReactionData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{8}
+	return file_conversations_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ReactionData) GetUnicode() string {
@@ -1694,7 +1778,7 @@ type EmojiMeta struct {
 
 func (x *EmojiMeta) Reset() {
 	*x = EmojiMeta{}
-	mi := &file_conversations_proto_msgTypes[9]
+	mi := &file_conversations_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1706,7 +1790,7 @@ func (x *EmojiMeta) String() string {
 func (*EmojiMeta) ProtoMessage() {}
 
 func (x *EmojiMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[9]
+	mi := &file_conversations_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1719,7 +1803,7 @@ func (x *EmojiMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmojiMeta.ProtoReflect.Descriptor instead.
 func (*EmojiMeta) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{9}
+	return file_conversations_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EmojiMeta) GetEmojiMetaData() []*EmojiMetaData {
@@ -1739,7 +1823,7 @@ type EmojiMetaData struct {
 
 func (x *EmojiMetaData) Reset() {
 	*x = EmojiMetaData{}
-	mi := &file_conversations_proto_msgTypes[10]
+	mi := &file_conversations_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1751,7 +1835,7 @@ func (x *EmojiMetaData) String() string {
 func (*EmojiMetaData) ProtoMessage() {}
 
 func (x *EmojiMetaData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[10]
+	mi := &file_conversations_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1764,7 +1848,7 @@ func (x *EmojiMetaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmojiMetaData.ProtoReflect.Descriptor instead.
 func (*EmojiMetaData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{10}
+	return file_conversations_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *EmojiMetaData) GetUnicode() string {
@@ -1792,7 +1876,7 @@ type ReplyMessage struct {
 
 func (x *ReplyMessage) Reset() {
 	*x = ReplyMessage{}
-	mi := &file_conversations_proto_msgTypes[11]
+	mi := &file_conversations_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1804,7 +1888,7 @@ func (x *ReplyMessage) String() string {
 func (*ReplyMessage) ProtoMessage() {}
 
 func (x *ReplyMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[11]
+	mi := &file_conversations_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1817,7 +1901,7 @@ func (x *ReplyMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyMessage.ProtoReflect.Descriptor instead.
 func (*ReplyMessage) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{11}
+	return file_conversations_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ReplyMessage) GetMessageID() string {
@@ -1849,7 +1933,7 @@ type ReplyMessageData struct {
 
 func (x *ReplyMessageData) Reset() {
 	*x = ReplyMessageData{}
-	mi := &file_conversations_proto_msgTypes[12]
+	mi := &file_conversations_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1861,7 +1945,7 @@ func (x *ReplyMessageData) String() string {
 func (*ReplyMessageData) ProtoMessage() {}
 
 func (x *ReplyMessageData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[12]
+	mi := &file_conversations_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1874,7 +1958,7 @@ func (x *ReplyMessageData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyMessageData.ProtoReflect.Descriptor instead.
 func (*ReplyMessageData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{12}
+	return file_conversations_proto_rawDescGZIP(), []int{13}
 }
 
 type MessageInfo struct {
@@ -1892,7 +1976,7 @@ type MessageInfo struct {
 
 func (x *MessageInfo) Reset() {
 	*x = MessageInfo{}
-	mi := &file_conversations_proto_msgTypes[13]
+	mi := &file_conversations_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1904,7 +1988,7 @@ func (x *MessageInfo) String() string {
 func (*MessageInfo) ProtoMessage() {}
 
 func (x *MessageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[13]
+	mi := &file_conversations_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1917,7 +2001,7 @@ func (x *MessageInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageInfo.ProtoReflect.Descriptor instead.
 func (*MessageInfo) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{13}
+	return file_conversations_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *MessageInfo) GetActionMessageID() string {
@@ -1993,7 +2077,7 @@ type LocationContent struct {
 
 func (x *LocationContent) Reset() {
 	*x = LocationContent{}
-	mi := &file_conversations_proto_msgTypes[14]
+	mi := &file_conversations_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2005,7 +2089,7 @@ func (x *LocationContent) String() string {
 func (*LocationContent) ProtoMessage() {}
 
 func (x *LocationContent) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[14]
+	mi := &file_conversations_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2018,7 +2102,7 @@ func (x *LocationContent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocationContent.ProtoReflect.Descriptor instead.
 func (*LocationContent) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{14}
+	return file_conversations_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *LocationContent) GetMediaContent() *MediaContent {
@@ -2053,7 +2137,7 @@ type MediaContent struct {
 
 func (x *MediaContent) Reset() {
 	*x = MediaContent{}
-	mi := &file_conversations_proto_msgTypes[15]
+	mi := &file_conversations_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2065,7 +2149,7 @@ func (x *MediaContent) String() string {
 func (*MediaContent) ProtoMessage() {}
 
 func (x *MediaContent) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[15]
+	mi := &file_conversations_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2078,7 +2162,7 @@ func (x *MediaContent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaContent.ProtoReflect.Descriptor instead.
 func (*MediaContent) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{15}
+	return file_conversations_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *MediaContent) GetFormat() MediaFormats {
@@ -2161,7 +2245,7 @@ type Dimensions struct {
 
 func (x *Dimensions) Reset() {
 	*x = Dimensions{}
-	mi := &file_conversations_proto_msgTypes[16]
+	mi := &file_conversations_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2173,7 +2257,7 @@ func (x *Dimensions) String() string {
 func (*Dimensions) ProtoMessage() {}
 
 func (x *Dimensions) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[16]
+	mi := &file_conversations_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2186,7 +2270,7 @@ func (x *Dimensions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dimensions.ProtoReflect.Descriptor instead.
 func (*Dimensions) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{16}
+	return file_conversations_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Dimensions) GetWidth() int64 {
@@ -2212,7 +2296,7 @@ type MessageContent struct {
 
 func (x *MessageContent) Reset() {
 	*x = MessageContent{}
-	mi := &file_conversations_proto_msgTypes[17]
+	mi := &file_conversations_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2224,7 +2308,7 @@ func (x *MessageContent) String() string {
 func (*MessageContent) ProtoMessage() {}
 
 func (x *MessageContent) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[17]
+	mi := &file_conversations_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2237,7 +2321,7 @@ func (x *MessageContent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageContent.ProtoReflect.Descriptor instead.
 func (*MessageContent) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{17}
+	return file_conversations_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *MessageContent) GetContent() string {
@@ -2256,7 +2340,7 @@ type MsgType struct {
 
 func (x *MsgType) Reset() {
 	*x = MsgType{}
-	mi := &file_conversations_proto_msgTypes[18]
+	mi := &file_conversations_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2268,7 +2352,7 @@ func (x *MsgType) String() string {
 func (*MsgType) ProtoMessage() {}
 
 func (x *MsgType) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[18]
+	mi := &file_conversations_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2281,7 +2365,7 @@ func (x *MsgType) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MsgType.ProtoReflect.Descriptor instead.
 func (*MsgType) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{18}
+	return file_conversations_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *MsgType) GetType() int64 {
@@ -2304,7 +2388,7 @@ type MessageStatus struct {
 
 func (x *MessageStatus) Reset() {
 	*x = MessageStatus{}
-	mi := &file_conversations_proto_msgTypes[19]
+	mi := &file_conversations_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2316,7 +2400,7 @@ func (x *MessageStatus) String() string {
 func (*MessageStatus) ProtoMessage() {}
 
 func (x *MessageStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[19]
+	mi := &file_conversations_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2329,7 +2413,7 @@ func (x *MessageStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageStatus.ProtoReflect.Descriptor instead.
 func (*MessageStatus) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{19}
+	return file_conversations_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MessageStatus) GetStatus() MessageStatusType {
@@ -2404,7 +2488,7 @@ type Conversation struct {
 
 func (x *Conversation) Reset() {
 	*x = Conversation{}
-	mi := &file_conversations_proto_msgTypes[20]
+	mi := &file_conversations_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2416,7 +2500,7 @@ func (x *Conversation) String() string {
 func (*Conversation) ProtoMessage() {}
 
 func (x *Conversation) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[20]
+	mi := &file_conversations_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2429,7 +2513,7 @@ func (x *Conversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conversation.ProtoReflect.Descriptor instead.
 func (*Conversation) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{20}
+	return file_conversations_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Conversation) GetConversationID() string {
@@ -2624,7 +2708,7 @@ type EncryptionInfo struct {
 
 func (x *EncryptionInfo) Reset() {
 	*x = EncryptionInfo{}
-	mi := &file_conversations_proto_msgTypes[21]
+	mi := &file_conversations_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2636,7 +2720,7 @@ func (x *EncryptionInfo) String() string {
 func (*EncryptionInfo) ProtoMessage() {}
 
 func (x *EncryptionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[21]
+	mi := &file_conversations_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2649,7 +2733,7 @@ func (x *EncryptionInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptionInfo.ProtoReflect.Descriptor instead.
 func (*EncryptionInfo) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{21}
+	return file_conversations_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *EncryptionInfo) GetSupportedProtocols() []EncryptionProtocol {
@@ -2676,7 +2760,7 @@ type EncryptionReadiness struct {
 
 func (x *EncryptionReadiness) Reset() {
 	*x = EncryptionReadiness{}
-	mi := &file_conversations_proto_msgTypes[22]
+	mi := &file_conversations_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2688,7 +2772,7 @@ func (x *EncryptionReadiness) String() string {
 func (*EncryptionReadiness) ProtoMessage() {}
 
 func (x *EncryptionReadiness) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[22]
+	mi := &file_conversations_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2701,7 +2785,7 @@ func (x *EncryptionReadiness) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptionReadiness.ProtoReflect.Descriptor instead.
 func (*EncryptionReadiness) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{22}
+	return file_conversations_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *EncryptionReadiness) GetIsReady() bool {
@@ -2738,7 +2822,7 @@ type Participant struct {
 
 func (x *Participant) Reset() {
 	*x = Participant{}
-	mi := &file_conversations_proto_msgTypes[23]
+	mi := &file_conversations_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2750,7 +2834,7 @@ func (x *Participant) String() string {
 func (*Participant) ProtoMessage() {}
 
 func (x *Participant) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[23]
+	mi := &file_conversations_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2763,7 +2847,7 @@ func (x *Participant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Participant.ProtoReflect.Descriptor instead.
 func (*Participant) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{23}
+	return file_conversations_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Participant) GetID() *SmallInfo {
@@ -2861,7 +2945,7 @@ type SmallInfo struct {
 
 func (x *SmallInfo) Reset() {
 	*x = SmallInfo{}
-	mi := &file_conversations_proto_msgTypes[24]
+	mi := &file_conversations_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2873,7 +2957,7 @@ func (x *SmallInfo) String() string {
 func (*SmallInfo) ProtoMessage() {}
 
 func (x *SmallInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[24]
+	mi := &file_conversations_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2886,7 +2970,7 @@ func (x *SmallInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SmallInfo.ProtoReflect.Descriptor instead.
 func (*SmallInfo) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{24}
+	return file_conversations_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SmallInfo) GetType() IdentifierType {
@@ -2922,7 +3006,7 @@ type LatestMessage struct {
 
 func (x *LatestMessage) Reset() {
 	*x = LatestMessage{}
-	mi := &file_conversations_proto_msgTypes[25]
+	mi := &file_conversations_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2934,7 +3018,7 @@ func (x *LatestMessage) String() string {
 func (*LatestMessage) ProtoMessage() {}
 
 func (x *LatestMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[25]
+	mi := &file_conversations_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2947,7 +3031,7 @@ func (x *LatestMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatestMessage.ProtoReflect.Descriptor instead.
 func (*LatestMessage) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{25}
+	return file_conversations_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *LatestMessage) GetDisplayContent() string {
@@ -2988,7 +3072,7 @@ type LatestMessageStatus struct {
 
 func (x *LatestMessageStatus) Reset() {
 	*x = LatestMessageStatus{}
-	mi := &file_conversations_proto_msgTypes[26]
+	mi := &file_conversations_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3000,7 +3084,7 @@ func (x *LatestMessageStatus) String() string {
 func (*LatestMessageStatus) ProtoMessage() {}
 
 func (x *LatestMessageStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[26]
+	mi := &file_conversations_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3013,7 +3097,7 @@ func (x *LatestMessageStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatestMessageStatus.ProtoReflect.Descriptor instead.
 func (*LatestMessageStatus) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{26}
+	return file_conversations_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *LatestMessageStatus) GetStatus2() int64 {
@@ -3039,7 +3123,7 @@ type Muted struct {
 
 func (x *Muted) Reset() {
 	*x = Muted{}
-	mi := &file_conversations_proto_msgTypes[27]
+	mi := &file_conversations_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3051,7 +3135,7 @@ func (x *Muted) String() string {
 func (*Muted) ProtoMessage() {}
 
 func (x *Muted) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[27]
+	mi := &file_conversations_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3064,7 +3148,7 @@ func (x *Muted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Muted.ProtoReflect.Descriptor instead.
 func (*Muted) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{27}
+	return file_conversations_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Muted) GetIsMuted() int64 {
@@ -3084,7 +3168,7 @@ type SomeKindOfGroupID_NestedID struct {
 
 func (x *SomeKindOfGroupID_NestedID) Reset() {
 	*x = SomeKindOfGroupID_NestedID{}
-	mi := &file_conversations_proto_msgTypes[28]
+	mi := &file_conversations_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3096,7 +3180,7 @@ func (x *SomeKindOfGroupID_NestedID) String() string {
 func (*SomeKindOfGroupID_NestedID) ProtoMessage() {}
 
 func (x *SomeKindOfGroupID_NestedID) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[28]
+	mi := &file_conversations_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3137,7 +3221,7 @@ type CustomEmojiData_Inner struct {
 
 func (x *CustomEmojiData_Inner) Reset() {
 	*x = CustomEmojiData_Inner{}
-	mi := &file_conversations_proto_msgTypes[29]
+	mi := &file_conversations_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3149,7 +3233,7 @@ func (x *CustomEmojiData_Inner) String() string {
 func (*CustomEmojiData_Inner) ProtoMessage() {}
 
 func (x *CustomEmojiData_Inner) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[29]
+	mi := &file_conversations_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3162,7 +3246,7 @@ func (x *CustomEmojiData_Inner) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomEmojiData_Inner.ProtoReflect.Descriptor instead.
 func (*CustomEmojiData_Inner) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{7, 0}
+	return file_conversations_proto_rawDescGZIP(), []int{8, 0}
 }
 
 func (x *CustomEmojiData_Inner) GetUnknownString() string {
@@ -3198,7 +3282,7 @@ type CustomEmojiData_Inner_ImageData struct {
 
 func (x *CustomEmojiData_Inner_ImageData) Reset() {
 	*x = CustomEmojiData_Inner_ImageData{}
-	mi := &file_conversations_proto_msgTypes[30]
+	mi := &file_conversations_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3210,7 +3294,7 @@ func (x *CustomEmojiData_Inner_ImageData) String() string {
 func (*CustomEmojiData_Inner_ImageData) ProtoMessage() {}
 
 func (x *CustomEmojiData_Inner_ImageData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[30]
+	mi := &file_conversations_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3223,7 +3307,7 @@ func (x *CustomEmojiData_Inner_ImageData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomEmojiData_Inner_ImageData.ProtoReflect.Descriptor instead.
 func (*CustomEmojiData_Inner_ImageData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{7, 0, 0}
+	return file_conversations_proto_rawDescGZIP(), []int{8, 0, 0}
 }
 
 func (x *CustomEmojiData_Inner_ImageData) GetMimeType() string {
@@ -3263,7 +3347,7 @@ type CustomEmojiData_Inner_WrappedImageData struct {
 
 func (x *CustomEmojiData_Inner_WrappedImageData) Reset() {
 	*x = CustomEmojiData_Inner_WrappedImageData{}
-	mi := &file_conversations_proto_msgTypes[31]
+	mi := &file_conversations_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3275,7 +3359,7 @@ func (x *CustomEmojiData_Inner_WrappedImageData) String() string {
 func (*CustomEmojiData_Inner_WrappedImageData) ProtoMessage() {}
 
 func (x *CustomEmojiData_Inner_WrappedImageData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[31]
+	mi := &file_conversations_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3288,7 +3372,7 @@ func (x *CustomEmojiData_Inner_WrappedImageData) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use CustomEmojiData_Inner_WrappedImageData.ProtoReflect.Descriptor instead.
 func (*CustomEmojiData_Inner_WrappedImageData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{7, 0, 1}
+	return file_conversations_proto_rawDescGZIP(), []int{8, 0, 1}
 }
 
 func (x *CustomEmojiData_Inner_WrappedImageData) GetData() *CustomEmojiData_Inner_WrappedImageData_ImageData {
@@ -3312,7 +3396,7 @@ type CustomEmojiData_Inner_WrappedImageData_ImageData struct {
 
 func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) Reset() {
 	*x = CustomEmojiData_Inner_WrappedImageData_ImageData{}
-	mi := &file_conversations_proto_msgTypes[32]
+	mi := &file_conversations_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3324,7 +3408,7 @@ func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) String() string {
 func (*CustomEmojiData_Inner_WrappedImageData_ImageData) ProtoMessage() {}
 
 func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) ProtoReflect() protoreflect.Message {
-	mi := &file_conversations_proto_msgTypes[32]
+	mi := &file_conversations_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3337,7 +3421,7 @@ func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) ProtoReflect() protor
 
 // Deprecated: Use CustomEmojiData_Inner_WrappedImageData_ImageData.ProtoReflect.Descriptor instead.
 func (*CustomEmojiData_Inner_WrappedImageData_ImageData) Descriptor() ([]byte, []int) {
-	return file_conversations_proto_rawDescGZIP(), []int{7, 0, 1, 0}
+	return file_conversations_proto_rawDescGZIP(), []int{8, 0, 1, 0}
 }
 
 func (x *CustomEmojiData_Inner_WrappedImageData_ImageData) GetUnknownInt1() int32 {
@@ -3414,7 +3498,7 @@ const file_conversations_proto_rawDesc = "" +
 	"\tanotherID\x18\x02 \x01(\tR\tanotherID\"r\n" +
 	"\x1dAnotherLatestMessageReference\x12/\n" +
 	"\x02id\x18\x01 \x01(\v2\x1f.conversations.AnotherMessageIDR\x02id\x12 \n" +
-	"\vtimestampMS\x18\x02 \x01(\x03R\vtimestampMS\"\x9a\x06\n" +
+	"\vtimestampMS\x18\x02 \x01(\x03R\vtimestampMS\"\xd8\x06\n" +
 	"\aMessage\x12\x1c\n" +
 	"\tmessageID\x18\x01 \x01(\tR\tmessageID\x120\n" +
 	"\amsgType\x18\x03 \x01(\v2\x16.conversations.MsgTypeR\amsgType\x12B\n" +
@@ -3425,7 +3509,8 @@ const file_conversations_proto_rawDesc = "" +
 	"\vmessageInfo\x18\n" +
 	" \x03(\v2\x1a.conversations.MessageInfoR\vmessageInfo\x12\x12\n" +
 	"\x04type\x18\v \x01(\x03R\x04type\x12\x14\n" +
-	"\x05tmpID\x18\f \x01(\tR\x05tmpID\x12\x1d\n" +
+	"\x05tmpID\x18\f \x01(\tR\x05tmpID\x12<\n" +
+	"\vlinkPreview\x18\r \x01(\v2\x1a.conversations.LinkPreviewR\vlinkPreview\x12\x1d\n" +
 	"\asubject\x18\x0e \x01(\tH\x00R\asubject\x88\x01\x01\x12\x18\n" +
 	"\asomeInt\x18\x10 \x01(\x03R\asomeInt\x12:\n" +
 	"\treactions\x18\x13 \x03(\v2\x1c.conversations.ReactionEntryR\treactions\x12?\n" +
@@ -3434,7 +3519,13 @@ const file_conversations_proto_rawDesc = "" +
 	"\x10anotherMessageID\x18\x18 \x01(\v2\x1f.conversations.AnotherMessageIDR\x10anotherMessageID\x12H\n" +
 	"\x11senderParticipant\x18\x19 \x01(\v2\x1a.conversations.ParticipantR\x11senderParticipantB\n" +
 	"\n" +
-	"\b_subject\"h\n" +
+	"\b_subject\"\x8b\x01\n" +
+	"\vLinkPreview\x12\x10\n" +
+	"\x03URL\x18\x01 \x01(\tR\x03URL\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bimageURL\x18\x05 \x01(\tR\bimageURL\x12\x16\n" +
+	"\x06domain\x18\x06 \x01(\tR\x06domain\"h\n" +
 	"\rReactionEntry\x12/\n" +
 	"\x04data\x18\x01 \x01(\v2\x1b.conversations.ReactionDataR\x04data\x12&\n" +
 	"\x0eparticipantIDs\x18\x02 \x03(\tR\x0eparticipantIDs\"\xdc\x06\n" +
@@ -3847,7 +3938,7 @@ func file_conversations_proto_rawDescGZIP() []byte {
 }
 
 var file_conversations_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_conversations_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_conversations_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_conversations_proto_goTypes = []any{
 	(EmojiType)(0),                                 // 0: conversations.EmojiType
 	(EncryptionProtocol)(0),                        // 1: conversations.EncryptionProtocol
@@ -3863,89 +3954,91 @@ var file_conversations_proto_goTypes = []any{
 	(*AnotherMessageID)(nil),                       // 11: conversations.AnotherMessageID
 	(*AnotherLatestMessageReference)(nil),          // 12: conversations.AnotherLatestMessageReference
 	(*Message)(nil),                                // 13: conversations.Message
-	(*ReactionEntry)(nil),                          // 14: conversations.ReactionEntry
-	(*CustomEmojiData)(nil),                        // 15: conversations.CustomEmojiData
-	(*ReactionData)(nil),                           // 16: conversations.ReactionData
-	(*EmojiMeta)(nil),                              // 17: conversations.EmojiMeta
-	(*EmojiMetaData)(nil),                          // 18: conversations.EmojiMetaData
-	(*ReplyMessage)(nil),                           // 19: conversations.ReplyMessage
-	(*ReplyMessageData)(nil),                       // 20: conversations.ReplyMessageData
-	(*MessageInfo)(nil),                            // 21: conversations.MessageInfo
-	(*LocationContent)(nil),                        // 22: conversations.LocationContent
-	(*MediaContent)(nil),                           // 23: conversations.MediaContent
-	(*Dimensions)(nil),                             // 24: conversations.Dimensions
-	(*MessageContent)(nil),                         // 25: conversations.MessageContent
-	(*MsgType)(nil),                                // 26: conversations.MsgType
-	(*MessageStatus)(nil),                          // 27: conversations.MessageStatus
-	(*Conversation)(nil),                           // 28: conversations.Conversation
-	(*EncryptionInfo)(nil),                         // 29: conversations.EncryptionInfo
-	(*EncryptionReadiness)(nil),                    // 30: conversations.EncryptionReadiness
-	(*Participant)(nil),                            // 31: conversations.Participant
-	(*SmallInfo)(nil),                              // 32: conversations.SmallInfo
-	(*LatestMessage)(nil),                          // 33: conversations.LatestMessage
-	(*LatestMessageStatus)(nil),                    // 34: conversations.LatestMessageStatus
-	(*Muted)(nil),                                  // 35: conversations.Muted
-	(*SomeKindOfGroupID_NestedID)(nil),             // 36: conversations.SomeKindOfGroupID.NestedID
-	(*CustomEmojiData_Inner)(nil),                  // 37: conversations.CustomEmojiData.Inner
-	(*CustomEmojiData_Inner_ImageData)(nil),        // 38: conversations.CustomEmojiData.Inner.ImageData
-	(*CustomEmojiData_Inner_WrappedImageData)(nil), // 39: conversations.CustomEmojiData.Inner.WrappedImageData
-	(*CustomEmojiData_Inner_WrappedImageData_ImageData)(nil), // 40: conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
-	(*SIMParticipant)(nil), // 41: settings.SIMParticipant
-	(*SIMCard)(nil),        // 42: settings.SIMCard
-	(*SIMPayload)(nil),     // 43: settings.SIMPayload
+	(*LinkPreview)(nil),                            // 14: conversations.LinkPreview
+	(*ReactionEntry)(nil),                          // 15: conversations.ReactionEntry
+	(*CustomEmojiData)(nil),                        // 16: conversations.CustomEmojiData
+	(*ReactionData)(nil),                           // 17: conversations.ReactionData
+	(*EmojiMeta)(nil),                              // 18: conversations.EmojiMeta
+	(*EmojiMetaData)(nil),                          // 19: conversations.EmojiMetaData
+	(*ReplyMessage)(nil),                           // 20: conversations.ReplyMessage
+	(*ReplyMessageData)(nil),                       // 21: conversations.ReplyMessageData
+	(*MessageInfo)(nil),                            // 22: conversations.MessageInfo
+	(*LocationContent)(nil),                        // 23: conversations.LocationContent
+	(*MediaContent)(nil),                           // 24: conversations.MediaContent
+	(*Dimensions)(nil),                             // 25: conversations.Dimensions
+	(*MessageContent)(nil),                         // 26: conversations.MessageContent
+	(*MsgType)(nil),                                // 27: conversations.MsgType
+	(*MessageStatus)(nil),                          // 28: conversations.MessageStatus
+	(*Conversation)(nil),                           // 29: conversations.Conversation
+	(*EncryptionInfo)(nil),                         // 30: conversations.EncryptionInfo
+	(*EncryptionReadiness)(nil),                    // 31: conversations.EncryptionReadiness
+	(*Participant)(nil),                            // 32: conversations.Participant
+	(*SmallInfo)(nil),                              // 33: conversations.SmallInfo
+	(*LatestMessage)(nil),                          // 34: conversations.LatestMessage
+	(*LatestMessageStatus)(nil),                    // 35: conversations.LatestMessageStatus
+	(*Muted)(nil),                                  // 36: conversations.Muted
+	(*SomeKindOfGroupID_NestedID)(nil),             // 37: conversations.SomeKindOfGroupID.NestedID
+	(*CustomEmojiData_Inner)(nil),                  // 38: conversations.CustomEmojiData.Inner
+	(*CustomEmojiData_Inner_ImageData)(nil),        // 39: conversations.CustomEmojiData.Inner.ImageData
+	(*CustomEmojiData_Inner_WrappedImageData)(nil), // 40: conversations.CustomEmojiData.Inner.WrappedImageData
+	(*CustomEmojiData_Inner_WrappedImageData_ImageData)(nil), // 41: conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
+	(*SIMParticipant)(nil), // 42: settings.SIMParticipant
+	(*SIMCard)(nil),        // 43: settings.SIMCard
+	(*SIMPayload)(nil),     // 44: settings.SIMPayload
 }
 var file_conversations_proto_depIdxs = []int32{
 	9,  // 0: conversations.Contact.number:type_name -> conversations.ContactNumber
-	36, // 1: conversations.SomeKindOfGroupID.nestedID:type_name -> conversations.SomeKindOfGroupID.NestedID
+	37, // 1: conversations.SomeKindOfGroupID.nestedID:type_name -> conversations.SomeKindOfGroupID.NestedID
 	11, // 2: conversations.AnotherLatestMessageReference.id:type_name -> conversations.AnotherMessageID
-	26, // 3: conversations.Message.msgType:type_name -> conversations.MsgType
-	27, // 4: conversations.Message.messageStatus:type_name -> conversations.MessageStatus
-	21, // 5: conversations.Message.messageInfo:type_name -> conversations.MessageInfo
-	14, // 6: conversations.Message.reactions:type_name -> conversations.ReactionEntry
-	19, // 7: conversations.Message.replyMessage:type_name -> conversations.ReplyMessage
-	10, // 8: conversations.Message.someKindOfGroupID:type_name -> conversations.SomeKindOfGroupID
-	11, // 9: conversations.Message.anotherMessageID:type_name -> conversations.AnotherMessageID
-	31, // 10: conversations.Message.senderParticipant:type_name -> conversations.Participant
-	16, // 11: conversations.ReactionEntry.data:type_name -> conversations.ReactionData
-	37, // 12: conversations.CustomEmojiData.innerData:type_name -> conversations.CustomEmojiData.Inner
-	0,  // 13: conversations.ReactionData.type:type_name -> conversations.EmojiType
-	15, // 14: conversations.ReactionData.customEmoji:type_name -> conversations.CustomEmojiData
-	18, // 15: conversations.EmojiMeta.emojiMetaData:type_name -> conversations.EmojiMetaData
-	20, // 16: conversations.ReplyMessage.replyMessageData:type_name -> conversations.ReplyMessageData
-	25, // 17: conversations.MessageInfo.messageContent:type_name -> conversations.MessageContent
-	23, // 18: conversations.MessageInfo.mediaContent:type_name -> conversations.MediaContent
-	22, // 19: conversations.MessageInfo.locationContent:type_name -> conversations.LocationContent
-	23, // 20: conversations.LocationContent.mediaContent:type_name -> conversations.MediaContent
-	25, // 21: conversations.LocationContent.messageContent:type_name -> conversations.MessageContent
-	7,  // 22: conversations.MediaContent.format:type_name -> conversations.MediaFormats
-	24, // 23: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
-	5,  // 24: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
-	33, // 25: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
-	6,  // 26: conversations.Conversation.status:type_name -> conversations.ConversationStatus
-	3,  // 27: conversations.Conversation.sendMode:type_name -> conversations.ConversationSendMode
-	31, // 28: conversations.Conversation.participants:type_name -> conversations.Participant
-	4,  // 29: conversations.Conversation.type:type_name -> conversations.ConversationType
-	41, // 30: conversations.Conversation.simParticipantMaybe:type_name -> settings.SIMParticipant
-	10, // 31: conversations.Conversation.someKindOfGroupID:type_name -> conversations.SomeKindOfGroupID
-	42, // 32: conversations.Conversation.simCard:type_name -> settings.SIMCard
-	12, // 33: conversations.Conversation.anotherLatestMessageReference:type_name -> conversations.AnotherLatestMessageReference
-	11, // 34: conversations.Conversation.latestMessageAnotherID:type_name -> conversations.AnotherMessageID
-	29, // 35: conversations.Conversation.encryptionInfo:type_name -> conversations.EncryptionInfo
-	1,  // 36: conversations.EncryptionInfo.supportedProtocols:type_name -> conversations.EncryptionProtocol
-	30, // 37: conversations.EncryptionInfo.readiness:type_name -> conversations.EncryptionReadiness
-	32, // 38: conversations.Participant.ID:type_name -> conversations.SmallInfo
-	43, // 39: conversations.Participant.simPayload:type_name -> settings.SIMPayload
-	2,  // 40: conversations.SmallInfo.type:type_name -> conversations.IdentifierType
-	34, // 41: conversations.LatestMessage.latestMessageStatus:type_name -> conversations.LatestMessageStatus
-	5,  // 42: conversations.LatestMessageStatus.status:type_name -> conversations.MessageStatusType
-	38, // 43: conversations.CustomEmojiData.Inner.first:type_name -> conversations.CustomEmojiData.Inner.ImageData
-	39, // 44: conversations.CustomEmojiData.Inner.second:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData
-	40, // 45: conversations.CustomEmojiData.Inner.WrappedImageData.data:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
-	46, // [46:46] is the sub-list for method output_type
-	46, // [46:46] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	27, // 3: conversations.Message.msgType:type_name -> conversations.MsgType
+	28, // 4: conversations.Message.messageStatus:type_name -> conversations.MessageStatus
+	22, // 5: conversations.Message.messageInfo:type_name -> conversations.MessageInfo
+	14, // 6: conversations.Message.linkPreview:type_name -> conversations.LinkPreview
+	15, // 7: conversations.Message.reactions:type_name -> conversations.ReactionEntry
+	20, // 8: conversations.Message.replyMessage:type_name -> conversations.ReplyMessage
+	10, // 9: conversations.Message.someKindOfGroupID:type_name -> conversations.SomeKindOfGroupID
+	11, // 10: conversations.Message.anotherMessageID:type_name -> conversations.AnotherMessageID
+	32, // 11: conversations.Message.senderParticipant:type_name -> conversations.Participant
+	17, // 12: conversations.ReactionEntry.data:type_name -> conversations.ReactionData
+	38, // 13: conversations.CustomEmojiData.innerData:type_name -> conversations.CustomEmojiData.Inner
+	0,  // 14: conversations.ReactionData.type:type_name -> conversations.EmojiType
+	16, // 15: conversations.ReactionData.customEmoji:type_name -> conversations.CustomEmojiData
+	19, // 16: conversations.EmojiMeta.emojiMetaData:type_name -> conversations.EmojiMetaData
+	21, // 17: conversations.ReplyMessage.replyMessageData:type_name -> conversations.ReplyMessageData
+	26, // 18: conversations.MessageInfo.messageContent:type_name -> conversations.MessageContent
+	24, // 19: conversations.MessageInfo.mediaContent:type_name -> conversations.MediaContent
+	23, // 20: conversations.MessageInfo.locationContent:type_name -> conversations.LocationContent
+	24, // 21: conversations.LocationContent.mediaContent:type_name -> conversations.MediaContent
+	26, // 22: conversations.LocationContent.messageContent:type_name -> conversations.MessageContent
+	7,  // 23: conversations.MediaContent.format:type_name -> conversations.MediaFormats
+	25, // 24: conversations.MediaContent.dimensions:type_name -> conversations.Dimensions
+	5,  // 25: conversations.MessageStatus.status:type_name -> conversations.MessageStatusType
+	34, // 26: conversations.Conversation.latestMessage:type_name -> conversations.LatestMessage
+	6,  // 27: conversations.Conversation.status:type_name -> conversations.ConversationStatus
+	3,  // 28: conversations.Conversation.sendMode:type_name -> conversations.ConversationSendMode
+	32, // 29: conversations.Conversation.participants:type_name -> conversations.Participant
+	4,  // 30: conversations.Conversation.type:type_name -> conversations.ConversationType
+	42, // 31: conversations.Conversation.simParticipantMaybe:type_name -> settings.SIMParticipant
+	10, // 32: conversations.Conversation.someKindOfGroupID:type_name -> conversations.SomeKindOfGroupID
+	43, // 33: conversations.Conversation.simCard:type_name -> settings.SIMCard
+	12, // 34: conversations.Conversation.anotherLatestMessageReference:type_name -> conversations.AnotherLatestMessageReference
+	11, // 35: conversations.Conversation.latestMessageAnotherID:type_name -> conversations.AnotherMessageID
+	30, // 36: conversations.Conversation.encryptionInfo:type_name -> conversations.EncryptionInfo
+	1,  // 37: conversations.EncryptionInfo.supportedProtocols:type_name -> conversations.EncryptionProtocol
+	31, // 38: conversations.EncryptionInfo.readiness:type_name -> conversations.EncryptionReadiness
+	33, // 39: conversations.Participant.ID:type_name -> conversations.SmallInfo
+	44, // 40: conversations.Participant.simPayload:type_name -> settings.SIMPayload
+	2,  // 41: conversations.SmallInfo.type:type_name -> conversations.IdentifierType
+	35, // 42: conversations.LatestMessage.latestMessageStatus:type_name -> conversations.LatestMessageStatus
+	5,  // 43: conversations.LatestMessageStatus.status:type_name -> conversations.MessageStatusType
+	39, // 44: conversations.CustomEmojiData.Inner.first:type_name -> conversations.CustomEmojiData.Inner.ImageData
+	40, // 45: conversations.CustomEmojiData.Inner.second:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData
+	41, // 46: conversations.CustomEmojiData.Inner.WrappedImageData.data:type_name -> conversations.CustomEmojiData.Inner.WrappedImageData.ImageData
+	47, // [47:47] is the sub-list for method output_type
+	47, // [47:47] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_conversations_proto_init() }
@@ -3956,22 +4049,22 @@ func file_conversations_proto_init() {
 	file_settings_proto_init()
 	file_conversations_proto_msgTypes[1].OneofWrappers = []any{}
 	file_conversations_proto_msgTypes[5].OneofWrappers = []any{}
-	file_conversations_proto_msgTypes[7].OneofWrappers = []any{}
-	file_conversations_proto_msgTypes[13].OneofWrappers = []any{
+	file_conversations_proto_msgTypes[8].OneofWrappers = []any{}
+	file_conversations_proto_msgTypes[14].OneofWrappers = []any{
 		(*MessageInfo_MessageContent)(nil),
 		(*MessageInfo_MediaContent)(nil),
 		(*MessageInfo_LocationContent)(nil),
 	}
-	file_conversations_proto_msgTypes[29].OneofWrappers = []any{}
 	file_conversations_proto_msgTypes[30].OneofWrappers = []any{}
-	file_conversations_proto_msgTypes[32].OneofWrappers = []any{}
+	file_conversations_proto_msgTypes[31].OneofWrappers = []any{}
+	file_conversations_proto_msgTypes[33].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conversations_proto_rawDesc), len(file_conversations_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   33,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

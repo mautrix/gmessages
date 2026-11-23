@@ -78,11 +78,13 @@ type MessageMetadata struct {
 	GlobalPartCount   int      `json:"part_count,omitempty"`
 	GlobalStatusText  string   `json:"status_text,omitempty"`
 	GroupReadBy       []string `json:"group_receipt_sent,omitempty"`
+	HasLinkPreview    bool     `json:"has_link_preview,omitempty"`
 
 	TextHash     string `json:"text_hash,omitempty"`
 	MediaPartID  string `json:"media_part_id,omitempty"`
 	MediaID      string `json:"media_id,omitempty"`
 	MediaPending bool   `json:"media_pending,omitempty"`
+	MediaFailed  bool   `json:"media_failed,omitempty"`
 
 	IsOutgoing      bool `json:"is_outgoing,omitempty"`
 	MSSSent         bool `json:"mss_sent,omitempty"`
@@ -116,6 +118,7 @@ type UserLoginMetadata struct {
 	SelfParticipantIDs []string                    `json:"self_participant_ids"`
 	SIMMetadata        map[string]*gmproto.SIMCard `json:"sim_metadata"`
 	Settings           UserSettings                `json:"settings"`
+	PhoneCheckedAt     jsontime.Unix               `json:"phone_checked_at,omitzero"`
 	IDPrefix           string                      `json:"id_prefix"`
 	PushKeys           *PushKeys                   `json:"push_keys"`
 }
