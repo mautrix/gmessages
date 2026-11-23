@@ -329,7 +329,12 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			return
 		}
 	}
-	go gc.syncConversationBackground(log.WithContext(ctx), v, meta)
+	allowBackfill := time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute
+	var gen uint64
+	if allowBackfill {
+		gen = meta.resyncGen.Add(1)
+	}
+	go gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen)
 }
 
 func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
@@ -373,13 +378,12 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 	}
 }
 
-func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta) {
+func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, allowBackfill bool, gen uint64) {
 	log := zerolog.Ctx(ctx)
-	gen := meta.resyncGen.Add(1)
 	evt := &GMChatResync{
 		g:             gc,
 		Conv:          v,
-		AllowBackfill: time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute,
+		AllowBackfill: allowBackfill,
 		meta:          meta,
 		gen:           gen,
 	}
@@ -667,7 +671,7 @@ func (evt *GMChatResync) GetChatInfo(ctx context.Context, portal *bridgev2.Porta
 func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *database.Message) (bool, error) {
 	if !evt.AllowBackfill {
 		return false, nil
-	} else if evt.meta != nil && evt.meta.resyncGen.Load() != evt.gen {
+	} else if evt.meta != nil && evt.gen != 0 && evt.meta.resyncGen.Load() != evt.gen {
 		zerolog.Ctx(ctx).Debug().
 			Str("conv_latest_message_id", evt.Conv.LatestMessageID).
 			Msg("Not backfilling chat as a newer conversation update was received")
