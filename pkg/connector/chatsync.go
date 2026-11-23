@@ -331,8 +331,14 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 	}
 	allowBackfill := time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute
 	var gen uint64
-	if allowBackfill {
-		gen = meta.resyncGen.Add(1)
+	for allowBackfill {
+		newest := meta.newestConvTS.Load()
+		if v.LastMessageTimestamp < newest {
+			break
+		} else if meta.newestConvTS.CompareAndSwap(newest, v.LastMessageTimestamp) {
+			gen = meta.resyncGen.Add(1)
+			break
+		}
 	}
 	go gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen)
 }
