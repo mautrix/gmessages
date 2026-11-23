@@ -1,0 +1,33 @@
+{
+	"namespace": "mautrix-gmessages",
+	"messages": [
+		{
+			"key": "mautrix-gmessages:login.flow.google.description",
+			"english": "Log in with your Google account and pair by tapping an emoji on your phone"
+		},
+		{
+			"key": "mautrix-gmessages:login.flow.google.name",
+			"english": "Google Account"
+		},
+		{
+			"key": "mautrix-gmessages:login.step.complete.instructions",
+			"english": "Successfully logged in"
+		},
+		{
+			"key": "mautrix-gmessages:login.step.cookies.instructions",
+			"english": "Enter a JSON object with your cookies, or a cURL command copied from browser devtools."
+		},
+		{
+			"key": "mautrix-gmessages:login.step.emoji.instructions",
+			"english": "Tap the emoji on the Google Messages app on your phone"
+		},
+		{
+			"key": "mautrix-gmessages:login.step.qr.instructions",
+			"english": "Scan the QR code using the Google Messages app on your Android phone"
+		},
+		{
+			"key": "mautrix-gmessages:login.step.reauth.instructions",
+			"english": "Successfully re-authenticated"
+		}
+	]
+}
