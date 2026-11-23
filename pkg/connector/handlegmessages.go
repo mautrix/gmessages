@@ -39,6 +39,7 @@ import (
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"golang.org/x/exp/maps"
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -84,9 +85,11 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		})
 	case *events.ListenRecovered:
 		gc.longPollingError = nil
+		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneNotResponding:
 		gc.PhoneResponding = false
+		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneRespondingAgain:
 		gc.PhoneResponding = true
@@ -536,6 +539,43 @@ func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeSt
 	gc.UserLogin.BridgeState.Send(state)
 }
 
+const pairedPhoneCheckInterval = 6 * time.Hour
+
+func (gc *GMClient) checkPairedPhone() {
+	cli, sess := gc.Client, gc.Meta.Session
+	if gc.PhoneResponding || cli == nil || sess == nil || !sess.IsGoogleAccount() ||
+		!gc.phoneCheckRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer gc.phoneCheckRunning.Store(false)
+	if time.Since(gc.Meta.PhoneCheckedAt.Time) < pairedPhoneCheckInterval {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "check paired phone").Logger()
+	ctx := log.WithContext(gc.Main.br.BackgroundCtx)
+	gc.Meta.PhoneCheckedAt = jsontime.UnixNow()
+	if err := gc.UserLogin.Save(ctx); err != nil {
+		log.Err(err).Msg("Failed to save paired phone check time")
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	registered, err := cli.PairedPhoneRegistered(checkCtx)
+	cancel()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to check if the paired phone is still registered")
+	} else if registered {
+		log.Debug().Msg("Paired phone is still registered on the Google account")
+	} else if gc.Client != cli || gc.PhoneResponding {
+		log.Debug().Msg("Paired phone is no longer registered, but the phone responded or the client was replaced")
+	} else {
+		log.Warn().Msg("Paired phone is no longer registered on the Google account")
+		gc.invalidateSession(ctx, status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMPairedPhoneGone,
+			UserAction: status.UserActionRelogin,
+		}, true, false)
+	}
+}
+
 func (gc *GMClient) hackyResetActive() {
 	if gc.didHackySetActive {
 		return
@@ -976,6 +1016,16 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		}
 	}
 	content.Body = strings.TrimPrefix(content.Body, "\n")
+	if hasLinkPreview(msg) {
+		preview := msg.GetLinkPreview()
+		content.BeeperLinkPreviews = []*event.BeeperLinkPreview{{
+			MatchedURL: preview.GetURL(),
+			LinkPreview: event.LinkPreview{
+				Title:       preview.GetTitle(),
+				Description: preview.GetDescription(),
+			},
+		}}
+	}
 	var textHash string
 	if len(content.Body) > 0 {
 		textHash = hex.EncodeToString(textHasher.Sum(nil))
@@ -1002,10 +1052,36 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 			Type:              msg.GetMessageStatus().GetStatus(),
 			MessageType:       msg.GetType(),
 			TextHash:          textHash,
+			HasLinkPreview:    content.BeeperLinkPreviews != nil,
 			GlobalMediaStatus: downloadStatus,
 			GlobalPartCount:   len(msg.MessageInfo),
 		},
 	}, textHash
+}
+
+func hasLinkPreview(msg *gmproto.Message) bool {
+	preview := msg.GetLinkPreview()
+	return preview.GetURL() != "" && (preview.GetTitle() != "" || preview.GetDescription() != "")
+}
+
+func (gc *GMClient) addLinkPreviewImage(ctx context.Context, msg *gmproto.Message, preview *event.BeeperLinkPreview) {
+	if msg.GetLinkPreview().GetImageURL() == "" {
+		return
+	}
+	conn, ok := gc.Main.br.Matrix.(bridgev2.MatrixConnectorWithURLPreviews)
+	if !ok {
+		return
+	}
+	mxPreview, err := conn.GetURLPreview(mautrix.WithMaxRetries(ctx, 0), preview.MatchedURL)
+	if err != nil {
+		zerolog.Ctx(ctx).Debug().Err(err).Msg("Failed to get link preview image from homeserver")
+		return
+	}
+	preview.ImageURL = mxPreview.ImageURL
+	preview.ImageSize = mxPreview.ImageSize
+	preview.ImageWidth = mxPreview.ImageWidth
+	preview.ImageHeight = mxPreview.ImageHeight
+	preview.ImageType = mxPreview.ImageType
 }
 
 func shouldIgnoreStatus(status gmproto.MessageStatusType, isDM bool) bool {
@@ -1152,6 +1228,10 @@ func (dbm DBMessages) MessageWasEdited(new *gmproto.Message) (edited bool, chang
 		changes.
 			Str("old_text_hash", oldTextHash).
 			Str("new_text_hash", newTextHash)
+	}
+	if mainMeta := dbm.GetMainMeta(); !mainMeta.IsOutgoing && !mainMeta.HasLinkPreview && newTextHash != "" && hasLinkPreview(new) {
+		edited = true
+		changes.Bool("added_link_preview", true)
 	}
 	return
 }
@@ -1476,6 +1556,9 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	textPart, _ := getTextPart(m.Message)
 	if textPart != nil {
 		textPart.DontBridge = dontBridge
+		if !dontBridge && len(textPart.Content.BeeperLinkPreviews) > 0 {
+			gc.addLinkPreviewImage(ctx, m.Message, textPart.Content.BeeperLinkPreviews[0])
+		}
 		cm.Parts = append(cm.Parts, textPart)
 	}
 	isFirstPart := textPart == nil
@@ -1538,6 +1621,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 		mergedMeta.GlobalMediaStatus = textMeta.GlobalMediaStatus
 		mergedMeta.GlobalPartCount = textMeta.GlobalPartCount
 		mergedMeta.TextHash = textMeta.TextHash
+		mergedMeta.HasLinkPreview = textMeta.HasLinkPreview
 	}
 	if m.Data != nil && base64.StdEncoding.EncodedLen(len(m.Data)) < 8192 && len(cm.Parts) > 0 {
 		extra := cm.Parts[0].Extra
