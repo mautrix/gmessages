@@ -34,6 +34,7 @@ const (
 	GMLoggedOut401              status.BridgeStateErrorCode = "gm-logged-out-401-polling"
 	GMLoggedOutWorkspaceSession status.BridgeStateErrorCode = "gm-logged-out-workspace-session"
 	GMLoggedOutInvalidCreds     status.BridgeStateErrorCode = "gm-logged-out-invalid-credentials"
+	GMUnpaired403               status.BridgeStateErrorCode = "gm-unpaired-permission-denied"
 	GMLoggedOutNoEmailInConfig  status.BridgeStateErrorCode = "gm-logged-out-no-email-in-config"
 	GMNotLoggedIn               status.BridgeStateErrorCode = "gm-not-logged-in"
 	GMNotLoggedInCanReauth      status.BridgeStateErrorCode = "gm-not-logged-in-can-reauth"
@@ -67,6 +68,7 @@ func init() {
 		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutWorkspaceSession: "Google signed this account out. If it's a Google Workspace account, Google signs it out of Google on the web every 14 days by default; on some Workspace plans the admin can change this in Google session control. Sign in again to reconnect.",
 		GMLoggedOutInvalidCreds:     "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpaired403:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutNoEmailInConfig:  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
 		GMBrowserInactive:           "Google Messages opened in another browser",
