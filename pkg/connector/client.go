@@ -38,6 +38,7 @@ import (
 type conversationMeta struct {
 	markedSpamAt          time.Time
 	cancelPendingBackfill atomic.Pointer[context.CancelFunc]
+	resyncGen             atomic.Uint64
 	unread                bool
 	readUpTo              string
 	readUpToTS            time.Time
