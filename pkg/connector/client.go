@@ -77,6 +77,7 @@ type GMClient struct {
 	phoneCheckRunning      atomic.Bool
 	lastConversationList   atomic.Int64
 	pushStreamGen          atomic.Uint64
+	pushStreamStart        atomic.Int64
 	avatarFetchTimedOutAt  atomic.Int64
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
@@ -141,7 +142,7 @@ func (gc *GMConnector) LoadUserLogin(ctx context.Context, login *bridgev2.UserLo
 }
 
 func (gc *GMClient) Connect(ctx context.Context) {
-	gc.pushStreamGen.Add(1)
+	gc.resetPushStream()
 	go gc.handleMessageQueue(ctx)
 	if gc.Client == nil {
 		gc.UserLogin.BridgeState.Send(status.BridgeState{

@@ -78,7 +78,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			})
 		}
 	case *events.ListenTemporaryError:
-		gc.pushStreamGen.Add(1)
+		gc.resetPushStream()
 		gc.longPollingError = evt.Error
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateTransientDisconnect,
@@ -86,6 +86,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Info:       map[string]any{"go_error": evt.Error.Error()},
 		})
 	case *events.ListenRecovered:
+		gc.resetPushStream()
 		gc.longPollingError = nil
 		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
@@ -153,6 +154,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *gmproto.Conversation:
 		gc.chatInfoCache.Set(evt.ConversationID, evt)
 		if gc.noDataReceivedRecently {
+			gc.resetPushStream()
 			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
@@ -161,6 +163,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {
+			gc.resetPushStream()
 			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
@@ -198,7 +201,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		} else {
 			// There's an extra layer of queueing because QueueRemoteEvent calls some methods on MessageEvent,
 			// which may need to fetch conversations from the phone (to get the stable ID).
-			gc.trackQueuedMessage(evt.GetConversationID(), evt.GetMessageID())
+			gc.trackQueuedMessage(evt.GetConversationID(), evt.GetMessageID(), evt.GetTimestamp())
 			select {
 			case gc.messageQueue <- evt:
 			default:
@@ -260,7 +263,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *events.AccountChange:
 		gc.handleAccountChange(ctx, evt)
 	case *events.NoDataReceived:
-		gc.pushStreamGen.Add(1)
+		gc.resetPushStream()
 		gc.noDataReceivedRecently = true
 		go gc.recoverReceiveStall(ctx)
 	case *events.PairSuccessful:
@@ -320,10 +323,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	}
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
-		gc.pushStreamGen.Add(1)
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
+		gc.resetPushStream()
 		wasInactive := gc.browserInactiveType != "" || !gc.ready
 		gc.browserInactiveType = ""
 		gc.ready = true
@@ -362,11 +366,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		log.Debug().Msg("Making minimal sync due to mobile database sync complete event")
 		go gc.SyncConversations(ctx, gc.lastDataReceived, true)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
-		gc.pushStreamGen.Add(1)
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
-		gc.pushStreamGen.Add(1)
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveInactivity
 		becameInactive = true
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
@@ -386,10 +390,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			gc.batteryLowAlertSent = time.Time{}
 		}
 	case gmproto.AlertType_PUSH_THROTTLE_STARTED:
-		gc.pushStreamGen.Add(1)
+		gc.resetPushStream()
 		gc.pushThrottled.Store(true)
 		return
 	case gmproto.AlertType_PUSH_THROTTLE_ENDED:
+		gc.resetPushStream()
 		gc.pushThrottled.Store(false)
 		go gc.resyncChatsWithPendingSends(context.WithoutCancel(ctx))
 		return

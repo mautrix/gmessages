@@ -389,11 +389,13 @@ const maxQueuedMessagesPerConversation = 256
 // trackQueuedMessage records a message the phone pushed that is on its way to the portal through
 // messageQueue. The record is reset whenever pushed data may have been missed (pushStreamGen), so
 // two recorded messages mean every message between them was pushed too.
-func (gc *GMClient) trackQueuedMessage(convID, msgID string) {
-	if convID == "" || msgID == "" {
+func (gc *GMClient) trackQueuedMessage(convID, msgID string, ts int64) {
+	gen := gc.pushStreamGen.Load()
+	if convID == "" || msgID == "" || ts < gc.pushStreamStart.Load() {
+		// Messages from before the gap may be re-pushed for status changes or reactions, which
+		// doesn't mean the messages after them were pushed.
 		return
 	}
-	gen := gc.pushStreamGen.Load()
 	gc.conversationMetaLock.Lock()
 	defer gc.conversationMetaLock.Unlock()
 	meta, ok := gc.conversationMeta[convID]
@@ -414,6 +416,11 @@ func (gc *GMClient) trackQueuedMessage(convID, msgID string) {
 		meta.queuedMessages[meta.queuedMessageNext] = msgID
 		meta.queuedMessageNext = (meta.queuedMessageNext + 1) % maxQueuedMessagesPerConversation
 	}
+}
+
+func (gc *GMClient) resetPushStream() {
+	gc.pushStreamStart.Store(time.Now().UnixMicro())
+	gc.pushStreamGen.Add(1)
 }
 
 // wereMessagesQueued checks that all the given messages were pushed since pushed data was last
