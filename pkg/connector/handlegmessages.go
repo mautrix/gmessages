@@ -18,6 +18,7 @@ package connector
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -27,6 +28,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +40,7 @@ import (
 	"go.mau.fi/util/jsontime"
 	"go.mau.fi/util/ptr"
 	"golang.org/x/exp/maps"
+	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
@@ -83,9 +86,11 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		})
 	case *events.ListenRecovered:
 		gc.longPollingError = nil
+		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneNotResponding:
 		gc.PhoneResponding = false
+		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
 	case *events.PhoneRespondingAgain:
 		gc.PhoneResponding = true
@@ -298,7 +303,7 @@ func (gc *GMClient) handleAccountChange(ctx context.Context, v *events.AccountCh
 			gc.ready = true
 		}
 	}
-	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	gc.sendConnectedIfChanged()
 }
 
 func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEvent) {
@@ -391,7 +396,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
 		}*/
 	}
-	gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+	gc.sendConnectedIfChanged()
 }
 
 func (gc *GMClient) aggressiveSetActive() {
@@ -437,7 +442,9 @@ func mergeSettings(old UserSettings, settings *gmproto.Settings) UserSettings {
 }
 
 func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settings) {
-	gc.phoneHasNoSIM.Store(settings.SIMCards == nil)
+	gc.phoneHasNoSIM.Store(!slices.ContainsFunc(settings.SIMCards, func(sim *gmproto.SIMCard) bool {
+		return sim.GetSIMData().GetInt1() != -1
+	}))
 	if settings.SIMCards == nil {
 		return
 	}
@@ -457,7 +464,7 @@ func (gc *GMClient) handleSettings(ctx context.Context, settings *gmproto.Settin
 		if err != nil {
 			log.Err(err).Msg("Failed to save SIM details")
 		}
-		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
+		gc.sendConnectedIfChanged()
 	}
 }
 
@@ -477,6 +484,9 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)
+	case errors.Is(err, libgm.ErrPairingPermissionDenied):
+		state.Error = GMUnpaired403
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		if isWorkspaceEmail(gc.Meta.Session.Mobile.GetSourceID()) {
@@ -513,6 +523,43 @@ func (gc *GMClient) invalidateSession(ctx context.Context, state status.BridgeSt
 		gc.Client = nil
 	}
 	gc.UserLogin.BridgeState.Send(state)
+}
+
+const pairedPhoneCheckInterval = 6 * time.Hour
+
+func (gc *GMClient) checkPairedPhone() {
+	cli, sess := gc.Client, gc.Meta.Session
+	if gc.PhoneResponding || cli == nil || sess == nil || !sess.IsGoogleAccount() ||
+		!gc.phoneCheckRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer gc.phoneCheckRunning.Store(false)
+	if time.Since(gc.Meta.PhoneCheckedAt.Time) < pairedPhoneCheckInterval {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "check paired phone").Logger()
+	ctx := log.WithContext(gc.Main.br.BackgroundCtx)
+	gc.Meta.PhoneCheckedAt = jsontime.UnixNow()
+	if err := gc.UserLogin.Save(ctx); err != nil {
+		log.Err(err).Msg("Failed to save paired phone check time")
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	registered, err := cli.PairedPhoneRegistered(checkCtx)
+	cancel()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to check if the paired phone is still registered")
+	} else if registered {
+		log.Debug().Msg("Paired phone is still registered on the Google account")
+	} else if gc.Client != cli || gc.PhoneResponding {
+		log.Debug().Msg("Paired phone is no longer registered, but the phone responded or the client was replaced")
+	} else {
+		log.Warn().Msg("Paired phone is no longer registered on the Google account")
+		gc.invalidateSession(ctx, status.BridgeState{
+			StateEvent: status.StateBadCredentials,
+			Error:      GMPairedPhoneGone,
+			UserAction: status.UserActionRelogin,
+		}, true, false)
+	}
 }
 
 func (gc *GMClient) hackyResetActive() {
@@ -688,14 +735,17 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			delete(existingPartMap, part.ID)
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
-			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
+			if (newMeta.MediaPending || newMeta.MediaFailed) && oldMeta.MediaID != "" && !oldMeta.MediaPending && !oldMeta.MediaFailed && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
 				zerolog.Ctx(ctx).Debug().
 					Str("part_id", string(part.ID)).
 					Str("old_media_id", oldMeta.MediaID).
 					Str("new_media_id", newMeta.MediaID).
 					Msg("Not replacing already bridged media with unavailable update")
-				newMeta.MediaID = oldMeta.MediaID
+				if !newMeta.MediaFailed {
+					newMeta.MediaID = oldMeta.MediaID
+				}
 				newMeta.MediaPending = false
+				newMeta.MediaFailed = false
 				part.DontBridge = true
 			}
 			editPart := part.ToEditPart(existingPart)
@@ -955,6 +1005,16 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 		}
 	}
 	content.Body = strings.TrimPrefix(content.Body, "\n")
+	if hasLinkPreview(msg) {
+		preview := msg.GetLinkPreview()
+		content.BeeperLinkPreviews = []*event.BeeperLinkPreview{{
+			MatchedURL: preview.GetURL(),
+			LinkPreview: event.LinkPreview{
+				Title:       preview.GetTitle(),
+				Description: preview.GetDescription(),
+			},
+		}}
+	}
 	var textHash string
 	if len(content.Body) > 0 {
 		textHash = hex.EncodeToString(textHasher.Sum(nil))
@@ -981,10 +1041,36 @@ func getTextPart(msg *gmproto.Message) (*bridgev2.ConvertedMessagePart, string) 
 			Type:              msg.GetMessageStatus().GetStatus(),
 			MessageType:       msg.GetType(),
 			TextHash:          textHash,
+			HasLinkPreview:    content.BeeperLinkPreviews != nil,
 			GlobalMediaStatus: downloadStatus,
 			GlobalPartCount:   len(msg.MessageInfo),
 		},
 	}, textHash
+}
+
+func hasLinkPreview(msg *gmproto.Message) bool {
+	preview := msg.GetLinkPreview()
+	return preview.GetURL() != "" && (preview.GetTitle() != "" || preview.GetDescription() != "")
+}
+
+func (gc *GMClient) addLinkPreviewImage(ctx context.Context, msg *gmproto.Message, preview *event.BeeperLinkPreview) {
+	if msg.GetLinkPreview().GetImageURL() == "" {
+		return
+	}
+	conn, ok := gc.Main.br.Matrix.(bridgev2.MatrixConnectorWithURLPreviews)
+	if !ok {
+		return
+	}
+	mxPreview, err := conn.GetURLPreview(mautrix.WithMaxRetries(ctx, 0), preview.MatchedURL)
+	if err != nil {
+		zerolog.Ctx(ctx).Debug().Err(err).Msg("Failed to get link preview image from homeserver")
+		return
+	}
+	preview.ImageURL = mxPreview.ImageURL
+	preview.ImageSize = mxPreview.ImageSize
+	preview.ImageWidth = mxPreview.ImageWidth
+	preview.ImageHeight = mxPreview.ImageHeight
+	preview.ImageType = mxPreview.ImageType
 }
 
 func shouldIgnoreStatus(status gmproto.MessageStatusType, isDM bool) bool {
@@ -1131,6 +1217,10 @@ func (dbm DBMessages) MessageWasEdited(new *gmproto.Message) (edited bool, chang
 		changes.
 			Str("old_text_hash", oldTextHash).
 			Str("new_text_hash", newTextHash)
+	}
+	if mainMeta := dbm.GetMainMeta(); !mainMeta.IsOutgoing && !mainMeta.HasLinkPreview && newTextHash != "" && hasLinkPreview(new) {
+		edited = true
+		changes.Bool("added_link_preview", true)
 	}
 	return
 }
@@ -1285,6 +1375,11 @@ func (m *MessageEvent) HandleExisting(ctx context.Context, portal *bridgev2.Port
 	} else if needsMSSFailureEvent {
 		existingMeta.MSSFailSent = true
 		msgStatus := wrapStatusInError(newStatus).(bridgev2.MessageStatus)
+		if newStatus == gmproto.MessageStatusType_OUTGOING_FAILED_GENERIC {
+			if failMessage := m.g.getGenericFailMessage(m.Message); failMessage != "" {
+				msgStatus = msgStatus.WithMessage(failMessage)
+			}
+		}
 		portal.Bridge.Matrix.SendMessageStatus(ctx, &msgStatus, &bridgev2.MessageStatusEventInfo{
 			RoomID:        portal.MXID,
 			SourceEventID: dbm[0].Metadata.(*MessageMetadata).GetOrigMXID(dbm[0].MXID),
@@ -1421,7 +1516,7 @@ func (m *MessageEvent) ConvertMessage(ctx context.Context, portal *bridgev2.Port
 		if err != nil {
 			log.Warn().Err(err).Msg("Failed to get last message to check if received old message is too old")
 		} else if lastMessage != nil && lastMessage.Timestamp.After(m.GetTimestamp()) {
-			if idToInt(lastMessage.ID) > idToInt(m.GetID()) {
+			if idToInt(m.GetID()) > idToInt(lastMessage.ID) {
 				log.Warn().
 					Str("last_message_id", string(lastMessage.ID)).
 					Time("last_message_ts", lastMessage.Timestamp).
@@ -1450,6 +1545,9 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 	textPart, _ := getTextPart(m.Message)
 	if textPart != nil {
 		textPart.DontBridge = dontBridge
+		if !dontBridge && len(textPart.Content.BeeperLinkPreviews) > 0 {
+			gc.addLinkPreviewImage(ctx, m.Message, textPart.Content.BeeperLinkPreviews[0])
+		}
 		cm.Parts = append(cm.Parts, textPart)
 	}
 	isFirstPart := textPart == nil
@@ -1478,7 +1576,8 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
 		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
-			dbMeta.MediaPending = true
+			dbMeta.MediaFailed = isPermanentMediaError(err)
+			dbMeta.MediaPending = !dbMeta.MediaFailed
 			dbMeta.MediaID = mediaID
 			log.Err(err).Msg("Failed to copy attachment")
 			content = event.MessageEventContent{
@@ -1512,6 +1611,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 		mergedMeta.GlobalMediaStatus = textMeta.GlobalMediaStatus
 		mergedMeta.GlobalPartCount = textMeta.GlobalPartCount
 		mergedMeta.TextHash = textMeta.TextHash
+		mergedMeta.HasLinkPreview = textMeta.HasLinkPreview
 	}
 	if m.Data != nil && base64.StdEncoding.EncodedLen(len(m.Data)) < 8192 && len(cm.Parts) > 0 {
 		extra := cm.Parts[0].Extra
@@ -1538,6 +1638,7 @@ func (gc *GMClient) convertGoogleMedia(
 		},
 	}
 	mediaClass, _, _ := strings.Cut(content.Info.MimeType, "/")
+	var senderMime string
 	if mediaClass == "" {
 		switch msg.GetFormat() {
 		case gmproto.MediaFormats_AUDIO_UNSPECIFIED:
@@ -1547,13 +1648,22 @@ func (gc *GMClient) convertGoogleMedia(
 		case gmproto.MediaFormats_IMAGE_UNSPECIFIED:
 			mediaClass = "image"
 		}
+		senderClass, _, ok := strings.Cut(msg.GetMimeType(), "/")
+		if ok && msg.MediaID != "" && msg.GetMimeType() != "application/octet-stream" && (mediaClass == "" || mediaClass == senderClass) {
+			senderMime = msg.GetMimeType()
+			mediaClass = senderClass
+		}
 	}
 	var needAudioConvert bool
 	switch mediaClass {
 	case "image":
 		content.MsgType = event.MsgImage
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 	case "video":
 		content.MsgType = event.MsgVideo
+		content.Info.Width = int(msg.GetDimensions().GetWidth())
+		content.Info.Height = int(msg.GetDimensions().GetHeight())
 		// TODO convert weird formats to mp4
 	case "audio":
 		content.MsgType = event.MsgAudio
@@ -1563,6 +1673,7 @@ func (gc *GMClient) convertGoogleMedia(
 		content.MSC3245Voice = &event.MSC3245Voice{}
 	}
 	requireFile := content.Info.MimeType == "" || needAudioConvert
+	mediaID = cmp.Or(msg.MediaID, msg.ThumbnailMediaID)
 	content.URL, content.File, mainErr = intent.UploadMediaStream(ctx, portal.MXID, msg.Size, requireFile, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
 		var data io.ReadCloser
 		var err error
@@ -1609,6 +1720,9 @@ func (gc *GMClient) convertGoogleMedia(
 				return nil, fmt.Errorf("failed to read file header: %w", err)
 			}
 			content.Info.MimeType = http.DetectContentType(header[:m])
+			if senderMime != "" && content.Info.MimeType == "application/octet-stream" {
+				content.Info.MimeType = senderMime
+			}
 		}
 		if !strings.ContainsRune(content.Body, '.') {
 			content.Body += exmime.ExtensionFromMimetype(content.Info.MimeType)
@@ -1623,6 +1737,17 @@ func (gc *GMClient) convertGoogleMedia(
 		mainErr = fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, mainErr)
 	}
 	return
+}
+
+func isPermanentMediaError(err error) bool {
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusBadRequest, http.StatusNotFound, http.StatusGone:
+			return true
+		}
+	}
+	return errors.Is(err, bridgev2.ErrMediaTooLarge) || errors.Is(err, bridgev2.ErrMediaConvertFailed)
 }
 
 type fullMediaRequestKey struct {

@@ -38,6 +38,8 @@ import (
 type conversationMeta struct {
 	markedSpamAt          time.Time
 	cancelPendingBackfill atomic.Pointer[context.CancelFunc]
+	resyncGen             atomic.Uint64
+	newestConvTS          int64
 	unread                bool
 	readUpTo              string
 	readUpToTS            time.Time
@@ -68,7 +70,9 @@ type GMClient struct {
 	pushThrottled          atomic.Bool
 	phoneHasNoSIM          atomic.Bool
 	stallRecoveryRunning   atomic.Bool
+	phoneCheckRunning      atomic.Bool
 	lastConversationList   atomic.Int64
+	avatarFetchTimedOutAt  atomic.Int64
 
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
