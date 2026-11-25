@@ -167,8 +167,8 @@ func (gc *GMClient) FetchMessages(ctx context.Context, params bridgev2.FetchMess
 		return fetchResp, nil
 	}
 	fetchResp.HasMore = true
+	fetchResp.AggressiveDeduplication = true
 	if params.Forward {
-		fetchResp.AggressiveDeduplication = true
 		gc.conversationMetaLock.Lock()
 		meta := gc.conversationMeta[convID]
 		if meta != nil {
