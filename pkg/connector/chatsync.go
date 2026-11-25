@@ -280,13 +280,15 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 		meta = &conversationMeta{}
 		gc.conversationMeta[v.ConversationID] = meta
 	}
-	meta.unread = v.Unread
-	if !v.Unread {
-		meta.readUpTo = v.LatestMessageID
-		meta.readUpToTS = time.UnixMicro(v.LastMessageTimestamp)
-	} else if meta.readUpTo == v.LatestMessageID {
-		meta.readUpTo = ""
-		meta.readUpToTS = time.Time{}
+	if v.LastMessageTimestamp != 0 {
+		meta.unread = v.Unread
+		if !v.Unread {
+			meta.readUpTo = v.LatestMessageID
+			meta.readUpToTS = time.UnixMicro(v.LastMessageTimestamp)
+		} else if meta.readUpTo == v.LatestMessageID {
+			meta.readUpTo = ""
+			meta.readUpToTS = time.Time{}
+		}
 	}
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_BLOCKED_FOLDER:
@@ -399,7 +401,7 @@ func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.C
 		return
 	}
 	var markReadEvt *simplevent.Receipt
-	if !v.Unread {
+	if !v.Unread && v.LastMessageTimestamp != 0 {
 		markReadEvt = gc.makeReadReceipt(v, meta)
 	}
 	if !evt.AllowBackfill {
@@ -632,7 +634,7 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 	if evt.OnlyBackfill {
 		return false
 	}
-	if evt.Conv.Participants == nil {
+	if evt.Conv.Participants == nil || evt.Conv.LastMessageTimestamp == 0 {
 		return false
 	}
 	switch evt.Conv.GetStatus() {
