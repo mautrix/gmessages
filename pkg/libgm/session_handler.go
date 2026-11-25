@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http/httptrace"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,6 +26,8 @@ var ErrPhoneNotResponding = errors.New("phone did not respond to request")
 
 // ErrConnectionClosed is returned for requests that were still waiting for a response when the client was disconnected.
 var ErrConnectionClosed = errors.New("client disconnected before response was received")
+
+var ErrNoServerResponse = errors.New("request was sent, but the server didn't respond")
 
 var ErrPairingPermissionDenied = errors.New("requests to the phone keep getting permission denied")
 
@@ -108,9 +111,20 @@ func (s *SessionHandler) sendAsyncMessageWithID(ctx context.Context, params Send
 		Stringer("message_action", params.Action).
 		Str("message_id", requestID).
 		Msg("Sending request to phone")
-	err = s.postMessage(ctx, payload)
+	var requestWritten atomic.Bool
+	traceCtx := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		WroteRequest: func(info httptrace.WroteRequestInfo) {
+			if info.Err == nil {
+				requestWritten.Store(true)
+			}
+		},
+	})
+	err = s.postMessage(traceCtx, payload)
 	if err != nil {
 		s.cancelResponse(requestID, ch)
+		if requestWritten.Load() && !errors.As(err, &events.HTTPError{}) {
+			err = fmt.Errorf("%w: %w", ErrNoServerResponse, err)
+		}
 		return nil, "", err
 	}
 	return ch, requestID, nil
@@ -231,7 +245,7 @@ func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendM
 			return resp, nil
 		case <-ctx.Done():
 			s.cancelResponse(requestID, ch)
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("%w: %w", ErrNoServerResponse, ctx.Err())
 		case <-shortCircuit:
 			// Notify the pinger in order to trigger an event that the phone isn't responding
 			select {
