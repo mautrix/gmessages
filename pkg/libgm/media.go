@@ -308,6 +308,10 @@ func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error)
 	if c == nil {
 		return nil, ErrClientIsNil
 	}
+	return c.downloadPublicFile(ctx, url, "downloading avatar")
+}
+
+func (c *Client) downloadPublicFile(ctx context.Context, url, action string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -321,7 +325,7 @@ func (c *Client) DownloadAvatar(ctx context.Context, url string) ([]byte, error)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, events.HTTPError{Action: "downloading avatar", Resp: resp}
+		return nil, events.HTTPError{Action: action, Resp: resp}
 	}
 	return io.ReadAll(http.MaxBytesReader(nil, resp.Body, 5*1024*1024))
 }

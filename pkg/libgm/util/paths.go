@@ -30,3 +30,5 @@ const SignInGaiaURL = registrationBaseURL + "/SignInGaia"
 const RegisterRefreshURL = registrationBaseURL + "/RegisterRefresh"
 
 const ConfigURL = "https://messages.google.com/web/config"
+
+const ListStickerPacksURL = "https://sticker-pa.googleapis.com/$rpc/google.internal.expression.sticker.v1.StickerService/ListStickerPacks"
