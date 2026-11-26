@@ -22,16 +22,20 @@ import (
 
 const PhoneNotRespondingMessage = "Your Google Messages app is not responding. Open the Google Messages app on your phone, ensure messages send, and battery optimization is off. If needed, remove and re-add the connection."
 const NoSIMMessage = "Google Messages on your phone isn't reporting a SIM card. If you moved your SIM to another phone, re-link the connection from that phone."
+const NotDefaultSMSAppMessage = "Google Messages isn't set as the default SMS app on your phone, which can stop SMS and MMS from sending. Set Google Messages as the default SMS app, then try again."
+const MMSTooLargeMessage = "This MMS didn't send. The attachment is probably too large for your carrier's MMS limit, so try a smaller file or send a link instead."
 
 const (
 	GMListenError               status.BridgeStateErrorCode = "gm-listen-error"
 	GMFatalError                status.BridgeStateErrorCode = "gm-listen-fatal-error"
 	GMUnpaired                  status.BridgeStateErrorCode = "gm-unpaired"
 	GMUnpaired404               status.BridgeStateErrorCode = "gm-unpaired-entity-not-found"
+	GMUnpairedKeysRejected      status.BridgeStateErrorCode = "gm-unpaired-keys-rejected"
 	GMUnpairedOtherPhone        status.BridgeStateErrorCode = "gm-unpaired-other-phone"
 	GMLoggedOut401              status.BridgeStateErrorCode = "gm-logged-out-401-polling"
 	GMLoggedOutWorkspaceSession status.BridgeStateErrorCode = "gm-logged-out-workspace-session"
 	GMLoggedOutInvalidCreds     status.BridgeStateErrorCode = "gm-logged-out-invalid-credentials"
+	GMUnpaired403               status.BridgeStateErrorCode = "gm-unpaired-permission-denied"
 	GMLoggedOutNoEmailInConfig  status.BridgeStateErrorCode = "gm-logged-out-no-email-in-config"
 	GMNotLoggedIn               status.BridgeStateErrorCode = "gm-not-logged-in"
 	GMNotLoggedInCanReauth      status.BridgeStateErrorCode = "gm-not-logged-in-can-reauth"
@@ -46,6 +50,7 @@ const (
 	GMBrowserInactiveInactivity status.BridgeStateErrorCode = "gm-browser-inactive-inactivity"
 	GMPhoneNotResponding        status.BridgeStateErrorCode = "gm-phone-not-responding"
 	GMSwitchedToGoogleLogin     status.BridgeStateErrorCode = "gm-switched-to-google-login"
+	GMPairedPhoneGone           status.BridgeStateErrorCode = "gm-paired-phone-gone"
 )
 
 func init() {
@@ -60,10 +65,12 @@ func init() {
 		GMNotLoggedInCanRepair:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired:                  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpaired404:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpairedKeysRejected:      "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMUnpairedOtherPhone:        "Unpaired from Google Messages. Google Messages is also set up on another phone with this Google account, which can disconnect this one every day. Sign out of Google Messages on the other phone, then re-link the connection.",
 		GMLoggedOut401:              "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutWorkspaceSession: "Google signed this account out. If it's a Google Workspace account, Google signs it out of Google on the web every 14 days by default; on some Workspace plans the admin can change this in Google session control. Sign in again to reconnect.",
 		GMLoggedOutInvalidCreds:     "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
+		GMUnpaired403:               "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMLoggedOutNoEmailInConfig:  "Unpaired from Google Messages, please re-link the connection to continue using SMS/RCS",
 		GMNotDefaultSMSApp:          "Google Messages isn't set as the default SMS app. Please set the default SMS app on your Android phone to Google Messages to continue using SMS/RCS.",
 		GMBrowserInactive:           "Google Messages opened in another browser",
@@ -71,7 +78,17 @@ func init() {
 		GMBrowserInactiveInactivity: "Google Messages disconnected due to inactivity",
 		GMPhoneNotResponding:        PhoneNotRespondingMessage,
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
+		GMPairedPhoneGone:           "Google Messages on your phone was reset or moved to another phone, please re-link the connection to continue using SMS/RCS",
 	})
+}
+
+func (gc *GMClient) sendConnectedIfChanged() {
+	state := status.BridgeState{StateEvent: status.StateConnected}
+	prev := gc.UserLogin.BridgeState.GetPrevUnsent()
+	if filled := state.Fill(gc.UserLogin); prev.ShouldDeduplicate(&filled) {
+		return
+	}
+	gc.UserLogin.BridgeState.Send(state)
 }
 
 func (gc *GMClient) FillBridgeState(state status.BridgeState) status.BridgeState {
