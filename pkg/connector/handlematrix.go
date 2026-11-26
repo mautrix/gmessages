@@ -34,19 +34,20 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
 
 var (
-	_ bridgev2.ReactionHandlingNetworkAPI    = (*GMClient)(nil)
-	_ bridgev2.RedactionHandlingNetworkAPI   = (*GMClient)(nil)
-	_ bridgev2.ReadReceiptHandlingNetworkAPI = (*GMClient)(nil)
-	_ bridgev2.TypingHandlingNetworkAPI      = (*GMClient)(nil)
-	_ bridgev2.DeleteChatHandlingNetworkAPI  = (*GMClient)(nil)
-	_ bridgev2.UserBlockingNetworkAPI        = (*GMClient)(nil)
-	_ bridgev2.RoomNameHandlingNetworkAPI    = (*GMClient)(nil)
+	_ bridgev2.ReactionHandlingNetworkAPI     = (*GMClient)(nil)
+	_ bridgev2.RedactionHandlingNetworkAPI    = (*GMClient)(nil)
+	_ bridgev2.ReadReceiptHandlingNetworkAPI  = (*GMClient)(nil)
+	_ bridgev2.TypingHandlingNetworkAPI       = (*GMClient)(nil)
+	_ bridgev2.DeleteChatHandlingNetworkAPI   = (*GMClient)(nil)
+	_ bridgev2.UserBlockingNetworkAPI         = (*GMClient)(nil)
+	_ bridgev2.RoomNameHandlingNetworkAPI     = (*GMClient)(nil)
+	_ bridgev2.MuteHandlingNetworkAPI         = (*GMClient)(nil)
+	_ bridgev2.MarkedUnreadHandlingNetworkAPI = (*GMClient)(nil)
 )
 
 var _ bridgev2.TransactionIDGeneratingNetwork = (*GMConnector)(nil)
@@ -88,8 +89,8 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		resp, err = gc.Client.SendMessage(ctx, req)
 	}
 	if err != nil {
-		if errors.Is(err, libgm.ErrPhoneNotResponding) {
-			// The server accepted the message, so the phone may still send it whenever
+		if isUncertainSendError(err) {
+			// The server may have accepted the message, so the phone may still send it whenever
 			// it comes back online. Keep the pending entry so the remote echo can
 			// resolve the original event (and correct the failure status) if that happens.
 			gc.trackPendingSend(txnID, req.GetConversationID())
@@ -343,6 +344,7 @@ func (gc *GMClient) HandleMatrixReactionRemove(ctx context.Context, msg *bridgev
 		MessageID:    msgID,
 		ReactionData: gmproto.MakeReactionData(msg.TargetReaction.Emoji),
 		Action:       gmproto.SendReactionRequest_REMOVE,
+		SIMPayload:   gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload(),
 	})
 	if err != nil {
 		return wrapSendError(err)
@@ -381,7 +383,8 @@ func (gc *GMClient) HandleMatrixReadReceipt(ctx context.Context, msg *bridgev2.M
 }
 
 func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.MatrixTyping) error {
-	if !msg.IsTyping {
+	if msg.Portal.Metadata.(*PortalMetadata).Type != gmproto.ConversationType_RCS ||
+		(msg.IsTyping && gc.Meta.Settings.SettingsReceived && !gc.Meta.Settings.TypingNotifications) {
 		return nil
 	}
 	if gc.Client == nil {
@@ -391,7 +394,7 @@ func (gc *GMClient) HandleMatrixTyping(ctx context.Context, msg *bridgev2.Matrix
 	if err != nil {
 		return err
 	}
-	return gc.Client.SetTyping(ctx, convID, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
+	return gc.Client.SetTyping(ctx, convID, msg.IsTyping, gc.GetSIM(msg.Portal).GetSIMData().GetSIMPayload())
 }
 
 func (gc *GMClient) findPhoneForConversation(ctx context.Context, portal *bridgev2.Portal, convID string) (phone string, alreadyDeleted bool, err error) {
@@ -550,4 +553,64 @@ func (gc *GMClient) HandleMatrixRoomName(ctx context.Context, msg *bridgev2.Matr
 		return false, ErrNonSuccessResponse
 	}
 	return false, nil
+}
+
+func (gc *GMClient) updateConversationState(ctx context.Context, portal *bridgev2.Portal, action gmproto.ConversationActionStatus) error {
+	if gc.Client == nil {
+		return bridgev2.ErrNotLoggedIn
+	}
+	convID, err := gc.conversationIDForPortal(ctx, portal)
+	if err != nil {
+		return err
+	}
+	resp, err := gc.Client.UpdateConversation(ctx, &gmproto.UpdateConversationRequest{
+		Action:         action,
+		ConversationID: convID,
+		Data: &gmproto.UpdateConversationRequest_DeleteData{DeleteData: &gmproto.DeleteConversationData{
+			ConversationID: convID,
+		}},
+	})
+	if err != nil {
+		return wrapSendError(err)
+	} else if !resp.GetSuccess() {
+		return ErrNonSuccessResponse
+	}
+	return nil
+}
+
+func (gc *GMClient) HandleMute(ctx context.Context, msg *bridgev2.MatrixMute) error {
+	action := gmproto.ConversationActionStatus_UNMUTE_CONVERSATION
+	if msg.Content.IsMuted() {
+		action = gmproto.ConversationActionStatus_MUTE_CONVERSATION
+	}
+	return gc.updateConversationState(ctx, msg.Portal, action)
+}
+
+func (gc *GMClient) HandleMarkedUnread(ctx context.Context, msg *bridgev2.MatrixMarkedUnread) error {
+	convID, err := gc.conversationIDForPortal(ctx, msg.Portal)
+	if err != nil {
+		return err
+	}
+	if msg.Content.Unread {
+		err = gc.updateConversationState(ctx, msg.Portal, gmproto.ConversationActionStatus_MARK_UNREAD)
+		if err == nil {
+			gc.conversationMetaLock.Lock()
+			if meta, ok := gc.conversationMeta[convID]; ok {
+				meta.unread = true
+			}
+			gc.conversationMetaLock.Unlock()
+		}
+		return err
+	}
+	gc.conversationMetaLock.Lock()
+	meta, ok := gc.conversationMeta[convID]
+	alreadyRead := ok && !meta.unread
+	gc.conversationMetaLock.Unlock()
+	if alreadyRead {
+		return nil
+	}
+	return gc.HandleMatrixReadReceipt(ctx, &bridgev2.MatrixReadReceipt{
+		Portal:   msg.Portal,
+		ReadUpTo: time.Now(),
+	})
 }
