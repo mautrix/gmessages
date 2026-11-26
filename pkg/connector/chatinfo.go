@@ -132,10 +132,9 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 		},
 	}
 	if conv.IsGroupChat && conv.Type == gmproto.ConversationType_RCS {
-		members.MemberMap[""] = bridgev2.ChatMember{
-			EventSender: bridgev2.EventSender{IsFromMe: true},
-			PowerLevel:  ptr.Ptr(75),
-		}
+		self := members.MemberMap[""]
+		self.PowerLevel = ptr.Ptr(75)
+		members.MemberMap[""] = self
 		members.PowerLevels.Invite = ptr.Ptr(50)
 		members.PowerLevels.Kick = ptr.Ptr(50)
 	}
@@ -165,11 +164,6 @@ func (gc *GMClient) wrapChatInfo(ctx context.Context, conv *gmproto.Conversation
 				PowerLevel:  ptr.Ptr(50),
 			}
 		}
-	}
-	if conv.IsGroupChat && conv.Type == gmproto.ConversationType_RCS && conv.ReadOnly && !hasSelf {
-		self := members.MemberMap[""]
-		self.Membership = event.MembershipLeave
-		members.MemberMap[""] = self
 	}
 	if roomType == database.RoomTypeDM && len(members.MemberMap) == 1 {
 		return nil, fmt.Errorf("no other members found in DM conversation %s", conv.ConversationID)
