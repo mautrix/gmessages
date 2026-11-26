@@ -2,6 +2,7 @@ package libgm
 
 import (
 	"context"
+	"time"
 
 	"go.mau.fi/util/ptr"
 
@@ -118,10 +119,18 @@ func (c *Client) DeleteMessage(ctx context.Context, messageID string) (*gmproto.
 }
 
 func (c *Client) MarkRead(ctx context.Context, conversationID, messageID string) error {
-	return c.getSessionHandler().sendMessageNoResponse(ctx, SendMessageParams{
+	sh := c.getSessionHandler()
+	ch, requestID, err := sh.sendAsyncMessageWithID(ctx, SendMessageParams{
 		Action: gmproto.ActionType_MESSAGE_READ,
 		Data:   &gmproto.MessageReadRequest{ConversationID: conversationID, MessageID: messageID},
 	})
+	if err != nil {
+		return err
+	}
+	time.AfterFunc(responseHardTimeout, func() {
+		sh.cancelResponse(requestID, ch)
+	})
+	return nil
 }
 
 func (c *Client) SetTyping(ctx context.Context, convID string, typing bool, simPayload *gmproto.SIMPayload) error {
