@@ -97,13 +97,15 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
-	if lastDataReceived.IsZero() || gc.syncingConversations.Load() {
+	if lastDataReceived.IsZero() {
 		return
 	}
-	zerolog.Ctx(ctx).Debug().
-		Time("last_data_received", lastDataReceived).
-		Msg("Data resumed after quiet period, checking for missed events")
-	gc.syncMissedEvents(ctx, lastDataReceived, true)
+	gc.runInMessageOrder(func() {
+		zerolog.Ctx(ctx).Debug().
+			Time("last_data_received", lastDataReceived).
+			Msg("Data resumed after quiet period, checking for missed events")
+		gc.syncMissedEvents(ctx, lastDataReceived, true)
+	})
 }
 
 func (gc *GMClient) syncMissedEvents(ctx context.Context, lastDataReceived time.Time, minimalSync bool) {
@@ -332,7 +334,8 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 			return
 		}
 	}
-	allowBackfill := time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute
+	fromChatList := source == "sync"
+	allowBackfill := fromChatList || time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute
 	var gen uint64
 	if allowBackfill {
 		gc.conversationMetaLock.Lock()
@@ -342,7 +345,11 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		}
 		gc.conversationMetaLock.Unlock()
 	}
-	go gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen)
+	if fromChatList {
+		gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen)
+	} else {
+		go gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen)
+	}
 }
 
 func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
