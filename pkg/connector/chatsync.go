@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -385,6 +386,66 @@ func (gc *GMClient) syncReadState(ctx context.Context, convs []*gmproto.Conversa
 	}
 }
 
+const maxQueuedMessagesPerConversation = 256
+
+// trackQueuedMessage records a message the phone pushed that is on its way to the portal through
+// messageQueue. The record is reset whenever pushed data may have been missed (pushStreamGen), so
+// two recorded messages mean every message between them was pushed too.
+func (gc *GMClient) trackQueuedMessage(convID, msgID string, ts int64) {
+	gen := gc.pushStreamGen.Load()
+	if convID == "" || msgID == "" || ts < gc.pushStreamStart.Load() {
+		// Messages from before the gap may be re-pushed for status changes or reactions, which
+		// doesn't mean the messages after them were pushed.
+		return
+	}
+	gc.conversationMetaLock.Lock()
+	defer gc.conversationMetaLock.Unlock()
+	meta, ok := gc.conversationMeta[convID]
+	if !ok {
+		return
+	}
+	if meta.queuedMessageGen != gen {
+		meta.queuedMessages = meta.queuedMessages[:0]
+		meta.queuedMessageNext = 0
+		meta.queuedMessageGen = gen
+	}
+	if slices.Contains(meta.queuedMessages, msgID) {
+		return
+	}
+	if len(meta.queuedMessages) < maxQueuedMessagesPerConversation {
+		meta.queuedMessages = append(meta.queuedMessages, msgID)
+	} else {
+		meta.queuedMessages[meta.queuedMessageNext] = msgID
+		meta.queuedMessageNext = (meta.queuedMessageNext + 1) % maxQueuedMessagesPerConversation
+	}
+}
+
+func (gc *GMClient) resetPushStream() {
+	gc.pushStreamStart.Store(time.Now().UnixMicro())
+	gc.pushStreamGen.Add(1)
+}
+
+// wereMessagesQueued checks that all the given messages were pushed since pushed data was last
+// interrupted.
+func (gc *GMClient) wereMessagesQueued(convID string, msgIDs ...string) bool {
+	if convID == "" {
+		return false
+	}
+	gen := gc.pushStreamGen.Load()
+	gc.conversationMetaLock.Lock()
+	defer gc.conversationMetaLock.Unlock()
+	meta, ok := gc.conversationMeta[convID]
+	if !ok || meta.queuedMessageGen != gen {
+		return false
+	}
+	for _, msgID := range msgIDs {
+		if msgID == "" || !slices.Contains(meta.queuedMessages, msgID) {
+			return false
+		}
+	}
+	return true
+}
+
 func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, allowBackfill bool, gen uint64) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
@@ -689,6 +750,16 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 			evt.g.MakeMessageID(evt.Conv.LatestMessageID) != latestMessage.ID))
 	if !needsBackfill {
 		return false, nil
+	} else if evt.OnlyBackfill && evt.meta != nil && latestMessage != nil && evt.g.latestMessagesWereQueued(evt.Conv, latestMessage) {
+		// Both the newest bridged message and the chat's latest message were pushed without a gap
+		// in between, so everything after the bridged one is already queued behind other events.
+		// Fetching would block the portal until the phone answers, and the queued events bridge
+		// the same messages anyway.
+		zerolog.Ctx(ctx).Debug().
+			Str("conv_latest_message_id", evt.Conv.LatestMessageID).
+			Str("bridged_latest_message_id", string(latestMessage.ID)).
+			Msg("Not backfilling chat as the missing messages were already received and are queued")
+		return false, nil
 	}
 	logEvt := zerolog.Ctx(ctx).Debug().
 		Int64("conv_last_message_ts", evt.Conv.LastMessageTimestamp).
@@ -699,6 +770,14 @@ func (evt *GMChatResync) CheckNeedsBackfill(ctx context.Context, latestMessage *
 	}
 	logEvt.Msg("Chat needs backfill")
 	return true, nil
+}
+
+func (gc *GMClient) latestMessagesWereQueued(conv *gmproto.Conversation, latestMessage *database.Message) bool {
+	bridgedLatestID, err := gc.ParseMessageID(latestMessage.ID)
+	if err != nil {
+		return false
+	}
+	return gc.wereMessagesQueued(conv.ConversationID, bridgedLatestID, conv.LatestMessageID)
 }
 
 func (evt *GMChatResync) DeleteOnlyForMe() bool {
