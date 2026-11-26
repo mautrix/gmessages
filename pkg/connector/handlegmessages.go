@@ -18,6 +18,7 @@ package connector
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -77,6 +78,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			})
 		}
 	case *events.ListenTemporaryError:
+		gc.resetPushStream()
 		gc.longPollingError = evt.Error
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateTransientDisconnect,
@@ -84,6 +86,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Info:       map[string]any{"go_error": evt.Error.Error()},
 		})
 	case *events.ListenRecovered:
+		gc.resetPushStream()
 		gc.longPollingError = nil
 		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
@@ -151,6 +154,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *gmproto.Conversation:
 		gc.chatInfoCache.Set(evt.ConversationID, evt)
 		if gc.noDataReceivedRecently {
+			gc.resetPushStream()
 			gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
@@ -159,6 +163,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {
+			gc.resetPushStream()
 			gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
@@ -196,6 +201,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		} else {
 			// There's an extra layer of queueing because QueueRemoteEvent calls some methods on MessageEvent,
 			// which may need to fetch conversations from the phone (to get the stable ID).
+			gc.trackQueuedMessage(evt.GetConversationID(), evt.GetMessageID(), evt.GetTimestamp())
 			if !gc.runInMessageOrder(func() {
 				gc.Main.br.QueueRemoteEvent(gc.UserLogin, &MessageEvent{
 					WrappedMessage: evt,
@@ -257,6 +263,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *events.AccountChange:
 		gc.handleAccountChange(ctx, evt)
 	case *events.NoDataReceived:
+		gc.resetPushStream()
 		gc.noDataReceivedRecently = true
 		go gc.recoverReceiveStall(ctx)
 	case *events.PairSuccessful:
@@ -325,9 +332,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	}
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
+		gc.resetPushStream()
 		wasInactive := gc.browserInactiveType != "" || !gc.ready
 		gc.browserInactiveType = ""
 		gc.ready = true
@@ -375,9 +384,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			gc.SyncConversations(ctx, lastDataReceived, true)
 		})
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveInactivity
 		becameInactive = true
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
@@ -397,9 +408,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			gc.batteryLowAlertSent = time.Time{}
 		}
 	case gmproto.AlertType_PUSH_THROTTLE_STARTED:
+		gc.resetPushStream()
 		gc.pushThrottled.Store(true)
 		return
 	case gmproto.AlertType_PUSH_THROTTLE_ENDED:
+		gc.resetPushStream()
 		gc.pushThrottled.Store(false)
 		go gc.resyncChatsWithPendingSends(context.WithoutCancel(ctx))
 		return
@@ -498,9 +511,15 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrRequestedEntityNotFound):
 		state.Error = GMUnpaired404
 		go gc.invalidateSession(ctx, state, true, false)
+	case errors.Is(err, libgm.ErrPairingKeysRejected):
+		state.Error = GMUnpairedKeysRejected
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)
+	case errors.Is(err, libgm.ErrPairingPermissionDenied):
+		state.Error = GMUnpaired403
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		if isWorkspaceEmail(gc.Meta.Session.Mobile.GetSourceID()) {
@@ -749,14 +768,17 @@ func (m *MessageUpdateEvent) ConvertEdit(ctx context.Context, portal *bridgev2.P
 			delete(existingPartMap, part.ID)
 			oldMeta := existingPart.Metadata.(*MessageMetadata)
 			newMeta := part.DBMetadata.(*MessageMetadata)
-			if newMeta.MediaPending && oldMeta.MediaID != "" && !oldMeta.MediaPending && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
+			if (newMeta.MediaPending || newMeta.MediaFailed) && oldMeta.MediaID != "" && !oldMeta.MediaPending && !oldMeta.MediaFailed && (oldMeta.TextHash == "" || oldMeta.TextHash == newMeta.TextHash) {
 				zerolog.Ctx(ctx).Debug().
 					Str("part_id", string(part.ID)).
 					Str("old_media_id", oldMeta.MediaID).
 					Str("new_media_id", newMeta.MediaID).
 					Msg("Not replacing already bridged media with unavailable update")
-				newMeta.MediaID = oldMeta.MediaID
+				if !newMeta.MediaFailed {
+					newMeta.MediaID = oldMeta.MediaID
+				}
 				newMeta.MediaPending = false
+				newMeta.MediaFailed = false
 				part.DontBridge = true
 			}
 			editPart := part.ToEditPart(existingPart)
@@ -815,6 +837,12 @@ func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageEvent) ShouldCreatePortal() bool {
+	if conv, ok := m.g.chatInfoCache.Get(m.ConversationID); ok {
+		switch conv.GetStatus() {
+		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+			return false
+		}
+	}
 	switch m.GetMessageStatus().GetStatus() {
 	case gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_OUTGOING_COMPLETE,
 		gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED:
@@ -1587,7 +1615,8 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
 		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
-			dbMeta.MediaPending = true
+			dbMeta.MediaFailed = isPermanentMediaError(err)
+			dbMeta.MediaPending = !dbMeta.MediaFailed
 			dbMeta.MediaID = mediaID
 			log.Err(err).Msg("Failed to copy attachment")
 			content = event.MessageEventContent{
@@ -1683,6 +1712,7 @@ func (gc *GMClient) convertGoogleMedia(
 		content.MSC3245Voice = &event.MSC3245Voice{}
 	}
 	requireFile := content.Info.MimeType == "" || needAudioConvert
+	mediaID = cmp.Or(msg.MediaID, msg.ThumbnailMediaID)
 	content.URL, content.File, mainErr = intent.UploadMediaStream(ctx, portal.MXID, msg.Size, requireFile, func(file io.Writer) (*bridgev2.FileStreamResult, error) {
 		var data io.ReadCloser
 		var err error
@@ -1746,6 +1776,17 @@ func (gc *GMClient) convertGoogleMedia(
 		mainErr = fmt.Errorf("%w: %w", bridgev2.ErrMediaReuploadFailed, mainErr)
 	}
 	return
+}
+
+func isPermanentMediaError(err error) bool {
+	var httpErr events.HTTPError
+	if errors.As(err, &httpErr) {
+		switch httpErr.Resp.StatusCode {
+		case http.StatusBadRequest, http.StatusNotFound, http.StatusGone:
+			return true
+		}
+	}
+	return errors.Is(err, bridgev2.ErrMediaTooLarge) || errors.Is(err, bridgev2.ErrMediaConvertFailed)
 }
 
 type fullMediaRequestKey struct {

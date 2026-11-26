@@ -84,6 +84,7 @@ type MessageMetadata struct {
 	MediaPartID  string `json:"media_part_id,omitempty"`
 	MediaID      string `json:"media_id,omitempty"`
 	MediaPending bool   `json:"media_pending,omitempty"`
+	MediaFailed  bool   `json:"media_failed,omitempty"`
 
 	IsOutgoing      bool `json:"is_outgoing,omitempty"`
 	MSSSent         bool `json:"mss_sent,omitempty"`
