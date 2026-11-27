@@ -482,7 +482,22 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 		}).Loop()
 	}
 
-	errorCount := 1
+	errorCount := 0
+	errored := true
+	retryIn := func(err error) (int, bool) {
+		errorCount++
+		if errorCount == 1 {
+			return 2, true
+		}
+		errored = true
+		if loggedIn {
+			c.triggerEvent(&events.ListenTemporaryError{Error: err})
+		}
+		if background {
+			return 0, false
+		}
+		return (errorCount + 1) * 5, true
+	}
 	var disconnectedAt time.Time
 	for c.listenID == listenID {
 		err := c.refreshAuthToken(nil)
@@ -494,16 +509,9 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 				}
 				return false
 			}
-			if loggedIn {
-				c.triggerEvent(&events.ListenTemporaryError{Error: fmt.Errorf("failed to refresh auth token: %w", err)})
-			}
-			errorCount++
-			sleepSeconds := (errorCount + 1) * 5
-			if background {
-				if errorCount >= 3 {
-					return false
-				}
-				sleepSeconds = errorCount * 2
+			sleepSeconds, ok := retryIn(fmt.Errorf("failed to refresh auth token: %w", err))
+			if !ok {
+				return false
 			}
 			log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error refreshing auth token, retrying in a while")
 			time.Sleep(time.Duration(sleepSeconds) * time.Second)
@@ -529,16 +537,9 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 		resp, err := c.makeProtobufHTTPRequestContext(connCtx, url, payload, ContentTypePBLite, true)
 		if err != nil {
 			cancel()
-			if loggedIn {
-				c.triggerEvent(&events.ListenTemporaryError{Error: err})
-			}
-			errorCount++
-			sleepSeconds := (errorCount + 1) * 5
-			if background {
-				if errorCount >= 3 {
-					return false
-				}
-				sleepSeconds = errorCount * 2
+			sleepSeconds, ok := retryIn(err)
+			if !ok {
+				return false
 			}
 			log.Err(err).Int("sleep_seconds", sleepSeconds).Msg("Error making listen request, retrying in a while")
 			time.Sleep(time.Duration(sleepSeconds) * time.Second)
@@ -557,18 +558,9 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 			return false
 		} else if resp.StatusCode >= 400 {
 			cancel()
-			if loggedIn {
-				c.triggerEvent(&events.ListenTemporaryError{Error: events.HTTPError{Action: "polling", Resp: resp, Body: tryReadBody(resp.Body)}})
-			} else {
-				_ = resp.Body.Close()
-			}
-			errorCount++
-			sleepSeconds := (errorCount + 1) * 5
-			if background {
-				if errorCount >= 3 {
-					return false
-				}
-				sleepSeconds = errorCount * 2
+			sleepSeconds, ok := retryIn(events.HTTPError{Action: "polling", Resp: resp, Body: tryReadBody(resp.Body)})
+			if !ok {
+				return false
 			}
 			log.Debug().
 				Int("statusCode", resp.StatusCode).
@@ -583,8 +575,9 @@ func (c *Client) doLongPoll(ctx context.Context, loggedIn, background bool, onFi
 			_ = resp.Body.Close()
 			return true
 		}
-		if errorCount > 0 {
-			errorCount = 0
+		errorCount = 0
+		if errored {
+			errored = false
 			if loggedIn {
 				c.triggerEvent(&events.ListenRecovered{})
 			}
