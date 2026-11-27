@@ -56,7 +56,7 @@ const (
 	pairingErrMsgPhoneInactive      = "Google Messages on your phone hasn't connected to this Google account recently. Open Google Messages on your phone, tap your profile picture, then Device pairing, and make sure it's signed in with the same Google account. Then try again."
 	pairingErrMsgPhoneNotFound      = "Your phone isn't ready for pairing. Open Google Messages on your phone, then try again. If you switched to a different phone, remove this account and add it again."
 	pairingErrMsgIncorrectEmoji     = "Incorrect emoji chosen on phone, please try again"
-	pairingErrMsgCallerNoPermission = "That Google Account doesn't seem to have permission to use Google Messages for Web"
+	pairingErrMsgCallerNoPermission = "Google didn't allow this account to pair with Google Messages for Web. This can happen with Google Workspace and supervised accounts, so try signing in with a personal Google account instead."
 	pairingErrMsgCancelled          = "Pairing cancelled on phone"
 	pairingErrMsgTimeout            = "Pairing timed out, please try again"
 	pairingErrMsgQRTimeout          = "Scanning QR code timed out, please try again"
@@ -259,6 +259,10 @@ func init() {
 
 func (gl *GoogleLoginProcess) Cancel() {
 	if gl.Client != nil {
+		err := gl.Client.CancelGaiaPairing(gl.Client.Logger.WithContext(gl.Main.br.BackgroundCtx), gl.Sess)
+		if err != nil {
+			gl.Client.Logger.Warn().Err(err).Msg("Failed to send gaia pairing cancel request")
+		}
 		gl.Client.Disconnect()
 	}
 	if c := gl.bgCancel; c != nil {

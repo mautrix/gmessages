@@ -32,6 +32,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -120,6 +121,8 @@ type PairingSession struct {
 	InitPayload   []byte
 	FinishPayload []byte
 	NextKey       []byte
+
+	ended atomic.Bool
 }
 
 func NewPairingSession(destRegDevice primaryDeviceID) *PairingSession {
@@ -297,6 +300,7 @@ var (
 )
 
 const GaiaInitTimeout = 20 * time.Second
+const GaiaCancelTimeout = 5 * time.Second
 const GaiaPhoneInactiveAfter = 48 * time.Hour
 
 type primaryDeviceID struct {
@@ -459,9 +463,9 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 	serverInit, err := c.sendGaiaPairingMessage(initCtx, ps, gmproto.ActionType_CREATE_GAIA_PAIRING_CLIENT_INIT, clientInit)
 	cancel()
 	if err != nil {
-		cancelErr := c.cancelGaiaPairing(ctx, ps)
+		cancelErr := c.CancelGaiaPairing(ctx, ps)
 		if cancelErr != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after init timeout")
+			zerolog.Ctx(ctx).Warn().Err(cancelErr).Msg("Failed to send gaia pairing cancel request after init timeout")
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			err = ErrPairingInitTimeout
@@ -480,9 +484,9 @@ func (c *Client) StartGaiaPairing(ctx, bgCtx context.Context) (string, *PairingS
 		Msg("Received server init")
 	pairingEmoji, err := ps.ProcessServerInit(serverInit)
 	if err != nil {
-		cancelErr := c.cancelGaiaPairing(ctx, ps)
+		cancelErr := c.CancelGaiaPairing(ctx, ps)
 		if cancelErr != nil {
-			zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after error processing server init")
+			zerolog.Ctx(ctx).Warn().Err(cancelErr).Msg("Failed to send gaia pairing cancel request after error processing server init")
 		}
 		return "", nil, fmt.Errorf("error processing server init: %w", err)
 	}
@@ -497,13 +501,14 @@ func (c *Client) FinishGaiaPairing(ctx context.Context, ps *PairingSession) (str
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			zerolog.Ctx(ctx).Debug().Msg("Sending gaia pairing cancel after context was canceled")
-			cancelErr := c.cancelGaiaPairing(ctx, ps)
+			cancelErr := c.CancelGaiaPairing(ctx, ps)
 			if cancelErr != nil {
-				zerolog.Ctx(ctx).Warn().Err(err).Msg("Failed to send gaia pairing cancel request after context was canceled")
+				zerolog.Ctx(ctx).Warn().Err(cancelErr).Msg("Failed to send gaia pairing cancel request after context was canceled")
 			}
 		}
 		return "", fmt.Errorf("failed to send client finish: %w", err)
 	}
+	ps.ended.Store(true)
 	if finishResp.GetFinishErrorType() != 0 {
 		switch finishResp.GetFinishErrorCode() {
 		case gmproto.GaiaPairingErrorCode_WRONG_VERIFICATION_CODE_SELECTED:
@@ -555,7 +560,14 @@ func byteHash(bytes []byte) (out int32) {
 	return out
 }
 
-func (c *Client) cancelGaiaPairing(ctx context.Context, sess *PairingSession) error {
+func (c *Client) CancelGaiaPairing(ctx context.Context, sess *PairingSession) error {
+	if c == nil {
+		return ErrClientIsNil
+	} else if sess == nil || sess.ended.Swap(true) {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), GaiaCancelTimeout)
+	defer cancel()
 	return c.sessionHandler.sendMessageNoResponse(ctx, SendMessageParams{
 		Action:      gmproto.ActionType_CANCEL_GAIA_PAIRING,
 		RequestID:   sess.UUID.String(),
