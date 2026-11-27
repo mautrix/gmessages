@@ -159,7 +159,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		}
 		gc.noDataReceivedRecently = false
 		gc.lastDataReceived = time.Now()
-		gc.syncConversation(ctx, evt, "event", nil)
+		gc.syncConversation(ctx, evt, "event")
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {

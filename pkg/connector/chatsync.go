@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -110,7 +109,7 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	}
 	for _, conv := range convs {
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
-		gc.syncConversation(ctx, conv, "sync", nil)
+		gc.syncConversation(ctx, conv, "sync")
 	}
 	if !gc.Meta.IsChatListSynced() {
 		go gc.syncChatList(ctx)
@@ -140,26 +139,14 @@ func (gc *GMClient) syncChatList(ctx context.Context) {
 		}
 	}()
 	log.Info().Msg("Syncing all chats")
-	var wg sync.WaitGroup
 	var chatCount int
 	for _, folder := range chatListFolders {
-		count, err := gc.syncChatListFolder(ctx, folder, &wg)
+		count, err := gc.syncChatListFolder(ctx, folder)
 		chatCount += count
 		if err != nil {
 			log.Err(err).Stringer("folder", folder).Int("chat_count", chatCount).Msg("Failed to sync all chats")
 			return
 		}
-	}
-	log.Info().Int("chat_count", chatCount).Msg("Queued all chats, waiting for them to be handled")
-	allHandled := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(allHandled)
-	}()
-	select {
-	case <-allHandled:
-	case <-ctx.Done():
-		return
 	}
 	if !gc.Meta.MarkChatListSynced(ctx) {
 		return
@@ -167,10 +154,10 @@ func (gc *GMClient) syncChatList(ctx context.Context) {
 	if err := gc.UserLogin.Save(ctx); err != nil {
 		log.Err(err).Msg("Failed to save user login after syncing all chats")
 	}
-	log.Info().Int("chat_count", chatCount).Msg("Finished syncing all chats")
+	log.Info().Int("chat_count", chatCount).Msg("Queued all chats")
 }
 
-func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListConversationsRequest_Folder, wg *sync.WaitGroup) (count int, err error) {
+func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListConversationsRequest_Folder) (count int, err error) {
 	var cursor *gmproto.Cursor
 	for {
 		resp, err := gc.Client.ListConversations(ctx, &gmproto.ListConversationsRequest{
@@ -190,14 +177,8 @@ func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListC
 			Bool("has_next_page", next != nil).
 			Msg("Syncing chat list page")
 		for _, conv := range convs {
-			wg.Add(1)
-			handled := sync.OnceFunc(wg.Done)
 			gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
-			if !gc.syncConversation(ctx, conv, "sync", handled) ||
-				!(&GMChatResync{Conv: conv}).ShouldCreatePortal() ||
-				!gc.Main.br.Config.PortalCreateFilter.ShouldAllow(gc.UserLogin.ID, gc.portalKeyForConv(conv)) {
-				handled()
-			}
+			gc.syncConversation(ctx, conv, "sync")
 		}
 		if len(convs) == 0 || next == nil || proto.Equal(next, cursor) {
 			return count, nil
@@ -411,7 +392,7 @@ func (gc *GMClient) syncConversationMeta(v *gmproto.Conversation) (meta *convers
 	return
 }
 
-func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string, handled func()) bool {
+func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversation, source string) {
 	meta, suspiciousUnmarkedSpam := gc.syncConversationMeta(v)
 
 	log := zerolog.Ctx(ctx).With().
@@ -426,17 +407,17 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 	if suspiciousUnmarkedSpam {
 		log.Debug().Any("conversation_data", convCopy).
 			Msg("Dropping conversation update due to suspected race condition with spam flag")
-		return false
+		return
 	}
 	log.Debug().Any("conversation_data", convCopy).Msg("Got conversation update")
 	switch v.Status {
 	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
 		err := gc.deduplicateDM(ctx, v)
 		if errors.Is(err, errDontSyncConversation) {
-			return false
+			return
 		} else if err != nil {
 			log.Error().Err(err).Msg("Failed to deduplicate DM")
-			return false
+			return
 		}
 	}
 	allowBackfill := time.Since(time.UnixMicro(v.LastMessageTimestamp)) > 5*time.Minute
@@ -449,8 +430,7 @@ func (gc *GMClient) syncConversation(ctx context.Context, v *gmproto.Conversatio
 		}
 		gc.conversationMetaLock.Unlock()
 	}
-	go gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen, handled)
-	return true
+	go gc.syncConversationBackground(log.WithContext(ctx), v, meta, allowBackfill, gen)
 }
 
 func (gc *GMClient) makeReadReceipt(v *gmproto.Conversation, meta *conversationMeta) *simplevent.Receipt {
@@ -554,7 +534,7 @@ func (gc *GMClient) wereMessagesQueued(convID string, msgIDs ...string) bool {
 	return true
 }
 
-func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, allowBackfill bool, gen uint64, handled func()) {
+func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.Conversation, meta *conversationMeta, allowBackfill bool, gen uint64) {
 	log := zerolog.Ctx(ctx)
 	evt := &GMChatResync{
 		g:             gc,
@@ -562,11 +542,8 @@ func (gc *GMClient) syncConversationBackground(ctx context.Context, v *gmproto.C
 		AllowBackfill: allowBackfill,
 		meta:          meta,
 		gen:           gen,
-		handled:       handled,
 	}
-	if res := gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt); !res.Queued && handled != nil {
-		handled()
-	}
+	gc.Main.br.QueueRemoteEvent(gc.UserLogin, evt)
 	switch v.Status {
 	case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
 		// Don't send read/backfill events if the chat is being deleted
@@ -781,8 +758,6 @@ type GMChatResync struct {
 
 	meta *conversationMeta
 	gen  uint64
-
-	handled func()
 }
 
 var (
@@ -791,7 +766,6 @@ var (
 	_ bridgev2.RemoteChatResyncBackfillBundle = (*GMChatResync)(nil)
 	_ bridgev2.RemoteChatDelete               = (*GMChatResync)(nil)
 	_ bridgev2.RemoteEventThatMayCreatePortal = (*GMChatResync)(nil)
-	_ bridgev2.RemotePostHandler              = (*GMChatResync)(nil)
 )
 
 func (evt *GMChatResync) GetType() bridgev2.RemoteEventType {
@@ -820,12 +794,6 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 		return false
 	}
 	return true
-}
-
-func (evt *GMChatResync) PostHandle(ctx context.Context, portal *bridgev2.Portal) {
-	if evt.handled != nil {
-		evt.handled()
-	}
 }
 
 func (evt *GMChatResync) GetBundledBackfillData() any {
