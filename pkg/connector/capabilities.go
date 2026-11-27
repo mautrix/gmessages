@@ -43,7 +43,7 @@ var generalCaps = &bridgev2.NetworkGeneralCapabilities{
 			CreateDM:    true,
 			LookupPhone: false, // There's no lookup, you can just DM any phone number
 			AnyPhone:    true,
-			ContactList: false, // we don't support pagination yet
+			ContactList: true,
 		},
 		GroupCreation: map[string]bridgev2.GroupTypeCapabilities{
 			// TODO allow choosing rcs or mms?

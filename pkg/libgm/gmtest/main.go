@@ -100,7 +100,7 @@ func main() {
 			//	_, err := cli.GetFullSizeImage(args)
 			//	fmt.Println(err)
 			case "listcontacts":
-				cli.ListContacts(context.TODO())
+				cli.ListContacts(context.TODO(), "")
 			case "topcontacts":
 				cli.ListTopContacts(context.TODO())
 			case "getconversation":

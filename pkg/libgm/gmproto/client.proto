@@ -113,6 +113,8 @@ message ListMessagesResponse {
 }
 
 message ListContactsRequest {
+    string pageToken = 3;
+    string query = 4;
     int32 i1 = 5; // = 1
     int32 i2 = 6; // = 350
     int32 i3 = 7; // = 50
@@ -128,6 +130,7 @@ message ListTopContactsRequest {
 
 message ListContactsResponse {
     repeated conversations.Contact contacts = 2;
+    string nextPageToken = 3;
 }
 
 message ListTopContactsResponse {
