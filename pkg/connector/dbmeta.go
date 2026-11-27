@@ -17,6 +17,7 @@
 package connector
 
 import (
+	"context"
 	"crypto/ecdh"
 	"crypto/rand"
 	"encoding/json"
@@ -120,6 +121,8 @@ type UserLoginMetadata struct {
 	PhoneCheckedAt     jsontime.Unix               `json:"phone_checked_at,omitzero"`
 	IDPrefix           string                      `json:"id_prefix"`
 	PushKeys           *PushKeys                   `json:"push_keys"`
+
+	ChatListSynced bool `json:"chat_list_synced,omitempty"`
 }
 
 type PushKeys struct {
@@ -179,7 +182,10 @@ func (ulm *UserLoginMetadata) CopyFrom(other any) {
 	if !ok || otherULM == nil {
 		panic(fmt.Errorf("invalid type %T provided to UserLoginMetadata.CopyFrom", other))
 	}
+	ulm.lock.Lock()
+	defer ulm.lock.Unlock()
 	ulm.Session = otherULM.Session
+	ulm.ChatListSynced = otherULM.ChatListSynced
 }
 
 func (ulm *UserLoginMetadata) MarshalJSON() ([]byte, error) {
@@ -202,6 +208,7 @@ func (ulm *UserLoginMetadata) clearUnlocked() {
 	ulm.Settings = UserSettings{}
 	ulm.IDPrefix = ""
 	ulm.PushKeys = nil
+	ulm.ChatListSynced = false
 }
 
 func (ulm *UserLoginMetadata) AddSelfParticipantID(id string) bool {
@@ -221,6 +228,22 @@ func (ulm *UserLoginMetadata) IsSelfParticipantID(id string) bool {
 	ulm.lock.RLock()
 	defer ulm.lock.RUnlock()
 	return slices.Contains(ulm.SelfParticipantIDs, id)
+}
+
+func (ulm *UserLoginMetadata) IsChatListSynced() bool {
+	ulm.lock.RLock()
+	defer ulm.lock.RUnlock()
+	return ulm.ChatListSynced
+}
+
+func (ulm *UserLoginMetadata) MarkChatListSynced(ctx context.Context) bool {
+	ulm.lock.Lock()
+	defer ulm.lock.Unlock()
+	if ctx.Err() != nil {
+		return false
+	}
+	ulm.ChatListSynced = true
+	return true
 }
 
 func (ulm *UserLoginMetadata) SIMCount() int {

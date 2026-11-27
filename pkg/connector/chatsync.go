@@ -34,8 +34,29 @@ import (
 	"maunium.net/go/mautrix/bridgev2/simplevent"
 
 	"go.mau.fi/mautrix-gmessages/pkg/connector/gmdb"
+	"go.mau.fi/mautrix-gmessages/pkg/libgm"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 )
+
+var chatListFolders = []gmproto.ListConversationsRequest_Folder{
+	gmproto.ListConversationsRequest_INBOX,
+	gmproto.ListConversationsRequest_ARCHIVE,
+}
+
+func listRecentConversations(ctx context.Context, cli *libgm.Client, count int) ([]*gmproto.Conversation, error) {
+	var convs []*gmproto.Conversation
+	for _, folder := range chatListFolders {
+		resp, err := cli.ListConversations(ctx, &gmproto.ListConversationsRequest{
+			Count:  int64(count),
+			Folder: folder,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list %s conversations: %w", folder, err)
+		}
+		convs = append(convs, resp.GetConversations()...)
+	}
+	return convs, nil
+}
 
 func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time.Time, minimalSync bool) (foundGap bool, err error) {
 	defer func() {
@@ -50,19 +71,16 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 	defer gc.syncingConversations.Store(false)
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("Fetching conversation list")
-	resp, err := gc.Client.ListConversations(ctx, &gmproto.ListConversationsRequest{
-		Count:  int64(gc.Main.Config.InitialChatSyncCount),
-		Folder: gmproto.ListConversationsRequest_INBOX,
-	})
+	convs, err := listRecentConversations(ctx, gc.Client, gc.Main.Config.InitialChatSyncCount)
 	if err != nil {
 		log.Err(err).Msg("Failed to get conversation list")
 		return false, err
 	}
 	gc.lastConversationList.Store(time.Now().UnixMilli())
-	log.Info().Int("count", len(resp.GetConversations())).Msg("Syncing conversations")
+	log.Info().Int("count", len(convs)).Msg("Syncing conversations")
 	var newestMessageTS time.Time
 	if !lastDataReceived.IsZero() {
-		for _, conv := range resp.GetConversations() {
+		for _, conv := range convs {
 			lastMessageTS := time.UnixMicro(conv.GetLastMessageTimestamp())
 			if lastMessageTS.After(newestMessageTS) {
 				newestMessageTS = lastMessageTS
@@ -85,15 +103,88 @@ func (gc *GMClient) SyncConversations(ctx context.Context, lastDataReceived time
 		gc.lastDataReceived = newestMessageTS
 	}
 	if minimalSync {
-		gc.syncReadState(ctx, resp.GetConversations())
+		gc.syncReadState(ctx, convs)
 		log.Debug().Msg("Minimal sync with no recent messages, not syncing conversations")
 		return
 	}
-	for _, conv := range resp.GetConversations() {
+	for _, conv := range convs {
 		gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
 		gc.syncConversation(ctx, conv, "sync")
 	}
+	if !gc.Meta.IsChatListSynced() {
+		go gc.syncChatList(ctx)
+	}
 	return
+}
+
+const chatListPageSize = 25
+
+func (gc *GMClient) syncChatList(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	if !gc.stopChatListSync.CompareAndSwap(nil, &cancel) {
+		return
+	}
+	defer gc.stopChatListSync.CompareAndSwap(&cancel, nil)
+	if !gc.ready {
+		return
+	}
+	log := gc.UserLogin.Log.With().Str("action", "sync chat list").Logger()
+	ctx = log.WithContext(ctx)
+	defer func() {
+		if v := recover(); v != nil {
+			log.Err(exerrors.RecoverToError(v)).
+				Bytes(zerolog.ErrorStackFieldName, debug.Stack()).
+				Msg("Chat list sync panicked")
+		}
+	}()
+	log.Info().Msg("Syncing all chats")
+	var chatCount int
+	for _, folder := range chatListFolders {
+		count, err := gc.syncChatListFolder(ctx, folder)
+		chatCount += count
+		if err != nil {
+			log.Err(err).Stringer("folder", folder).Int("chat_count", chatCount).Msg("Failed to sync all chats")
+			return
+		}
+	}
+	if !gc.Meta.MarkChatListSynced(ctx) {
+		return
+	}
+	if err := gc.UserLogin.Save(ctx); err != nil {
+		log.Err(err).Msg("Failed to save user login after syncing all chats")
+	}
+	log.Info().Int("chat_count", chatCount).Msg("Queued all chats")
+}
+
+func (gc *GMClient) syncChatListFolder(ctx context.Context, folder gmproto.ListConversationsRequest_Folder) (count int, err error) {
+	var cursor *gmproto.Cursor
+	for {
+		resp, err := gc.Client.ListConversations(ctx, &gmproto.ListConversationsRequest{
+			Count:  chatListPageSize,
+			Folder: folder,
+			Cursor: cursor,
+		})
+		if err != nil {
+			return count, err
+		}
+		convs := resp.GetConversations()
+		count += len(convs)
+		next := resp.GetCursor()
+		zerolog.Ctx(ctx).Debug().
+			Stringer("folder", folder).
+			Int("page_count", len(convs)).
+			Bool("has_next_page", next != nil).
+			Msg("Syncing chat list page")
+		for _, conv := range convs {
+			gc.chatInfoCache.GetOrSet(conv.ConversationID, conv)
+			gc.syncConversation(ctx, conv, "sync")
+		}
+		if len(convs) == 0 || next == nil || proto.Equal(next, cursor) {
+			return count, nil
+		}
+		cursor = next
+	}
 }
 
 func (gc *GMClient) resyncAfterDataResume(ctx context.Context, lastDataReceived time.Time) {
@@ -183,16 +274,13 @@ func (gc *GMClient) resyncChatsWithPendingSends(ctx context.Context) {
 		Int("pending_chat_count", len(convIDs)).
 		Int("list_count", count).
 		Msg("Push throttling ended with sends still waiting for an echo, resyncing affected chats")
-	resp, err := cli.ListConversations(ctx, &gmproto.ListConversationsRequest{
-		Count:  int64(count),
-		Folder: gmproto.ListConversationsRequest_INBOX,
-	})
+	convs, err := listRecentConversations(ctx, cli, count)
 	if err != nil {
 		log.Err(err).Msg("Failed to list conversations to resync pending sends")
 		return
 	}
 	var resynced int
-	for _, conv := range resp.GetConversations() {
+	for _, conv := range convs {
 		if _, ok := convIDs[conv.GetConversationID()]; !ok {
 			continue
 		}
@@ -699,10 +787,10 @@ func (evt *GMChatResync) ShouldCreatePortal() bool {
 		return false
 	}
 	switch evt.Conv.GetStatus() {
-	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED:
+	case gmproto.ConversationStatus_ACTIVE, gmproto.ConversationStatus_ARCHIVED, gmproto.ConversationStatus_KEEP_ARCHIVED:
 		// continue to other checks
 	default:
-		// Don't create portal for keep_archived/spam/blocked/deleted
+		// Don't create portal for spam/blocked/deleted
 		return false
 	}
 	return true
