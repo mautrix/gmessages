@@ -81,6 +81,10 @@ type GMClient struct {
 	pushStreamStart        atomic.Int64
 	avatarFetchTimedOutAt  atomic.Int64
 
+	lastAggressiveSetActive   atomic.Int64
+	aggressiveSetActiveStreak atomic.Int32
+	aggressiveSetActiveGen    atomic.Uint64
+
 	chatInfoCache        *exsync.Map[string, *gmproto.Conversation]
 	chatInfoFetchFailed  *exsync.Map[string, time.Time]
 	conversationMeta     map[string]*conversationMeta
@@ -250,6 +254,9 @@ func (gc *GMClient) Disconnect() {
 	gc.SwitchedToGoogleLogin = false
 	gc.ready = false
 	gc.browserInactiveType = ""
+	gc.lastAggressiveSetActive.Store(0)
+	gc.aggressiveSetActiveStreak.Store(0)
+	gc.aggressiveSetActiveGen.Add(1)
 	if cli := gc.Client; cli != nil {
 		cli.Disconnect()
 	}

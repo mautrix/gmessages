@@ -326,6 +326,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactive
 		becameInactive = true
+		if lastSetActive := gc.lastAggressiveSetActive.Load(); lastSetActive != 0 && time.Since(time.Unix(0, lastSetActive)) < aggressiveSetActiveTakeoverWindow {
+			gc.aggressiveSetActiveStreak.Add(1)
+		} else {
+			gc.aggressiveSetActiveStreak.Store(0)
+		}
 	case gmproto.AlertType_BROWSER_ACTIVE:
 		gc.resetPushStream()
 		wasInactive := gc.browserInactiveType != "" || !gc.ready
@@ -369,10 +374,12 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
+		gc.aggressiveSetActiveStreak.Store(0)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
 		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveInactivity
 		becameInactive = true
+		gc.aggressiveSetActiveStreak.Store(0)
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
 		gc.mobileData = true
 	case gmproto.AlertType_MOBILE_WIFI_CONNECTION:
@@ -403,7 +410,7 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	}
 	if becameInactive {
 		if gc.Main.Config.AggressiveReconnect {
-			go gc.aggressiveSetActive()
+			go gc.aggressiveSetActive(int(gc.aggressiveSetActiveStreak.Load()))
 		} /* else {
 			go gc.sendMarkdownBridgeAlert(ctx, true, "Google Messages was opened in another browser. Use `set-active` to reconnect the bridge.")
 		}*/
@@ -411,14 +418,29 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	gc.sendConnectedIfChanged()
 }
 
-func (gc *GMClient) aggressiveSetActive() {
-	sleepTimes := []int{5, 10, 30}
-	for i := 0; i < 3; i++ {
-		sleep := time.Duration(sleepTimes[i]) * time.Second
+const (
+	aggressiveSetActiveTakeoverWindow = 2 * time.Minute
+	maxAggressiveSetActiveBackoff     = 30 * time.Minute
+)
+
+func (gc *GMClient) aggressiveSetActive(takeoverStreak int) {
+	gen := gc.aggressiveSetActiveGen.Add(1)
+	sleepTimes := []time.Duration{5 * time.Second, 10 * time.Second, 30 * time.Second}
+	if takeoverStreak > 0 {
+		sleepTimes[0] = min(sleepTimes[0]<<min(takeoverStreak, 10), maxAggressiveSetActiveBackoff)
+		gc.UserLogin.Log.Warn().
+			Int("takeover_streak", takeoverStreak).
+			Stringer("backoff", sleepTimes[0]).
+			Msg("Another browser keeps taking over the session, backing off before reactivating")
+	}
+	for _, sleep := range sleepTimes {
 		gc.UserLogin.Log.Info().
 			Int("sleep_seconds", int(sleep.Seconds())).
 			Msg("Aggressively reactivating bridge session after sleep")
 		time.Sleep(sleep)
+		if gc.aggressiveSetActiveGen.Load() != gen {
+			return
+		}
 		if gc.browserInactiveType == "" {
 			gc.UserLogin.Log.Info().Msg("Bridge session became active on its own, not reactivating")
 			return
@@ -428,7 +450,8 @@ func (gc *GMClient) aggressiveSetActive() {
 		if err != nil {
 			gc.UserLogin.Log.Warn().Err(err).Msg("Failed to set self as active session")
 		} else {
-			break
+			gc.lastAggressiveSetActive.Store(time.Now().UnixNano())
+			return
 		}
 	}
 }
