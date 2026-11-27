@@ -78,6 +78,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			})
 		}
 	case *events.ListenTemporaryError:
+		gc.resetPushStream()
 		gc.longPollingError = evt.Error
 		gc.UserLogin.BridgeState.Send(status.BridgeState{
 			StateEvent: status.StateTransientDisconnect,
@@ -85,6 +86,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 			Info:       map[string]any{"go_error": evt.Error.Error()},
 		})
 	case *events.ListenRecovered:
+		gc.resetPushStream()
 		gc.longPollingError = nil
 		go gc.checkPairedPhone()
 		gc.UserLogin.BridgeState.Send(status.BridgeState{StateEvent: status.StateConnected})
@@ -152,6 +154,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *gmproto.Conversation:
 		gc.chatInfoCache.Set(evt.ConversationID, evt)
 		if gc.noDataReceivedRecently {
+			gc.resetPushStream()
 			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
@@ -160,6 +163,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	//case *gmproto.Message:
 	case *libgm.WrappedMessage:
 		if gc.noDataReceivedRecently {
+			gc.resetPushStream()
 			go gc.resyncAfterDataResume(ctx, gc.lastDataReceived)
 		}
 		gc.noDataReceivedRecently = false
@@ -197,6 +201,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 		} else {
 			// There's an extra layer of queueing because QueueRemoteEvent calls some methods on MessageEvent,
 			// which may need to fetch conversations from the phone (to get the stable ID).
+			gc.trackQueuedMessage(evt.GetConversationID(), evt.GetMessageID(), evt.GetTimestamp())
 			select {
 			case gc.messageQueue <- evt:
 			default:
@@ -258,6 +263,7 @@ func (gc *GMClient) handleGMEvent(rawEvt any) {
 	case *events.AccountChange:
 		gc.handleAccountChange(ctx, evt)
 	case *events.NoDataReceived:
+		gc.resetPushStream()
 		gc.noDataReceivedRecently = true
 		go gc.recoverReceiveStall(ctx)
 	case *events.PairSuccessful:
@@ -317,9 +323,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 	}
 	switch v.GetAlertType() {
 	case gmproto.AlertType_BROWSER_INACTIVE:
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactive
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_ACTIVE:
+		gc.resetPushStream()
 		wasInactive := gc.browserInactiveType != "" || !gc.ready
 		gc.browserInactiveType = ""
 		gc.ready = true
@@ -358,9 +366,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 		log.Debug().Msg("Making minimal sync due to mobile database sync complete event")
 		go gc.SyncConversations(ctx, gc.lastDataReceived, true)
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_TIMEOUT:
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveTimeout
 		becameInactive = true
 	case gmproto.AlertType_BROWSER_INACTIVE_FROM_INACTIVITY:
+		gc.resetPushStream()
 		gc.browserInactiveType = GMBrowserInactiveInactivity
 		becameInactive = true
 	case gmproto.AlertType_MOBILE_DATA_CONNECTION:
@@ -380,9 +390,11 @@ func (gc *GMClient) handleUserAlert(ctx context.Context, v *gmproto.UserAlertEve
 			gc.batteryLowAlertSent = time.Time{}
 		}
 	case gmproto.AlertType_PUSH_THROTTLE_STARTED:
+		gc.resetPushStream()
 		gc.pushThrottled.Store(true)
 		return
 	case gmproto.AlertType_PUSH_THROTTLE_ENDED:
+		gc.resetPushStream()
 		gc.pushThrottled.Store(false)
 		go gc.resyncChatsWithPendingSends(context.WithoutCancel(ctx))
 		return
@@ -481,9 +493,15 @@ func (gc *GMClient) invalidateSessionIfCredentialError(ctx context.Context, err 
 	case errors.Is(err, events.ErrRequestedEntityNotFound):
 		state.Error = GMUnpaired404
 		go gc.invalidateSession(ctx, state, true, false)
+	case errors.Is(err, libgm.ErrPairingKeysRejected):
+		state.Error = GMUnpairedKeysRejected
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.Is(err, events.ErrInvalidCredentials):
 		state.Error = GMLoggedOutInvalidCreds
 		go gc.invalidateSession(ctx, state, false, true)
+	case errors.Is(err, libgm.ErrPairingPermissionDenied):
+		state.Error = GMUnpaired403
+		go gc.invalidateSession(ctx, state, true, false)
 	case errors.As(err, &httpErr) && httpErr.Action == "polling" && httpErr.Resp.StatusCode == http.StatusUnauthorized:
 		state.Error = GMLoggedOut401
 		if isWorkspaceEmail(gc.Meta.Session.Mobile.GetSourceID()) {
@@ -801,6 +819,12 @@ func (m *MessageEvent) GetPortalKey() networkid.PortalKey {
 }
 
 func (m *MessageEvent) ShouldCreatePortal() bool {
+	if conv, ok := m.g.chatInfoCache.Get(m.ConversationID); ok {
+		switch conv.GetStatus() {
+		case gmproto.ConversationStatus_SPAM_FOLDER, gmproto.ConversationStatus_DELETED, gmproto.ConversationStatus_TRASH_FOLDER:
+			return false
+		}
+	}
 	switch m.GetMessageStatus().GetStatus() {
 	case gmproto.MessageStatusType_INCOMING_COMPLETE, gmproto.MessageStatusType_OUTGOING_COMPLETE,
 		gmproto.MessageStatusType_OUTGOING_DELIVERED, gmproto.MessageStatusType_OUTGOING_DISPLAYED:

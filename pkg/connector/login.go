@@ -71,9 +71,9 @@ var (
 	ErrPairPhoneNotFound      = bridgev2.RespError{Err: pairingErrMsgPhoneNotFound, ErrCode: "FI.MAU.GMESSAGES.PAIR_PHONE_NOT_FOUND", StatusCode: http.StatusBadRequest}
 	ErrPairPhoneInactive      = bridgev2.RespError{Err: pairingErrMsgPhoneInactive, ErrCode: "FI.MAU.GMESSAGES.PAIR_PHONE_INACTIVE", StatusCode: http.StatusBadRequest}
 	ErrPairIncorrectEmoji     = bridgev2.RespError{Err: pairingErrMsgIncorrectEmoji, ErrCode: "FI.MAU.GMESSAGES.PAIR_INCORRECT_EMOJI", StatusCode: http.StatusBadRequest}
-	ErrPairCancelled          = bridgev2.RespError{Err: pairingErrMsgCancelled, ErrCode: "FI.MAU.GMESSAGES.PAIR_CANCELLED", StatusCode: http.StatusBadRequest}
-	ErrPairTimeout            = bridgev2.RespError{Err: pairingErrMsgTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_TIMEOUT", StatusCode: http.StatusBadRequest}
-	ErrPairQRTimeout          = bridgev2.RespError{Err: pairingErrMsgQRTimeout, ErrCode: "FI.MAU.GMESSAGES.PAIR_QR_TIMEOUT", StatusCode: http.StatusBadRequest}
+	ErrPairCancelled          = bridgev2.ErrLoginCancelled.WithMessage(pairingErrMsgCancelled)
+	ErrPairTimeout            = bridgev2.ErrLoginTimedOut.WithMessage(pairingErrMsgTimeout)
+	ErrPairQRTimeout          = bridgev2.ErrLoginTimedOut.WithMessage(pairingErrMsgQRTimeout)
 	ErrPairCallerNoPermission = bridgev2.RespError{Err: pairingErrMsgCallerNoPermission, ErrCode: "FI.MAU.GMESSAGES.ACCOUNT_CANT_PAIR", StatusCode: http.StatusBadRequest}
 	ErrPairStartUnknown       = bridgev2.RespError(mautrix.MUnknown.WithMessage(pairingErrMsgStartUnknown))
 	ErrPairWaitUnknown        = bridgev2.RespError(mautrix.MUnknown.WithMessage(pairingErrMsgWaitUnknown))
@@ -81,8 +81,8 @@ var (
 )
 
 var LoginFlows = []bridgev2.LoginFlow{{
-	Name:        "Google Account",
-	Description: "Log in with your Google account and pair by tapping an emoji on your phone",
+	Name:        msgFlowGoogleName.Message(),
+	Description: msgFlowGoogleDescription.Message(),
 	ID:          LoginFlowIDGoogle,
 }, /*, {
 	Name:        "QR",
@@ -147,7 +147,7 @@ func (ql *QRLoginProcess) Start(ctx context.Context) (*bridgev2.LoginStep, error
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeDisplayAndWait,
 		StepID:       LoginStepIDQR,
-		Instructions: "Scan the QR code using the Google Messages app on your Android phone",
+		Instructions: msgStepQRInstructions.Message(),
 		DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
 			Type: bridgev2.LoginDisplayTypeQR,
 			Data: qr,
@@ -191,7 +191,7 @@ func (ql *QRLoginProcess) Wait(ctx context.Context) (*bridgev2.LoginStep, error)
 		return &bridgev2.LoginStep{
 			Type:         bridgev2.LoginStepTypeDisplayAndWait,
 			StepID:       LoginStepIDQR,
-			Instructions: "Scan the QR code using the Google Messages app on your Android phone",
+			Instructions: msgStepQRInstructions.Message(),
 			DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
 				Type: bridgev2.LoginDisplayTypeQR,
 				Data: newQR,
@@ -249,7 +249,7 @@ func init() {
 	loginStepCookies = &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeCookies,
 		StepID:       LoginStepIDGoogle,
-		Instructions: "Enter a JSON object with your cookies, or a cURL command copied from browser devtools.",
+		Instructions: msgStepCookiesInstructions.Message(),
 		CookiesParams: &bridgev2.LoginCookiesParams{
 			URL:    "https://accounts.google.com/AccountChooser?continue=https://messages.google.com/web/config",
 			Fields: cookieFields,
@@ -319,7 +319,7 @@ func (gl *GoogleLoginProcess) doOverrideLogin(ctx context.Context, cookies map[s
 		return &bridgev2.LoginStep{
 			Type:         bridgev2.LoginStepTypeComplete,
 			StepID:       LoginStepIDComplete,
-			Instructions: "Successfully re-authenticated",
+			Instructions: msgStepReauthInstructions.Message(),
 			CompleteParams: &bridgev2.LoginCompleteParams{
 				UserLoginID: gl.Override.ID,
 				UserLogin:   gl.Override,
@@ -390,7 +390,7 @@ func (gl *GoogleLoginProcess) submitWithAuthData(ctx context.Context, ad *libgm.
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeDisplayAndWait,
 		StepID:       LoginStepIDEmoji,
-		Instructions: "Tap the emoji on the Google Messages app on your phone",
+		Instructions: msgStepEmojiInstructions.Message(),
 		DisplayAndWaitParams: &bridgev2.LoginDisplayAndWaitParams{
 			Type:     bridgev2.LoginDisplayTypeEmoji,
 			Data:     emoji,
@@ -464,7 +464,7 @@ func (gc *GMConnector) finishLogin(ctx context.Context, user *bridgev2.User, cli
 	return &bridgev2.LoginStep{
 		Type:         bridgev2.LoginStepTypeComplete,
 		StepID:       LoginStepIDComplete,
-		Instructions: "Successfully logged in",
+		Instructions: msgStepCompleteInstructions.Message(),
 		CompleteParams: &bridgev2.LoginCompleteParams{
 			UserLoginID: ul.ID,
 			UserLogin:   ul,

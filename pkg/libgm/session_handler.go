@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http/httptrace"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 
+	"go.mau.fi/mautrix-gmessages/pkg/libgm/events"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 	"go.mau.fi/mautrix-gmessages/pkg/libgm/util"
 )
@@ -23,6 +26,12 @@ var ErrPhoneNotResponding = errors.New("phone did not respond to request")
 
 // ErrConnectionClosed is returned for requests that were still waiting for a response when the client was disconnected.
 var ErrConnectionClosed = errors.New("client disconnected before response was received")
+
+var ErrNoServerResponse = errors.New("request was sent, but the server didn't respond")
+
+var ErrPairingPermissionDenied = errors.New("requests to the phone keep getting permission denied")
+
+const permissionDeniedLimit = 3
 
 // pingShortCircuitTimeout is how long to wait for a response before poking the ditto pinger
 // (which will send a PhoneNotResponding event if its ping doesn't get a response quickly either).
@@ -47,6 +56,8 @@ type SessionHandler struct {
 	ackStop    chan struct{}
 
 	sessionID string
+
+	permissionDenials atomic.Int32
 }
 
 func (s *SessionHandler) ResetSessionID() {
@@ -61,17 +72,26 @@ func (s *SessionHandler) sendMessageNoResponse(ctx context.Context, params SendM
 		return err
 	}
 
-	url := util.SendMessageURL
-	if s.client.AuthData.HasCookies() {
-		url = util.SendMessageURLGoogle
-	}
 	s.client.Logger.Debug().
 		Stringer("message_action", params.Action).
 		Str("message_id", requestID).
 		Msg("Sending request to phone (not expecting response)")
-	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
+	return s.postMessage(ctx, payload)
+}
+
+func (s *SessionHandler) postMessage(ctx context.Context, payload proto.Message) error {
+	url := util.SendMessageURL
+	if s.client.AuthData.HasCookies() {
+		url = util.SendMessageURLGoogle
+	}
+	_, err := typedHTTPResponse[*gmproto.OutgoingRPCResponse](
 		s.client.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, false),
 	)
+	if !errors.Is(err, events.ErrCallerNoPermission) {
+		s.permissionDenials.Store(0)
+	} else if s.permissionDenials.Add(1) == permissionDeniedLimit {
+		s.client.triggerEvent(&events.ListenFatalError{Error: fmt.Errorf("%w: %w", ErrPairingPermissionDenied, err)})
+	}
 	return err
 }
 
@@ -87,19 +107,24 @@ func (s *SessionHandler) sendAsyncMessageWithID(ctx context.Context, params Send
 	}
 
 	ch := s.waitResponse(requestID)
-	url := util.SendMessageURL
-	if s.client.AuthData.HasCookies() {
-		url = util.SendMessageURLGoogle
-	}
 	s.client.Logger.Debug().
 		Stringer("message_action", params.Action).
 		Str("message_id", requestID).
 		Msg("Sending request to phone")
-	_, err = typedHTTPResponse[*gmproto.OutgoingRPCResponse](
-		s.client.makeProtobufHTTPRequestContext(ctx, url, payload, ContentTypePBLite, false),
-	)
+	var requestWritten atomic.Bool
+	traceCtx := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		WroteRequest: func(info httptrace.WroteRequestInfo) {
+			if info.Err == nil {
+				requestWritten.Store(true)
+			}
+		},
+	})
+	err = s.postMessage(traceCtx, payload)
 	if err != nil {
 		s.cancelResponse(requestID, ch)
+		if requestWritten.Load() && !errors.As(err, &events.HTTPError{}) {
+			err = fmt.Errorf("%w: %w", ErrNoServerResponse, err)
+		}
 		return nil, "", err
 	}
 	return ch, requestID, nil
@@ -220,7 +245,7 @@ func (s *SessionHandler) sendMessageWithParams(ctx context.Context, params SendM
 			return resp, nil
 		case <-ctx.Done():
 			s.cancelResponse(requestID, ch)
-			return nil, ctx.Err()
+			return nil, fmt.Errorf("%w: %w", ErrNoServerResponse, ctx.Err())
 		case <-shortCircuit:
 			// Notify the pinger in order to trigger an event that the phone isn't responding
 			select {
