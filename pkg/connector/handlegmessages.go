@@ -1578,6 +1578,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 			continue
 		}
 		var content event.MessageEventContent
+		var extra map[string]any
 		dbMeta := &MessageMetadata{
 			Type:        m.GetMessageStatus().GetStatus(),
 			MessageType: m.GetType(),
@@ -1596,6 +1597,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 				MsgType: event.MsgNotice,
 				Body:    fmt.Sprintf("Waiting for attachment %s", data.MediaContent.GetMediaName()),
 			}
+			extra = map[string]any{"fi.mau.gmessages.media_pending": true}
 		} else if contentPtr, mediaID, isThumbnail, err := gc.convertGoogleMedia(ctx, portal, intent, data.MediaContent); err != nil {
 			dbMeta.MediaFailed = isPermanentMediaError(err)
 			dbMeta.MediaPending = !dbMeta.MediaFailed
@@ -1621,6 +1623,7 @@ func (gc *GMClient) ConvertGoogleMessage(ctx context.Context, portal *bridgev2.P
 			ID:         partID,
 			Type:       event.EventMessage,
 			Content:    &content,
+			Extra:      extra,
 			DBMetadata: dbMeta,
 			DontBridge: dontBridge,
 		})
