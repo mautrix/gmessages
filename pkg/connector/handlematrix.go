@@ -31,6 +31,7 @@ import (
 	"maunium.net/go/mautrix/bridgev2"
 	"maunium.net/go/mautrix/bridgev2/database"
 	"maunium.net/go/mautrix/bridgev2/networkid"
+	"maunium.net/go/mautrix/bridgev2/status"
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
@@ -105,6 +106,13 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			Msg("Phone rejected message send")
 		msg.RemovePending(txnID)
 		rse := (*responseStatusError)(resp)
+		if rse.Status == 0 && !rse.isAccountSwitch() && gc.sendRejections.Add(1) == sendRejectionLimit {
+			gc.invalidateSession(ctx, status.BridgeState{
+				StateEvent: status.StateBadCredentials,
+				Error:      GMUnpairedSendsRejected,
+				UserAction: status.UserActionRelogin,
+			}, true, false)
+		}
 		msgStatus := bridgev2.WrapErrorInStatus(rse).
 			WithIsCertain(!isTransientSendFailure(resp.Status)).WithSendNotice(true).WithErrorAsMessage()
 		if rse.needsUserAction() {
@@ -114,11 +122,14 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 		}
 		return nil, msgStatus
 	}
+	gc.sendRejections.Store(0)
 	gc.trackPendingSend(txnID, req.GetConversationID())
 	return &bridgev2.MatrixMessageResponse{Pending: true}, nil
 }
 
 var sendRetryBackoff = []time.Duration{3 * time.Second, 8 * time.Second, 20 * time.Second}
+
+const sendRejectionLimit = 3
 
 func isTransientSendFailure(status gmproto.SendMessageResponse_Status) bool {
 	switch status {

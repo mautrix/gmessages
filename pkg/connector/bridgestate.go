@@ -51,6 +51,7 @@ const (
 	GMPhoneNotResponding        status.BridgeStateErrorCode = "gm-phone-not-responding"
 	GMSwitchedToGoogleLogin     status.BridgeStateErrorCode = "gm-switched-to-google-login"
 	GMPairedPhoneGone           status.BridgeStateErrorCode = "gm-paired-phone-gone"
+	GMUnpairedSendsRejected     status.BridgeStateErrorCode = "gm-unpaired-sends-rejected"
 )
 
 func init() {
@@ -79,6 +80,7 @@ func init() {
 		GMPhoneNotResponding:        PhoneNotRespondingMessage,
 		GMSwitchedToGoogleLogin:     "You switched to Google account pairing, please log in to continue using SMS/RCS",
 		GMPairedPhoneGone:           "Google Messages on your phone was reset or moved to another phone, please re-link the connection to continue using SMS/RCS",
+		GMUnpairedSendsRejected:     "Google Messages on your phone keeps rejecting messages sent through this connection, please re-link the connection to continue using SMS/RCS",
 	})
 }
 
