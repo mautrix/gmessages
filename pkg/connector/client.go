@@ -74,7 +74,6 @@ type GMClient struct {
 	syncingMobileDatabase  atomic.Bool
 	pushThrottled          atomic.Bool
 	phoneHasNoSIM          atomic.Bool
-	sendRejections         atomic.Int32
 	stallRecoveryRunning   atomic.Bool
 	phoneCheckRunning      atomic.Bool
 	lastConversationList   atomic.Int64

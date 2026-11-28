@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"maunium.net/go/mautrix"
 	"maunium.net/go/mautrix/bridgev2"
@@ -34,14 +33,14 @@ import (
 type responseStatusError gmproto.SendMessageResponse
 
 func (rse *responseStatusError) isAccountSwitch() bool {
-	return rse.Status == 0 && rse.GoogleAccountSwitch != nil && strings.ContainsRune(rse.GoogleAccountSwitch.GetAccount(), '@')
+	return rse.Status == 0 && rse.GoogleAccountSwitch != nil
 }
 
 func (rse *responseStatusError) Error() string {
 	switch rse.Status {
 	case 0:
 		if rse.isAccountSwitch() {
-			return "Switch back to QR pairing or log in with Google account to send messages"
+			return "Google Messages switched to Google account pairing, please log in with your Google account to send messages"
 		}
 		return "Google Messages on your phone rejected the message. Check that you can send from the Messages app, or try re-pairing"
 	case gmproto.SendMessageResponse_FAILURE_2:

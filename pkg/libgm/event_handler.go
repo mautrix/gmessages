@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -132,7 +131,10 @@ func (c *Client) decryptInternalMessage(data *gmproto.IncomingRPCMessage) (*Inco
 				Bool("has_account_change", ed2c.AccountChange != nil).
 				Msg("Got data event with encrypted data in field 11")
 			// Hacky hack to have User.handleAccountChange do the right-ish thing on startup
-			if strings.ContainsRune(ed2c.GetAccountChange().GetAccount(), '@') {
+			if ed2c.AccountChange != nil && !c.AuthData.IsGoogleAccount() {
+				if resp, ok := msg.DecryptedMessage.(*gmproto.SendMessageResponse); ok {
+					resp.GoogleAccountSwitch = ed2c.AccountChange
+				}
 				c.triggerEvent(&events.AccountChange{
 					AccountChangeOrSomethingEvent: ed2c.GetAccountChange(),
 					IsFake:                        true,
