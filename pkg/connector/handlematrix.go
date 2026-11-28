@@ -106,8 +106,10 @@ func (gc *GMClient) HandleMatrixMessage(ctx context.Context, msg *bridgev2.Matri
 			Msg("Phone rejected message send")
 		msg.RemovePending(txnID)
 		rse := (*responseStatusError)(resp)
-		if rse.Status == 0 && !rse.isAccountSwitch() && gc.sendRejections.Add(1) == sendRejectionLimit {
-			gc.invalidateSession(ctx, status.BridgeState{
+		if rse.Status != 0 || rse.isAccountSwitch() {
+			gc.sendRejections.Store(0)
+		} else if gc.sendRejections.Add(1) == sendRejectionLimit {
+			gc.invalidateSession(gc.UserLogin.Log.WithContext(gc.Main.br.BackgroundCtx), status.BridgeState{
 				StateEvent: status.StateBadCredentials,
 				Error:      GMUnpairedSendsRejected,
 				UserAction: status.UserActionRelogin,
