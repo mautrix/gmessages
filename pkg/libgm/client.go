@@ -356,7 +356,10 @@ func (c *Client) postConnect() {
 	}()
 	bugleRes, err := c.IsBugleDefault(ctx)
 	close(doneChan)
-	if err != nil {
+	if errors.Is(err, ErrPhoneNotResponding) {
+		c.Logger.Warn().Err(err).Msg("Failed to check bugle default")
+		return
+	} else if err != nil {
 		c.Logger.Err(err).Msg("Failed to check bugle default")
 		return
 	}
